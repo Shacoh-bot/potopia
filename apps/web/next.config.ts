@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:dir(apothicaire|audio|emeralds|jojo|luffy|onepiece|orb|sonic)/:file*",
+        source: "/:dir(apothicaire|apps|audio|emeralds|jojo|luffy|onepiece|orb|sonic)/:file*",
         headers: [
           {
             key: "Cache-Control",
