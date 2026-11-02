@@ -362,7 +362,9 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
 - `art` (facultatif) : chemin d'une illustration carrée de `apps/web/public/apps/`, qui remplit
   toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Toutes les
   apps actuelles en ont une (`apps/<id>.webp`, 480 px, recadrées sur leur cadre néon : même
-  mascotte, titre et sous-titre de l'app). Au survol, styles `.app-art*` de `theme.css` : la tuile
+  mascotte, titre et sous-titre de l'app). Une illustration remplacée prend un nouveau nom
+  (`trois-2.webp`) : `public/apps/` est gardé un jour par le navigateur, l'ancienne image
+  resterait affichée sous le même nom. Au survol, styles `.app-art*` de `theme.css` : la tuile
   se penche et grossit, un cadre en dégradé conique tourne autour, l'image zoome et s'éclaire,
   une lueur pulse et le reflet `.shine` balaie. Cadre et lueur aux couleurs de Wordle dans les
   thèmes de base (Classique, Fantasy, RGB), à celles du thème (`--accent`, `--arcane`) dans JoJo,

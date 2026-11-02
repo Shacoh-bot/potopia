@@ -33,7 +33,7 @@ export const apps: readonly AppEntry[] = [
     icon: "grid",
     route: "/trois",
     requiredRole: "member",
-    art: "/apps/trois.webp",
+    art: "/apps/trois-2.webp",
     artLetters: "OUI",
   },
   {
