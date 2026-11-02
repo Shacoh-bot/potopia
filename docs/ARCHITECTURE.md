@@ -568,16 +568,18 @@ sous les yeux du joueur à Agents Doubles. Dès la défaite, la page se fige en 
 
 **Mao Mao** (Les Carnets de l'apothicaire, `apps/web/components/MaoMao.tsx`, layout racine), à
 TROIS (`maoMao()` / `maoMaoSoon()` de `@app/ui`, appelés par `maoReact` de `games/trois/ui/Game.tsx`,
-mode test compris). Au 3e essai raté de suite sur un mot, elle juge : la page s'assombrit sous des
-pétales de prunier, un rouleau suspendu se déroule (tringles laquées, brocart), avec son regard
+mode test compris). Au 3e essai raté de suite sur un mot, elle juge : à droite du jeu (contre le
+bord de la fenêtre quand la place manque), sous quelques pétales de prunier, un rouleau suspendu
+glisse et se déroule (tringles laquées, brocart), avec son regard
 qui s'assombrit, main sur la bouche (`public/apothicaire/mao-judge.mp4`), une réplique tirée au
 hasard (clins d'œil à l'anime) et un sceau vermillon « 三連続 » (trois de suite) qui s'imprime. À
 l'avant-dernier essai, son dégoût, cachée derrière sa manche (`mao-disgust.mp4`, « 五連続 »). Le
 mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du coin de
 l'écran avec un sourire narquois. Petite phrase de cordes pincées synthétisée (Karplus-Strong,
-pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Le rouleau dure 4,5 s et
-se ferme au premier clic ou à la première touche (on continue de taper) ; le mot perdu garde «
-To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les
+pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
+pas de voile sur la page, les clics traversent le rouleau (`pointer-events: none`, on continue de
+taper au clavier ou sur les lettres à l'écran) et il repart seul au bout de 4 s, sans clic ; le
+mot perdu garde « To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les
 membres (extraits de l'anime) ; Mao Mao détourée avec rembg (modèle isnet-anime), hors du dépôt.
 
 **Paramètres** (`/parametres`, entrée « Paramètres » du menu de l'avatar du header,

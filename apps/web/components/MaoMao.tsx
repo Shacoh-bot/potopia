@@ -2,7 +2,6 @@
 
 /* eslint-disable @next/next/no-img-element -- image détourée déjà optimisée (WebP), pas de next/image */
 import {
-  cx,
   effectiveVolume,
   MAO_MAO_EVENT,
   MAO_MAO_SOON_EVENT,
@@ -14,11 +13,12 @@ import { createPortal } from "react-dom";
 
 /*
  * Mao Mao (Les Carnets de l'apothicaire) juge les essais ratés à TROIS. Au 3e raté de suite sur un
- * mot, un rouleau suspendu se déroule : son regard qui s'assombrit, main sur la bouche, un sceau
- * vermillon « 三連続 » (trois de suite) et une réplique ; à l'avant-dernier essai, son dégoût,
- * cachée derrière sa manche. Le mot enfin trouvé après au moins 3 ratés : elle surgit, détourée, du
- * coin de l'écran, avec un sourire narquois. Le rouleau est court et se ferme à la première touche
- * (on continue de taper). Déclenché par `maoMao()` de `@app/ui`. Monté une fois, layout racine.
+ * mot, un rouleau suspendu se déroule à droite du jeu : son regard qui s'assombrit, main sur la
+ * bouche, un sceau vermillon « 三連続 » (trois de suite) et une réplique ; à l'avant-dernier essai,
+ * son dégoût, cachée derrière sa manche. Le mot enfin trouvé après au moins 3 ratés : elle surgit,
+ * détourée, du coin de l'écran, avec un sourire narquois. Rien ne bloque le jeu : les clics
+ * traversent (on continue de taper, au clavier ou sur les lettres à l'écran) et tout repart seul
+ * après quelques secondes. Déclenché par `maoMao()` de `@app/ui`. Monté une fois, layout racine.
  */
 
 const MEDIA = {
@@ -91,7 +91,7 @@ const TUNES: Record<MaoMood, number[]> = {
 };
 
 type Scene = { mood: MaoMood; misses: number; line: string; key: number };
-const SCROLL_MS = 4500;
+const SCROLL_MS = 4000; // = la durée de l'animation .mao-layer
 const SMUG_MS = 4200;
 
 export function MaoMao() {
@@ -127,15 +127,11 @@ export function MaoMao() {
         mood === "smug" ? SMUG_MS : SCROLL_MS,
       );
     };
-    // n'importe quelle touche ferme le rouleau : on est en train de taper un mot
-    const onKey = () => setScene((s) => (s && s.mood !== "smug" ? null : s));
     window.addEventListener(MAO_MAO_SOON_EVENT, preload);
     window.addEventListener(MAO_MAO_EVENT, onMood);
-    window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener(MAO_MAO_SOON_EVENT, preload);
       window.removeEventListener(MAO_MAO_EVENT, onMood);
-      window.removeEventListener("keydown", onKey);
       window.clearTimeout(timer.current);
     };
   }, []);
@@ -156,10 +152,10 @@ export function MaoMao() {
   return createPortal(
     <div
       key={scene.key}
-      className={cx("mao-layer", scene.mood === "disgust" && "mao-layer-disgust")}
-      role="dialog"
+      className="mao-layer"
+      role="status"
+      aria-live="polite"
       aria-label={`${scene.misses} essais ratés de suite. ${scene.line}`}
-      onClick={() => setScene(null)}
     >
       <div className="mao-petals" aria-hidden>
         {Array.from({ length: 10 }, (_, i) => (
