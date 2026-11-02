@@ -37,16 +37,23 @@ const DAZED_AT = 100; // ses yeux se ferment
 const LAUNCH_AT = 118; // envoyée sur le bord de l'écran, au bout d'une dizaine de secondes
 const MASCOT_PAD = 24; // autour d'elle, les coups sont encore pour elle
 /** Blessures de la mascotte, de plus en plus graves : à partir de combien de coups. */
+// Posées par rapport aux repères de la vraie mascotte : ses yeux derrière ses lunettes (paupières de
+// Mascot.tsx), le nez et la bouche en dessous, la couronne sur le haut du crâne.
 const INJURIES: readonly (readonly [number, string])[] = [
-  [10, "bruise"],
-  [22, "bandage"],
-  [34, "bruise-chin"],
-  [52, "bump"],
-  [64, "black-eye"],
-  [76, "bandage-cheek"],
-  [88, "swelling"],
-  [100, "dizzy"],
+  [8, "bruise"],
+  [16, "nosebleed"],
+  [26, "cut-brow"],
+  [36, "bruise-chin"],
+  [52, "black-eye"],
+  [62, "glasses-crack"],
+  [72, "mouth-blood"],
+  [82, "swelling"],
+  [92, "cut-cheek"],
+  [100, "tears"],
+  [106, "dizzy"],
+  [112, "blood-face"],
 ];
+const PAIN = ["グハッ", "ぐっ…", "痛ッ", "ゴフッ", "ガハッ"];
 const SMALL_EVERY_MS = 160; // un petit élément ne réagit pas à chaque coup
 const RING_EVERY_MS = 650; // Sonic perd des anneaux au plus toutes les 650 ms
 const REPAIR_MS = 4300; // durée de la réparation par Crazy Diamond
@@ -216,93 +223,75 @@ function shardPolygons(w: number, h: number, x: number, y: number, parts: number
   return polys;
 }
 
-/**
- * Morceaux d'une case de w × h brisée le long de sa fissure principale (ses deux troncs, partis du
- * même point) : la fissure, prolongée jusqu'aux bords gauche et droit, coupe la case en deux ; des
- * lignes brisées partent de points de la fissure vers le haut et vers le bas et découpent chaque
- * moitié. Polygones en px, qui couvrent toute la case sans se chevaucher.
- */
-function crackShards(w: number, h: number, a: Point[], b: Point[], cuts: number): Point[][] {
-  // la fissure de gauche à droite : le tronc qui finit le plus à gauche, retourné, puis l'autre
-  const aEnd = a[a.length - 1] ?? [0, 0];
-  const bEnd = b[b.length - 1] ?? [0, 0];
-  const [left, right] = aEnd[0] <= bEnd[0] ? [a, b] : [b, a];
-  const line: Point[] = [...[...left].reverse(), ...right.slice(1)].map(([x, y]) => [
+/** Position d'un point du bord de la case w × h, comptée sur son tour (sens horaire depuis le coin
+ * haut gauche). */
+function perimeter(w: number, h: number, [x, y]: Point): number {
+  if (y <= 0.5) return x;
+  if (x >= w - 0.5) return w + y;
+  if (y >= h - 0.5) return w + h + (w - x);
+  return 2 * w + h + (h - y);
+}
+
+/** Prolonge le trait jusqu'au bord de la case, dans la direction de son dernier segment. */
+function toBorder(w: number, h: number, pts: Point[]): Point[] {
+  const clamp = ([x, y]: Point): Point => [
     Math.min(Math.max(x, 0), w),
-    Math.min(Math.max(y, 1), h - 1),
-  ]);
-  const first = line[0] ?? [0, h / 2];
-  const last = line[line.length - 1] ?? [w, h / 2];
-  if (first[0] > 0) line.unshift([0, first[1]]);
-  if (last[0] < w) line.push([w, last[1]]);
-  // tour de la case (sens horaire depuis le coin haut gauche), compté à partir du bout gauche
+    Math.min(Math.max(y, 0), h),
+  ];
+  const out = pts.map(clamp);
+  const last = out[out.length - 1] ?? [w / 2, h / 2];
+  if (last[0] <= 0 || last[1] <= 0 || last[0] >= w || last[1] >= h) return out;
+  const prev = out[out.length - 2] ?? [w / 2, h / 2];
+  const a = Math.atan2(last[1] - prev[1], last[0] - prev[0]);
+  const dx = Math.cos(a);
+  const dy = Math.sin(a);
+  const tx = dx > 1e-6 ? (w - last[0]) / dx : dx < -1e-6 ? -last[0] / dx : Infinity;
+  const ty = dy > 1e-6 ? (h - last[1]) / dy : dy < -1e-6 ? -last[1] / dy : Infinity;
+  const t = Math.min(tx, ty);
+  out.push(clamp([last[0] + dx * t, last[1] + dy * t]));
+  return out;
+}
+
+/**
+ * Morceaux d'une case de w × h brisée le long de sa fissure principale : ses branches, parties du
+ * même point vers les bords, la découpent en secteurs (une seule branche : une coupe invisible,
+ * à l'opposé, ferme le second). Polygones en px, qui couvrent toute la case.
+ */
+function sectorShards(w: number, h: number, origin: Point, branches: Point[][]): Point[][] {
+  const lines = branches.filter((b) => b.length >= 2).map((b) => toBorder(w, h, b));
+  if (lines.length === 1) {
+    const end = lines[0]?.[lines[0].length - 1] ?? [w, h / 2];
+    const a = Math.atan2(origin[1] - end[1], origin[0] - end[0]) + rand(-0.5, 0.5);
+    lines.push(
+      toBorder(w, h, [origin, [origin[0] + Math.cos(a) * 20, origin[1] + Math.sin(a) * 20]]),
+    );
+  }
+  if (lines.length < 2) return [];
   const P = 2 * (w + h);
-  const around = ([x, y]: Point) => {
-    const t =
-      y <= 0.5 ? x : x >= w - 0.5 ? w + y : y >= h - 0.5 ? w + h + (w - x) : 2 * w + h + (h - y);
-    return (t - (2 * w + h + (h - (line[0]?.[1] ?? 0))) + 2 * P) % P;
-  };
+  const end = (l: Point[]) => perimeter(w, h, l[l.length - 1] ?? origin);
+  lines.sort((u, v) => end(u) - end(v));
   const corners: Point[] = [
     [0, 0],
     [w, 0],
     [w, h],
     [0, h],
   ];
-  const cornersBetween = (from: number, to: number) =>
-    corners
-      .map((c) => ({ c, t: around(c) }))
-      .filter(({ t }) => t > Math.min(from, to) && t < Math.max(from, to))
-      .sort((u, v) => (from < to ? u.t - v.t : v.t - u.t))
+  return lines.map((a, i) => {
+    const b = lines[(i + 1) % lines.length] ?? a;
+    const from = end(a);
+    let to = end(b);
+    if (to <= from) to += P;
+    // coins du bord entre les deux branches, dans le sens horaire
+    const between = corners
+      .flatMap((c) => [
+        { c, t: perimeter(w, h, c) },
+        { c, t: perimeter(w, h, c) + P },
+      ])
+      .filter(({ t }) => t > from && t < to)
+      .sort((u, v) => u.t - v.t)
       .map(({ c }) => c);
-  // points de départ des découpes, répartis le long de la fissure
-  const picks = Array.from({ length: cuts }, (_, i) =>
-    Math.round(((i + 1) / (cuts + 1)) * (line.length - 1)),
-  ).filter((v, i, all) => v > 0 && v < line.length - 1 && all.indexOf(v) === i);
-  const spread = (w / (picks.length + 1)) * 0.3;
-  // ligne brisée d'un point de la fissure jusqu'au bord haut (ou bas)
-  const toEdge = ([x, y]: Point, edge: number): Point[] => {
-    const pts: Point[] = [[x, y]];
-    for (const k of [0.35, 0.7]) {
-      pts.push([
-        Math.min(Math.max(x + rand(-spread, spread), 1), w - 1),
-        y + (edge - y) * k + rand(-4, 4),
-      ]);
-    }
-    pts.push([Math.min(Math.max(x + rand(-spread, spread), 1), w - 1), edge]);
-    return pts;
-  };
-  const ups = picks.map((i) => toEdge(line[i] ?? [0, 0], 0));
-  const downs = picks.map((i) => toEdge(line[i] ?? [0, 0], h));
-  const edges = [0, ...picks, line.length - 1];
-  const polys: Point[][] = [];
-  for (let k = 0; k + 1 < edges.length; k++) {
-    const i = edges[k] ?? 0;
-    const j = edges[k + 1] ?? 0;
-    const crack = line.slice(i, j + 1);
-    // au-dessus de la fissure : on remonte par la découpe de droite, on revient par le haut
-    const upI = k === 0 ? [line[0] ?? [0, 0]] : (ups[k - 1] ?? []);
-    const upJ = k + 1 === edges.length - 1 ? [line[j] ?? [w, 0]] : (ups[k] ?? []);
-    const topI = around(upI[upI.length - 1] ?? [0, 0]);
-    const topJ = around(upJ[upJ.length - 1] ?? [0, 0]);
-    polys.push([
-      ...crack,
-      ...upJ.slice(1),
-      ...cornersBetween(topJ, topI),
-      ...[...upI].reverse().slice(0, -1),
-    ]);
-    // en dessous : on descend par la découpe de droite, on revient par le bas
-    const downI = k === 0 ? [line[0] ?? [0, 0]] : (downs[k - 1] ?? []);
-    const downJ = k + 1 === edges.length - 1 ? [line[j] ?? [w, 0]] : (downs[k] ?? []);
-    const botI = k === 0 ? P : around(downI[downI.length - 1] ?? [0, 0]);
-    const botJ = around(downJ[downJ.length - 1] ?? [0, 0]);
-    polys.push([
-      ...crack,
-      ...downJ.slice(1),
-      ...cornersBetween(botJ, botI),
-      ...[...downI].reverse().slice(0, -1),
-    ]);
-  }
-  return polys;
+    return [...a, ...between, ...[...b].reverse().slice(0, -1)];
+  });
 }
 
 const area = (poly: Point[]) =>
@@ -385,7 +374,7 @@ export function createDamage(env: Env): Damage {
   type MainCrack = {
     svg: SVGSVGElement;
     origin: Point;
-    trunks: [Trunk, Trunk];
+    trunks: Trunk[];
     twigs: number;
     webs: number;
   };
@@ -544,11 +533,24 @@ export function createDamage(env: Env): Damage {
         Math.min(Math.max(hx + (w / 2 - hx) * pull + rand(-0.06, 0.06) * w, w * 0.15), w * 0.85),
         Math.min(Math.max(hy + (h / 2 - hy) * pull + rand(-0.06, 0.06) * h, h * 0.2), h * 0.8),
       ];
-      // les deux troncs partent dans des directions opposées, en travers de la case
-      const cap = Math.atan2(h * rand(-0.35, 0.35), w);
-      // distance jusqu'au bord gauche ou droit, en suivant le cap
-      const reach = (a: number) =>
-        (Math.cos(a) > 0 ? w - origin[0] : origin[0]) / Math.max(Math.abs(Math.cos(a)), 0.5);
+      // 1, 2 ou 3 branches, dans des directions au hasard (haut, bas, en diagonale…), assez
+      // écartées pour ne jamais se croiser
+      const count = Math.random() < 0.28 ? 1 : Math.random() < 0.6 ? 2 : 3;
+      const base = rand(0, Math.PI * 2);
+      const caps =
+        count === 1
+          ? [base]
+          : count === 2
+            ? [base, base + Math.PI + rand(-0.7, 0.7)]
+            : [0, 1, 2].map((i) => base + (i * Math.PI * 2) / 3 + rand(-0.3, 0.3));
+      // distance jusqu'au bord, en suivant la direction
+      const reach = (a: number) => {
+        const dx = Math.cos(a);
+        const dy = Math.sin(a);
+        const tx = dx > 1e-6 ? (w - origin[0]) / dx : dx < -1e-6 ? -origin[0] / dx : Infinity;
+        const ty = dy > 1e-6 ? (h - origin[1]) / dy : dy < -1e-6 ? -origin[1] / dy : Infinity;
+        return Math.min(tx, ty);
+      };
       const trunk = (a: number): Trunk => ({
         ...stroke(svg, origin, false),
         cap: a,
@@ -556,15 +558,15 @@ export function createDamage(env: Env): Damage {
         length: 0,
         dev: 0,
       });
-      entry.main = { svg, origin, trunks: [trunk(cap), trunk(cap + Math.PI)], twigs: 0, webs: 0 };
+      entry.main = { svg, origin, trunks: caps.map(trunk), twigs: 0, webs: 0 };
     }
     const main = entry.main;
     const wear = wearOf(entry);
     let burst = false;
     for (const t of main.trunks) {
       const last = t.pts[t.pts.length - 1] ?? main.origin;
-      // arrivé au bord gauche ou droit : il a traversé la case
-      if (last[0] <= 0 || last[0] >= w) continue;
+      // arrivée au bord : cette branche a fini
+      if (last[0] <= 0 || last[1] <= 0 || last[0] >= w || last[1] >= h) continue;
       // longueur qu'il « devrait » avoir : il ne bouge pas tant que le retard est faible (au
       // hasard), puis il bondit, et dépasse un peu
       const target = t.reach * Math.min(1, wear / 0.8);
@@ -586,9 +588,6 @@ export function createDamage(env: Env): Damage {
             t.dev * 0.45 + (Math.random() < 0.35 ? rand(-0.85, 0.85) : rand(-0.25, 0.25)),
           ),
         );
-        // trop près du haut ou du bas de la case : la cassure repart vers le milieu
-        const up = Math.sin(t.cap + t.dev) < 0;
-        if ((py < 26 && up) || (py > h - 26 && !up)) t.dev = -t.dev;
         const a = t.cap + t.dev;
         // segments très inégaux : de petits zigzags, et parfois une longue ligne droite
         const seg = Math.random() < 0.15 ? rand(28, 46) : rand(5, 22);
@@ -620,7 +619,7 @@ export function createDamage(env: Env): Damage {
               ),
           ]);
         }
-        if (px <= 0 || px >= w) break;
+        if (px <= 0 || py <= 0 || px >= w || py >= h) break;
       }
       // le bond se dessine très vite, en 4 images, ses ramifications au fur et à mesure
       const added = t.pts.length - before;
@@ -645,7 +644,7 @@ export function createDamage(env: Env): Damage {
       snap.preservesPitch = false;
       snap.playbackRate = rand(0.8, 1.35);
       if (wear > 0.35 && Math.random() < 0.45) {
-        const tip = main.trunks[Math.floor(rand(0, 2))]?.pts.at(-1) ?? main.origin;
+        const tip = main.trunks[Math.floor(rand(0, main.trunks.length))]?.pts.at(-1) ?? main.origin;
         transient(
           "jojo-fx-word jojo-fx-kana",
           {
@@ -749,12 +748,18 @@ export function createDamage(env: Env): Damage {
     });
     // les morceaux suivent la fissure principale ; sans elle, un éventail autour de l'impact (grande
     // case comme La Place : moins de morceaux, chacun est une copie entière de la case)
-    const [ta, tb] = entry?.main?.trunks ?? [];
+    const main = entry?.main;
     const big = r.width * r.height > 300_000;
+    const sectors = main
+      ? sectorShards(
+          r.width,
+          r.height,
+          main.origin,
+          main.trunks.map((t) => t.pts),
+        )
+      : [];
     const base =
-      ta && tb && ta.pts.length + tb.pts.length > 4
-        ? crackShards(r.width, r.height, ta.pts, tb.pts, big ? 3 : 4)
-        : shardPolygons(r.width, r.height, lx, ly, big ? 5 : 7);
+      sectors.length > 0 ? sectors : shardPolygons(r.width, r.height, lx, ly, big ? 5 : 7);
     // puis chaque morceau recoupé en éclats de tailles très différentes, comme du verre (moins
     // d'éclats dans une grande case : chacun est une copie entière de la case)
     const total = base.reduce((sum, poly) => sum + area(poly), 0) || 1;
@@ -832,7 +837,7 @@ export function createDamage(env: Env): Damage {
       );
     });
     // poussière de verre le long de la fissure
-    const line = [...(ta?.pts ?? []), ...(tb?.pts ?? [])];
+    const line = main?.trunks.flatMap((t) => t.pts) ?? [];
     for (let i = 0; i < 6; i++) {
       const [bx, by] = line[Math.floor(rand(0, line.length))] ?? [lx, ly];
       glassBits(r.left + bx, r.top + by, 4, 1.6);
@@ -983,6 +988,39 @@ export function createDamage(env: Env): Damage {
     crown: btn.querySelector(".mascot-crown"),
     lids: [...btn.querySelectorAll(".mascot-lid")],
   });
+  /** Gouttes de sang qui giclent du point (x, y) de l'écran, puis retombent. */
+  const blood = (x: number, y: number, count: number, force = 1) => {
+    if (reducedMotion()) return;
+    for (let i = 0; i < count; i++) {
+      const size = rand(4, 11) * (0.7 + force * 0.3);
+      const drop = spawn("jojo-fx-blood", {
+        left: `${x}px`,
+        top: `${y}px`,
+        width: `${size}px`,
+        height: `${size * rand(1, 1.6)}px`,
+      });
+      const a = rand(-Math.PI, 0);
+      const v = rand(30, 110) * force;
+      drop.animate(
+        [
+          { transform: "translate(0, 0) scale(1)", opacity: 1 },
+          {
+            transform: `translate(${Math.cos(a) * v}px, ${Math.sin(a) * v}px) scale(1)`,
+            opacity: 1,
+            offset: 0.35,
+          },
+          {
+            transform: `translate(${Math.cos(a) * v * 1.3}px, ${Math.sin(a) * v + rand(120, 260)}px) scale(0.6)`,
+            opacity: 0,
+          },
+        ],
+        { duration: rand(500, 900), easing: "cubic-bezier(0.3, 0.5, 0.7, 1)" },
+      ).onfinish = () => drop.remove();
+    }
+  };
+  /** Taches laissées sur l'écran (sang de la mascotte écrasée), effacées par Crazy Diamond. */
+  const stains: HTMLElement[] = [];
+
   /** Envoyée dans le bord de l'écran, à l'opposé du poing ; le bord se fissure. */
   const launch = (btn: HTMLElement, fx: number, fy: number) => {
     const r = btn.getBoundingClientRect();
@@ -1019,6 +1057,27 @@ export function createDamage(env: Env): Damage {
       screenCracks.push(el);
       transient("jojo-fx-don", { left: `${cx + mx}px`, top: `${cy + my - 40}px` }, "ドン");
       quake(14, 420);
+      // le sang éclabousse le bord de l'écran, et une dent part
+      const splat = spawn("jojo-fx-splat", {
+        left: `${ix}px`,
+        top: `${iy}px`,
+        rotate: `${rand(0, 360)}deg`,
+      });
+      stains.push(splat);
+      blood(ix, iy, 14, 2);
+      const tooth = spawn("jojo-fx-tooth", { left: `${ix}px`, top: `${iy}px` });
+      tooth.animate(
+        [
+          { transform: "translate(0, 0) rotate(0)", opacity: 1 },
+          {
+            transform: `translate(${-dx * 120}px, -110px) rotate(400deg)`,
+            opacity: 1,
+            offset: 0.4,
+          },
+          { transform: `translate(${-dx * 200}px, 260px) rotate(900deg)`, opacity: 0 },
+        ],
+        { duration: 1100, easing: "ease-out" },
+      ).onfinish = () => tooth.remove();
     });
   };
   const mascotHit = (btn: HTMLElement, x: number, y: number, final: boolean) => {
@@ -1032,8 +1091,34 @@ export function createDamage(env: Env): Damage {
       const hurt = document.createElement("span");
       hurt.className = `mascot-hurt mascot-hurt-${kind}`;
       hurt.setAttribute("aria-hidden", "true");
+      // un verre de ses lunettes qui se fend
+      if (kind === "glasses-crack") {
+        const glass = crackElement(40, 40, 40, "mascot-hurt-crack");
+        glass.setAttribute("viewBox", "0 0 80 80");
+        glass.setAttribute("width", "100%");
+        glass.setAttribute("height", "100%");
+        glass.style.left = "0";
+        glass.style.top = "0";
+        hurt.append(glass);
+      }
       all.append(hurt);
       ko.hurts.push(hurt);
+    }
+    // le sang gicle à chaque coup, de plus en plus, et il crie sa douleur
+    const pain = Math.min(1, ko.hits / LAUNCH_AT);
+    if (ko.hits > 12) blood(x, y, 1 + Math.round(pain * 5), 0.6 + pain);
+    if (ko.hits > 18 && ko.hits % 13 === 0) {
+      const m = btn.getBoundingClientRect();
+      transient(
+        "jojo-fx-word jojo-fx-kana jojo-fx-pain",
+        {
+          left: `${m.left + m.width * rand(0.2, 0.8)}px`,
+          top: `${m.top + m.height * 0.15}px`,
+          fontSize: `${22 + pain * 22}px`,
+          rotate: `${rand(-18, 18)}deg`,
+        },
+        PAIN[Math.floor(rand(0, PAIN.length))],
+      );
     }
     if (!reducedMotion()) {
       inner.animate(
@@ -1100,7 +1185,8 @@ export function createDamage(env: Env): Damage {
     crack(box, x, y, final);
   };
 
-  const damaged = () => broken.size > 0 || screenCracks.length > 0 || ko.hits > 0;
+  const damaged = () =>
+    broken.size > 0 || screenCracks.length > 0 || stains.length > 0 || ko.hits > 0;
 
   /** Joue l'animation à l'envers jusqu'à son début, en `ms` millisecondes, puis l'annule. */
   const rewind = (a: Animation, ms: number) => {
@@ -1150,6 +1236,7 @@ export function createDamage(env: Env): Damage {
     boxes.clear();
     for (const b of [...broken.values()]) restoreBox(b, false);
     for (const el of screenCracks.splice(0)) el.remove();
+    for (const el of stains.splice(0)) el.remove();
     restoreMascot(false);
     lastBox = null;
   };
@@ -1190,7 +1277,14 @@ export function createDamage(env: Env): Damage {
     // tout part en même temps : il sort, le son de la réparation et celui de ses coups
     // (« DORARARA »), ses coups, et le rembobinage
     play(DAMAGE_SOUNDS.restore, { volume: 1 });
-    play(DAMAGE_SOUNDS.doraRush, { volume: 0.9 });
+    play(DAMAGE_SOUNDS.doraRush, { volume: 0.5 });
+    stains.splice(0).forEach((el) => {
+      el.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: REWIND_MS * 0.6,
+        delay: REWIND_MS * 0.3,
+        fill: "forwards",
+      }).onfinish = () => el.remove();
+    });
 
     // les DORA claquent sur ce qui est réparé
     const targets: Element[] = [...broken.keys()].filter(inView);
