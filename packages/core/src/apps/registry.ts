@@ -2,7 +2,8 @@ import type { Role } from "../users";
 import { isGotyEnabled } from "@app/config/features";
 
 /** Icônes lucide disponibles pour les tuiles (la correspondance est dans ui/AppGrid). */
-export type AppIconName = "grid" | "lightbulb" | "mask" | "palette" | "shield" | "trophy";
+export type AppIconName =
+  "grid" | "lightbulb" | "mask" | "palette" | "person" | "shield" | "trophy";
 
 export type AppEntry = {
   id: string;
@@ -32,6 +33,7 @@ export const apps: readonly AppEntry[] = [
     route: "/agents",
     requiredRole: "member",
   },
+  { id: "pose", name: "Pose JoJo", icon: "person", route: "/pose", requiredRole: "member" },
   {
     id: "ideas",
     name: "Boîte à idées",

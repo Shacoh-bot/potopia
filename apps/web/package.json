@@ -23,6 +23,7 @@
     "@app/goty": "workspace:*",
     "@app/ideas": "workspace:*",
     "@app/inventory": "workspace:*",
+    "@app/pose": "workspace:*",
     "@app/storage": "workspace:*",
     "@app/tcg": "workspace:*",
     "@app/trois": "workspace:*",

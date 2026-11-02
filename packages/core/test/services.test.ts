@@ -50,6 +50,7 @@ describe("registre des apps", () => {
       "goty",
       "trois",
       "agents",
+      "pose",
       "ideas",
       "cards",
     ]);
@@ -57,6 +58,7 @@ describe("registre des apps", () => {
       "goty",
       "trois",
       "agents",
+      "pose",
       "ideas",
       "cards",
       "admin",

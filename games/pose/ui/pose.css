@@ -1,0 +1,268 @@
+/* Pose JoJo : image de la pose à gauche, pantin à droite (l'un sous l'autre sur mobile). */
+.pose-board {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 900px) {
+  .pose-board {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+  .pose-board .pose-target img {
+    max-height: 60vh;
+  }
+}
+
+.pose-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.pose-target img {
+  display: block;
+  width: 100%;
+  /* sur mobile, l'image et le pantin doivent tenir ensemble à l'écran */
+  max-height: 28vh;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
+}
+
+.pose-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Le pantin : segments à trait d'encre et remplissage or, façon figurine de bois laquée. */
+.pose-puppet {
+  width: 100%;
+  max-height: 62vh;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.06) 1px, transparent 1.6px) 0 0 / 8px 8px,
+    radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in oklab, var(--arcane) 22%, transparent),
+      transparent 70%
+    );
+  touch-action: none;
+  user-select: none;
+}
+.pose-shadow {
+  fill: rgb(0 0 0 / 0.35);
+}
+.pose-body .pose-pelvis {
+  pointer-events: none;
+}
+.pose-body line {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 0.6px #050308) drop-shadow(0 0 0.6px #050308)
+    drop-shadow(2px 2px 0 #050308);
+}
+.pose-body circle {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 0.6px #050308) drop-shadow(0 0 0.6px #050308)
+    drop-shadow(2px 2px 0 #050308);
+}
+.pose-body .pose-seg-active line,
+.pose-body .pose-seg-active circle {
+  stroke: color-mix(in oklab, var(--accent) 70%, #fff);
+  fill: color-mix(in oklab, var(--accent) 70%, #fff);
+}
+.pose-body .pose-pelvis {
+  fill: var(--arcane);
+  filter: none;
+}
+
+/* poignées des articulations : coudes, genoux, tronc et tête en violet, mains et pieds plus
+   gros et clairs (ils entraînent tout le membre). La saisie se calcule au clic (Puppet). */
+.pose-handle {
+  fill: var(--arcane);
+  stroke: #050308;
+  stroke-width: 2;
+  pointer-events: none;
+}
+.pose-handle-end {
+  fill: #fff6d6;
+}
+.pose-handle-active {
+  stroke: #fff;
+}
+.pose-puppet-live {
+  cursor: grab;
+}
+.pose-puppet-live:active {
+  cursor: grabbing;
+}
+
+/* la pose attendue, en fantôme par-dessus après la validation : trait fin en pointillés */
+.pose-ghost {
+  pointer-events: none;
+}
+.pose-ghost line {
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-linecap: round;
+  stroke-dasharray: 1 7;
+  filter: drop-shadow(0 0 2px var(--arcane));
+}
+.pose-ghost circle {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5px;
+  stroke-dasharray: 3 5;
+}
+
+.pose-score {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* note façon fiche de Stand : lettre épaisse cerclée d'encre */
+.pose-grade {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 9999px;
+  font-family: var(--font-jojo-face, Impact), Impact, sans-serif;
+  font-size: 0.9rem;
+  color: #1a1203;
+  background: var(--accent-gradient);
+  box-shadow:
+    0 0 0 2px #050308,
+    3px 3px 0 #050308;
+}
+.pose-grade-big {
+  font-size: 2.4rem;
+}
+.pose-grade-A {
+  background: linear-gradient(135deg, #fff3b0, #f4c430 50%, #ff8a00);
+}
+.pose-grade-D,
+.pose-grade-E {
+  background: linear-gradient(135deg, #c9c3dd, #7a6f9a);
+}
+
+.pose-final {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.pose-recap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.pose-recap li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+.pose-recap img {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+
+/* Bonus JoJo autour du pantin (PoseFx) : par-dessus la carte, sans jamais intercepter un clic.
+   Les planches de sprites (.jojo-strip de theme.css) défilent image par image. */
+.pose-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.pose-fx > * {
+  position: absolute;
+}
+/* « ゴゴ » violets animés (8 images de 181 × 314) : ils apparaissent puis flottent */
+.pose-fx-gogo {
+  width: 62px;
+  aspect-ratio: 181 / 314;
+  --frames: 8;
+  --strip: url(/jojo/menacing-gogo-strip.webp);
+  --strip-time: 0.8s;
+  animation:
+    pose-fx-in 0.45s ease-out both,
+    pose-fx-bob 2.4s ease-in-out 0.45s infinite;
+}
+.pose-fx-gogo::before {
+  image-rendering: auto;
+}
+/* note C : une rafale de ゴゴ plus grands, qui montent et s'effacent */
+.pose-fx-gogo-burst {
+  width: 92px;
+  animation: pose-fx-burst 1.8s ease-out both;
+}
+/* note A : Star Platinum (24 images de 148 × 124), à droite, frappe vers le pantin */
+.pose-fx-star {
+  right: -4%;
+  bottom: 16%;
+  width: calc(148px * 1.7);
+  height: calc(124px * 1.7);
+  --frames: 24;
+  --strip: url(/jojo/star-platinum-ora-strip.webp);
+  --strip-time: 1.1s;
+  filter: drop-shadow(0 0 14px color-mix(in oklab, #7a4cff 75%, transparent));
+  animation: pose-fx-show 2.2s ease-out both;
+}
+/* note B : The World (18 images de 220 × 140), à gauche, frappe vers le pantin */
+.pose-fx-world {
+  left: -4%;
+  bottom: 16%;
+  width: calc(220px * 1.25);
+  height: calc(140px * 1.25);
+  --frames: 18;
+  --strip: url(/jojo/the-world-muda-strip.webp);
+  --strip-time: 0.75s;
+  filter: drop-shadow(0 0 14px color-mix(in oklab, #f4c430 70%, transparent));
+  animation: pose-fx-show 2.2s ease-out both;
+}
+@keyframes pose-fx-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.6);
+  }
+}
+@keyframes pose-fx-bob {
+  50% {
+    transform: translateY(-8px) rotate(-4deg);
+  }
+}
+@keyframes pose-fx-burst {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.5);
+  }
+  20%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(1.15);
+  }
+}
+@keyframes pose-fx-show {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}

@@ -4,7 +4,7 @@ Plateforme web de mini-jeux pour un groupe d'amis Discord. Nom de code et nom de
 `packages/config/brand.ts` (seul endroit où ils apparaissent).
 
 Ce document décrit la plateforme telle qu'elle est : socle (accès Discord, monnaie, activité,
-notifications), boîte à idées, avatars et place, deux jeux (TROIS et Agents Doubles) et le vote du
+notifications), boîte à idées, avatars et place, trois jeux (TROIS, Agents Doubles et Pose JoJo) et le vote du
 design des futures cartes. Il est tenu à jour à chaque changement (voir CLAUDE.md).
 
 ## Stack
@@ -40,6 +40,7 @@ apps/web/            app Next mince : routes, layouts, server actions, route han
 games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
+  pose/              Pose JoJo : un pantin articulé à mettre dans une pose célèbre (sans base)
   tcg/               futur jeu de cartes : pour l'instant, le vote du design des cartes (/cartes)
   trois/             Wordle français à 3 mots par jour (premier jeu intégré)
 packages/
@@ -372,8 +373,9 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
 - Toutes les tuiles ont le même arrondi (`rounded-xl`, `1.25rem` en `xl`) dans tous les thèmes : le `--radius` des
   thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
-- Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents Doubles », « Boîte à idées », « Vote design
-  des cartes » (membres), puis « Administration » (admins).
+- Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents
+  Doubles », « Pose JoJo », « Boîte à idées », « Vote design des cartes » (membres), puis
+  « Administration » (admins).
 - Le fil d'Ariane prend le nom des apps dans ce registre (`components/Breadcrumb.tsx`, composant
   serveur) ; seule exception, le libellé plus court « Design des cartes » pour `/cartes`.
 
@@ -520,7 +522,7 @@ ApothicaireOpening.tsx`, `apothicaire()` de `@app/ui`) : la page s'assombrit sou
   flash.
 - Les animations (apparitions en cascade, reflets, cloche, braises) sont coupées si l'appareil demande
   moins d'animations.
-- Les jeux gardent leur propre style pour l'instant (TROIS, Agents Doubles, cartes du vote) : une
+- Les jeux gardent leur propre style pour l'instant (TROIS, Agents Doubles, Pose JoJo, cartes du vote) : une
   feuille CSS par jeu (`games/*/ui/*.css`), importée dans `apps/web/app/globals.css`.
 
 **Header** (`packages/core/ui/Header.tsx`, boutons passés par `(platform)/layout.tsx`). De gauche à
@@ -972,7 +974,7 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
 - **db** : contrôle des frontières (SQL brut, toute méthode Prisma, destructuration, types,
   imports dynamiques) et faux positifs écartés.
 - **storage** : clés, présignatures, objets (sur le stockage S3 local).
-- **jeux** : voir les README de TROIS et d'Agents Doubles ; **tcg** : vote ouvert aux membres,
+- **jeux** : voir les README de TROIS, d'Agents Doubles et de Pose JoJo ; **tcg** : vote ouvert aux membres,
   numéros stables, mots-clés et négations.
 
 ## Étapes de réalisation
@@ -998,6 +1000,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
       fuseau horaire, limites d'envoi, corrections des jeux.
 - [ ] 13. `games/tcg` : cartes du jeu (sets, cartes, catalogue d'effets, admin `/admin/cartes`,
       import), puis boosters, collection, decks et parties.
+- [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre (première version
+      sans base : ni classement ni récompense).
 
 ## Hors périmètre (pour l'instant)
 
