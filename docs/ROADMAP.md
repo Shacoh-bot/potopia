@@ -184,10 +184,11 @@ Pour chaque étape, les critères de fin incluent toujours que `pnpm lint`, `pnp
     - Colonne gauche : compte, solde, menu (Accueil, Mon avatar, Mon inventaire, Ma monnaie,
       Administration pour les admins), puis le fil d'activité.
     - Centre : grille de tuiles, puis la place des avatars.
-    - Tuile de TROIS illustrée (mascotte et cases Wordle) : au survol, cadre tournant (couleurs
-      de Wordle, ou du thème pour JoJo, One Piece et Apothicaire), zoom, lueur et lettres
-      « O U I » qui jaillissent. Même arrondi des tuiles dans tous les thèmes ; tuiles 175 % plus
-      grandes sur grand écran (`xl`).
+    - Tuiles illustrées pour toutes les apps (la mascotte en GOTY, agent, Wordle, pose JoJo,
+      idées, cartes, admin) : au survol, cadre tournant (couleurs de Wordle, ou du thème pour
+      JoJo, One Piece et Apothicaire), zoom, lueur, et pour TROIS des lettres « O U I » qui
+      jaillissent. Même arrondi dans tous les thèmes ; sur grand écran, tuiles jusqu'à 175 %
+      plus grandes, toutes sur une ligne.
     - Header : marque, Sonic (marche, course, sprint ; Super Sonic avec les 7 Émeraudes du
       Chaos), Luffy (fruit du démon étincelant à l'arrêt ; au clic, il en sort avec sa musique et
       rebondit sur le liseré du header ; combo avec la boule, qu'il poursuit sur le liseré),

@@ -13,11 +13,20 @@ export type AppEntry = {
   requiredRole: Role;
   /** Illustration qui remplit toute la tuile (chemin public de apps/web), à la place de l'icône. */
   art?: string;
+  /** Lettres en cases façon Wordle qui jaillissent de la tuile illustrée au survol (TROIS). */
+  artLetters?: string;
 };
 
 /** Apps de la plateforme, dans l'ordre d'affichage des tuiles. */
 export const apps: readonly AppEntry[] = [
-  { id: "goty", name: "GOTY Party", icon: "trophy", route: "/goty", requiredRole: "member" },
+  {
+    id: "goty",
+    name: "GOTY Party",
+    icon: "trophy",
+    route: "/goty",
+    requiredRole: "member",
+    art: "/apps/goty.webp",
+  },
   {
     id: "trois",
     name: "TROIS",
@@ -25,6 +34,7 @@ export const apps: readonly AppEntry[] = [
     route: "/trois",
     requiredRole: "member",
     art: "/apps/trois.webp",
+    artLetters: "OUI",
   },
   {
     id: "agents",
@@ -32,14 +42,23 @@ export const apps: readonly AppEntry[] = [
     icon: "mask",
     route: "/agents",
     requiredRole: "member",
+    art: "/apps/agents.webp",
   },
-  { id: "pose", name: "Pose JoJo", icon: "person", route: "/pose", requiredRole: "member" },
+  {
+    id: "pose",
+    name: "Pose JoJo",
+    icon: "person",
+    route: "/pose",
+    requiredRole: "member",
+    art: "/apps/pose.webp",
+  },
   {
     id: "ideas",
     name: "Boîte à idées",
     icon: "lightbulb",
     route: "/ideas",
     requiredRole: "member",
+    art: "/apps/ideas.webp",
   },
   {
     id: "cards",
@@ -47,8 +66,16 @@ export const apps: readonly AppEntry[] = [
     icon: "palette",
     route: "/cartes",
     requiredRole: "member",
+    art: "/apps/cards.webp",
   },
-  { id: "admin", name: "Administration", icon: "shield", route: "/admin", requiredRole: "admin" },
+  {
+    id: "admin",
+    name: "Administration",
+    icon: "shield",
+    route: "/admin",
+    requiredRole: "admin",
+    art: "/apps/admin.webp",
+  },
 ];
 
 export function getVisibleApps(user: { role: Role }): AppEntry[] {

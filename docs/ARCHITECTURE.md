@@ -354,24 +354,29 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
 
 **Registre des apps** (`packages/core/src/apps/registry.ts`).
 
-- Une entrée a la forme `{ id, name, icon, route, requiredRole, art? }`. `icon` est un nom déclaré
-  dans l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans `ICONS`
-  (`packages/core/ui/AppGrid.tsx`) : une nouvelle icône demande les deux.
+- Une entrée a la forme `{ id, name, icon, route, requiredRole, art?, artLetters? }`. `icon` est
+  un nom déclaré dans l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans
+  `ICONS` (`packages/core/ui/AppGrid.tsx`) : une nouvelle icône demande les deux. Elle sert aux
+  apps sans illustration.
 - `art` (facultatif) : chemin d'une illustration carrée de `apps/web/public/apps/`, qui remplit
-  toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Seule
-  « TROIS » en a une (`apps/trois.webp`, 480 px, recadrée sur son cadre jaune). Au survol, styles
-  `.app-art*` de `theme.css` : la tuile se penche et grossit, un cadre en dégradé conique
-  tourne autour, l'image zoome et s'éclaire, une lueur pulse,
-  le reflet `.shine` balaie, et trois lettres « O U I » en cases Wordle jaillissent des coins puis
-  flottent. Cadre et lueur aux couleurs de Wordle dans les thèmes de base (Classique, Fantasy,
-  RGB), à celles du thème (`--accent`, `--arcane`) dans JoJo, One Piece et Apothicaire ; les
-  lettres restent aux couleurs de Wordle.
-- Taille des tuiles : 6,5 rem sur mobile, 7,5 rem à partir de `sm`, et 175 % (13,125 rem, avec
-  icônes, noms et lettres « O U I » agrandis) à partir de `xl` (1280 px), pour que le texte des
-  illustrations se lise ; la grille réserve deux rangées (une seule en `xl`, où les apps tiennent
-  sur une ligne) pour que la place ne bouge pas quand une app s'ajoute.
-- Toutes les tuiles ont le même arrondi (`rounded-xl`, `1.25rem` en `xl`) dans tous les thèmes : le `--radius` des
-  thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
+  toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Toutes les
+  apps actuelles en ont une (`apps/<id>.webp`, 480 px, recadrées sur leur cadre néon : même
+  mascotte, titre et sous-titre de l'app). Au survol, styles `.app-art*` de `theme.css` : la tuile
+  se penche et grossit, un cadre en dégradé conique tourne autour, l'image zoome et s'éclaire,
+  une lueur pulse et le reflet `.shine` balaie. Cadre et lueur aux couleurs de Wordle dans les
+  thèmes de base (Classique, Fantasy, RGB), à celles du thème (`--accent`, `--arcane`) dans JoJo,
+  One Piece et Apothicaire.
+- `artLetters` (facultatif) : lettres en cases façon Wordle qui jaillissent des coins de la tuile
+  illustrée au survol puis flottent (styles prévus pour trois lettres). Seule TROIS en a
+  (« OUI »), toujours aux couleurs de Wordle.
+- Taille des tuiles : 6,5 rem sur mobile, 7,5 rem à partir de `sm`, et à partir de `xl`
+  (1280 px) jusqu'à 13,125 rem (175 %, icônes, noms et lettres agrandis), réduite juste assez
+  pour que toutes les apps visibles tiennent sur une ligne (`--n` = nombre d'apps, largeur lue
+  en `cqw` sur le conteneur de la grille) : 210 px pour les membres sur un écran 1920 px, un peu
+  moins pour les admins qui ont une tuile de plus. La grille réserve deux rangées (une seule en
+  `xl`) pour que la place ne bouge pas quand une app s'ajoute.
+- Toutes les tuiles ont le même arrondi (`rounded-xl`, `1.25rem` en `xl`) dans tous les thèmes :
+  le `--radius` des thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
 - Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents
   Doubles », « Pose JoJo », « Boîte à idées », « Vote design des cartes » (membres), puis
