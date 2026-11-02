@@ -967,17 +967,40 @@ html.jojo-rushing * {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-/* l'arête claire de la fêlure, un pixel à côté du trait sombre */
+/* l'arête claire de la fêlure, un pixel à côté du trait sombre : c'est elle qui se voit sur les
+   cases sombres du thème */
 .jojo-crack-light {
   fill: none;
-  stroke: rgb(246 239 220 / 0.45);
-  stroke-width: 1;
+  stroke: rgb(236 242 255 / 0.75);
+  stroke-width: 1.3;
   stroke-linecap: round;
   stroke-linejoin: round;
   transform: translate(1px, 1px);
 }
 .jojo-crack-dent {
   fill: rgb(5 3 8 / 0.45);
+}
+/* fissure principale de la case : elle part du premier coup et la traverse, trait plus épais que
+   les fêlures ; ses ramifications, plus fines */
+.jojo-maincrack {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.jojo-maincrack .jojo-crack-dark {
+  stroke-width: 3.2;
+}
+.jojo-maincrack .jojo-crack-light {
+  stroke: rgb(240 246 255 / 0.9);
+  stroke-width: 2;
+}
+.jojo-maincrack .jojo-crack-dark.jojo-crack-twig {
+  stroke-width: 1.6;
+}
+.jojo-maincrack .jojo-crack-light.jojo-crack-twig {
+  stroke-width: 1.1;
 }
 /* le bord de l'écran où la mascotte s'est écrasée : trait plus épais */
 .jojo-fx-crack .jojo-crack-dark {
