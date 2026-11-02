@@ -404,8 +404,10 @@ décors.
   sur le thème de Jotaro. Les dégâts (`apps/web/components/jojoDamage.ts`) : la case que frappent
   ses poings tremble tout entière, sans jamais sortir de la zone qui la contient (aucune barre de
   défilement n'apparaît ; la colonne de gauche a 6 px de marge intérieure pour ça), et se fissure
-  (fêlures en étoile tirées au hasard, en SVG dans la case) ; on arrête de la frapper : ses fêlures
-  s'estompent en 1,2 s. On s'acharne (34 coups, un peu moins de 3 s) : elle **vole en éclats**
+  petit à petit (fêlures en étoile tirées au hasard, en SVG dans la case, de plus en plus grandes,
+  serrées et fréquentes à mesure qu'elle s'use, et elle tremble de plus en plus fort) ; on arrête
+  de la frapper : ses fêlures s'estompent en 1,5 s. On s'acharne jusqu'au bout (100 coups, environ
+  8,5 s de rafale sur la même case) : elle **vole en éclats**
   (« ガシャーン », verre brisé `public/audio/jojo-glass.mp3`) : elle est masquée, et des copies d'elle
   découpées en morceaux (`clip-path`, une part en éventail autour du point d'impact coupée en deux)
   retombent. Les éléments marqués `data-ora` encaissent : Sonic perd ses anneaux, les coups

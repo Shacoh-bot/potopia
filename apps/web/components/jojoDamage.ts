@@ -2,9 +2,11 @@
  * Dégâts de la rafale de Star Platinum (thème JoJo, `JojoFx`) et leur réparation par Crazy Diamond.
  * - La case frappée tremble pour de bon (la case entière, pas seulement son contenu), sans jamais
  *   déborder de la zone qui la contient : aucune barre de défilement n'apparaît.
- * - Les coups la fissurent : des fêlures en étoile, dessinées au hasard autour du point d'impact.
- *   On arrête de la frapper : elles s'estompent d'elles-mêmes. On s'acharne (SHATTER_AT coups) :
- *   la case vole en éclats, en morceaux qui retombent, et Crazy Diamond vient la reconstituer.
+ * - Les coups la fissurent petit à petit : des fêlures en étoile, dessinées au hasard autour du
+ *   point d'impact, de plus en plus grandes, serrées et fréquentes à mesure que la case s'use, et
+ *   elle tremble de plus en plus fort. On arrête de la frapper : elles s'estompent d'elles-mêmes.
+ *   On s'acharne jusqu'au bout (SHATTER_AT coups) : la case vole en éclats, en morceaux qui
+ *   retombent, et Crazy Diamond vient la reconstituer.
  * - Les petits éléments du header encaissent aussi : Sonic perd ses anneaux, les coups rebondissent
  *   sur Luffy (il est en caoutchouc), la steel ball tourne sur elle-même, les boutons valsent.
  * - La mascotte : sonnée (yeux fermés), puis sa couronne saute, puis elle est envoyée dans le bord
@@ -17,11 +19,12 @@
  * frappée, morceaux et effets dans la couche `.jojo-fx`. Animations en transform et opacity.
  */
 
-const CRACK_EVERY_MS = 320; // une fêlure de plus au plus toutes les 320 ms par case
-const CRACKS_PER_BOX = 9;
-const CRACK_SPACING = 46; // en dessous, on ne refissure pas au même endroit
-const FADE_AFTER_MS = 1200; // case qu'on ne frappe plus : ses fêlures s'estompent
-const SHATTER_AT = 34; // coups sur une même case (un peu moins de 3 s de rafale) : elle se brise
+// Usure d'une case : de 0 (intacte) à 1 (elle se brise), selon les coups reçus d'affilée.
+const SHATTER_AT = 100; // coups sur une même case (environ 8,5 s de rafale) : elle se brise
+const CRACK_EVERY_MS = 320; // une fêlure de plus au plus toutes les 320 ms… jusqu'à 2 fois plus vite
+const CRACKS_PER_BOX = 26;
+const CRACK_SPACING = 46; // en dessous, on ne refissure pas au même endroit (moins, usée)
+const FADE_AFTER_MS = 1500; // case qu'on ne frappe plus : ses fêlures s'estompent
 const CD_AFTER_SHATTER_MS = 800;
 const DAZED_AT = 4; // coups sur la mascotte : yeux fermés
 const CROWN_AT = 8; // … sa couronne saute
@@ -261,6 +264,8 @@ export function createDamage(env: Env): Damage {
     el.animate(frames, { duration: ms, composite: "add" });
   };
 
+  const wearOf = (entry: Box | undefined) => Math.min(1, (entry?.hits ?? 0) / SHATTER_AT);
+
   /** Les fêlures d'une case qu'on ne frappe plus s'estompent, puis disparaissent. */
   const fadeBox = (box: Element, entry: Box) => {
     if (boxes.get(box) !== entry) return;
@@ -289,14 +294,17 @@ export function createDamage(env: Env): Damage {
     current.fade = later(FADE_AFTER_MS, () => fadeBox(box, current));
     current.hits += big ? 6 : 1;
     if (current.hits >= SHATTER_AT && box instanceof HTMLElement) return shatter(box, x, y);
-    if (!big && now - current.last < CRACK_EVERY_MS) return;
+    const wear = wearOf(current);
+    if (!big && now - current.last < CRACK_EVERY_MS * (1 - 0.5 * wear)) return;
     const r = box.getBoundingClientRect();
     const lx = x - r.left;
     const ly = y - r.top;
-    const close = current.cracks.some((c) => Math.hypot(c.x - lx, c.y - ly) < CRACK_SPACING);
+    const spacing = CRACK_SPACING * (1 - 0.6 * wear);
+    const close = current.cracks.some((c) => Math.hypot(c.x - lx, c.y - ly) < spacing);
     if (!big && (close || current.cracks.length >= CRACKS_PER_BOX)) return;
     current.last = now;
-    const size = big ? rand(110, 150) : rand(45, 80);
+    // petites au début, de grandes fêlures quand la case est près de céder
+    const size = (big ? rand(70, 100) : rand(32, 50)) + wear * rand(60, 110);
     const el = crackElement(lx, ly, size, "jojo-crack");
     current.host.append(el);
     current.cracks.push({ el, x: lx, y: ly });
@@ -613,7 +621,9 @@ export function createDamage(env: Env): Damage {
     if (headerItem) return small(headerItem, null);
     const box = top.closest(".theme-frame");
     if (!box) return;
-    jolt(box, final ? 9 : 5, final ? 420 : 140);
+    // plus elle est usée, plus elle tremble
+    const wear = wearOf(boxes.get(box));
+    jolt(box, (final ? 9 : 4) + wear * 7, final ? 420 : 140);
     crack(box, x, y, final);
   };
 
