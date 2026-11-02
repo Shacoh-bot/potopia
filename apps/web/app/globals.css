@@ -987,6 +987,21 @@ html.jojo-rushing * {
   stroke-width: 1.5;
   transform: translate(1.5px, 1.5px);
 }
+/* case brisée : ses morceaux, chacun une copie de la case découpée (clip-path), qui tombent.
+   La couche .jojo-fx a la police JoJo : on remet celle de la page pour les copies. */
+.jojo-fx-shards {
+  pointer-events: none;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--text);
+  text-align: left;
+}
+.jojo-fx-shard {
+  position: absolute;
+  inset: 0;
+}
 /* anneau de Sonic perdu sous les coups */
 .jojo-fx-coin {
   width: 16px;

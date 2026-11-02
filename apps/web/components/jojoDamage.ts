@@ -3,31 +3,39 @@
  * - La case frappée tremble pour de bon (la case entière, pas seulement son contenu), sans jamais
  *   déborder de la zone qui la contient : aucune barre de défilement n'apparaît.
  * - Les coups la fissurent : des fêlures en étoile, dessinées au hasard autour du point d'impact.
+ *   On arrête de la frapper : elles s'estompent d'elles-mêmes. On s'acharne (SHATTER_AT coups) :
+ *   la case vole en éclats, en morceaux qui retombent, et Crazy Diamond vient la reconstituer.
  * - Les petits éléments du header encaissent aussi : Sonic perd ses anneaux, les coups rebondissent
  *   sur Luffy (il est en caoutchouc), la steel ball tourne sur elle-même, les boutons valsent.
  * - La mascotte : sonnée (yeux fermés), puis sa couronne saute, puis elle est envoyée dans le bord
  *   de l'écran, qui se fissure, et elle y reste incrustée.
- * - Après la rafale, Crazy Diamond (le Stand de Josuke) surgit, « DORARARA », et tout revient à sa
- *   place : les fêlures se referment, la mascotte revole à sa place, sa couronne aussi. « グレート ! »
+ * - Crazy Diamond (le Stand de Josuke) surgit, « DORARARA », et tout revient à sa place : les
+ *   morceaux de la case remontent et se recollent, la mascotte revole à sa place, sa couronne
+ *   aussi. « ドラァ ! », « グレート ! ». Il vient dès qu'une case est brisée, ou à la fin de la
+ *   rafale si la mascotte a été assommée.
  * Tout passe par le DOM et l'API Web Animations (aucun état React) : fêlures en SVG dans la case
- * frappée, effets dans la couche `.jojo-fx`. Animations en transform et opacity.
+ * frappée, morceaux et effets dans la couche `.jojo-fx`. Animations en transform et opacity.
  */
 
 const CRACK_EVERY_MS = 320; // une fêlure de plus au plus toutes les 320 ms par case
 const CRACKS_PER_BOX = 9;
 const CRACK_SPACING = 46; // en dessous, on ne refissure pas au même endroit
+const FADE_AFTER_MS = 1200; // case qu'on ne frappe plus : ses fêlures s'estompent
+const SHATTER_AT = 34; // coups sur une même case (un peu moins de 3 s de rafale) : elle se brise
+const CD_AFTER_SHATTER_MS = 800;
 const DAZED_AT = 4; // coups sur la mascotte : yeux fermés
 const CROWN_AT = 8; // … sa couronne saute
 const LAUNCH_AT = 14; // … envoyée dans le décor
 const SMALL_EVERY_MS = 160; // un petit élément ne réagit pas à chaque coup
 const RING_EVERY_MS = 650; // Sonic perd des anneaux au plus toutes les 650 ms
-const REPAIR_MS = 2900; // durée de la réparation par Crazy Diamond
+const REPAIR_MS = 4200; // durée de la réparation par Crazy Diamond
 const CD_PINK = "#ff8fc8";
 const HUD = ".jojo-fx, .jojo-decor, .jojo-fx-hint";
 
 export const DAMAGE_SOUNDS = {
   doraRush: "/audio/jojo-dora-rush.mp3",
   dora: "/audio/jojo-dora.mp3",
+  glass: "/audio/jojo-glass.mp3",
 } as const;
 export const DAMAGE_SPRITES = ["/jojo/crazy-diamond.webp"] as const;
 
@@ -45,9 +53,9 @@ type Env = {
 export type Damage = {
   /** Un coup de poing au point (x, y) : `final` pour le « ORA ! » qui conclut la rafale. */
   hit: (x: number, y: number, final?: boolean) => void;
-  /** Il reste quelque chose à réparer. */
+  /** Il reste quelque chose que Crazy Diamond doit réparer (case brisée, mascotte assommée). */
   damaged: () => boolean;
-  /** Crazy Diamond répare tout (sans effet s'il n'y a rien, ou s'il répare déjà). */
+  /** Crazy Diamond répare tout (sans effet s'il n'y a rien ; après la réparation en cours). */
   repair: () => void;
   /** Remet tout en place d'un coup, sans effet (thème quitté, démontage). */
   clear: () => void;
@@ -135,6 +143,55 @@ function crackElement(x: number, y: number, r: number, className: string): SVGSV
   return svg;
 }
 
+/**
+ * Morceaux d'une case de w × h brisée au point (x, y) : des parts en éventail autour du point,
+ * chacune coupée en deux (un éclat près de l'impact, un autre jusqu'au bord). Polygones en px.
+ */
+function shardPolygons(w: number, h: number, x: number, y: number, parts: number): Point[][] {
+  const angles = Array.from(
+    { length: parts },
+    (_, i) => ((i + rand(-0.3, 0.3)) / parts) * Math.PI * 2,
+  ).sort((a, b) => a - b);
+  // point du bord de la case dans la direction `a`
+  const edge = (a: number): Point => {
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    const tx = dx > 1e-6 ? (w - x) / dx : dx < -1e-6 ? -x / dx : Infinity;
+    const ty = dy > 1e-6 ? (h - y) / dy : dy < -1e-6 ? -y / dy : Infinity;
+    const t = Math.min(tx, ty);
+    return [x + dx * t, y + dy * t];
+  };
+  const corners: Point[] = [
+    [0, 0],
+    [w, 0],
+    [w, h],
+    [0, h],
+  ];
+  const polys: Point[][] = [];
+  for (let i = 0; i < parts; i++) {
+    const a1 = angles[i] ?? 0;
+    const a2 = i + 1 < parts ? (angles[i + 1] ?? 0) : (angles[0] ?? 0) + Math.PI * 2;
+    const p1 = edge(a1);
+    const p2 = edge(a2);
+    // coins de la case compris entre les deux rayons, dans l'ordre
+    const between = corners
+      .map((c) => {
+        let a = Math.atan2(c[1] - y, c[0] - x);
+        while (a < a1) a += Math.PI * 2;
+        return { c, a };
+      })
+      .filter(({ a }) => a < a2)
+      .sort((u, v) => u.a - v.a)
+      .map(({ c }) => c);
+    const k = rand(0.3, 0.55);
+    const q1: Point = [x + (p1[0] - x) * k, y + (p1[1] - y) * k];
+    const q2: Point = [x + (p2[0] - x) * k, y + (p2[1] - y) * k];
+    polys.push([[x, y], q1, q2]);
+    polys.push([q1, p1, ...between, p2, q2]);
+  }
+  return polys;
+}
+
 /** Première zone qui coupe ce qui déborde (défilement ou overflow), ou null : la page elle-même. */
 function clipParent(el: Element): Element | null {
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
@@ -177,10 +234,15 @@ export function createDamage(env: Env): Damage {
     host: HTMLElement;
     cracks: { el: SVGSVGElement; x: number; y: number }[];
     last: number;
+    hits: number;
+    fade: number;
   };
   const boxes = new Map<Element, Box>();
+  /** Cases brisées, en attente de Crazy Diamond : leurs morceaux et la chute de chacun. */
+  type Broken = { el: HTMLElement; shards: HTMLElement; flights: Animation[] };
+  const broken = new Map<Element, Broken>();
   const screenCracks: SVGSVGElement[] = [];
-  /** Dernière case fissurée : c'est là que Crazy Diamond apparaît. */
+  /** Dernière case brisée : c'est là que Crazy Diamond apparaît. */
   let lastBox: Element | null = null;
 
   /** La case tremble, dans la limite de la place qu'elle a autour d'elle. */
@@ -199,29 +261,45 @@ export function createDamage(env: Env): Damage {
     el.animate(frames, { duration: ms, composite: "add" });
   };
 
+  /** Les fêlures d'une case qu'on ne frappe plus s'estompent, puis disparaissent. */
+  const fadeBox = (box: Element, entry: Box) => {
+    if (boxes.get(box) !== entry) return;
+    boxes.delete(box);
+    entry.host.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: reducedMotion() ? 1 : 700,
+      easing: "ease-in",
+      fill: "forwards",
+    }).onfinish = () => entry.host.remove();
+  };
+
   const crack = (box: Element, x: number, y: number, big: boolean) => {
     const now = performance.now();
     let entry = boxes.get(box);
-    if (!big && entry && now - entry.last < CRACK_EVERY_MS) return;
     if (!entry) {
       const host = document.createElement("span");
       host.className = "jojo-cracks";
       host.setAttribute("aria-hidden", "true");
       box.append(host);
-      entry = { host, cracks: [], last: 0 };
+      entry = { host, cracks: [], last: 0, hits: 0, fade: 0 };
       boxes.set(box, entry);
     }
+    // tant qu'on la frappe, ses fêlures restent ; on arrête, elles s'estompent
+    const current = entry;
+    window.clearTimeout(current.fade);
+    current.fade = later(FADE_AFTER_MS, () => fadeBox(box, current));
+    current.hits += big ? 6 : 1;
+    if (current.hits >= SHATTER_AT && box instanceof HTMLElement) return shatter(box, x, y);
+    if (!big && now - current.last < CRACK_EVERY_MS) return;
     const r = box.getBoundingClientRect();
     const lx = x - r.left;
     const ly = y - r.top;
-    const close = entry.cracks.some((c) => Math.hypot(c.x - lx, c.y - ly) < CRACK_SPACING);
-    if (!big && (close || entry.cracks.length >= CRACKS_PER_BOX)) return;
-    entry.last = now;
+    const close = current.cracks.some((c) => Math.hypot(c.x - lx, c.y - ly) < CRACK_SPACING);
+    if (!big && (close || current.cracks.length >= CRACKS_PER_BOX)) return;
+    current.last = now;
     const size = big ? rand(110, 150) : rand(45, 80);
     const el = crackElement(lx, ly, size, "jojo-crack");
-    entry.host.append(el);
-    entry.cracks.push({ el, x: lx, y: ly });
-    lastBox = box;
+    current.host.append(el);
+    current.cracks.push({ el, x: lx, y: ly });
     if (!reducedMotion()) {
       el.animate(
         [
@@ -230,6 +308,129 @@ export function createDamage(env: Env): Damage {
         ],
         { duration: big ? 200 : 130, easing: "cubic-bezier(0.2, 0.9, 0.3, 1.2)" },
       );
+    }
+  };
+
+  /**
+   * La case vole en éclats : elle est masquée (sa place reste dans la page), et des copies d'elle,
+   * chacune découpée selon un morceau (clip-path), partent du point d'impact et retombent.
+   * Crazy Diamond arrive peu après.
+   */
+  const shatter = (box: HTMLElement, x: number, y: number) => {
+    if (broken.has(box)) return;
+    const entry = boxes.get(box);
+    if (entry) window.clearTimeout(entry.fade);
+    const r = box.getBoundingClientRect();
+    const lx = Math.min(Math.max(x - r.left, 8), r.width - 8);
+    const ly = Math.min(Math.max(y - r.top, 8), r.height - 8);
+    const shards = spawn("jojo-fx-shards", {
+      left: `${r.left}px`,
+      top: `${r.top}px`,
+      width: `${r.width}px`,
+      height: `${r.height}px`,
+    });
+    // grande case (La Place…) : moins de morceaux, chacun est une copie entière de la case
+    const parts = r.width * r.height > 300_000 ? 6 : 9;
+    const canvases = [...box.querySelectorAll("canvas")];
+    const flights = shardPolygons(r.width, r.height, lx, ly, parts).map((poly) => {
+      const piece = document.createElement("div");
+      piece.className = "jojo-fx-shard";
+      const copy = box.cloneNode(true) as HTMLElement;
+      copy.setAttribute("aria-hidden", "true");
+      copy.inert = true;
+      copy.removeAttribute("id");
+      Object.assign(copy.style, {
+        position: "absolute",
+        left: "0",
+        top: "0",
+        margin: "0",
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+        visibility: "visible",
+        // une animation d'entrée de la case (apparition en fondu…) ne doit pas se rejouer
+        animation: "none",
+        transition: "none",
+      });
+      // le contenu des canvas ne se copie pas avec le DOM
+      copy.querySelectorAll("canvas").forEach((c, i) => {
+        const from = canvases[i];
+        if (from && from.width > 0 && from.height > 0) c.getContext("2d")?.drawImage(from, 0, 0);
+      });
+      piece.style.clipPath = `polygon(${poly
+        .map(([px, py]) => `${px.toFixed(1)}px ${py.toFixed(1)}px`)
+        .join(", ")})`;
+      const cx = poly.reduce((sum, p) => sum + p[0], 0) / poly.length;
+      const cy = poly.reduce((sum, p) => sum + p[1], 0) / poly.length;
+      piece.style.transformOrigin = `${cx}px ${cy}px`;
+      piece.append(copy);
+      shards.append(piece);
+      // chaque morceau s'écarte du point d'impact, tourne, et tombe
+      const dx = cx - lx;
+      const dy = cy - ly;
+      const len = Math.hypot(dx, dy) || 1;
+      const push = rand(50, 160);
+      const fx = (dx / len) * push;
+      const fy = (dy / len) * push;
+      const spin = rand(-70, 70);
+      return piece.animate(
+        [
+          { transform: "translate(0, 0) rotate(0)", opacity: 1 },
+          {
+            transform: `translate(${fx * 0.5}px, ${fy * 0.5 - 18}px) rotate(${spin * 0.3}deg)`,
+            opacity: 1,
+            offset: 0.22,
+          },
+          {
+            transform: `translate(${fx}px, ${fy + rand(380, 640)}px) rotate(${spin}deg)`,
+            opacity: 0,
+          },
+        ],
+        {
+          duration: reducedMotion() ? 1 : rand(950, 1300),
+          easing: "cubic-bezier(0.4, 0, 0.9, 0.6)",
+          fill: "forwards",
+        },
+      );
+    });
+    // la case elle-même disparaît, avec ses fêlures (elles restent dans les morceaux)
+    box.style.visibility = "hidden";
+    if (entry) {
+      entry.host.remove();
+      boxes.delete(box);
+    }
+    broken.set(box, { el: box, shards, flights });
+    lastBox = box;
+    play(DAMAGE_SOUNDS.glass, { volume: 1 });
+    quake(16, 480);
+    transient(
+      "jojo-fx-final jojo-fx-kana",
+      { left: `${x}px`, top: `${y}px`, color: "#e8f4ff" },
+      "ガシャーン",
+    );
+    later(CD_AFTER_SHATTER_MS, repair);
+  };
+
+  /** La case brisée se reconstitue : ses morceaux refont le chemin à l'envers, puis elle revient. */
+  const restoreBox = ({ el, shards, flights }: Broken, animated: boolean) => {
+    broken.delete(el);
+    const done = () => {
+      el.style.removeProperty("visibility");
+      shards.remove();
+    };
+    if (!animated || reducedMotion()) return done();
+    // la page a pu défiler depuis : les morceaux reviennent là où est la case maintenant
+    const r = el.getBoundingClientRect();
+    shards.style.left = `${r.left}px`;
+    shards.style.top = `${r.top}px`;
+    let left = flights.length;
+    if (left === 0) return done();
+    for (const a of flights) {
+      a.onfinish = () => {
+        left -= 1;
+        if (left === 0) done();
+      };
+      a.updatePlaybackRate(1.35);
+      a.reverse();
     }
   };
 
@@ -416,7 +617,7 @@ export function createDamage(env: Env): Damage {
     crack(box, x, y, final);
   };
 
-  const damaged = () => boxes.size > 0 || screenCracks.length > 0 || ko.hits > 0;
+  const damaged = () => broken.size > 0 || screenCracks.length > 0 || ko.hits > 0;
 
   /** Remet la mascotte : la couronne et le corps refont le chemin à l'envers. */
   const restoreMascot = (animated: boolean) => {
@@ -432,27 +633,24 @@ export function createDamage(env: Env): Damage {
       a.reverse();
     }
   };
-  const closeCrack = (el: SVGSVGElement, animated: boolean, after?: () => void) => {
-    if (!animated || reducedMotion()) {
-      el.remove();
-      after?.();
-      return;
-    }
+  const closeCrack = (el: SVGSVGElement) => {
+    if (reducedMotion()) return el.remove();
     el.animate(
       [
         { transform: "scale(1)", opacity: 1 },
         { transform: "scale(0)", opacity: 0 },
       ],
       { duration: 320, easing: "ease-in", fill: "forwards" },
-    ).onfinish = () => {
-      el.remove();
-      after?.();
-    };
+    ).onfinish = () => el.remove();
   };
 
   const clear = () => {
-    for (const { host } of boxes.values()) host.remove();
+    for (const { host, fade } of boxes.values()) {
+      window.clearTimeout(fade);
+      host.remove();
+    }
     boxes.clear();
+    for (const b of [...broken.values()]) restoreBox(b, false);
     for (const el of screenCracks.splice(0)) el.remove();
     restoreMascot(false);
     lastBox = null;
@@ -460,20 +658,25 @@ export function createDamage(env: Env): Damage {
 
   // ── Crazy Diamond ──
   let repairing = false;
+  let again = false;
   const inView = (el: Element) => {
     const r = el.getBoundingClientRect();
     return r.bottom > 0 && r.top < window.innerHeight && r.width > 0;
   };
-  const repair = () => {
-    if (repairing || !damaged()) return;
+  function repair() {
+    if (!damaged()) return;
+    // une autre case se brise pendant qu'il répare : il s'en occupe juste après
+    if (repairing) {
+      again = true;
+      return;
+    }
     repairing = true;
     const mascot = document.querySelector<HTMLElement>('[data-ora="mascot"]');
-    // Crazy Diamond apparaît à côté de la dernière case fissurée, sinon de la mascotte
+    // Crazy Diamond apparaît à côté de la dernière case brisée, sinon de la mascotte
     const focus =
-      (lastBox && inView(lastBox) ? lastBox : null) ??
-      (ko.body && mascot ? mascot : null) ??
-      [...boxes.keys()].find(inView) ??
-      null;
+      (lastBox && broken.has(lastBox) && inView(lastBox) ? lastBox : null) ??
+      [...broken.keys()].find(inView) ??
+      (ko.hits > 0 && mascot ? mascot : null);
     const f = focus?.getBoundingClientRect();
     const fx = f ? f.left + f.width / 2 : window.innerWidth / 2;
     const fy = f
@@ -486,21 +689,21 @@ export function createDamage(env: Env): Damage {
       left: `${cdX}px`,
       top: `${fy}px`,
     });
-    play(DAMAGE_SOUNDS.doraRush, { volume: 0.9 });
+    play(DAMAGE_SOUNDS.doraRush, { volume: 1 });
 
-    // les DORA claquent sur tout ce qui est réparé
-    const spots = [
-      ...[...boxes.keys()].filter(inView).map((b) => {
-        const r = b.getBoundingClientRect();
-        return () =>
-          [
-            rand(r.left + 20, r.right - 20),
-            rand(Math.max(r.top, 0) + 20, Math.min(r.bottom, window.innerHeight) - 20),
-          ] as const;
-      }),
-      () => [fx + rand(-60, 60), fy + rand(-60, 60)] as const,
-    ];
-    for (let t = 120; t < 1400; t += 95) {
+    // les DORA claquent sur ce qui est réparé
+    const targets: Element[] = [...broken.keys()].filter(inView);
+    if (ko.hits > 0 && mascot) targets.push(mascot);
+    const spots = targets.map((t) => {
+      const r = t.getBoundingClientRect();
+      return () =>
+        [
+          rand(r.left + 10, r.right - 10),
+          rand(Math.max(r.top, 0) + 10, Math.min(r.bottom, window.innerHeight) - 10),
+        ] as const;
+    });
+    spots.push(() => [fx + rand(-60, 60), fy + rand(-60, 60)] as const);
+    for (let t = 150; t < 2700; t += 90) {
       later(t, () => {
         const spot = spots[Math.floor(rand(0, spots.length))];
         if (!spot) return;
@@ -508,25 +711,13 @@ export function createDamage(env: Env): Damage {
         word(x, y, "DORA", CD_PINK, 40);
       });
     }
-    // les fêlures se referment une à une, la mascotte revole à sa place
-    const all = [...boxes.values()].flatMap((b) => b.cracks.map((c) => ({ box: b, el: c.el })));
-    all.forEach(({ box, el }, i) => {
-      later(200 + Math.min(i * 70, 1000), () =>
-        closeCrack(el, true, () => {
-          if (box.host.childElementCount === 0) box.host.remove();
-        }),
-      );
-    });
-    const screen = screenCracks.splice(0);
-    screen.forEach((el, i) => later(500 + i * 120, () => closeCrack(el, true)));
-    later(350, () => restoreMascot(true));
-    later(1250, () => {
-      boxes.clear();
-      lastBox = null;
-    });
+    // les morceaux remontent et se recollent, la mascotte revole à sa place
+    [...broken.values()].forEach((b, i) => later(450 + i * 250, () => restoreBox(b, true)));
+    screenCracks.splice(0).forEach((el, i) => later(700 + i * 120, () => closeCrack(el)));
+    if (ko.hits > 0) later(600, () => restoreMascot(true));
 
-    // « ドラァ ! » final, et l'éclat de ce qui est comme neuf
-    later(1450, () => {
+    // « ドラァ ! » final, à la fin de la rafale de coups
+    later(2800, () => {
       play(DAMAGE_SOUNDS.dora, { volume: 1 });
       transient(
         "jojo-fx-final jojo-fx-kana",
@@ -535,10 +726,10 @@ export function createDamage(env: Env): Damage {
       );
       transient("jojo-fx-ring jojo-fx-ring-cd", { left: `${fx}px`, top: `${fy}px` });
     });
-    later(2000, () => {
+    later(3300, () => {
       const r = cd.getBoundingClientRect();
       transient(
-        "jojo-fx-bubble jojo-fx-bubble-cd",
+        "jojo-fx-bubble jojo-fx-bubble-cd jojo-fx-kana",
         {
           left: `${Math.min(Math.max(r.left + r.width / 2, 130), window.innerWidth - 130)}px`,
           top: `${r.top + 20}px`,
@@ -552,8 +743,13 @@ export function createDamage(env: Env): Damage {
     });
     later(REPAIR_MS, () => {
       repairing = false;
+      lastBox = null;
+      if (again) {
+        again = false;
+        repair();
+      }
     });
-  };
+  }
 
   return { hit, damaged, repair, clear };
 }

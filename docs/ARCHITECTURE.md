@@ -404,16 +404,21 @@ décors.
   sur le thème de Jotaro. Les dégâts (`apps/web/components/jojoDamage.ts`) : la case que frappent
   ses poings tremble tout entière, sans jamais sortir de la zone qui la contient (aucune barre de
   défilement n'apparaît ; la colonne de gauche a 6 px de marge intérieure pour ça), et se fissure
-  (fêlures en étoile tirées au hasard, en SVG dans la case) ; les éléments marqués `data-ora`
-  encaissent : Sonic perd ses anneaux, les coups rebondissent sur Luffy (« 効かねェな… ゴムだから »),
-  la steel ball tourne, les boutons du header valsent ; la mascotte est sonnée (yeux fermés), perd
-  sa couronne, puis est envoyée dans le bord de l'écran, qui se fissure, et y reste incrustée.
-  1,4 s après la rafale, **Crazy Diamond** (le Stand de Josuke, rendu officiel du jeu All Star
-  Battle : `public/jojo/crazy-diamond.webp`, halo rose cuit dans l'image) surgit à côté de la
-  dernière case fissurée, « DORARARA » (`public/audio/jojo-dora-rush.mp3`, `jojo-dora.mp3`), et
-  tout revient en place : les fêlures se referment, la mascotte et sa couronne refont le chemin à
-  l'envers, puis « ドラァ ! » et « グレート ! ». Il attend la fin d'un arrêt du temps ; quitter le
-  thème remet tout en place d'un coup ; près de DIO, il sort The World
+  (fêlures en étoile tirées au hasard, en SVG dans la case) ; on arrête de la frapper : ses fêlures
+  s'estompent en 1,2 s. On s'acharne (34 coups, un peu moins de 3 s) : elle **vole en éclats**
+  (« ガシャーン », verre brisé `public/audio/jojo-glass.mp3`) : elle est masquée, et des copies d'elle
+  découpées en morceaux (`clip-path`, une part en éventail autour du point d'impact coupée en deux)
+  retombent. Les éléments marqués `data-ora` encaissent : Sonic perd ses anneaux, les coups
+  rebondissent sur Luffy (« 効かねェな… ゴムだから »), la steel ball tourne, les boutons du header
+  valsent ; la mascotte est sonnée (yeux fermés), perd sa couronne, puis est envoyée dans le bord
+  de l'écran, qui se fissure, et y reste incrustée. **Crazy Diamond** (le Stand de Josuke, rendu
+  officiel du jeu All Star Battle : `public/jojo/crazy-diamond.webp`, halo rose cuit dans l'image)
+  arrive 0,8 s après qu'une case s'est brisée, ou 1,4 s après la rafale si la mascotte a été
+  assommée : « DORARARA » (voix de Josuke dans l'anime sur les coups de son Stand,
+  `public/audio/jojo-dora-rush.mp3`, puis `jojo-dora.mp3`), les morceaux remontent et se
+  recollent, la mascotte et sa couronne refont le chemin à l'envers, puis « ドラァ ! » et
+  « グレート ! ». Il attend la fin d'un arrêt du temps ; quitter le thème remet tout en place d'un
+  coup ; près de DIO, il sort The World
   qui répond en « MUDA MUDA ». Secret : pendant ZA WARUDO, un clic sur DIO lâche le rouleau
   compresseur dans le temps arrêté (`ROAD_ROLLER_EVENT`) ; 5 s de rafale le renvoient, sinon « To
   Be Continued ». Clic sur Jotaro : « Yare yare daze » ; sur DIO : « WRYYY ». Sprites du jeu de
