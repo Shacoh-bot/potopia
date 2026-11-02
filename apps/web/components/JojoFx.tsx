@@ -29,7 +29,6 @@ const DIO_RANGE = 260; // distance à laquelle DIO sort The World
 const ROLLER_ESCAPE_MS = 4500; // temps pour commencer à repousser le rouleau
 const ROLLER_PUSH_MS = 5000; // rafale sous le rouleau qui le renvoie dans les airs
 const ROLLER_RETRY_MS = 2500; // rafale trop courte : temps avant qu'il retombe
-const RUSH_MAX_MS = 30000; // sécurité : une rafale s'arrête d'elle-même
 const REPAIR_DELAY_MS = 1400; // après la rafale, Crazy Diamond arrive
 const STAND_KEY = "potopia:jojo-stand"; // Stand invoqué, gardé sur l'appareil
 const HINT_KEY = "potopia:jojo-hint-seen"; // bulle d'aide déjà vue sur cet appareil
@@ -91,17 +90,22 @@ function play(src: string, { loop = false, volume = 0.8 } = {}) {
   audio.play().catch(() => {});
   return audio;
 }
-/** Baisse le son jusqu'au silence, puis l'arrête. */
-function fadeOut(audio: HTMLAudioElement, ms: number) {
+/**
+ * Baisse le son jusqu'au silence, puis le met en pause (il garde sa position). Renvoie de quoi
+ * interrompre le fondu (le son repart avant la fin).
+ */
+function fadeOut(audio: HTMLAudioElement, ms: number): () => void {
   const from = audio.volume;
   const t0 = performance.now();
+  let frame = 0;
   const step = () => {
     const k = Math.min(1, (performance.now() - t0) / ms);
     audio.volume = from * (1 - k);
-    if (k < 1) requestAnimationFrame(step);
+    if (k < 1) frame = requestAnimationFrame(step);
     else audio.pause();
   };
-  requestAnimationFrame(step);
+  frame = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(frame);
 }
 
 export function JojoFx() {
@@ -202,10 +206,8 @@ export function JojoFx() {
       star: HTMLElement;
       world?: HTMLElement;
       ora: HTMLAudioElement;
-      theme: HTMLAudioElement;
       muda?: HTMLAudioElement;
       ticker: number;
-      startedAt: number;
       /** Début de la rafale sous le rouleau compresseur. */
       pushedSince?: number;
     };
@@ -280,6 +282,20 @@ export function JojoFx() {
       return { x: b.left + b.width * 0.06, y: b.top + b.height * 0.45 };
     };
 
+    // Le thème de Jotaro : un seul lecteur pour toutes les rafales, mis en pause en fondu à la fin
+    // de chacune et repris là où il s'était arrêté à la suivante.
+    let theme: HTMLAudioElement | null = null;
+    let stopThemeFade = () => {};
+    const playTheme = () => {
+      stopThemeFade();
+      if (!theme) {
+        theme = new Audio(SOUNDS.theme);
+        theme.loop = true;
+      }
+      theme.volume = Math.min(1, effectiveVolume() * 0.6);
+      theme.play().catch(() => {});
+    };
+
     const beginRush = () => {
       if (!standOn || !isJojo()) return;
       window.clearTimeout(repairTimer);
@@ -289,11 +305,10 @@ export function JojoFx() {
       const r: Rush = {
         star: spawn("jojo-fx-sprite jojo-strip jojo-fx-star"),
         ora: play(SOUNDS.ora, { loop: true }),
-        theme: play(SOUNDS.theme, { loop: true, volume: 0.6 }),
         ticker: 0,
-        startedAt: performance.now(),
       };
       rush = r;
+      playTheme();
       placeRush(r);
       r.ticker = window.setInterval(() => {
         placeRush(r);
@@ -339,7 +354,6 @@ export function JojoFx() {
             quake(16, 500);
           }
         }
-        if (performance.now() - r.startedAt > RUSH_MAX_MS) endRush(true);
       }, HIT_EVERY_MS);
     };
 
@@ -360,7 +374,7 @@ export function JojoFx() {
       window.clearInterval(r.ticker);
       r.ora.pause();
       r.muda?.pause();
-      fadeOut(r.theme, 1500);
+      if (theme) stopThemeFade = fadeOut(theme, 1500);
       root().classList.remove("jojo-rushing");
       const { x, y } = fist(r);
       r.star.remove();
@@ -457,6 +471,9 @@ export function JojoFx() {
     const onMove = (e: PointerEvent) => {
       mouse = { x: e.clientX, y: e.clientY };
       wake();
+      // pas de limite de durée : la rafale dure tant que le clic est tenu. Clic relâché hors de la
+      // fenêtre (aucun pointerup reçu) : le premier mouvement sans bouton y met fin.
+      if (rush && e.pointerType === "mouse" && e.buttons === 0) return endRush(true);
       if (!rush && Math.hypot(mouse.x - start.x, mouse.y - start.y) > MOVE_TOLERANCE) {
         window.clearTimeout(holdTimer);
       }
@@ -590,6 +607,8 @@ export function JojoFx() {
       window.removeEventListener("click", onClick);
       window.removeEventListener("contextmenu", onContext);
       window.removeEventListener(ROAD_ROLLER_EVENT, roadRoller);
+      stopThemeFade();
+      theme?.pause();
       layer.remove();
     };
   }, []);

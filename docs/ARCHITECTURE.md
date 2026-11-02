@@ -424,7 +424,7 @@ décors.
   affiché, le thème de Jotaro (1,4 Mo) se lit en flux à la première rafale. Star Platinum suit la
   souris dans une boucle `requestAnimationFrame` qui ne tourne que pendant qu'il la rattrape (rien
   sans Stand ni hors du thème), déplacé par `translate`. Sécurités : une rafale
-  s'arrête si l'onglet passe en arrière-plan et au bout de 30 s ; rien pendant l'arrêt du temps,
+  s'arrête si l'onglet passe en arrière-plan ou si le clic est relâché hors de la fenêtre (pas de limite de durée) ; le thème de Jotaro reprend là où la rafale précédente l'a laissé ; rien pendant l'arrêt du temps,
   sauf le rouleau (la couche `.jojo-fx` échappe au gel, comme Star Platinum).
   Décor One Piece (`OnePieceDecor`) : la carte du monde (Red Line, Grand Line, les quatre
   Blues : `public/onepiece/world-map-night.webp`) en fond, rendue en luminosité seulement sur le
