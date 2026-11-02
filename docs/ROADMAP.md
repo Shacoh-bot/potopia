@@ -205,10 +205,11 @@ Pour chaque étape, les critères de fin incluent toujours que `pnpm lint`, `pnp
       clic maintenu (sprites du jeu de Capcom, voix et thème de Jotaro), choc avec The World près
       de DIO, rouleau compresseur secret pendant ZA WARUDO, Jotaro et DIO qui parlent au clic.
       Dégâts de la rafale : la case frappée tremble pour de bon et se fissure petit à petit, une
-      fissure principale la traverse de plus en plus (tout s'estompe quand on arrête), puis elle
-      vole en éclats si on s'acharne jusqu'au bout ; Sonic perd ses anneaux,
-      Luffy encaisse en caoutchouc, la mascotte est assommée puis envoyée dans le bord de l'écran ;
-      Crazy Diamond surgit alors (« DORARARA », voix de Josuke) et recolle les morceaux.
+      fissure principale la traverse par à-coups (tout s'estompe quand on arrête), puis elle vole
+      en éclats le long de cette fissure si on s'acharne jusqu'au bout ; Sonic perd ses anneaux,
+      Luffy encaisse en caoutchouc, la mascotte se couvre de blessures pendant une dizaine de
+      secondes puis s'écrase sur le bord de l'écran ; la rafale finie, Crazy Diamond rembobine
+      tout sous ses coups.
     - Thème One Piece : la Grand Line de nuit (carte du monde en fond, Gear 5, Zoro et Luffy,
       « ドン!! », Haki des rois qui crépite de temps en temps), cadres de carte marine ancienne
       avec le Jolly Roger, titres façon logo ; le cadre du compte devient l'avis de recherche du

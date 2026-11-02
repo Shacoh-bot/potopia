@@ -7,15 +7,17 @@
  *   elle tremble de plus en plus fort. Une fissure principale part du premier coup et traverse la
  *   case un peu plus à chaque coup, avec ses ramifications, jusqu'à ses bords. On arrête de la
  *   frapper : tout s'estompe. On s'acharne jusqu'au bout (SHATTER_AT coups) : la case vole en
- *   éclats depuis ce premier point, en morceaux qui retombent, et Crazy Diamond la reconstitue.
+ *   éclats depuis ce premier point, en morceaux qui retombent et disparaissent.
  * - Les petits éléments du header encaissent aussi : Sonic perd ses anneaux, les coups rebondissent
  *   sur Luffy (il est en caoutchouc), la steel ball tourne sur elle-même, les boutons valsent.
- * - La mascotte : sonnée (yeux fermés), puis sa couronne saute, puis elle est envoyée dans le bord
- *   de l'écran, qui se fissure, et elle y reste incrustée.
- * - Crazy Diamond (le Stand de Josuke) surgit, « DORARARA », et tout revient à sa place : les
- *   morceaux de la case remontent et se recollent, la mascotte revole à sa place, sa couronne
- *   aussi. « ドラァ ! », « グレート ! ». Il vient dès qu'une case est brisée, ou à la fin de la
- *   rafale si la mascotte a été assommée.
+ * - La mascotte encaisse une dizaine de secondes : des blessures de plus en plus graves (bleus,
+ *   pansements, bosse, œil au beurre noir, joue enflée, étoiles), sa couronne qui s'en va, ses
+ *   yeux qui se ferment, puis elle est envoyée s'écraser sur le bord de l'écran, qui se fissure, et
+ *   elle y reste incrustée. Quand les poings sont sur elle, ils ne frappent rien d'autre.
+ * - Une fois la rafale finie, Crazy Diamond (le Stand de Josuke) répare tout : il sort, le son de
+ *   ses coups part et il frappe, et dans le même temps tout se rembobine (les morceaux remontent
+ *   et se recollent, la mascotte revole à sa place, ses blessures s'effacent, sa couronne revient),
+ *   jusqu'à être comme neuf à la fin du son. « ドラァ ! », « グレート ! ».
  * Tout passe par le DOM et l'API Web Animations (aucun état React) : fêlures en SVG dans la case
  * frappée, morceaux et effets dans la couche `.jojo-fx`. Animations en transform et opacity.
  */
@@ -26,20 +28,34 @@ const CRACK_EVERY_MS = 320; // une fêlure de plus au plus toutes les 320 ms… 
 const CRACKS_PER_BOX = 26;
 const CRACK_SPACING = 46; // en dessous, on ne refissure pas au même endroit (moins, usée)
 const FADE_AFTER_MS = 1500; // case qu'on ne frappe plus : ses fêlures s'estompent
-const CD_AFTER_SHATTER_MS = 800;
-const DAZED_AT = 4; // coups sur la mascotte : yeux fermés
-const CROWN_AT = 8; // … sa couronne saute
-const LAUNCH_AT = 14; // … envoyée dans le décor
+// Réparation : tout se rembobine pendant le son des coups de Crazy Diamond (3 s), et finit juste
+// avant la fin du son.
+const REWIND_MS = 2850;
+// La mascotte : coups reçus (85 ms chacun) avant chaque étape.
+const CROWN_AT = 45; // sa couronne s'en va
+const DAZED_AT = 100; // ses yeux se ferment
+const LAUNCH_AT = 118; // envoyée sur le bord de l'écran, au bout d'une dizaine de secondes
+const MASCOT_PAD = 24; // autour d'elle, les coups sont encore pour elle
+/** Blessures de la mascotte, de plus en plus graves : à partir de combien de coups. */
+const INJURIES: readonly (readonly [number, string])[] = [
+  [10, "bruise"],
+  [22, "bandage"],
+  [34, "bruise-chin"],
+  [52, "bump"],
+  [64, "black-eye"],
+  [76, "bandage-cheek"],
+  [88, "swelling"],
+  [100, "dizzy"],
+];
 const SMALL_EVERY_MS = 160; // un petit élément ne réagit pas à chaque coup
 const RING_EVERY_MS = 650; // Sonic perd des anneaux au plus toutes les 650 ms
-const REPAIR_MS = 4200; // durée de la réparation par Crazy Diamond
+const REPAIR_MS = 4300; // durée de la réparation par Crazy Diamond
 const CD_PINK = "#ff8fc8";
 const HUD = ".jojo-fx, .jojo-decor, .jojo-fx-hint";
 
 export const DAMAGE_SOUNDS = {
-  doraRush: "/audio/jojo-dora-rush.mp3",
-  dora: "/audio/jojo-dora.mp3",
   glass: "/audio/jojo-glass.mp3",
+  restore: "/audio/jojo-cd-restore.mp3",
 } as const;
 export const DAMAGE_SPRITES = ["/jojo/crazy-diamond.webp"] as const;
 
@@ -196,6 +212,95 @@ function shardPolygons(w: number, h: number, x: number, y: number, parts: number
   return polys;
 }
 
+/**
+ * Morceaux d'une case de w × h brisée le long de sa fissure principale (ses deux troncs, partis du
+ * même point) : la fissure, prolongée jusqu'aux bords gauche et droit, coupe la case en deux ; des
+ * lignes brisées partent de points de la fissure vers le haut et vers le bas et découpent chaque
+ * moitié. Polygones en px, qui couvrent toute la case sans se chevaucher.
+ */
+function crackShards(w: number, h: number, a: Point[], b: Point[], cuts: number): Point[][] {
+  // la fissure de gauche à droite : le tronc qui finit le plus à gauche, retourné, puis l'autre
+  const aEnd = a[a.length - 1] ?? [0, 0];
+  const bEnd = b[b.length - 1] ?? [0, 0];
+  const [left, right] = aEnd[0] <= bEnd[0] ? [a, b] : [b, a];
+  const line: Point[] = [...[...left].reverse(), ...right.slice(1)].map(([x, y]) => [
+    Math.min(Math.max(x, 0), w),
+    Math.min(Math.max(y, 1), h - 1),
+  ]);
+  const first = line[0] ?? [0, h / 2];
+  const last = line[line.length - 1] ?? [w, h / 2];
+  if (first[0] > 0) line.unshift([0, first[1]]);
+  if (last[0] < w) line.push([w, last[1]]);
+  // tour de la case (sens horaire depuis le coin haut gauche), compté à partir du bout gauche
+  const P = 2 * (w + h);
+  const around = ([x, y]: Point) => {
+    const t =
+      y <= 0.5 ? x : x >= w - 0.5 ? w + y : y >= h - 0.5 ? w + h + (w - x) : 2 * w + h + (h - y);
+    return (t - (2 * w + h + (h - (line[0]?.[1] ?? 0))) + 2 * P) % P;
+  };
+  const corners: Point[] = [
+    [0, 0],
+    [w, 0],
+    [w, h],
+    [0, h],
+  ];
+  const cornersBetween = (from: number, to: number) =>
+    corners
+      .map((c) => ({ c, t: around(c) }))
+      .filter(({ t }) => t > Math.min(from, to) && t < Math.max(from, to))
+      .sort((u, v) => (from < to ? u.t - v.t : v.t - u.t))
+      .map(({ c }) => c);
+  // points de départ des découpes, répartis le long de la fissure
+  const picks = Array.from({ length: cuts }, (_, i) =>
+    Math.round(((i + 1) / (cuts + 1)) * (line.length - 1)),
+  ).filter((v, i, all) => v > 0 && v < line.length - 1 && all.indexOf(v) === i);
+  const spread = (w / (picks.length + 1)) * 0.3;
+  // ligne brisée d'un point de la fissure jusqu'au bord haut (ou bas)
+  const toEdge = ([x, y]: Point, edge: number): Point[] => {
+    const pts: Point[] = [[x, y]];
+    for (const k of [0.35, 0.7]) {
+      pts.push([
+        Math.min(Math.max(x + rand(-spread, spread), 1), w - 1),
+        y + (edge - y) * k + rand(-4, 4),
+      ]);
+    }
+    pts.push([Math.min(Math.max(x + rand(-spread, spread), 1), w - 1), edge]);
+    return pts;
+  };
+  const ups = picks.map((i) => toEdge(line[i] ?? [0, 0], 0));
+  const downs = picks.map((i) => toEdge(line[i] ?? [0, 0], h));
+  const edges = [0, ...picks, line.length - 1];
+  const polys: Point[][] = [];
+  for (let k = 0; k + 1 < edges.length; k++) {
+    const i = edges[k] ?? 0;
+    const j = edges[k + 1] ?? 0;
+    const crack = line.slice(i, j + 1);
+    // au-dessus de la fissure : on remonte par la découpe de droite, on revient par le haut
+    const upI = k === 0 ? [line[0] ?? [0, 0]] : (ups[k - 1] ?? []);
+    const upJ = k + 1 === edges.length - 1 ? [line[j] ?? [w, 0]] : (ups[k] ?? []);
+    const topI = around(upI[upI.length - 1] ?? [0, 0]);
+    const topJ = around(upJ[upJ.length - 1] ?? [0, 0]);
+    polys.push([
+      ...crack,
+      ...upJ.slice(1),
+      ...cornersBetween(topJ, topI),
+      ...[...upI].reverse().slice(0, -1),
+    ]);
+    // en dessous : on descend par la découpe de droite, on revient par le bas
+    const downI = k === 0 ? [line[0] ?? [0, 0]] : (downs[k - 1] ?? []);
+    const downJ = k + 1 === edges.length - 1 ? [line[j] ?? [w, 0]] : (downs[k] ?? []);
+    const botI = k === 0 ? P : around(downI[downI.length - 1] ?? [0, 0]);
+    const botJ = around(downJ[downJ.length - 1] ?? [0, 0]);
+    polys.push([
+      ...crack,
+      ...downJ.slice(1),
+      ...cornersBetween(botJ, botI),
+      ...[...downI].reverse().slice(0, -1),
+    ]);
+  }
+  return polys;
+}
+
 /** Première zone qui coupe ce qui déborde (défilement ou overflow), ou null : la page elle-même. */
 function clipParent(el: Element): Element | null {
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
@@ -234,14 +339,16 @@ export function createDamage(env: Env): Damage {
   const { layer, transient, spawn, word, play, later, quake, reducedMotion } = env;
 
   // ── Les cases ──
-  /** Une branche de la fissure principale : ses points, sa direction, ce qu'il lui reste à faire. */
-  type Branch = {
-    paths: SVGPathElement[];
-    pts: Point[];
-    angle: number;
-    step: number;
-    /** Segments restants (Infinity : le tronc, qui va jusqu'au bord). */
-    left: number;
+  /** Un trait de la fissure principale (tronc ou ramification) : ses points, ses deux tracés. */
+  type Branch = { paths: SVGPathElement[]; pts: Point[] };
+  /** Un tronc : il part du premier coup vers un bord, et avance par à-coups. */
+  type Trunk = Branch & { cap: number; reach: number; length: number; dev: number };
+  type MainCrack = {
+    svg: SVGSVGElement;
+    origin: Point;
+    trunks: [Trunk, Trunk];
+    twigs: number;
+    webs: number;
   };
   type Box = {
     host: HTMLElement;
@@ -250,7 +357,7 @@ export function createDamage(env: Env): Damage {
     hits: number;
     fade: number;
     /** Fissure principale : partie du premier coup, elle traverse la case coup après coup. */
-    main: { svg: SVGSVGElement; origin: Point; branches: Branch[]; webs: number } | null;
+    main: MainCrack | null;
   };
   const boxes = new Map<Element, Box>();
   /** Cases brisées, en attente de Crazy Diamond : leurs morceaux et la chute de chacun. */
@@ -278,95 +385,150 @@ export function createDamage(env: Env): Damage {
 
   const wearOf = (entry: Box | undefined) => Math.min(1, (entry?.hits ?? 0) / SHATTER_AT);
 
-  /** Une branche de plus dans la fissure principale (deux tracés : l'arête claire, le trait sombre). */
-  const branch = (svg: SVGSVGElement, from: Point, angle: number, step: number, left: number) => {
+  /** Un trait de plus dans la fissure principale (deux tracés : l'arête claire, le trait sombre). */
+  const stroke = (svg: SVGSVGElement, from: Point, twig: boolean): Branch => {
     const paths = ["light", "dark"].map((kind) => {
       const path = document.createElementNS(SVG, "path");
-      path.setAttribute(
-        "class",
-        `jojo-crack-${kind}${Number.isFinite(left) ? " jojo-crack-twig" : ""}`,
-      );
+      path.setAttribute("class", `jojo-crack-${kind}${twig ? " jojo-crack-twig" : ""}`);
       svg.append(path);
       return path;
     });
-    return { paths, pts: [from], angle, step, left };
+    return { paths, pts: [from] };
+  };
+  const redraw = (b: Branch) => {
+    const d = polyline(b.pts);
+    for (const path of b.paths) path.setAttribute("d", d);
   };
   /**
-   * La fissure principale de la case grandit d'un coup : ses deux troncs avancent vers les bords
-   * (en zigzag, sans s'écarter de leur cap), de temps en temps une ramification part de l'un d'eux,
-   * et une étoile de fêlures de plus en plus large s'ouvre autour du point de départ.
+   * Une ramification d'un coup, tout de suite à sa longueur : une ligne brisée, à angles vifs,
+   * coupée au bord de la case ; parfois elle se ramifie à son tour.
    */
-  const growMain = (box: Element, entry: Box, x: number, y: number, times: number) => {
-    const r = box.getBoundingClientRect();
-    if (!entry.main) {
-      const svg = document.createElementNS(SVG, "svg");
-      svg.setAttribute("class", "jojo-maincrack");
-      svg.setAttribute("width", String(r.width));
-      svg.setAttribute("height", String(r.height));
-      entry.host.append(svg);
-      const origin: Point = [
-        Math.min(Math.max(x - r.left, 10), r.width - 10),
-        Math.min(Math.max(y - r.top, 10), r.height - 10),
-      ];
-      // les deux troncs partent dans des directions opposées, le long de la case
-      const cap =
-        Math.atan2(r.height * rand(-0.5, 0.5), r.width) + (Math.random() < 0.5 ? 0 : Math.PI);
-      const reach = (a: number) => {
-        const dx = Math.cos(a);
-        const dy = Math.sin(a);
-        const tx = dx > 1e-6 ? (r.width - origin[0]) / dx : dx < -1e-6 ? -origin[0] / dx : Infinity;
-        const ty =
-          dy > 1e-6 ? (r.height - origin[1]) / dy : dy < -1e-6 ? -origin[1] / dy : Infinity;
-        return Math.min(tx, ty);
-      };
-      // chaque tronc atteint son bord vers 80 % de l'usure
-      const branches = [cap, cap + Math.PI].map((a) =>
-        branch(svg, origin, a, reach(a) / (SHATTER_AT * 0.8), Infinity),
-      );
-      entry.main = { svg, origin, branches, webs: 0 };
-    }
-    const main = entry.main;
-    for (let t = 0; t < times; t++) {
-      for (const b of main.branches) {
-        if (b.left <= 0) continue;
-        const last = b.pts[b.pts.length - 1] ?? main.origin;
-        const a = b.angle + rand(-0.45, 0.45);
-        let nx = last[0] + Math.cos(a) * b.step * rand(0.6, 1.4);
-        let ny = last[1] + Math.sin(a) * b.step * rand(0.6, 1.4);
-        // arrivé au bord : il s'arrête
-        if (nx <= 0 || ny <= 0 || nx >= r.width || ny >= r.height) {
-          nx = Math.min(Math.max(nx, 0), r.width);
-          ny = Math.min(Math.max(ny, 0), r.height);
-          b.left = 0;
-        } else b.left -= 1;
-        b.pts.push([nx, ny]);
-        const d = polyline(b.pts);
-        for (const path of b.paths) path.setAttribute("d", d);
-      }
-      // une ramification de temps en temps, depuis un point d'un des troncs
-      const trunk = main.branches[Math.floor(rand(0, 2))];
-      if (trunk && entry.hits % 6 === 0 && trunk.pts.length > 2 && main.branches.length < 30) {
-        const from = trunk.pts[Math.floor(rand(1, trunk.pts.length))] ?? main.origin;
-        const side = Math.random() < 0.5 ? -1 : 1;
-        main.branches.push(
-          branch(
-            main.svg,
-            from,
-            trunk.angle + side * rand(0.6, 1.2),
-            trunk.step * 0.8,
-            Math.floor(rand(3, 8)),
-          ),
+  const twig = (
+    main: MainCrack,
+    w: number,
+    h: number,
+    from: Point,
+    angle: number,
+    length: number,
+    depth: number,
+  ) => {
+    if (main.twigs >= 70) return;
+    main.twigs += 1;
+    const b = stroke(main.svg, from, true);
+    let [x, y] = from;
+    let a = angle;
+    let done = 0;
+    while (done < length) {
+      a += Math.random() < 0.25 ? rand(-0.9, 0.9) : rand(-0.3, 0.3);
+      const seg = rand(7, 16);
+      x = Math.min(Math.max(x + Math.cos(a) * seg, 0), w);
+      y = Math.min(Math.max(y + Math.sin(a) * seg, 0), h);
+      b.pts.push([x, y]);
+      done += seg;
+      if (x <= 0 || y <= 0 || x >= w || y >= h) break;
+      if (depth < 2 && Math.random() < 0.12) {
+        twig(
+          main,
+          w,
+          h,
+          [x, y],
+          a + (Math.random() < 0.5 ? -1 : 1) * rand(0.5, 1.1),
+          (length - done) * 0.6,
+          depth + 1,
         );
       }
     }
-    // l'étoile autour du point de départ s'élargit en trois temps
+    redraw(b);
+  };
+  /**
+   * La fissure principale encaisse un coup. Comme une vraie fissure, elle ne grandit pas d'un peu à
+   * chaque coup : la tension monte, puis elle cède d'un coup, un bond en avant à angles vifs, qui
+   * lâche des ramifications (de plus en plus, à mesure que la case s'use). Ses deux troncs
+   * atteignent les bords vers 80 % de l'usure ; une étoile s'élargit autour du point de départ.
+   * Renvoie true si elle vient de bondir (la case tremble alors plus fort).
+   */
+  const growMain = (box: Element, entry: Box, x: number, y: number): boolean => {
+    const r = box.getBoundingClientRect();
+    const w = r.width;
+    const h = r.height;
+    if (!entry.main) {
+      const svg = document.createElementNS(SVG, "svg");
+      svg.setAttribute("class", "jojo-maincrack");
+      svg.setAttribute("width", String(w));
+      svg.setAttribute("height", String(h));
+      entry.host.append(svg);
+      const origin: Point = [
+        Math.min(Math.max(x - r.left, 10), w - 10),
+        Math.min(Math.max(y - r.top, 10), h - 10),
+      ];
+      // les deux troncs partent dans des directions opposées, en travers de la case
+      const cap = Math.atan2(h * rand(-0.35, 0.35), w);
+      // distance jusqu'au bord gauche ou droit, en suivant le cap
+      const reach = (a: number) =>
+        (Math.cos(a) > 0 ? w - origin[0] : origin[0]) / Math.max(Math.abs(Math.cos(a)), 0.5);
+      const trunk = (a: number): Trunk => ({
+        ...stroke(svg, origin, false),
+        cap: a,
+        reach: reach(a),
+        length: 0,
+        dev: 0,
+      });
+      entry.main = { svg, origin, trunks: [trunk(cap), trunk(cap + Math.PI)], twigs: 0, webs: 0 };
+    }
+    const main = entry.main;
     const wear = wearOf(entry);
+    let burst = false;
+    for (const t of main.trunks) {
+      const last = t.pts[t.pts.length - 1] ?? main.origin;
+      // arrivé au bord gauche ou droit : il a traversé la case
+      if (last[0] <= 0 || last[0] >= w) continue;
+      // longueur qu'il « devrait » avoir : il ne bouge pas tant que le retard est faible…
+      const target = t.reach * Math.min(1, wear / 0.8);
+      if (target - t.length < t.reach * rand(0.07, 0.2)) continue;
+      // … puis il bondit, et dépasse un peu
+      burst = true;
+      const goal = Math.min(t.reach * 1.05, target + t.reach * rand(0, 0.06));
+      let [px, py] = last;
+      while (t.length < goal) {
+        // cap gardé à peu près (jamais en arrière), avec des cassures vives
+        t.dev = Math.max(
+          -0.6,
+          Math.min(0.6, t.dev * 0.5 + (Math.random() < 0.3 ? rand(-0.7, 0.7) : rand(-0.22, 0.22))),
+        );
+        // trop près du haut ou du bas de la case : la cassure repart vers le milieu
+        const toward = Math.sin(t.cap + t.dev) < 0 ? -1 : 1; // -1 : vers le haut
+        if ((py < 26 && toward < 0) || (py > h - 26 && toward > 0)) t.dev = -t.dev;
+        const a = t.cap + t.dev;
+        const seg = rand(9, 20);
+        px = Math.min(Math.max(px + Math.cos(a) * seg, 0), w);
+        py = Math.min(Math.max(py + Math.sin(a) * seg, 0), h);
+        t.pts.push([px, py]);
+        t.length += seg;
+        // les ramifications partent des cassures, de plus en plus nombreuses
+        if (Math.random() < 0.12 + wear * 0.3) {
+          const side = Math.random() < 0.5 ? -1 : 1;
+          twig(
+            main,
+            w,
+            h,
+            [px, py],
+            a + side * rand(0.5, 1.3),
+            t.reach * rand(0.08, 0.22) * (0.5 + wear),
+            0,
+          );
+        }
+        if (px <= 0 || px >= w) break;
+      }
+      redraw(t);
+    }
+    // l'étoile autour du point de départ s'élargit en trois temps
     const webAt = [0.3, 0.6, 0.85];
     while (main.webs < webAt.length && wear >= (webAt[main.webs] ?? 1)) {
       main.webs += 1;
       const web = crackElement(main.origin[0], main.origin[1], 40 + main.webs * 45, "jojo-crack");
       entry.host.append(web);
     }
+    return burst;
   };
 
   /** Les fêlures d'une case qu'on ne frappe plus s'estompent, puis disparaissent. */
@@ -402,7 +564,8 @@ export function createDamage(env: Env): Damage {
       const [ox, oy] = current.main?.origin ?? [x - r.left, y - r.top];
       return shatter(box, r.left + ox, r.top + oy);
     }
-    growMain(box, current, x, y, big ? 4 : 1);
+    // la fissure principale bondit : la case accuse le coup
+    if (growMain(box, current, x, y) && !reducedMotion()) jolt(box, 6 + wearOf(current) * 8, 220);
     const wear = wearOf(current);
     if (!big && now - current.last < CRACK_EVERY_MS * (1 - 0.5 * wear)) return;
     const r = box.getBoundingClientRect();
@@ -446,10 +609,15 @@ export function createDamage(env: Env): Damage {
       width: `${r.width}px`,
       height: `${r.height}px`,
     });
-    // grande case (La Place…) : moins de morceaux, chacun est une copie entière de la case
-    const parts = r.width * r.height > 300_000 ? 6 : 9;
+    // les morceaux suivent la fissure principale ; sans elle, un éventail autour de l'impact (grande
+    // case comme La Place : moins de morceaux, chacun est une copie entière de la case)
+    const [ta, tb] = entry?.main?.trunks ?? [];
+    const polys =
+      ta && tb && ta.pts.length + tb.pts.length > 4
+        ? crackShards(r.width, r.height, ta.pts, tb.pts, r.width * r.height > 300_000 ? 3 : 4)
+        : shardPolygons(r.width, r.height, lx, ly, r.width * r.height > 300_000 ? 6 : 9);
     const canvases = [...box.querySelectorAll("canvas")];
-    const flights = shardPolygons(r.width, r.height, lx, ly, parts).map((poly) => {
+    const flights = polys.map((poly) => {
       const piece = document.createElement("div");
       piece.className = "jojo-fx-shard";
       const copy = box.cloneNode(true) as HTMLElement;
@@ -524,11 +692,13 @@ export function createDamage(env: Env): Damage {
       { left: `${x}px`, top: `${y}px`, color: "#e8f4ff" },
       "ガシャーン",
     );
-    later(CD_AFTER_SHATTER_MS, repair);
   };
 
-  /** La case brisée se reconstitue : ses morceaux refont le chemin à l'envers, puis elle revient. */
-  const restoreBox = ({ el, shards, flights }: Broken, animated: boolean) => {
+  /**
+   * La case brisée se reconstitue : ses morceaux refont leur chute à l'envers en `ms`
+   * millisecondes, puis elle revient.
+   */
+  const restoreBox = ({ el, shards, flights }: Broken, animated: boolean, ms = REWIND_MS) => {
     broken.delete(el);
     const done = () => {
       el.style.removeProperty("visibility");
@@ -542,12 +712,14 @@ export function createDamage(env: Env): Damage {
     let left = flights.length;
     if (left === 0) return done();
     for (const a of flights) {
+      // à l'envers, à la vitesse qui le ramène au départ en `ms`
+      const at = typeof a.currentTime === "number" ? a.currentTime : 0;
       a.onfinish = () => {
         left -= 1;
         if (left === 0) done();
       };
-      a.updatePlaybackRate(1.35);
-      a.reverse();
+      a.playbackRate = -Math.max(at, 1) / ms;
+      a.play();
     }
   };
 
@@ -635,10 +807,19 @@ export function createDamage(env: Env): Damage {
   };
 
   // ── La mascotte ──
-  type Ko = { hits: number; body?: Animation; crown?: Animation; lids: Animation[] };
-  let ko: Ko = { hits: 0, lids: [] };
+  type Ko = {
+    hits: number;
+    body?: Animation;
+    crown?: Animation;
+    lids: Animation[];
+    /** Blessures posées sur elle, dans l'ordre. */
+    hurts: HTMLElement[];
+  };
+  const fresh = (): Ko => ({ hits: 0, lids: [], hurts: [] });
+  let ko: Ko = fresh();
   const mascotParts = (btn: Element) => ({
     inner: btn.querySelector(".mascot"),
+    all: btn.querySelector(".mascot-all"),
     crown: btn.querySelector(".mascot-crown"),
     lids: [...btn.querySelectorAll(".mascot-lid")],
   });
@@ -682,9 +863,18 @@ export function createDamage(env: Env): Damage {
   };
   const mascotHit = (btn: HTMLElement, x: number, y: number, final: boolean) => {
     if (ko.body) return knock(btn, 6); // déjà dans le mur
-    const { inner, crown, lids } = mascotParts(btn);
+    const { inner, all, crown, lids } = mascotParts(btn);
     if (!inner) return;
-    ko.hits += final ? LAUNCH_AT : 1;
+    ko.hits += final ? 6 : 1;
+    // une blessure de plus à chaque palier (posée sur l'image, à l'échelle de la mascotte)
+    for (const [at, kind] of INJURIES.slice(ko.hurts.length)) {
+      if (ko.hits < at || !all) break;
+      const hurt = document.createElement("span");
+      hurt.className = `mascot-hurt mascot-hurt-${kind}`;
+      hurt.setAttribute("aria-hidden", "true");
+      all.append(hurt);
+      ko.hurts.push(hurt);
+    }
     if (!reducedMotion()) {
       inner.animate(
         [
@@ -721,10 +911,24 @@ export function createDamage(env: Env): Damage {
 
   // ── Un coup ──
   const hit = (x: number, y: number, final = false) => {
+    // les poings sur la mascotte (ou juste à côté) : c'est elle qui prend, pas la case derrière
+    const mascot = document.querySelector<HTMLElement>('[data-ora="mascot"]');
+    const m = mascot?.getBoundingClientRect();
+    if (
+      mascot &&
+      m &&
+      m.width > 0 &&
+      x >= m.left - MASCOT_PAD &&
+      x <= m.right + MASCOT_PAD &&
+      y >= m.top - MASCOT_PAD &&
+      y <= m.bottom + MASCOT_PAD
+    ) {
+      return mascotHit(mascot, x, y, final);
+    }
     const top = document.elementsFromPoint(x, y).find((e) => !e.closest(HUD));
     if (!top) return;
     const target = top.closest<HTMLElement>("[data-ora]");
-    if (target?.dataset.ora === "mascot") return mascotHit(target, x, y, final);
+    if (target?.dataset.ora === "mascot") return;
     if (target) return small(target, target.dataset.ora ?? null);
     const headerItem = top.closest("header button, header a");
     if (headerItem) return small(headerItem, null);
@@ -738,19 +942,34 @@ export function createDamage(env: Env): Damage {
 
   const damaged = () => broken.size > 0 || screenCracks.length > 0 || ko.hits > 0;
 
-  /** Remet la mascotte : la couronne et le corps refont le chemin à l'envers. */
-  const restoreMascot = (animated: boolean) => {
-    const parts = [ko.body, ko.crown, ...ko.lids].filter((a): a is Animation => !!a);
-    ko = { hits: 0, lids: [] };
-    for (const a of parts) {
-      if (!animated || reducedMotion()) {
-        a.cancel();
-        continue;
-      }
-      a.onfinish = () => a.cancel();
-      a.updatePlaybackRate(1.6);
-      a.reverse();
+  /** Joue l'animation à l'envers jusqu'à son début, en `ms` millisecondes, puis l'annule. */
+  const rewind = (a: Animation, ms: number) => {
+    a.onfinish = () => a.cancel();
+    const at = typeof a.currentTime === "number" ? a.currentTime : 0;
+    a.playbackRate = -Math.max(at, 1) / ms;
+    a.play();
+  };
+  /**
+   * Remet la mascotte en `ms` millisecondes : le corps revole depuis le bord de l'écran, la
+   * couronne revient, les yeux se rouvrent, et ses blessures s'effacent, des dernières aux premières.
+   */
+  const restoreMascot = (animated: boolean, ms = REWIND_MS) => {
+    const { body, crown, lids, hurts } = ko;
+    ko = fresh();
+    const parts = [body, crown, ...lids].filter((a): a is Animation => !!a);
+    if (!animated || reducedMotion()) {
+      parts.forEach((a) => a.cancel());
+      hurts.forEach((h) => h.remove());
+      return;
     }
+    parts.forEach((a) => rewind(a, ms));
+    [...hurts].reverse().forEach((h, i) => {
+      h.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 260,
+        delay: (i * ms) / Math.max(hurts.length, 1),
+        fill: "forwards",
+      }).onfinish = () => h.remove();
+    });
   };
   const closeCrack = (el: SVGSVGElement) => {
     if (reducedMotion()) return el.remove();
@@ -808,7 +1027,8 @@ export function createDamage(env: Env): Damage {
       left: `${cdX}px`,
       top: `${fy}px`,
     });
-    play(DAMAGE_SOUNDS.doraRush, { volume: 1 });
+    // tout part en même temps : il sort, le son de ses coups, ses coups, et le rembobinage
+    play(DAMAGE_SOUNDS.restore, { volume: 1 });
 
     // les DORA claquent sur ce qui est réparé
     const targets: Element[] = [...broken.keys()].filter(inView);
@@ -822,7 +1042,7 @@ export function createDamage(env: Env): Damage {
         ] as const;
     });
     spots.push(() => [fx + rand(-60, 60), fy + rand(-60, 60)] as const);
-    for (let t = 150; t < 2700; t += 90) {
+    for (let t = 60; t < REWIND_MS; t += 90) {
       later(t, () => {
         const spot = spots[Math.floor(rand(0, spots.length))];
         if (!spot) return;
@@ -831,13 +1051,14 @@ export function createDamage(env: Env): Damage {
       });
     }
     // les morceaux remontent et se recollent, la mascotte revole à sa place
-    [...broken.values()].forEach((b, i) => later(450 + i * 250, () => restoreBox(b, true)));
-    screenCracks.splice(0).forEach((el, i) => later(700 + i * 120, () => closeCrack(el)));
-    if (ko.hits > 0) later(600, () => restoreMascot(true));
+    [...broken.values()].forEach((b) => restoreBox(b, true));
+    if (ko.hits > 0) restoreMascot(true);
+    screenCracks
+      .splice(0)
+      .forEach((el, i) => later(REWIND_MS * 0.55 + i * 120, () => closeCrack(el)));
 
     // « ドラァ ! » final, à la fin de la rafale de coups
-    later(2800, () => {
-      play(DAMAGE_SOUNDS.dora, { volume: 1 });
+    later(REWIND_MS + 60, () => {
       transient(
         "jojo-fx-final jojo-fx-kana",
         { left: `${fx}px`, top: `${fy}px`, color: CD_PINK },
@@ -845,7 +1066,7 @@ export function createDamage(env: Env): Damage {
       );
       transient("jojo-fx-ring jojo-fx-ring-cd", { left: `${fx}px`, top: `${fy}px` });
     });
-    later(3300, () => {
+    later(REWIND_MS + 450, () => {
       const r = cd.getBoundingClientRect();
       transient(
         "jojo-fx-bubble jojo-fx-bubble-cd jojo-fx-kana",

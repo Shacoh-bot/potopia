@@ -1045,7 +1045,7 @@ html.jojo-rushing * {
   background: url(/jojo/crazy-diamond.webp) center / contain no-repeat;
   animation:
     jojo-fx-cd-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
-    jojo-fx-cd-punch 0.16s ease-in-out 0.3s 8 alternate;
+    jojo-fx-cd-punch 0.16s ease-in-out 0.3s 22 alternate;
 }
 .jojo-fx-cd-flip {
   scale: -1 1;
@@ -2086,6 +2086,143 @@ html.time-stop body > :not(.za-layer, .jojo-fx) *::after {
   top: calc(124px * var(--s));
   width: calc(21px * var(--s));
   height: calc(42px * var(--s));
+}
+
+/* Blessures sous la rafale de Star Platinum (thème JoJo, components/jojoDamage.ts), de plus en
+   plus graves : posées sur l'image du corps (512 × 673, à l'échelle --s), autour des yeux. */
+.mascot-hurt {
+  position: absolute;
+  pointer-events: none;
+  animation: mascot-hurt-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+@keyframes mascot-hurt-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+/* bleus : un sur la joue gauche, un sur le menton */
+.mascot-hurt-bruise,
+.mascot-hurt-bruise-chin {
+  left: calc(112px * var(--s));
+  top: calc(196px * var(--s));
+  width: calc(78px * var(--s));
+  height: calc(58px * var(--s));
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgb(118 54 160 / 0.8) 0%,
+    rgb(88 40 140 / 0.5) 50%,
+    transparent 72%
+  );
+}
+.mascot-hurt-bruise-chin {
+  left: calc(214px * var(--s));
+  top: calc(272px * var(--s));
+  width: calc(64px * var(--s));
+  height: calc(46px * var(--s));
+}
+/* pansements en croix : sur le front, puis sur la joue droite */
+.mascot-hurt-bandage,
+.mascot-hurt-bandage-cheek {
+  left: calc(262px * var(--s));
+  top: calc(52px * var(--s));
+  width: calc(84px * var(--s));
+  height: calc(84px * var(--s));
+  rotate: -12deg;
+}
+.mascot-hurt-bandage-cheek {
+  left: calc(300px * var(--s));
+  top: calc(198px * var(--s));
+  width: calc(70px * var(--s));
+  height: calc(70px * var(--s));
+  rotate: 18deg;
+}
+.mascot-hurt-bandage::before,
+.mascot-hurt-bandage::after,
+.mascot-hurt-bandage-cheek::before,
+.mascot-hurt-bandage-cheek::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 36%;
+  width: 100%;
+  height: 28%;
+  border: max(1px, calc(3px * var(--s))) solid #b98450;
+  border-radius: calc(8px * var(--s));
+  background:
+    radial-gradient(circle, #c99460 18%, transparent 22%) center / 25% 60% repeat-x,
+    #f3d2a0;
+  rotate: 45deg;
+}
+.mascot-hurt-bandage::after,
+.mascot-hurt-bandage-cheek::after {
+  rotate: -45deg;
+}
+/* bosse sur le crâne */
+.mascot-hurt-bump {
+  left: calc(146px * var(--s));
+  top: calc(-14px * var(--s));
+  width: calc(80px * var(--s));
+  height: calc(62px * var(--s));
+  border: max(1px, calc(4px * var(--s))) solid #7a3a34;
+  border-radius: 50% 50% 42% 42%;
+  background: radial-gradient(circle at 40% 32%, #ffe0d4 0 12%, #f0a090 34%, #c9675c 80%);
+}
+/* œil au beurre noir (œil gauche, sous les lunettes) */
+.mascot-hurt-black-eye {
+  left: calc(140px * var(--s));
+  top: calc(108px * var(--s));
+  width: calc(86px * var(--s));
+  height: calc(88px * var(--s));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 30%,
+    rgb(52 24 70 / 0.85) 42%,
+    rgb(80 40 110 / 0.55) 58%,
+    transparent 72%
+  );
+}
+/* joue droite enflée */
+.mascot-hurt-swelling {
+  left: calc(296px * var(--s));
+  top: calc(170px * var(--s));
+  width: calc(116px * var(--s));
+  height: calc(104px * var(--s));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 45% 40%,
+    rgb(255 178 168 / 0.95) 0%,
+    rgb(232 118 110 / 0.8) 52%,
+    transparent 72%
+  );
+}
+/* sonnée : des étoiles qui tournent autour de la tête */
+.mascot-hurt-dizzy {
+  left: calc(96px * var(--s));
+  top: calc(-70px * var(--s));
+  width: calc(320px * var(--s));
+  height: calc(60px * var(--s));
+  font-size: calc(46px * var(--s));
+  line-height: 1;
+  text-align: center;
+  color: #ffe27a;
+  text-shadow: 0 0 calc(6px * var(--s)) #050308;
+  animation:
+    mascot-hurt-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.4) both,
+    mascot-dizzy 0.7s ease-in-out infinite alternate;
+}
+.mascot-hurt-dizzy::before {
+  content: "★ ✦ ★ ✦";
+}
+@keyframes mascot-dizzy {
+  from {
+    transform: translateX(calc(-18px * var(--s))) rotate(-6deg);
+  }
+  to {
+    transform: translateX(calc(18px * var(--s))) rotate(6deg);
+  }
 }
 
 /* Repos : il respire, la couronne flotte, un clignement de temps en temps. */

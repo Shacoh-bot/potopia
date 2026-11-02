@@ -29,7 +29,7 @@ const DIO_RANGE = 260; // distance à laquelle DIO sort The World
 const ROLLER_ESCAPE_MS = 4500; // temps pour commencer à repousser le rouleau
 const ROLLER_PUSH_MS = 5000; // rafale sous le rouleau qui le renvoie dans les airs
 const ROLLER_RETRY_MS = 2500; // rafale trop courte : temps avant qu'il retombe
-const REPAIR_DELAY_MS = 1400; // après la rafale, Crazy Diamond arrive
+const REPAIR_DELAY_MS = 700; // la rafale finie, Crazy Diamond arrive
 const STAND_KEY = "potopia:jojo-stand"; // Stand invoqué, gardé sur l'appareil
 const HINT_KEY = "potopia:jojo-hint-seen"; // bulle d'aide déjà vue sur cet appareil
 // Éléments où un clic maintenu garde son sens habituel.
