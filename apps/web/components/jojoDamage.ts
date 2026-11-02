@@ -370,11 +370,27 @@ export function createDamage(env: Env): Damage {
   /** Un trait de la fissure principale (tronc ou ramification) : ses points, ses deux tracés. */
   type Branch = { paths: SVGPathElement[]; pts: Point[] };
   /** Un tronc : il part du premier coup vers un bord, et avance par à-coups. */
-  type Trunk = Branch & { cap: number; reach: number; length: number; dev: number };
+  /**
+   * Une fissure qui rayonne du point d'impact jusqu'à un bord : par à-coups, vers `cap` (à `maxDev`
+   * près), née à l'usure `born`.
+   */
+  type Trunk = Branch & {
+    cap: number;
+    reach: number;
+    length: number;
+    dev: number;
+    born: number;
+    maxDev: number;
+  };
   type MainCrack = {
     svg: SVGSVGElement;
     origin: Point;
     trunks: Trunk[];
+    /** Rayons du départ (1 à 3), puis combien il en faut à la fin pour couvrir la case. */
+    first: number;
+    radials: number;
+    /** Cercles de fissures déjà tracés autour du point d'impact. */
+    rings: number;
     twigs: number;
     webs: number;
   };
@@ -440,7 +456,7 @@ export function createDamage(env: Env): Damage {
     length: number,
     depth: number,
   ) => {
-    if (main.twigs >= 70) return;
+    if (main.twigs >= 110) return;
     main.twigs += 1;
     const b = stroke(main.svg, from, true);
     let [x, y] = from;
@@ -499,21 +515,103 @@ export function createDamage(env: Env): Damage {
       ).onfinish = () => bit.remove();
     }
   };
+  /** Un rayon de plus dans la fissure principale, du point d'impact vers le bord. */
+  const radial = (
+    svg: SVGSVGElement,
+    origin: Point,
+    w: number,
+    h: number,
+    a: number,
+    born: number,
+    maxDev: number,
+  ): Trunk => {
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    const tx = dx > 1e-6 ? (w - origin[0]) / dx : dx < -1e-6 ? -origin[0] / dx : Infinity;
+    const ty = dy > 1e-6 ? (h - origin[1]) / dy : dy < -1e-6 ? -origin[1] / dy : Infinity;
+    return {
+      ...stroke(svg, origin, false),
+      cap: a,
+      reach: Math.min(tx, ty),
+      length: 0,
+      dev: 0,
+      born,
+      maxDev,
+    };
+  };
+  /** Premier point du rayon à au moins `dist` du point d'impact (ou rien s'il n'y arrive pas). */
+  const pointAt = (t: Trunk, origin: Point, dist: number): Point | null =>
+    t.pts.find((p) => Math.hypot(p[0] - origin[0], p[1] - origin[1]) >= dist) ?? null;
+  /**
+   * Le cercle de fissures n° `k` : entre chaque paire de rayons voisins assez longs, un trait brisé
+   * qui les relie à peu près à la même distance du point d'impact (jamais un vrai cercle, et il en
+   * manque toujours quelques-uns). Renvoie true s'il en a tracé au moins un.
+   */
+  const ring = (main: MainCrack, w: number, h: number, k: number, of: number): boolean => {
+    const o = main.origin;
+    // de tout près du point d'impact jusqu'aux coins de la case
+    const far = Math.max(
+      Math.hypot(o[0], o[1]),
+      Math.hypot(w - o[0], o[1]),
+      Math.hypot(o[0], h - o[1]),
+      Math.hypot(w - o[0], h - o[1]),
+    );
+    const radius = far * (0.1 + 0.85 * Math.pow((k + 1) / of, 1.25));
+    const sorted = [...main.trunks].sort(
+      (u, v) =>
+        (((u.cap % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) -
+        (((v.cap % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)),
+    );
+    let drawn = 0;
+    sorted.forEach((t, i) => {
+      const next = sorted[(i + 1) % sorted.length];
+      if (!next || next === t || Math.random() < 0.22) return;
+      const pa = pointAt(t, o, radius * rand(0.85, 1.15));
+      const pb = pointAt(next, o, radius * rand(0.85, 1.15));
+      if (!pa || !pb) return;
+      // un trait brisé, un peu bombé vers l'extérieur
+      const len = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
+      if (len < 12 || len > far * 1.1) return;
+      const nx = -(pb[1] - pa[1]) / len;
+      const ny = (pb[0] - pa[0]) / len;
+      const out = (pa[0] + pb[0]) / 2 - o[0] < 0 === nx < 0 ? 1 : -1;
+      const pts: Point[] = [pa];
+      const steps = 2 + Math.floor(rand(0, 3));
+      for (let s = 1; s < steps; s++) {
+        const f = s / steps;
+        const bow = Math.sin(f * Math.PI) * len * rand(0.04, 0.16) * out;
+        pts.push([
+          Math.min(Math.max(pa[0] + (pb[0] - pa[0]) * f + nx * bow + rand(-4, 4), 0), w),
+          Math.min(Math.max(pa[1] + (pb[1] - pa[1]) * f + ny * bow + rand(-4, 4), 0), h),
+        ]);
+      }
+      pts.push(pb);
+      const b = stroke(main.svg, pa, true);
+      b.pts = pts;
+      later(drawn * 14, () => redraw(b));
+      drawn += 1;
+    });
+    return drawn > 0;
+  };
   /** Trace `count` points du trait (le bond se dessine en quelques images, pas d'un seul coup). */
   const reveal = (b: Branch, count: number) => {
     const d = polyline(b.pts.slice(0, count));
     for (const path of b.paths) path.setAttribute("d", d);
   };
   /**
-   * La fissure principale encaisse un coup. Comme une vraie fissure, elle ne grandit pas d'un peu à
-   * chaque coup : la tension monte, puis elle cède d'un coup, un bond très rapide en avant (dessiné
-   * en une centaine de millisecondes) à angles vifs, par segments très inégaux, avec parfois une
-   * fourche, et qui lâche des ramifications (de plus en plus, à mesure que la case s'use).
+   * La fissure principale encaisse un coup, comme une vitre qui prend coup sur coup au même
+   * endroit. Elle ne grandit pas d'un peu à chaque coup : la tension monte, puis elle cède d'un
+   * coup, un bond très rapide (dessiné en une centaine de millisecondes) à angles vifs, par segments
+   * très inégaux, avec des ramifications.
+   * - Au début, 1 à 3 fissures partent du point d'impact (le premier coup, ramené vers le centre)
+   *   et grandissent vite : elles touchent les bords vers 55 % de l'usure.
+   * - Puis d'autres rayonnent du même point, dans les trous entre elles, jusqu'à une douzaine qui
+   *   partent dans tous les sens et atteignent toutes les bords vers 90 %.
+   * - Des cercles de fissures, brisés et incomplets, relient les rayons voisins à des distances de
+   *   plus en plus grandes : à la fin, la toile de verre brisé couvre toute la case.
    * Chaque bond craque (début de bris de verre, de plus en plus fort), fait sauter des éclats au
-   * bout de la fissure, et lâche parfois un « ピキッ ». Elle part plutôt du milieu de la case (le
-   * premier coup, ramené vers le centre, surtout dans une grande case) ; ses deux troncs atteignent
-   * les bords vers 80 % de l'usure ; une étoile s'élargit autour du point de départ.
-   * Renvoie true si elle vient de bondir (la case tremble alors plus fort).
+   * bout de la fissure, et lâche parfois un « ピキッ ». Une étoile s'élargit autour du point de
+   * départ. Renvoie true si elle vient de bondir (la case tremble alors plus fort).
    */
   const growMain = (box: Element, entry: Box, x: number, y: number): boolean => {
     const r = box.getBoundingClientRect();
@@ -543,35 +641,55 @@ export function createDamage(env: Env): Damage {
           : count === 2
             ? [base, base + Math.PI + rand(-0.7, 0.7)]
             : [0, 1, 2].map((i) => base + (i * Math.PI * 2) / 3 + rand(-0.3, 0.3));
-      // distance jusqu'au bord, en suivant la direction
-      const reach = (a: number) => {
-        const dx = Math.cos(a);
-        const dy = Math.sin(a);
-        const tx = dx > 1e-6 ? (w - origin[0]) / dx : dx < -1e-6 ? -origin[0] / dx : Infinity;
-        const ty = dy > 1e-6 ? (h - origin[1]) / dy : dy < -1e-6 ? -origin[1] / dy : Infinity;
-        return Math.min(tx, ty);
+      entry.main = {
+        svg,
+        origin,
+        trunks: caps.map((a) => radial(svg, origin, w, h, a, 0, 0.7)),
+        first: caps.length,
+        // une douzaine de rayons à la fin (plus dans une grande case)
+        radials: (w * h > 200_000 ? 14 : 11) + Math.floor(rand(-1, 2)),
+        rings: 0,
+        twigs: 0,
+        webs: 0,
       };
-      const trunk = (a: number): Trunk => ({
-        ...stroke(svg, origin, false),
-        cap: a,
-        reach: reach(a),
-        length: 0,
-        dev: 0,
-      });
-      entry.main = { svg, origin, trunks: caps.map(trunk), twigs: 0, webs: 0 };
     }
     const main = entry.main;
     const wear = wearOf(entry);
     let burst = false;
+    // de nouveaux rayons partent du point d'impact, chacun dans le plus grand trou entre les autres
+    const wanted = Math.round(
+      main.first + (main.radials - main.first) * Math.min(1, Math.max(0, (wear - 0.1) / 0.68)),
+    );
+    while (main.trunks.length < wanted) {
+      const caps = main.trunks
+        .map((t) => ((t.cap % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2))
+        .sort((a, b) => a - b);
+      let gapAt = 0;
+      let gap = 0;
+      caps.forEach((c, i) => {
+        const next = i + 1 < caps.length ? (caps[i + 1] ?? c) : (caps[0] ?? c) + Math.PI * 2;
+        if (next - c > gap) {
+          gap = next - c;
+          gapAt = c;
+        }
+      });
+      const a = gapAt + gap * rand(0.38, 0.62);
+      // assez serré pour ne pas croiser ses voisins
+      main.trunks.push(radial(main.svg, main.origin, w, h, a, wear, Math.min(0.7, gap * 0.22)));
+    }
     for (const t of main.trunks) {
       const last = t.pts[t.pts.length - 1] ?? main.origin;
       // arrivée au bord : cette branche a fini
       if (last[0] <= 0 || last[1] <= 0 || last[0] >= w || last[1] >= h) continue;
-      // longueur qu'il « devrait » avoir : il ne bouge pas tant que le retard est faible (au
-      // hasard), puis il bondit, et dépasse un peu
-      const target = t.reach * Math.min(1, wear / 0.8);
+      // longueur qu'il « devrait » avoir (vite au début, puis jusqu'au bord) : il ne bouge pas
+      // tant que le retard est faible (au hasard), puis il bondit, et dépasse un peu
+      const progress =
+        t.born === 0
+          ? Math.pow(Math.min(1, wear / 0.55), 0.6)
+          : Math.pow(Math.min(1, (wear - t.born) / Math.max(0.1, 0.9 - t.born)), 0.7);
+      const target = t.reach * progress;
       const lag = target - t.length;
-      if (lag < t.reach * rand(0.05, 0.24) && !(lag > t.reach * 0.03 && Math.random() < 0.08)) {
+      if (lag < t.reach * rand(0.03, 0.15) && !(lag > t.reach * 0.02 && Math.random() < 0.12)) {
         continue;
       }
       burst = true;
@@ -582,9 +700,9 @@ export function createDamage(env: Env): Damage {
       while (t.length < goal) {
         // cap gardé à peu près (jamais en arrière), avec des cassures vives et inégales
         t.dev = Math.max(
-          -0.7,
+          -t.maxDev,
           Math.min(
-            0.7,
+            t.maxDev,
             t.dev * 0.45 + (Math.random() < 0.35 ? rand(-0.85, 0.85) : rand(-0.25, 0.25)),
           ),
         );
@@ -604,7 +722,7 @@ export function createDamage(env: Env): Damage {
             step,
             () => twig(main, w, h, at, a + side * rand(0.35, 0.8), t.reach * rand(0.25, 0.45), 0),
           ]);
-        } else if (Math.random() < 0.12 + wear * 0.3) {
+        } else if (Math.random() < 0.08 + wear * 0.22) {
           pending.push([
             step,
             () =>
@@ -657,6 +775,12 @@ export function createDamage(env: Env): Damage {
           ["ピキッ", "ビキッ", "バキッ"][Math.floor(rand(0, 3))],
         );
       }
+    }
+    // des cercles de fissures relient les rayons, de plus en plus loin du point d'impact
+    const ringAt = [0.26, 0.42, 0.56, 0.68, 0.79, 0.88, 0.95];
+    while (main.rings < ringAt.length && wear >= (ringAt[main.rings] ?? 1)) {
+      if (ring(main, w, h, main.rings, ringAt.length)) burst = true;
+      main.rings += 1;
     }
     // l'étoile autour du point de départ s'élargit en trois temps
     const webAt = [0.3, 0.6, 0.85];

@@ -430,17 +430,20 @@ décors.
   petit à petit (fêlures en étoile tirées au hasard, en SVG dans la case, de plus en plus grandes,
   serrées et fréquentes à mesure qu'elle s'use, et elle tremble de plus en plus fort). Une
   **fissure principale** part du premier coup, ramené vers le centre de la case (surtout dans une
-  grande case), en 1, 2 ou 3 branches dans des directions au hasard (haut, bas, en diagonale, en
-  travers), et grandit comme une vraie fissure : par à-coups (la tension monte, puis elle bondit
-  d'un coup, dessinée en une centaine de millisecondes, à angles vifs, par segments très inégaux,
-  parfois en fourche, et la case accuse le coup), avec des ramifications de plus en plus
-  nombreuses, jusqu'aux bords vers 80 % de l'usure, et une étoile qui s'élargit autour du point de
-  départ. Chaque bond craque (début de bris de verre, `public/audio/jojo-glass-crack.mp3`, de plus
+  grande case), et grandit comme une vitre qui prend coup sur coup : par à-coups (la tension monte,
+  puis elle bondit d'un coup, dessinée en une centaine de millisecondes, à angles vifs, par
+  segments très inégaux, avec des ramifications, et la case accuse le coup). Au début, 1 à 3
+  rayons dans des directions au hasard, qui grandissent vite (les bords vers 55 % de l'usure) ;
+  puis d'autres rayonnent du même point, chacun dans le plus grand trou entre les autres, jusqu'à
+  une douzaine (14 dans une grande case) qui partent dans tous les sens et touchent tous les bords
+  vers 90 % ; et des cercles de fissures brisés et incomplets relient les rayons voisins, de plus
+  en plus loin du point d'impact : juste avant le bris, la toile de verre brisé couvre toute la
+  case. Une étoile s'élargit autour du point de départ. Chaque bond craque (début de bris de verre, `public/audio/jojo-glass-crack.mp3`, de plus
   en plus fort, hauteur au hasard), fait sauter des éclats de verre au bout de la fissure et lâche
   parfois un « ピキッ ». On arrête de la frapper : tout s'estompe en 1,5 s. On s'acharne jusqu'au
   bout (100 coups, environ 8,5 s de rafale sur la même case) : elle **vole en éclats** le long de
   cette fissure (« ガシャーン », verre brisé `public/audio/jojo-glass.mp3`) : elle est masquée, et
-  des copies d'elle, découpées en secteurs entre les branches de la fissure (prolongées jusqu'aux
+  des copies d'elle, découpées en secteurs entre les rayons de la fissure (prolongées jusqu'aux
   bords), puis recoupées en éclats de tailles très différentes (`clip-path`, une trentaine, une
   quinzaine dans une grande case), chacun avec son reflet, partent chacun de son côté, à leur
   vitesse et à leur moment, en tournoyant et en basculant en 3D, avec de la poussière de verre,
