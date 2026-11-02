@@ -32,7 +32,7 @@ describe("poses du jour", () => {
 
 describe("répliques", () => {
   it("plusieurs répliques par note, et chaque tirage en donne une", () => {
-    for (const g of ["A", "B", "C", "D", "E"] as const) {
+    for (const g of ["Z", "S", "A", "B", "C", "D", "E"] as const) {
       expect(verdictsFor(g).length).toBeGreaterThanOrEqual(8);
       expect(verdictsFor(g)).toContain(verdict(g, 0));
       expect(verdictsFor(g)).toContain(verdict(g, 0.999));

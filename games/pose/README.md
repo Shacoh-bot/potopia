@@ -109,13 +109,16 @@ penché ne coûte que ses points, pas ceux des bras.
 
 - Une articulation que la pose demande de changer (plus de 25° d'écart avec la pose debout)
   est notée sur le chemin parcouru depuis la pose debout jusqu'à la cible, pleine à moins de
-  15° ; ces articulations font les trois quarts de la note (tronc 1,5, tête 0,5, les autres 1).
+  4° ; ces articulations font les trois quarts de la note (tronc 1,5, tête 0,5, les autres 1).
 - Celles qui n'ont pas à changer, déjà justes debout, font le dernier quart, tant qu'on ne les
-  plie pas à tort (rien perdu jusqu'à 15° d'écart, tout au-delà de 60°, et jusqu'à 40 % de la
+  plie pas à tort (rien perdu jusqu'à 4° d'écart, tout au-delà de 50°, et jusqu'à 40 % de la
   part des articulations à changer en plus). Le pantin qu'on ne touche pas fait donc au plus
   25 % (note E) ; une pose qui serait simplement debout vaudrait 100 % sans rien toucher.
 - La pose en **miroir** compte aussi (gauche et droite échangées) : on garde la meilleure.
-- Note façon fiche de Stand : A (90 % et plus), B (75), C (60), D (40), E.
+- La tolérance est serrée (4°, à peine plus que la précision de la souris) et le pourcentage est
+  arrondi par défaut : 100 % demande chaque articulation à quelques degrés près.
+- Note façon fiche de Stand : **Z** (100 %, la pose parfaite), **S** (plus de 95 %), A (85 à
+  95 %), B (75), C (60), D (40), E. Répliques propres à chaque note, Star Platinum pour Z, S et A.
 
 Après la validation, la pose attendue s'affiche en fantôme (pointillés blancs) sur le pantin,
 toujours dans le sens de l'image (même si le joueur l'a faite en miroir).

@@ -55,7 +55,8 @@ describe("score", () => {
   });
 
   it("le pantin debout, sans y toucher, reste à E (ce qui est déjà juste compte un peu)… sauf si la pose est debout", () => {
-    expect(scorePose(REST_POSE, POINTING).percent).toBe(25);
+    expect(scorePose(REST_POSE, POINTING).percent).toBeGreaterThanOrEqual(24);
+    expect(scorePose(REST_POSE, POINTING).percent).toBeLessThanOrEqual(25);
     for (const p of POSES) {
       const { percent } = scorePose(REST_POSE, targetPose(p));
       expect(percent).toBeLessThanOrEqual(25);
@@ -64,8 +65,11 @@ describe("score", () => {
     expect(scorePose(REST_POSE, REST_POSE).percent).toBe(100);
   });
 
-  it("un petit écart d'angle ne coûte rien, un grand fait chuter le score", () => {
-    expect(scorePose(tweak(POINTING, { upperArmR: 100 }), POINTING).percent).toBe(100);
+  it("100 % seulement à quelques degrés près ; 10° d'écart coûte déjà, un grand écart beaucoup", () => {
+    expect(scorePose(tweak(POINTING, { upperArmR: 93 }), POINTING).percent).toBe(100);
+    const close = scorePose(tweak(POINTING, { upperArmR: 100 }), POINTING).percent;
+    expect(close).toBeLessThan(100);
+    expect(close).toBeGreaterThanOrEqual(90);
     expect(scorePose(tweak(POINTING, { upperArmR: 150 }), POINTING).percent).toBeLessThan(85);
   });
 
@@ -90,8 +94,12 @@ describe("score", () => {
     expect(scorePose(bent, POINTING).percent).toBeLessThan(100);
   });
 
-  it("note de A à E", () => {
+  it("note de Z à E", () => {
+    expect(grade(100)).toBe("Z");
+    expect(grade(99)).toBe("S");
+    expect(grade(96)).toBe("S");
     expect(grade(95)).toBe("A");
+    expect(grade(85)).toBe("A");
     expect(grade(80)).toBe("B");
     expect(grade(61)).toBe("C");
     expect(grade(45)).toBe("D");
