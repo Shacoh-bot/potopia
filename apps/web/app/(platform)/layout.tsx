@@ -118,9 +118,11 @@ export default async function PlatformLayout({ children }: { children: ReactNode
           </>
         }
       />
-      {/* Plein écran : la colonne de gauche reste en place au défilement, le reste pour les apps. */}
+      {/* Plein écran : la colonne de gauche reste en place au défilement, le reste pour les apps.
+          Elle a 6 px de marge intérieure de chaque côté (rattrapés par une marge négative) : ses
+          cases ont la place de trembler sous la rafale du thème JoJo sans être coupées. */}
       <div className="flex gap-6 px-4 py-6 lg:px-6">
-        <aside className="animate-rise sticky top-20 hidden h-[calc(100dvh-6.5rem)] w-80 shrink-0 self-start overflow-y-auto lg:block">
+        <aside className="animate-rise sticky top-20 -mx-1.5 hidden h-[calc(100dvh-6.5rem)] w-[calc(20rem+0.75rem)] shrink-0 self-start overflow-y-auto px-1.5 lg:block">
           {sidePanels(true)}
         </aside>
         <main className="page-stagger min-w-0 flex-1">{children}</main>

@@ -401,8 +401,19 @@ décors.
   **Effets JoJo** (`apps/web/components/JojoFx.tsx`, composant client monté par le layout racine,
   actif seulement avec ce thème) : Star Platinum invoqué flotte près de la souris (gardé sur
   l'appareil, sons d'apparition et de disparition) ; clic maintenu dans le vide : rafale « ORA ORA »
-  sur le thème de Jotaro, le contenu de la case que frappent ses poings tremble (jamais la case ni
-  une zone qui défile : les barres de défilement ne bougent pas) ; près de DIO, il sort The World
+  sur le thème de Jotaro. Les dégâts (`apps/web/components/jojoDamage.ts`) : la case que frappent
+  ses poings tremble tout entière, sans jamais sortir de la zone qui la contient (aucune barre de
+  défilement n'apparaît ; la colonne de gauche a 6 px de marge intérieure pour ça), et se fissure
+  (fêlures en étoile tirées au hasard, en SVG dans la case) ; les éléments marqués `data-ora`
+  encaissent : Sonic perd ses anneaux, les coups rebondissent sur Luffy (« 効かねェな… ゴムだから »),
+  la steel ball tourne, les boutons du header valsent ; la mascotte est sonnée (yeux fermés), perd
+  sa couronne, puis est envoyée dans le bord de l'écran, qui se fissure, et y reste incrustée.
+  1,4 s après la rafale, **Crazy Diamond** (le Stand de Josuke, rendu officiel du jeu All Star
+  Battle : `public/jojo/crazy-diamond.webp`, halo rose cuit dans l'image) surgit à côté de la
+  dernière case fissurée, « DORARARA » (`public/audio/jojo-dora-rush.mp3`, `jojo-dora.mp3`), et
+  tout revient en place : les fêlures se referment, la mascotte et sa couronne refont le chemin à
+  l'envers, puis « ドラァ ! » et « グレート ! ». Il attend la fin d'un arrêt du temps ; quitter le
+  thème remet tout en place d'un coup ; près de DIO, il sort The World
   qui répond en « MUDA MUDA ». Secret : pendant ZA WARUDO, un clic sur DIO lâche le rouleau
   compresseur dans le temps arrêté (`ROAD_ROLLER_EVENT`) ; 5 s de rafale le renvoient, sinon « To
   Be Continued ». Clic sur Jotaro : « Yare yare daze » ; sur DIO : « WRYYY ». Sprites du jeu de

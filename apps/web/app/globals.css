@@ -933,6 +933,110 @@ html.jojo-rushing * {
   color: #4a1d8f;
   transform: skewX(-10deg);
 }
+/* Crazy Diamond (« グレート ! ») et Luffy (« 効かねェな… ゴムだから ») */
+.jojo-fx-bubble-cd {
+  background: #ffd6ea;
+  color: #6b1f4a;
+}
+.jojo-fx-bubble-luffy {
+  background: #fff3c4;
+  color: #8a1c12;
+  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+}
+
+/* ── Dégâts de la rafale (components/jojoDamage.ts) ── */
+/* fêlures posées dans la case frappée, coupées à ses bords */
+.jojo-cracks {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.jojo-crack,
+.jojo-fx-crack {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+.jojo-crack-dark {
+  fill: none;
+  stroke: #050308;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* l'arête claire de la fêlure, un pixel à côté du trait sombre */
+.jojo-crack-light {
+  fill: none;
+  stroke: rgb(246 239 220 / 0.45);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translate(1px, 1px);
+}
+.jojo-crack-dent {
+  fill: rgb(5 3 8 / 0.45);
+}
+/* le bord de l'écran où la mascotte s'est écrasée : trait plus épais */
+.jojo-fx-crack .jojo-crack-dark {
+  stroke-width: 3;
+}
+.jojo-fx-crack .jojo-crack-light {
+  stroke-width: 1.5;
+  transform: translate(1.5px, 1.5px);
+}
+/* anneau de Sonic perdu sous les coups */
+.jojo-fx-coin {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 3px solid #ffd53d;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1px #b07a00,
+    0 0 0 1px #b07a00;
+}
+/* Crazy Diamond (rendu officiel All Star Battle, halo rose cuit dans l'image), tourné vers la
+   gauche ; -flip : vers la droite. Il surgit, puis enchaîne les coups. */
+.jojo-fx-cd {
+  height: min(44vh, 360px);
+  aspect-ratio: 403 / 656;
+  translate: -50% -55%;
+  background: url(/jojo/crazy-diamond.webp) center / contain no-repeat;
+  animation:
+    jojo-fx-cd-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    jojo-fx-cd-punch 0.16s ease-in-out 0.3s 8 alternate;
+}
+.jojo-fx-cd-flip {
+  scale: -1 1;
+}
+.jojo-fx-cd.jojo-fx-leave {
+  animation: jojo-fx-leave 0.4s ease-in forwards;
+}
+@keyframes jojo-fx-cd-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.85);
+  }
+}
+@keyframes jojo-fx-cd-punch {
+  to {
+    transform: translateX(-12px);
+  }
+}
+/* onomatopées en kana (« ドラァ ! ») : Anton n'a pas de japonais, on prend un gothique très gras */
+.jojo-fx-kana {
+  font-family: "Yu Gothic", Meiryo, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-weight: 900;
+}
+.jojo-fx-ring-cd {
+  border-color: #ff8fc8;
+  box-shadow:
+    0 0 24px #ff8fc8,
+    inset 0 0 18px #e8f4ff;
+}
 @keyframes jojo-fx-bubble {
   0% {
     opacity: 0;
