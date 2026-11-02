@@ -359,10 +359,12 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
 - `art` (facultatif) : chemin d'une illustration carrée de `apps/web/public/apps/`, qui remplit
   toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Seule
   « TROIS » en a une (`apps/trois.webp`, 480 px, recadrée sur son cadre jaune). Au survol, styles
-  `.app-art*` de `theme.css` : la tuile se penche et grossit, un cadre en dégradé conique aux
-  couleurs de Wordle tourne autour, l'image zoome et s'éclaire, une lueur jaune et verte pulse,
+  `.app-art*` de `theme.css` : la tuile se penche et grossit, un cadre en dégradé conique
+  tourne autour, l'image zoome et s'éclaire, une lueur pulse,
   le reflet `.shine` balaie, et trois lettres « O U I » en cases Wordle jaillissent des coins puis
-  flottent. Couleurs fixes, quel que soit le thème.
+  flottent. Cadre et lueur aux couleurs de Wordle dans les thèmes de base (Classique, Fantasy,
+  RGB), à celles du thème (`--accent`, `--arcane`) dans JoJo, One Piece et Apothicaire ; les
+  lettres restent aux couleurs de Wordle.
 - Toutes les tuiles ont le même arrondi (`rounded-xl`) dans tous les thèmes : le `--radius` des
   thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
