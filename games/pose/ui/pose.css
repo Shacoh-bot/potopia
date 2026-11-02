@@ -1,0 +1,172 @@
+/* Pose JoJo : image de la pose à gauche, pantin à droite (l'un sous l'autre sur mobile). */
+.pose-board {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 900px) {
+  .pose-board {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+  .pose-board .pose-target img {
+    max-height: 60vh;
+  }
+}
+
+.pose-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.pose-target img {
+  display: block;
+  width: 100%;
+  /* sur mobile, l'image et le pantin doivent tenir ensemble à l'écran */
+  max-height: 28vh;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
+}
+
+.pose-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Le pantin : segments à trait d'encre et remplissage or, façon figurine de bois laquée. */
+.pose-puppet {
+  width: 100%;
+  max-height: 62vh;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.06) 1px, transparent 1.6px) 0 0 / 8px 8px,
+    radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in oklab, var(--arcane) 22%, transparent),
+      transparent 70%
+    );
+  touch-action: none;
+  user-select: none;
+}
+.pose-shadow {
+  fill: rgb(0 0 0 / 0.35);
+}
+.pose-body .pose-pelvis {
+  pointer-events: none;
+}
+.pose-body line {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 0.6px #050308) drop-shadow(0 0 0.6px #050308)
+    drop-shadow(2px 2px 0 #050308);
+}
+.pose-body circle {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 0.6px #050308) drop-shadow(0 0 0.6px #050308)
+    drop-shadow(2px 2px 0 #050308);
+}
+.pose-body .pose-seg-active line,
+.pose-body .pose-seg-active circle {
+  stroke: color-mix(in oklab, var(--accent) 70%, #fff);
+  fill: color-mix(in oklab, var(--accent) 70%, #fff);
+}
+.pose-body .pose-pelvis {
+  fill: var(--arcane);
+  filter: none;
+}
+
+/* poignées des articulations : coudes, genoux, tronc et tête en violet, mains et pieds plus
+   gros et clairs (ils entraînent tout le membre). La saisie se calcule au clic (Puppet). */
+.pose-handle {
+  fill: var(--arcane);
+  stroke: #050308;
+  stroke-width: 2;
+  pointer-events: none;
+}
+.pose-handle-end {
+  fill: #fff6d6;
+}
+.pose-handle-active {
+  stroke: #fff;
+}
+.pose-puppet-live {
+  cursor: grab;
+}
+.pose-puppet-live:active {
+  cursor: grabbing;
+}
+
+/* la pose attendue, en fantôme par-dessus après la validation : trait fin en pointillés */
+.pose-ghost {
+  pointer-events: none;
+}
+.pose-ghost line {
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-linecap: round;
+  stroke-dasharray: 1 7;
+  filter: drop-shadow(0 0 2px var(--arcane));
+}
+.pose-ghost circle {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5px;
+  stroke-dasharray: 3 5;
+}
+
+.pose-score {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* note façon fiche de Stand : lettre épaisse cerclée d'encre */
+.pose-grade {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 9999px;
+  font-family: var(--font-jojo-face, Impact), Impact, sans-serif;
+  font-size: 0.9rem;
+  color: #1a1203;
+  background: var(--accent-gradient);
+  box-shadow:
+    0 0 0 2px #050308,
+    3px 3px 0 #050308;
+}
+.pose-grade-big {
+  font-size: 2.4rem;
+}
+.pose-grade-A {
+  background: linear-gradient(135deg, #fff3b0, #f4c430 50%, #ff8a00);
+}
+.pose-grade-D,
+.pose-grade-E {
+  background: linear-gradient(135deg, #c9c3dd, #7a6f9a);
+}
+
+.pose-final {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.pose-recap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.pose-recap li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+.pose-recap img {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}

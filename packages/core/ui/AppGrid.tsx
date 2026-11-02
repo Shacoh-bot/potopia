@@ -3,6 +3,7 @@ import {
   Grid3x3,
   Lightbulb,
   Palette,
+  PersonStanding,
   Shield,
   Trophy,
   VenetianMask,
@@ -16,6 +17,7 @@ const ICONS: Record<AppIconName, LucideIcon> = {
   lightbulb: Lightbulb,
   mask: VenetianMask,
   palette: Palette,
+  person: PersonStanding,
   shield: Shield,
   trophy: Trophy,
 };

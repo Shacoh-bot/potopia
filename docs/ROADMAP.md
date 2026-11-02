@@ -592,3 +592,23 @@ l’acceptation et la mise en service restent ouvertes dans le [bilan](RECETTE_G
 - Une édition fictive complète passe la recette sur plusieurs comptes et une TV ; les droits,
   les projections confidentielles et la concurrence sont vérifiés sur PostgreSQL.
 - Les contrôles habituels passent et la mise en service suit le circuit de PR du dépôt.
+
+---
+
+## Étape 15 : Pose JoJo (en cours)
+
+Jeu du portail : une pose célèbre de JoJo s'affiche, il faut mettre un pantin articulé dans la même
+position. Détails du jeu : [games/pose/README.md](../games/pose/README.md).
+
+**Tâches**
+
+- [x] `games/pose` : squelette à 10 segments, pantin SVG à manipuler par ses mains et pieds
+      (cinématique inverse), ses articulations ou ses membres (souris et doigt), score sur l'angle de chaque articulation (relatif, pose debout
+      à 0 %, miroir compris), notes A à E, partie de 5 poses sur « Jojo Pose », 16 poses calées sur les images,
+      éditeur `/pose?editeur` en local.
+- [x] Page `/pose`, tuile « Pose JoJo » dans le registre des apps.
+- [ ] Après les essais : classement, récompense, activité (demande une base `pose`).
+
+**Fini quand**
+
+- Le jeu est testé par les membres et les poses jugées justes ; puis classement et récompense.
