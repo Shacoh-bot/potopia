@@ -729,10 +729,10 @@
     transform: translateX(120%);
   }
 
-  /* Tuile illustrée de l'accueil (AppGrid, app avec `art`) : au survol, un cadre aux couleurs de
-     Wordle tourne autour de l'image, l'image zoome et s'éclaire, la tuile pulse et trois lettres
-     « O U I » jaillissent des coins. Cadre et lueur aux couleurs de l'illustration (Wordle) dans
-     les thèmes de base, à celles du thème dans les thèmes d'œuvre ; les lettres restent Wordle. */
+  /* Tuile illustrée de l'accueil (AppGrid, app avec `art`) : au survol, un cadre tourne autour de
+     l'image, l'image zoome et s'éclaire, la tuile pulse et, pour TROIS (`artLetters`), trois
+     lettres « O U I » jaillissent des coins. Cadre et lueur aux couleurs de Wordle dans les thèmes
+     de base, à celles du thème dans les thèmes d'œuvre ; les lettres restent Wordle. */
   .app-art {
     --art-1: #facc15;
     --art-2: #22c55e;
