@@ -15,7 +15,10 @@
   },
   "dependencies": {
     "@app/config": "workspace:*",
-    "@app/ui": "workspace:*"
+    "@app/core": "workspace:*",
+    "@app/db": "workspace:*",
+    "@app/ui": "workspace:*",
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "react": "19.3.1"

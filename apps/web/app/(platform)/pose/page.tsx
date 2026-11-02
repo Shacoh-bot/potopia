@@ -13,13 +13,13 @@ export default async function PosePage({
 }) {
   await getCurrentMember();
   // en local seulement : éditeur des poses cibles (calage des angles sur les images) et partie du
-  // jour rejouable
+  // jour rejouable pour de faux
   const local = process.env.NODE_ENV !== "production";
   const editor = local && "editeur" in (await searchParams);
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb />
-      <PoseGame editor={editor} allowReplay={local} />
+      <PoseGame editor={editor} allowPractice={local} />
     </div>
   );
 }

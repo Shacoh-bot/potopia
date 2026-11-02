@@ -82,6 +82,9 @@ const troisGameRoute = await import("@/app/api/trois/game/route");
 const troisGuessRoute = await import("@/app/api/trois/guess/route");
 const troisPracticeRoute = await import("@/app/api/trois/practice/route");
 const troisLeaderboardRoute = await import("@/app/api/trois/leaderboard/route");
+const poseDayRoute = await import("@/app/api/pose/day/route");
+const posePlayRoute = await import("@/app/api/pose/play/route");
+const poseLeaderboardRoute = await import("@/app/api/pose/leaderboard/route");
 const { default: TroisPage } = await import("@/app/(platform)/trois/page");
 const { default: PosePage } = await import("@/app/(platform)/pose/page");
 const { default: WalletPage } = await import("@/app/(platform)/wallet/page");
@@ -191,6 +194,11 @@ const routes: Record<string, () => Promise<Response>> = {
     troisPracticeRoute.POST(withCookie("/api/trois/practice", { guess: "faire", slot: 0 })),
   "GET /api/trois/leaderboard": () =>
     troisLeaderboardRoute.GET(withCookie("/api/trois/leaderboard?period=week")),
+  "GET /api/pose/day": () => poseDayRoute.GET(withCookie("/api/pose/day")),
+  "POST /api/pose/play": () =>
+    posePlayRoute.POST(withCookie("/api/pose/play", { date: "2026-11-02", slot: 0, angles: {} })),
+  "GET /api/pose/leaderboard": () =>
+    poseLeaderboardRoute.GET(withCookie("/api/pose/leaderboard?period=month")),
   "GET /api/avatars/[userId]/[hash]": () => requestAvatarSheet("inconnu", "0123456789abcdef"),
   "GET /api/place": () => placeRoute.GET(withCookie("/api/place")),
 };

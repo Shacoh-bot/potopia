@@ -266,3 +266,176 @@
     opacity: 0;
   }
 }
+
+/* La page : le jeu, puis le classement dessous (à côté sur très grand écran). */
+.pose-page {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 1536px) {
+  .pose-page {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    align-items: start;
+  }
+}
+
+/* Classement (Leaderboard) : onglets Jour / Semaine / Mois, flèches d'historique, podium */
+.pose-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.pose-tabs {
+  display: flex;
+  gap: 0.25rem;
+  align-self: center;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--bg) 70%, transparent);
+}
+.pose-tab {
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.pose-tab:hover {
+  color: var(--text);
+}
+.pose-tab-on {
+  background: var(--accent-gradient);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.pose-arrow {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--bg) 70%, transparent);
+  color: var(--text);
+}
+.pose-arrow:disabled {
+  opacity: 0.3;
+}
+.pose-back {
+  align-self: center;
+  margin-top: -0.25rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--muted);
+}
+.pose-back:hover {
+  color: var(--text);
+}
+.pose-board-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pose-board-row-me {
+  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+.pose-grade-mini {
+  font-size: 0.6rem;
+  box-shadow:
+    0 0 0 1.5px #050308,
+    1.5px 1.5px 0 #050308;
+}
+.pose-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.5rem;
+}
+.pose-podium-place {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.pose-podium-step {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  margin-top: 0.25rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-weight: 900;
+  color: #1a1203;
+}
+.pose-podium-step-1 {
+  height: 5rem;
+  background: linear-gradient(180deg, #fff3b0, #f4c430);
+}
+.pose-podium-step-2 {
+  height: 3.5rem;
+  background: linear-gradient(180deg, #eef0f5, #9aa0ad);
+}
+.pose-podium-step-3 {
+  height: 2.5rem;
+  background: linear-gradient(180deg, #f0b98a, #b3622d);
+}
+
+/* Réplique JoJo tirée au hasard (PoseFx) : en grand, façon onomatopée de manga, en haut de la
+   carte du pantin ; elle claque puis s'efface seule. */
+.pose-fx-shout {
+  top: 6%;
+  left: 50%;
+  width: 92%;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  animation: pose-fx-shout 2.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.pose-fx-shout-who {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pose-fx-shout-text {
+  font-family: var(--font-jojo-face, Impact), Impact, sans-serif;
+  font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  rotate: -4deg;
+  -webkit-text-stroke: 1.5px #050308;
+  paint-order: stroke fill;
+  text-shadow: 4px 4px 0 #050308;
+}
+.pose-fx-shout-sub {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text);
+  text-shadow: 0 1px 2px #050308;
+}
+@keyframes pose-fx-shout {
+  0% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(0.95);
+  }
+  18%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04) translateY(-6px);
+  }
+}

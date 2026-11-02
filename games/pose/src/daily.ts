@@ -43,3 +43,31 @@ export function dailyPoses(key: string, poses: readonly TargetPose[] = POSES): T
   const start = (day * count) % order.length;
   return Array.from({ length: count }, (_, i) => order[(start + i) % order.length] as TargetPose);
 }
+
+/** Date décalée de `days` jours (AAAA-MM-JJ, sans fuseau : calcul sur le calendrier). */
+export function shiftDate(date: string, days: number): string {
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Premier jour de la semaine (lundi) ou du mois qui contient `date`. */
+export function periodStart(date: string, period: "week" | "month"): string {
+  if (period === "month") return date.slice(0, 8) + "01";
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  const weekday = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+  return shiftDate(date, -weekday);
+}
+
+/** Dernier jour de la période commencée le jour `from`. */
+export function periodEnd(from: string, period: "week" | "month"): string {
+  if (period === "week") return shiftDate(from, 6);
+  // le 1er du mois suivant (le 28 + 4 jours tombe toujours dans le mois suivant), moins un jour
+  return shiftDate(shiftDate(from.slice(0, 8) + "28", 4).slice(0, 8) + "01", -1);
+}
+
+/** Numéro de la journée de Pose JoJo (1 le premier jour du jeu), pour le fil d'activité. */
+export const FIRST_DAY = "2026-11-02";
+export function dayNumber(date: string): number {
+  const ms = (d: string) => Date.parse(d + "T00:00:00Z");
+  return Math.round((ms(date) - ms(FIRST_DAY)) / 86_400_000) + 1;
+}
