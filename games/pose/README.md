@@ -79,8 +79,8 @@ toujours dans le sens de l'image (même si le joueur l'a faite en miroir).
 
 ## Les poses
 
-`src/poses.ts` : 41 poses, des parties 1 à 6 (rendus officiels détourés d'All Star Battle,
-All Star Battle R, Eyes of Heaven et Last Survivor, pris sur jojowiki.com) : personnage, nom de
+`src/poses.ts` : 59 poses, des parties 1 à 6 (rendus officiels détourés d'All Star Battle,
+All Star Battle R, Eyes of Heaven, Last Survivor et OraDora, et visuels officiels de l'anime, pris sur jojowiki.com) : personnage, nom de
 la pose, image (`apps/web/public/pose/<id>.webp`, 640 px de haut) et angles du squelette. Les
 angles ont été calés en pointant les articulations sur chaque image (épaules, coudes, poignets,
 hanches, genoux, chevilles), puis vérifiés un à un en superposant le squelette à l'image
