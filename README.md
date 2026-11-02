@@ -190,7 +190,8 @@ Exemple pour un jeu `games/monjeu` :
    - ces routes et la page ajoutées à `test/access.test.ts`.
 6. **Tuile** : une entrée dans `packages/core/src/apps/registry.ts`. Son icône : un nom ajouté à
    l'union `AppIconName` du même fichier, et l'icône lucide correspondante dans `ICONS` de
-   `packages/core/ui/AppGrid.tsx`. Le fil d'Ariane reprend le nom de la tuile tout seul.
+   `packages/core/ui/AppGrid.tsx`. Ou une illustration carrée qui remplit la tuile : champ `art`,
+   image dans `apps/web/public/apps/`. Le fil d'Ariane reprend le nom de la tuile tout seul.
 7. `pnpm install`, puis redémarrer `pnpm dev`. Si Next ne trouve pas le package, vider
    `apps/web/.next/dev`.
 

@@ -729,6 +729,96 @@
     transform: translateX(120%);
   }
 
+  /* Tuile illustrée de l'accueil (AppGrid, app avec `art`) : au survol, un cadre aux couleurs de
+     Wordle tourne autour de l'image, l'image zoome et s'éclaire, la tuile pulse et trois lettres
+     « O U I » jaillissent des coins. Couleurs fixes : elles suivent l'illustration, pas le thème. */
+  .app-art {
+    box-shadow: 0 8px 18px -12px rgb(0 0 0 / 0.7);
+  }
+  .app-art-img {
+    transition:
+      transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+      filter 0.5s ease;
+  }
+  .app-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 3px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: conic-gradient(from var(--art-angle), #facc15, #22c55e, #38bdf8, #a855f7, #facc15);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .app-art:is(:hover, :focus-visible) {
+    animation: art-glow 1.4s ease-in-out infinite alternate;
+  }
+  .app-art:is(:hover, :focus-visible)::before {
+    opacity: 1;
+    animation: art-spin 2s linear infinite;
+  }
+  .app-art:is(:hover, :focus-visible) .app-art-img {
+    transform: scale(1.08);
+    filter: saturate(1.3) brightness(1.1);
+  }
+  .app-art-cell:is(:hover, :focus-within) {
+    z-index: 3;
+  }
+  .app-art-pops {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .app-art-pops > span {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 0.3rem;
+    border: 1.5px solid rgb(0 0 0 / 0.55);
+    color: #fff;
+    font: 800 0.75rem/1 var(--font-display);
+    box-shadow: 0 4px 10px -3px rgb(0 0 0 / 0.6);
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2) rotate(0deg);
+  }
+  .app-art-pops > span:nth-child(1) {
+    top: 12%;
+    left: -2px;
+    background: #22c55e;
+    --pop: translate(-55%, -70%) rotate(-14deg);
+  }
+  .app-art-pops > span:nth-child(2) {
+    top: -2px;
+    right: 22%;
+    background: #facc15;
+    color: #1f1300;
+    --pop: translate(30%, -85%) rotate(10deg);
+    --d: 70ms;
+  }
+  .app-art-pops > span:nth-child(3) {
+    right: -2px;
+    top: 42%;
+    background: #52525b;
+    --pop: translate(65%, -20%) rotate(16deg);
+    --d: 140ms;
+  }
+  .app-art-cell:is(:hover, :focus-within) .app-art-pops > span {
+    animation:
+      art-pop 0.55s cubic-bezier(0.3, 1.7, 0.5, 1) var(--d, 0s) forwards,
+      art-bob 1.6s ease-in-out calc(var(--d, 0s) + 0.6s) infinite alternate;
+  }
+
   /* Apparition en cascade : enfants directs (.stagger) ou blocs d'une page (.page-stagger). */
   :is(.stagger > *, .page-stagger > * > *) {
     animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
@@ -1568,6 +1658,44 @@
   from {
     opacity: 0;
     transform: translateY(12px);
+  }
+}
+@property --art-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes art-spin {
+  to {
+    --art-angle: 360deg;
+  }
+}
+@keyframes art-glow {
+  from {
+    box-shadow:
+      0 14px 28px -12px rgb(250 204 21 / 0.55),
+      0 0 14px -4px rgb(34 197 94 / 0.45);
+  }
+  to {
+    box-shadow:
+      0 18px 34px -10px rgb(250 204 21 / 0.8),
+      0 0 26px -2px rgb(34 197 94 / 0.7);
+  }
+}
+@keyframes art-pop {
+  to {
+    opacity: 1;
+    transform: var(--pop) scale(1);
+  }
+}
+@keyframes art-bob {
+  from {
+    opacity: 1;
+    transform: var(--pop) scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: var(--pop) translateY(-3px) scale(1.06);
   }
 }
 @keyframes float {

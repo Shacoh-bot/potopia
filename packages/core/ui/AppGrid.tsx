@@ -21,8 +21,13 @@ const ICONS: Record<AppIconName, LucideIcon> = {
 };
 
 type Props = {
-  apps: Pick<AppEntry, "id" | "name" | "icon" | "route">[];
+  apps: Pick<AppEntry, "id" | "name" | "icon" | "route" | "art">[];
 };
+
+// Même arrondi dans tous les thèmes (le --radius des thèmes JoJo, One Piece ou Apothicaire
+// donnerait des tuiles presque carrées), calé sur le cadre arrondi des illustrations.
+const TILE =
+  "group shine rounded-xl flex h-full [transform:perspective(600px)] transition-all duration-300";
 
 export function AppGrid({ apps }: Props) {
   if (apps.length === 0) return null;
@@ -31,12 +36,37 @@ export function AppGrid({ apps }: Props) {
   return (
     <ul className="stagger grid min-h-[calc(2*var(--tile)+0.75rem)] auto-rows-(--tile) grid-cols-[repeat(auto-fill,var(--tile))] content-start gap-3 [--tile:6.5rem] sm:[--tile:7.5rem]">
       {apps.map((app) => {
+        if (app.art) {
+          // Tuile illustrée : l'image remplit la tuile ; au survol, cadre tournant, zoom et
+          // petites lettres façon Wordle qui jaillissent (styles .app-art dans theme.css).
+          return (
+            <li key={app.id} className="app-art-cell relative">
+              <AppLink
+                href={app.route}
+                aria-label={app.name}
+                className={`${TILE} app-art hover:[transform:perspective(600px)_rotateX(8deg)_translateY(-6px)_scale(1.04)]`}
+              >
+                <img
+                  src={app.art}
+                  alt=""
+                  draggable={false}
+                  className="app-art-img size-full object-cover"
+                />
+              </AppLink>
+              <span className="app-art-pops" aria-hidden>
+                <span>O</span>
+                <span>U</span>
+                <span>I</span>
+              </span>
+            </li>
+          );
+        }
         const Icon = ICONS[app.icon];
         return (
           <li key={app.id}>
             <AppLink
               href={app.route}
-              className="group shine rounded-theme bg-surface/80 hover:border-accent/70 flex h-full [transform:perspective(600px)] flex-col items-center justify-center gap-2 border border-(--frame) p-3 text-center text-sm transition-all duration-300 hover:[transform:perspective(600px)_rotateX(8deg)_translateY(-4px)] hover:shadow-[0_14px_30px_-12px_var(--accent)]"
+              className={`${TILE} bg-surface/80 hover:border-accent/70 flex-col items-center justify-center gap-2 border border-(--frame) p-3 text-center text-sm hover:[transform:perspective(600px)_rotateX(8deg)_translateY(-4px)] hover:shadow-[0_14px_30px_-12px_var(--accent)]`}
             >
               <span className="bg-arcane/15 ring-accent/30 group-hover:ring-accent/70 grid size-10 place-items-center rounded-full ring-1 transition-shadow group-hover:shadow-[0_0_18px_var(--accent)]">
                 <Icon

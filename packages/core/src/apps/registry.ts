@@ -10,12 +10,21 @@ export type AppEntry = {
   icon: AppIconName;
   route: string;
   requiredRole: Role;
+  /** Illustration qui remplit toute la tuile (chemin public de apps/web), à la place de l'icône. */
+  art?: string;
 };
 
 /** Apps de la plateforme, dans l'ordre d'affichage des tuiles. */
 export const apps: readonly AppEntry[] = [
   { id: "goty", name: "GOTY Party", icon: "trophy", route: "/goty", requiredRole: "member" },
-  { id: "trois", name: "TROIS", icon: "grid", route: "/trois", requiredRole: "member" },
+  {
+    id: "trois",
+    name: "TROIS",
+    icon: "grid",
+    route: "/trois",
+    requiredRole: "member",
+    art: "/apps/trois.webp",
+  },
   {
     id: "agents",
     name: "Agents Doubles",

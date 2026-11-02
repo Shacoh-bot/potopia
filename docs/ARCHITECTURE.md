@@ -139,7 +139,7 @@ passe d'une partie à l'autre sans rechargement.
   `requireMember()` ou `requireAdmin()`. `proxy.ts` ne fait qu'un contrôle optimiste du cookie
   (redirection vers `/login`, ou 401 JSON pour `/api/*`). Il ne s'exécute pas pour les fichiers
   de Next ni pour les médias décoratifs de `public/` (`brand/`, `avatar-assets/`, et les images,
-  sons et sprites des thèmes et du header : `apothicaire/`, `audio/`, `emeralds/`, `jojo/`,
+  sons et sprites des thèmes, du header et des tuiles : `apothicaire/`, `apps/`, `audio/`, `emeralds/`, `jojo/`,
   `luffy/`, `onepiece/`, `orb/`, `sonic/`), qui n'ont rien de privé. Ces derniers sont gardés un
   jour par le navigateur puis revalidés en fond (`headers()` de `next.config.ts`) : un fichier
   remplacé sous le même nom peut rester un jour à l'ancienne version.
@@ -353,11 +353,20 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
 
 **Registre des apps** (`packages/core/src/apps/registry.ts`).
 
-- Une entrée a la forme `{ id, name, icon, route, requiredRole }`. `icon` est un nom déclaré dans
-  l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans `ICONS`
+- Une entrée a la forme `{ id, name, icon, route, requiredRole, art? }`. `icon` est un nom déclaré
+  dans l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans `ICONS`
   (`packages/core/ui/AppGrid.tsx`) : une nouvelle icône demande les deux.
+- `art` (facultatif) : chemin d'une illustration carrée de `apps/web/public/apps/`, qui remplit
+  toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Seule
+  « TROIS » en a une (`apps/trois.webp`, 480 px, recadrée sur son cadre jaune). Au survol, styles
+  `.app-art*` de `theme.css` : la tuile se penche et grossit, un cadre en dégradé conique aux
+  couleurs de Wordle tourne autour, l'image zoome et s'éclaire, une lueur jaune et verte pulse,
+  le reflet `.shine` balaie, et trois lettres « O U I » en cases Wordle jaillissent des coins puis
+  flottent. Couleurs fixes, quel que soit le thème.
+- Toutes les tuiles ont le même arrondi (`rounded-xl`) dans tous les thèmes : le `--radius` des
+  thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
-- Tuiles actuelles, dans l'ordre : « TROIS », « Agents Doubles », « Boîte à idées », « Vote design
+- Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents Doubles », « Boîte à idées », « Vote design
   des cartes » (membres), puis « Administration » (admins).
 - Le fil d'Ariane prend le nom des apps dans ce registre (`components/Breadcrumb.tsx`, composant
   serveur) ; seule exception, le libellé plus court « Design des cartes » pour `/cartes`.
