@@ -184,6 +184,10 @@ Pour chaque étape, les critères de fin incluent toujours que `pnpm lint`, `pnp
     - Colonne gauche : compte, solde, menu (Accueil, Mon avatar, Mon inventaire, Ma monnaie,
       Administration pour les admins), puis le fil d'activité.
     - Centre : grille de tuiles, puis la place des avatars.
+    - Tuile de TROIS illustrée (mascotte et cases Wordle) : au survol, cadre tournant (couleurs
+      de Wordle, ou du thème pour JoJo, One Piece et Apothicaire), zoom, lueur et lettres
+      « O U I » qui jaillissent. Même arrondi des tuiles dans tous les thèmes ; tuiles 175 % plus
+      grandes sur grand écran (`xl`).
     - Header : marque, Sonic (marche, course, sprint ; Super Sonic avec les 7 Émeraudes du
       Chaos), Luffy (fruit du démon étincelant à l'arrêt ; au clic, il en sort avec sa musique et
       rebondit sur le liseré du header ; combo avec la boule, qu'il poursuit sur le liseré),
@@ -195,8 +199,9 @@ Pour chaque étape, les critères de fin incluent toujours que `pnpm lint`, `pnp
     - Défaite dans un jeu : arrêt sur image « To Be Continued » (JoJo), dès la défaite ; se coupe
       dans « Paramètres » (`/parametres`, menu de l'avatar), réglages gardés sur l'appareil.
     - TROIS, 3 essais ratés de suite sur un mot : Mao Mao (Les Carnets de l'apothicaire) juge,
-      sur un rouleau suspendu (son regard, un sceau « 三連続 ») ; à l'avant-dernier essai, son
-      dégoût ; le mot enfin trouvé, son sourire narquois. Se coupe dans « Paramètres ».
+      sur un rouleau suspendu à droite du jeu (son regard, un sceau « 三連続 »), qui ne bloque
+      rien (les clics traversent) et repart seul ; à l'avant-dernier essai, son dégoût ; le mot
+      enfin trouvé, son sourire narquois. Se coupe dans « Paramètres ».
     - Thème JoJo (Stardust Crusaders) : décor manga, portraits, « ゴゴゴ » ; le choisir déclenche
       ZA WARUDO (de nouveau à chaque clic sur le thème), qui fige vraiment tout le site
       (animations, La Place, musiques) jusqu'à ce qu'on clique pour relancer le temps.
@@ -593,3 +598,23 @@ l’acceptation et la mise en service restent ouvertes dans le [bilan](RECETTE_G
 - Une édition fictive complète passe la recette sur plusieurs comptes et une TV ; les droits,
   les projections confidentielles et la concurrence sont vérifiés sur PostgreSQL.
 - Les contrôles habituels passent et la mise en service suit le circuit de PR du dépôt.
+
+---
+
+## Étape 15 : Pose JoJo (en cours)
+
+Jeu du portail : une pose célèbre de JoJo s'affiche, il faut mettre un pantin articulé dans la même
+position. Détails du jeu : [games/pose/README.md](../games/pose/README.md).
+
+**Tâches**
+
+- [x] `games/pose` : squelette à 10 segments, pantin SVG à manipuler par ses mains et pieds
+      (cinématique inverse), ses articulations ou ses membres (souris et doigt), score sur l'angle de chaque articulation (relatif, pose debout
+      à 25 % au plus, miroir compris), notes A à E et une cinquantaine de répliques, 3 poses par jour (les mêmes pour tous), bonus JoJo (ゴゴゴ quand on approche, Star Platinum, The World), « Jojo Pose » en musique, 59 poses (parties 1 à 6) calées sur les images,
+      éditeur `/pose?editeur` en local.
+- [x] Page `/pose`, tuile « Pose JoJo » dans le registre des apps.
+- [ ] Après les essais : classement, récompense, activité (demande une base `pose`).
+
+**Fini quand**
+
+- Le jeu est testé par les membres et les poses jugées justes ; puis classement et récompense.

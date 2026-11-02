@@ -4,7 +4,7 @@ Plateforme web de mini-jeux pour un groupe d'amis Discord. Nom de code et nom de
 `packages/config/brand.ts` (seul endroit où ils apparaissent).
 
 Ce document décrit la plateforme telle qu'elle est : socle (accès Discord, monnaie, activité,
-notifications), boîte à idées, avatars et place, deux jeux (TROIS et Agents Doubles) et le vote du
+notifications), boîte à idées, avatars et place, trois jeux (TROIS, Agents Doubles et Pose JoJo) et le vote du
 design des futures cartes. Il est tenu à jour à chaque changement (voir CLAUDE.md).
 
 ## Stack
@@ -40,6 +40,7 @@ apps/web/            app Next mince : routes, layouts, server actions, route han
 games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
+  pose/              Pose JoJo : un pantin articulé à mettre dans une pose célèbre (sans base)
   tcg/               futur jeu de cartes : pour l'instant, le vote du design des cartes (/cartes)
   trois/             Wordle français à 3 mots par jour (premier jeu intégré)
 packages/
@@ -139,7 +140,7 @@ passe d'une partie à l'autre sans rechargement.
   `requireMember()` ou `requireAdmin()`. `proxy.ts` ne fait qu'un contrôle optimiste du cookie
   (redirection vers `/login`, ou 401 JSON pour `/api/*`). Il ne s'exécute pas pour les fichiers
   de Next ni pour les médias décoratifs de `public/` (`brand/`, `avatar-assets/`, et les images,
-  sons et sprites des thèmes et du header : `apothicaire/`, `audio/`, `emeralds/`, `jojo/`,
+  sons et sprites des thèmes, du header et des tuiles : `apothicaire/`, `apps/`, `audio/`, `emeralds/`, `jojo/`,
   `luffy/`, `onepiece/`, `orb/`, `sonic/`), qui n'ont rien de privé. Ces derniers sont gardés un
   jour par le navigateur puis revalidés en fond (`headers()` de `next.config.ts`) : un fichier
   remplacé sous le même nom peut rester un jour à l'ancienne version.
@@ -353,12 +354,28 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
 
 **Registre des apps** (`packages/core/src/apps/registry.ts`).
 
-- Une entrée a la forme `{ id, name, icon, route, requiredRole }`. `icon` est un nom déclaré dans
-  l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans `ICONS`
+- Une entrée a la forme `{ id, name, icon, route, requiredRole, art? }`. `icon` est un nom déclaré
+  dans l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans `ICONS`
   (`packages/core/ui/AppGrid.tsx`) : une nouvelle icône demande les deux.
+- `art` (facultatif) : chemin d'une illustration carrée de `apps/web/public/apps/`, qui remplit
+  toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Seule
+  « TROIS » en a une (`apps/trois.webp`, 480 px, recadrée sur son cadre jaune). Au survol, styles
+  `.app-art*` de `theme.css` : la tuile se penche et grossit, un cadre en dégradé conique
+  tourne autour, l'image zoome et s'éclaire, une lueur pulse,
+  le reflet `.shine` balaie, et trois lettres « O U I » en cases Wordle jaillissent des coins puis
+  flottent. Cadre et lueur aux couleurs de Wordle dans les thèmes de base (Classique, Fantasy,
+  RGB), à celles du thème (`--accent`, `--arcane`) dans JoJo, One Piece et Apothicaire ; les
+  lettres restent aux couleurs de Wordle.
+- Taille des tuiles : 6,5 rem sur mobile, 7,5 rem à partir de `sm`, et 175 % (13,125 rem, avec
+  icônes, noms et lettres « O U I » agrandis) à partir de `xl` (1280 px), pour que le texte des
+  illustrations se lise ; la grille réserve deux rangées (une seule en `xl`, où les apps tiennent
+  sur une ligne) pour que la place ne bouge pas quand une app s'ajoute.
+- Toutes les tuiles ont le même arrondi (`rounded-xl`, `1.25rem` en `xl`) dans tous les thèmes : le `--radius` des
+  thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
-- Tuiles actuelles, dans l'ordre : « TROIS », « Agents Doubles », « Boîte à idées », « Vote design
-  des cartes » (membres), puis « Administration » (admins).
+- Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents
+  Doubles », « Pose JoJo », « Boîte à idées », « Vote design des cartes » (membres), puis
+  « Administration » (admins).
 - Le fil d'Ariane prend le nom des apps dans ce registre (`components/Breadcrumb.tsx`, composant
   serveur) ; seule exception, le libellé plus court « Design des cartes » pour `/cartes`.
 
@@ -543,7 +560,7 @@ ApothicaireOpening.tsx`, `apothicaire()` de `@app/ui`) : la page s'assombrit sou
   flash.
 - Les animations (apparitions en cascade, reflets, cloche, braises) sont coupées si l'appareil demande
   moins d'animations.
-- Les jeux gardent leur propre style pour l'instant (TROIS, Agents Doubles, cartes du vote) : une
+- Les jeux gardent leur propre style pour l'instant (TROIS, Agents Doubles, Pose JoJo, cartes du vote) : une
   feuille CSS par jeu (`games/*/ui/*.css`), importée dans `apps/web/app/globals.css`.
 
 **Header** (`packages/core/ui/Header.tsx`, boutons passés par `(platform)/layout.tsx`). De gauche à
@@ -606,16 +623,18 @@ sous les yeux du joueur à Agents Doubles. Dès la défaite, la page se fige en 
 
 **Mao Mao** (Les Carnets de l'apothicaire, `apps/web/components/MaoMao.tsx`, layout racine), à
 TROIS (`maoMao()` / `maoMaoSoon()` de `@app/ui`, appelés par `maoReact` de `games/trois/ui/Game.tsx`,
-mode test compris). Au 3e essai raté de suite sur un mot, elle juge : la page s'assombrit sous des
-pétales de prunier, un rouleau suspendu se déroule (tringles laquées, brocart), avec son regard
+mode test compris). Au 3e essai raté de suite sur un mot, elle juge : à droite du jeu (contre le
+bord de la fenêtre quand la place manque), sous quelques pétales de prunier, un rouleau suspendu
+glisse et se déroule (tringles laquées, brocart), avec son regard
 qui s'assombrit, main sur la bouche (`public/apothicaire/mao-judge.mp4`), une réplique tirée au
 hasard (clins d'œil à l'anime) et un sceau vermillon « 三連続 » (trois de suite) qui s'imprime. À
 l'avant-dernier essai, son dégoût, cachée derrière sa manche (`mao-disgust.mp4`, « 五連続 »). Le
 mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du coin de
 l'écran avec un sourire narquois. Petite phrase de cordes pincées synthétisée (Karplus-Strong,
-pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Le rouleau dure 4,5 s et
-se ferme au premier clic ou à la première touche (on continue de taper) ; le mot perdu garde «
-To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les
+pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
+pas de voile sur la page, les clics traversent le rouleau (`pointer-events: none`, on continue de
+taper au clavier ou sur les lettres à l'écran) et il repart seul au bout de 4 s, sans clic ; le
+mot perdu garde « To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les
 membres (extraits de l'anime) ; Mao Mao détourée avec rembg (modèle isnet-anime), hors du dépôt.
 
 **Paramètres** (`/parametres`, entrée « Paramètres » du menu de l'avatar du header,
@@ -993,7 +1012,7 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
 - **db** : contrôle des frontières (SQL brut, toute méthode Prisma, destructuration, types,
   imports dynamiques) et faux positifs écartés.
 - **storage** : clés, présignatures, objets (sur le stockage S3 local).
-- **jeux** : voir les README de TROIS et d'Agents Doubles ; **tcg** : vote ouvert aux membres,
+- **jeux** : voir les README de TROIS, d'Agents Doubles et de Pose JoJo ; **tcg** : vote ouvert aux membres,
   numéros stables, mots-clés et négations.
 
 ## Étapes de réalisation
@@ -1019,6 +1038,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
       fuseau horaire, limites d'envoi, corrections des jeux.
 - [ ] 13. `games/tcg` : cartes du jeu (sets, cartes, catalogue d'effets, admin `/admin/cartes`,
       import), puis boosters, collection, decks et parties.
+- [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre (première version
+      sans base : ni classement ni récompense).
 
 ## Hors périmètre (pour l'instant)
 

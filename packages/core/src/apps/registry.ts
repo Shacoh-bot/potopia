@@ -2,7 +2,8 @@ import type { Role } from "../users";
 import { isGotyEnabled } from "@app/config/features";
 
 /** Icônes lucide disponibles pour les tuiles (la correspondance est dans ui/AppGrid). */
-export type AppIconName = "grid" | "lightbulb" | "mask" | "palette" | "shield" | "trophy";
+export type AppIconName =
+  "grid" | "lightbulb" | "mask" | "palette" | "person" | "shield" | "trophy";
 
 export type AppEntry = {
   id: string;
@@ -10,12 +11,21 @@ export type AppEntry = {
   icon: AppIconName;
   route: string;
   requiredRole: Role;
+  /** Illustration qui remplit toute la tuile (chemin public de apps/web), à la place de l'icône. */
+  art?: string;
 };
 
 /** Apps de la plateforme, dans l'ordre d'affichage des tuiles. */
 export const apps: readonly AppEntry[] = [
   { id: "goty", name: "GOTY Party", icon: "trophy", route: "/goty", requiredRole: "member" },
-  { id: "trois", name: "TROIS", icon: "grid", route: "/trois", requiredRole: "member" },
+  {
+    id: "trois",
+    name: "TROIS",
+    icon: "grid",
+    route: "/trois",
+    requiredRole: "member",
+    art: "/apps/trois.webp",
+  },
   {
     id: "agents",
     name: "Agents Doubles",
@@ -23,6 +33,7 @@ export const apps: readonly AppEntry[] = [
     route: "/agents",
     requiredRole: "member",
   },
+  { id: "pose", name: "Pose JoJo", icon: "person", route: "/pose", requiredRole: "member" },
   {
     id: "ideas",
     name: "Boîte à idées",

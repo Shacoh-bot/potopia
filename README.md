@@ -2,8 +2,9 @@
 
 Un portail web réservé aux membres d'un serveur Discord : connexion avec Discord, monnaie interne
 (« Ma monnaie »), fil d'activité, notifications, avatars pixel art qui se promènent sur une place
-commune (et y disent la phrase choisie par leur membre), boîte à idées, vote du design des futures cartes, et deux jeux : **TROIS** (un Wordle
-français à 3 mots par jour) et **Agents Doubles** (jeu d'espions coopératif à deux). Le nom affiché
+commune (et y disent la phrase choisie par leur membre), boîte à idées, vote du design des futures cartes, et trois jeux : **TROIS** (un Wordle
+français à 3 mots par jour), **Agents Doubles** (jeu d'espions coopératif à deux) et **Pose JoJo**
+(mettre un pantin articulé dans une pose célèbre de JoJo). Le nom affiché
 et celui de la monnaie viennent de `packages/config/brand.ts`.
 
 - Choix techniques et règles d'architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -150,6 +151,7 @@ packages/
 games/
   agents/        Agents Doubles, le jeu d'espions coopératif à deux
   goty/          GOTY Party : préparation, pronostics, cérémonie, archives et interface React/TV
+  pose/          Pose JoJo, le pantin à mettre dans une pose célèbre (sans base de données)
   tcg/           jeu de cartes : vote du design (/cartes), cartes et effets (admin /admin/cartes)
   trois/         TROIS, le Wordle à 3 mots par jour
 ```
@@ -190,7 +192,8 @@ Exemple pour un jeu `games/monjeu` :
    - ces routes et la page ajoutées à `test/access.test.ts`.
 6. **Tuile** : une entrée dans `packages/core/src/apps/registry.ts`. Son icône : un nom ajouté à
    l'union `AppIconName` du même fichier, et l'icône lucide correspondante dans `ICONS` de
-   `packages/core/ui/AppGrid.tsx`. Le fil d'Ariane reprend le nom de la tuile tout seul.
+   `packages/core/ui/AppGrid.tsx`. Ou une illustration carrée qui remplit la tuile : champ `art`,
+   image dans `apps/web/public/apps/`. Le fil d'Ariane reprend le nom de la tuile tout seul.
 7. `pnpm install`, puis redémarrer `pnpm dev`. Si Next ne trouve pas le package, vider
    `apps/web/.next/dev`.
 

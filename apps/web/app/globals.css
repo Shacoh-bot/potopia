@@ -4,6 +4,7 @@
 @import "@app/agents/ui/agents.css";
 @import "@app/goty/ui/goty.css";
 @import "@app/tcg/ui/tcg.css";
+@import "@app/pose/ui/pose.css";
 
 /* Les packages sont liés dans node_modules, que Tailwind n'analyse pas : on les déclare. */
 @source "../../../packages/ui/src";
@@ -14,6 +15,7 @@
 @source "../../../packages/inventory/ui";
 @source "../../../games/agents/ui";
 @source "../../../games/goty/ui";
+@source "../../../games/pose/ui";
 @source "../../../games/tcg/ui";
 @source "../../../games/trois/ui";
 
@@ -1200,22 +1202,36 @@ html.jojo-rushing * {
 }
 
 /* Mao Mao (MaoMao, Les Carnets de l'apothicaire) : rouleau suspendu du jugement après 3 défaites
-   d'affilée, et son sourire narquois à la victoire qui casse la série. */
+   d'affilée, et son sourire narquois à la victoire qui casse la série. Le rouleau se suspend à
+   droite du jeu (colonne de TROIS : max-w-sm, 24rem, centrée), contre le bord de la fenêtre quand
+   la place manque. Rien ne bloque : pas de voile, les clics traversent, et il repart seul (4 s,
+   = SCROLL_MS de MaoMao.tsx). */
 .mao-layer {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  right: max(28px, calc(50% - 12rem - 40px - min(340px, 82vw)));
   z-index: 100;
   display: grid;
-  place-items: center;
-  padding: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  background: radial-gradient(ellipse at 50% 40%, rgb(16 46 38 / 0.62), rgb(3 10 8 / 0.9) 75%);
-  animation: mao-fade 0.4s ease-out;
+  align-content: center;
+  width: min(340px, 82vw);
+  pointer-events: none;
+  animation: mao-toast 4s cubic-bezier(0.3, 0.8, 0.3, 1) forwards;
 }
-/* le dégoût : la pièce s'assombrit dans le bleu de l'ombre qui lui tombe sur le visage */
-.mao-layer-disgust {
-  background: radial-gradient(ellipse at 50% 40%, rgb(30 30 70 / 0.62), rgb(5 5 16 / 0.92) 75%);
+@keyframes mao-toast {
+  0% {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  10%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(60px);
+  }
 }
 @keyframes mao-fade {
   from {
