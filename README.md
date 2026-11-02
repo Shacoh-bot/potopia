@@ -151,7 +151,7 @@ packages/
 games/
   agents/        Agents Doubles, le jeu d'espions coopératif à deux
   goty/          GOTY Party : préparation, pronostics, cérémonie, archives et interface React/TV
-  pose/          Pose JoJo, le pantin à mettre dans une pose célèbre (sans base de données)
+  pose/          Pose JoJo, le pantin à mettre dans une pose célèbre, 3 poses par jour
   tcg/           jeu de cartes : vote du design (/cartes), cartes et effets (admin /admin/cartes)
   trois/         TROIS, le Wordle à 3 mots par jour
 ```

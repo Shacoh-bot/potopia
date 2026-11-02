@@ -607,8 +607,12 @@ position. Détails du jeu : [games/pose/README.md](../games/pose/README.md).
       à 25 % au plus, miroir compris), notes A à E et une cinquantaine de répliques, 3 poses par jour (les mêmes pour tous), bonus JoJo (ゴゴゴ quand on approche, Star Platinum, The World), « Jojo Pose » en musique, 59 poses (parties 1 à 6) calées sur les images,
       éditeur `/pose?editeur` en local.
 - [x] Page `/pose`, tuile « Pose JoJo » dans le registre des apps.
-- [ ] Après les essais : classement, récompense, activité (demande une base `pose`).
+- [x] Base `pose` (table `rounds`, migration `20261102230000_pose`, ajout seul) : une partie par
+      jour et par membre, score calculé par le serveur ; classement jour, semaine et mois avec
+      l'historique et le podium, comme TROIS ; journée finie dans le fil d'activité.
+- [x] Répliques JoJo au hasard pendant la partie (35 voix, parties 1 à 6).
+- [ ] Récompense en monnaie.
 
 **Fini quand**
 
-- Le jeu est testé par les membres et les poses jugées justes ; puis classement et récompense.
+- Le jeu est testé par les membres et les poses jugées justes ; puis la récompense.

@@ -1,0 +1,26 @@
+// Domaine pose : Pose JoJo, trois poses par jour. `userId` référence core.users sans relation.
+// Modèles préfixés Pose : les noms de modèles Prisma sont uniques entre tous les modules.
+
+/// Une pose jouée : une des 3 poses du jour d'un joueur, avec sa ressemblance (calculée par le
+/// serveur à partir des angles envoyés).
+model PoseRound {
+  id        String   @id @default(uuid(7))
+  userId    String   @map("user_id")
+  /// Date à Paris, AAAA-MM-JJ
+  date      String
+  /// 0, 1 ou 2
+  slot      Int
+  /// Pose jouée (id de games/pose/src/poses.ts)
+  poseId    String   @map("pose_id")
+  /// Ressemblance, de 0 à 100
+  percent   Int
+  /// Pose reproduite en miroir
+  mirrored  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// Une seule fois chaque pose du jour : deux envois simultanés ne passent pas tous les deux.
+  @@unique([userId, date, slot])
+  @@index([date])
+  @@map("rounds")
+  @@schema("pose")
+}

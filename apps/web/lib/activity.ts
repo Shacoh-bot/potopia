@@ -38,6 +38,15 @@ const DESCRIPTIONS: Record<string, (payload: Payload, nameOf: NameOf) => string>
   },
   "avatar/updated": () => "a changé de look",
   "ideas/idea_submitted": () => "a proposé une idée",
+  "pose/day_completed": (payload) => {
+    const percent = numberField(payload, "percent");
+    const day = numberField(payload, "number");
+    const title = day ? `Pose JoJo #${day}` : "Pose JoJo";
+    if (percent === undefined) return `a fini ${title}`;
+    return percent >= 90
+      ? `a pris la pose à ${title} : ${percent} % ゴゴゴ`
+      : `a fini ${title} : ${percent} %`;
+  },
   "trois/day_completed": (payload) => {
     const found = numberField(payload, "found");
     const day = numberField(payload, "number");
@@ -47,9 +56,11 @@ const DESCRIPTIONS: Record<string, (payload: Payload, nameOf: NameOf) => string>
   },
 };
 
-/** Exploit mis en avant en or dans le fil : un 3 sur 3 à TROIS. */
+/** Exploit mis en avant en or dans le fil : un 3 sur 3 à TROIS, 90 % ou plus à Pose JoJo. */
 function isFeat(app: string, type: string, payload: Payload): boolean {
-  return app === "trois" && type === "day_completed" && numberField(payload, "found") === 3;
+  if (type !== "day_completed") return false;
+  if (app === "pose") return (numberField(payload, "percent") ?? 0) >= 90;
+  return app === "trois" && numberField(payload, "found") === 3;
 }
 
 export function describeEvent(

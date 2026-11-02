@@ -40,7 +40,7 @@ apps/web/            app Next mince : routes, layouts, server actions, route han
 games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
-  pose/              Pose JoJo : un pantin articulé à mettre dans une pose célèbre (sans base)
+  pose/              Pose JoJo : un pantin à mettre dans une pose célèbre, 3 poses par jour
   tcg/               futur jeu de cartes : pour l'instant, le vote du design des cartes (/cartes)
   trois/             Wordle français à 3 mots par jour (premier jeu intégré)
 packages/
@@ -274,7 +274,8 @@ sur données fictives, ainsi que les validations terrain et de mise en service e
 
 Décrits dans les README des jeux : [games/trois/README.md](../games/trois/README.md) (`games`,
 `guesses`, `daily_words`) et [games/agents/README.md](../games/agents/README.md) (`games`, `clues`,
-`guesses`, index unique partiel : une seule partie en cours par paire de joueurs).
+`guesses`, index unique partiel : une seule partie en cours par paire de joueurs). Pose JoJo :
+[games/pose/README.md](../games/pose/README.md) (`rounds`).
 
 ## Mécanismes clés
 
@@ -1000,8 +1001,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
       fuseau horaire, limites d'envoi, corrections des jeux.
 - [ ] 13. `games/tcg` : cartes du jeu (sets, cartes, catalogue d'effets, admin `/admin/cartes`,
       import), puis boosters, collection, decks et parties.
-- [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre (première version
-      sans base : ni classement ni récompense).
+- [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre, 3 poses par jour,
+      classement (base `pose`) ; la récompense en monnaie reste à faire.
 
 ## Hors périmètre (pour l'instant)
 

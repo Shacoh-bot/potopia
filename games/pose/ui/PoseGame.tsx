@@ -1,13 +1,16 @@
 "use client";
 
 import { Button, Card, cx, effectiveVolume, onVolumeChange, Select, Textarea } from "@app/ui";
-import { useEffect, useRef, useState } from "react";
-import { DAILY_COUNT, dailyPoses, dayKey } from "../src/daily";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DAILY_COUNT, dayKey } from "../src/daily";
+import type { DayView, Round } from "../src/play";
 import { POSES, targetPose, type TargetPose } from "../src/poses";
 import { grade, scorePose } from "../src/score";
 import { REST_POSE, SEGMENTS, type Pose } from "../src/skeleton";
 import { verdict } from "../src/verdicts";
-import { endOfDay, PoseFx } from "./PoseFx";
+import { api } from "./api";
+import { Leaderboard } from "./Leaderboard";
+import { endOfDay, PoseFx, type FxCue } from "./PoseFx";
 import { Puppet } from "./Puppet";
 
 // « Jojo Pose » d'Apollo Fresh, en boucle pendant la partie (servie par apps/web/public).
@@ -85,28 +88,7 @@ function GradeBadge({ percent, big }: { percent: number; big?: boolean }) {
 }
 
 /** Résultat d'une pose : ressemblance, faite en miroir ou non, et la réplique tirée. */
-type Result = { id: string; percent: number; mirrored: boolean; line: string };
-
-// Parties du jour déjà jouées, gardées sur l'appareil (pas encore de base : elle viendra avec le
-// classement).
-const dayStorageKey = (key: string) => `potopia:pose-day:${key}`;
-
-function readDay(key: string): Result[] | null {
-  try {
-    const raw = localStorage.getItem(dayStorageKey(key));
-    return raw ? (JSON.parse(raw) as Result[]) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveDay(key: string, results: Result[]) {
-  try {
-    localStorage.setItem(dayStorageKey(key), JSON.stringify(results));
-  } catch {
-    // stockage indisponible : la partie n'est pas gardée
-  }
-}
+type Result = { poseId: string; percent: number; mirrored: boolean; line: string };
 
 /** Temps jusqu'aux poses suivantes (minuit à Paris), en texte : « 5 h 12 min ». */
 function untilTomorrow(key: string): string {
@@ -122,17 +104,18 @@ function untilTomorrow(key: string): string {
   return h ? `${h} h ${minutes % 60} min` : `${minutes} min`;
 }
 
+const byId = new Map(POSES.map((p) => [p.id, p]));
+
 function Recap({ results }: { results: Result[] }) {
-  const byId = new Map(POSES.map((p) => [p.id, p]));
   return (
     <ul className="pose-recap">
       {results.map((r) => {
-        const p = byId.get(r.id);
+        const p = byId.get(r.poseId);
         return (
-          <li key={r.id}>
+          <li key={r.poseId}>
             {p && <img src={p.image} alt="" />}
             <span className="min-w-0 flex-1 truncate">
-              {p ? `${p.character} : ${p.name}` : r.id}
+              {p ? `${p.character} : ${p.name}` : r.poseId}
             </span>
             <span className="tabular-nums">{r.percent} %</span>
             <GradeBadge percent={r.percent} />
@@ -143,165 +126,249 @@ function Recap({ results }: { results: Result[] }) {
   );
 }
 
+const toResult = (r: Round): Result => ({
+  poseId: r.poseId,
+  percent: r.percent,
+  mirrored: r.mirrored,
+  line: verdict(grade(r.percent), (r.percent % 7) / 7),
+});
+
 /**
  * Pose JoJo : chaque jour, trois poses célèbres (les mêmes pour tout le monde) à reproduire avec
  * un pantin. On attrape ses membres ou ses articulations pour les faire pivoter, ou une main ou
- * un pied pour plier tout le membre ; « Valider » compare articulation par articulation (en
- * miroir aussi) et montre la pose attendue en fantôme. Bonus JoJo pendant la partie (PoseFx),
- * musique « Jojo Pose ». La partie du jour est gardée sur l'appareil ; `allowReplay` (en local)
- * permet de la rejouer.
+ * un pied pour plier tout le membre ; « Valider » envoie les angles au serveur, qui calcule la
+ * ressemblance (articulation par articulation, en miroir aussi), l'enregistre et la classe ; la
+ * pose attendue s'affiche en fantôme. Bonus JoJo pendant la partie (PoseFx), musique « Jojo
+ * Pose », classement sous le jeu. `allowPractice` (en local) : rejouer la journée pour de faux,
+ * sans rien enregistrer.
  */
 export function PoseGame({
   editor = false,
-  allowReplay = false,
+  allowPractice = false,
 }: {
   editor?: boolean;
-  allowReplay?: boolean;
+  allowPractice?: boolean;
 }) {
-  const [key, setKey] = useState<string | null>(null);
-  const [played, setPlayed] = useState<Result[] | null>(null);
-  const [queue, setQueue] = useState<TargetPose[] | null>(null);
-  const [results, setResults] = useState<Result[]>([]);
+  const [day, setDay] = useState<DayView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [practice, setPractice] = useState<Result[] | null>(null);
   const [pose, setPose] = useState<Pose>(REST_POSE);
   const [current, setCurrent] = useState<Result | null>(null);
+  const [sending, setSending] = useState(false);
   const [fx, setFx] = useState<{ id: number; grade: ReturnType<typeof grade> } | null>(null);
+  const [cue, setCue] = useState<FxCue | null>(null);
+  const [version, setVersion] = useState(0);
   const [, tick] = useState(0);
   const music = useMusic();
   const musicButton = <MusicToggle off={music.off} toggle={music.toggle} />;
 
-  // le jour et la partie déjà jouée se lisent sur l'appareil, après le rendu serveur ; le compte à
-  // rebours des poses suivantes se met à jour chaque minute
+  const load = useCallback(async () => {
+    try {
+      setDay(await api<DayView>("/api/pose/day"));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    }
+  }, []);
+
+  // la journée vient du serveur ; le compte à rebours des poses suivantes se met à jour chaque minute
   useEffect(() => {
-    const today = dayKey();
-    setKey(today);
-    setPlayed(readDay(today));
+    void load();
     const timer = window.setInterval(() => tick((n) => n + 1), 60_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [load]);
 
   if (editor) return <PoseEditor />;
 
+  const ranking = <Leaderboard version={version} />;
+  if (!day) {
+    return (
+      <div className="pose-page">
+        <Card className="pose-intro">
+          <p className="text-muted text-sm">{error ?? "Chargement…"}</p>
+        </Card>
+        {ranking}
+      </div>
+    );
+  }
+
+  const queue = day.poses.map((p) => byId.get(p.id)).filter((p): p is TargetPose => !!p);
+  const results = practice ?? day.rounds.map(toResult);
+  const finished = results.length >= queue.length;
+
   const start = () => {
-    if (!key) return;
     music.play();
-    setQueue(dailyPoses(key));
-    setResults([]);
+    setPlaying(true);
     setPose(REST_POSE);
     setCurrent(null);
-    setPlayed(null);
+    setCue({ id: Date.now(), event: "start" });
+  };
+  const startPractice = () => {
+    setPractice([]);
+    start();
   };
 
-  const finished = played ?? (queue && results.length >= queue.length ? results : null);
-  if (finished && key) {
-    const total = Math.round(finished.reduce((n, r) => n + r.percent, 0) / finished.length);
+  if (finished && (!playing || !current)) {
+    const total = Math.round(results.reduce((n, r) => n + r.percent, 0) / results.length);
     return (
-      <Card title="Les poses du jour" action={musicButton} className="pose-final">
-        <div className="flex items-center gap-4">
-          <GradeBadge percent={total} big />
-          <div>
-            <p className="font-display text-text text-2xl">{total} %</p>
-            {/* réplique fixe pour un même total : elle ne change pas à chaque visite */}
-            <p className="text-muted text-sm">{verdict(grade(total), (total % 7) / 7)}</p>
+      <div className="pose-page">
+        <Card
+          title={practice ? "Pour de faux" : `Les poses du jour · #${day.number}`}
+          action={musicButton}
+          className="pose-final"
+        >
+          <div className="flex items-center gap-4">
+            <GradeBadge percent={total} big />
+            <div>
+              <p className="font-display text-text text-2xl">{total} %</p>
+              {/* réplique fixe pour un même total : elle ne change pas à chaque visite */}
+              <p className="text-muted text-sm">{verdict(grade(total), (total % 7) / 7)}</p>
+            </div>
           </div>
-        </div>
-        <Recap results={finished} />
-        <p className="text-muted text-sm">Nouvelles poses dans {untilTomorrow(key)}.</p>
-        {allowReplay && (
-          <Button variant="secondary" onClick={start}>
-            Rejouer (en local seulement)
-          </Button>
-        )}
-      </Card>
+          <Recap results={results} />
+          <p className="text-muted text-sm">Nouvelles poses dans {untilTomorrow(day.date)}.</p>
+          {allowPractice && (
+            <Button variant="secondary" onClick={startPractice}>
+              Rejouer pour de faux (en local seulement)
+            </Button>
+          )}
+        </Card>
+        {ranking}
+      </div>
     );
   }
 
-  if (!queue) {
+  if (!playing) {
+    const started = results.length > 0;
     return (
-      <Card className="pose-intro">
-        <h1 className="font-display text-gradient text-3xl">Pose JoJo</h1>
-        <p className="text-muted max-w-prose text-sm">
-          Chaque jour, {DAILY_COUNT} poses célèbres, les mêmes pour tout le monde : mets le pantin
-          dans la même position. Attrape un bras, un avant-bras, une cuisse, une jambe, le tronc ou
-          la tête et fais-le pivoter, ou tire une main ou un pied : le bras ou la jambe se plie tout
-          seul. La pose en miroir compte aussi. Quand tu approches de la bonne pose… ゴゴゴゴ.
-        </p>
-        <div className="flex items-center gap-2">
-          <Button onClick={start} disabled={!key || POSES.length === 0}>
-            Commencer
-          </Button>
-          {musicButton}
-        </div>
-      </Card>
+      <div className="pose-page">
+        <Card className="pose-intro">
+          <h1 className="font-display text-gradient text-3xl">Pose JoJo</h1>
+          <p className="text-muted max-w-prose text-sm">
+            Chaque jour, {DAILY_COUNT} poses célèbres, les mêmes pour tout le monde : mets le pantin
+            dans la même position. Attrape un bras, un avant-bras, une cuisse, une jambe, le tronc
+            ou la tête et fais-le pivoter, ou tire une main ou un pied : le bras ou la jambe se plie
+            tout seul. La pose en miroir compte aussi. Quand tu approches de la bonne pose…
+            ゴゴゴゴ.
+          </p>
+          <div className="flex items-center gap-2">
+            <Button onClick={start} disabled={queue.length === 0}>
+              {started ? `Reprendre (pose ${results.length + 1} / ${queue.length})` : "Commencer"}
+            </Button>
+            {musicButton}
+          </div>
+        </Card>
+        {ranking}
+      </div>
     );
   }
 
-  const target = queue[results.length] as TargetPose;
+  const index = current ? results.length - 1 : results.length;
+  const target = queue[index] as TargetPose;
   const expected = targetPose(target);
   const live = current ? null : scorePose(pose, expected).percent;
-  const validate = () => {
-    const s = scorePose(pose, expected);
-    const g = grade(s.percent);
-    setCurrent({ id: target.id, percent: s.percent, mirrored: s.mirrored, line: verdict(g) });
-    setFx({ id: Date.now(), grade: g });
+
+  const show = (r: Result) => {
+    setCurrent(r);
+    setFx({ id: Date.now(), grade: grade(r.percent) });
+  };
+  const validate = async () => {
+    if (practice) {
+      const s = scorePose(pose, expected);
+      const r = {
+        poseId: target.id,
+        percent: s.percent,
+        mirrored: s.mirrored,
+        line: verdict(grade(s.percent)),
+      };
+      setPractice([...practice, r]);
+      show(r);
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await api<{ round: Round; day: DayView }>("/api/pose/play", {
+        body: { date: day.date, slot: index, angles: pose.angle },
+      });
+      setDay(res.day);
+      setVersion((v) => v + 1);
+      show({ ...toResult(res.round), line: verdict(grade(res.round.percent)) });
+      if (res.day.rounds.length >= queue.length) {
+        const all = res.day.rounds;
+        endOfDay(grade(Math.round(all.reduce((n, r) => n + r.percent, 0) / all.length)));
+      }
+    } catch (e) {
+      // minuit passé ou pose déjà validée ailleurs : on recharge la journée du serveur
+      setError(e instanceof Error ? e.message : "Erreur");
+      setPlaying(false);
+      void load();
+    } finally {
+      setSending(false);
+    }
   };
   const next = () => {
-    if (!current || !key) return;
-    const all = [...results, current];
-    setResults(all);
-    if (all.length >= queue.length) {
-      saveDay(key, all);
-      endOfDay(grade(Math.round(all.reduce((n, r) => n + r.percent, 0) / all.length)));
-    }
     setCurrent(null);
     setFx(null);
     setPose(REST_POSE);
+    if (results.length >= queue.length) setPlaying(false);
   };
 
   return (
-    <div className="pose-board">
-      <Card
-        title={`Pose ${results.length + 1} / ${queue.length} du jour`}
-        action={<span className="text-muted truncate text-xs">{target.character}</span>}
-        className="pose-target"
-      >
-        <img src={target.image} alt={`${target.character} : ${target.name}`} />
-        <p className="font-display text-accent text-center text-sm">{target.name}</p>
-      </Card>
+    <div className="pose-page">
+      <div className="pose-board">
+        <Card
+          title={`Pose ${index + 1} / ${queue.length}${practice ? " · pour de faux" : " du jour"}`}
+          action={<span className="text-muted truncate text-xs">{target.character}</span>}
+          className="pose-target"
+        >
+          <img src={target.image} alt={`${target.character} : ${target.name}`} />
+          <p className="font-display text-accent text-center text-sm">{target.name}</p>
+        </Card>
 
-      <Card title="Ton pantin" action={musicButton} className="pose-stage">
-        <Puppet
-          pose={pose}
-          onChange={current ? undefined : setPose}
-          // la pose attendue, toujours dans le sens de l'image (même si le joueur l'a faite en
-          // miroir), pour la comparer à l'image
-          ghost={current ? expected : null}
-        />
-        <PoseFx live={live} result={fx} />
-        {current ? (
-          <div className="pose-score animate-rise">
-            <GradeBadge percent={current.percent} big />
-            <div className="min-w-0 flex-1">
-              <p className="font-display text-text text-2xl">{current.percent} %</p>
-              <p className="text-muted text-sm">
-                {current.line}
-                {current.mirrored && " (en miroir)"}
-              </p>
+        <Card title="Ton pantin" action={musicButton} className="pose-stage">
+          <Puppet
+            pose={pose}
+            onChange={current || sending ? undefined : setPose}
+            // la pose attendue, toujours dans le sens de l'image (même si le joueur l'a faite en
+            // miroir), pour la comparer à l'image
+            ghost={current ? expected : null}
+          />
+          <PoseFx live={live} result={fx} cue={cue} />
+          {current ? (
+            <div className="pose-score animate-rise">
+              <GradeBadge percent={current.percent} big />
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-text text-2xl">{current.percent} %</p>
+                <p className="text-muted text-sm">
+                  {current.line}
+                  {current.mirrored && " (en miroir)"}
+                </p>
+              </div>
+              <Button onClick={next}>
+                {results.length < queue.length ? "Pose suivante" : "Résultat"}
+              </Button>
             </div>
-            <Button onClick={next}>
-              {results.length + 1 < queue.length ? "Pose suivante" : "Résultat"}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setPose(REST_POSE)}>
-              Remettre droit
-            </Button>
-            <Button className="flex-1" onClick={validate}>
-              Valider la pose
-            </Button>
-          </div>
-        )}
-      </Card>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setPose(REST_POSE);
+                  setCue({ id: Date.now(), event: "reset" });
+                }}
+                disabled={sending}
+              >
+                Remettre droit
+              </Button>
+              <Button className="flex-1" onClick={() => void validate()} disabled={sending}>
+                {sending ? "…" : "Valider la pose"}
+              </Button>
+            </div>
+          )}
+        </Card>
+      </div>
+      {ranking}
     </div>
   );
 }

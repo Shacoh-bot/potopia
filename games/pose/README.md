@@ -5,35 +5,78 @@ _Yare yare daze._
 Une pose célèbre de JoJo s'affiche (rendus officiels des jeux JoJo) : il faut mettre un pantin
 articulé dans la même position. **Trois poses par jour**, les mêmes pour tout le monde.
 
-Jeu intégré au portail : page `/pose`, tuile « Pose JoJo » dans le registre des apps. Première
-version sans base de données : pas encore de classement ni de récompense ; la partie du jour est
-gardée sur l'appareil.
+Jeu intégré au portail : page `/pose`, routes `/api/pose/*`, tuile « Pose JoJo » dans le registre
+des apps. Pas encore de récompense en monnaie.
 
 ## La partie du jour
 
 - `src/daily.ts` : le jour se compte à l'heure de Paris (`BRAND.timeZone`, changement à minuit).
   Toutes les poses sont rangées une fois pour toutes dans un ordre mélangé fixe (graine
   constante) ; chaque jour prend les trois suivantes, si bien qu'une pose ne revient qu'après que
-  toutes les autres sont passées. Ajouter des poses change l'ordre à partir de ce jour-là.
+  toutes les autres sont passées. Ajouter des poses change l'ordre à partir de ce jour-là. Journée
+  n° 1 : le 2 novembre 2026 (`FIRST_DAY`), pour le fil d'activité.
+- `src/play.ts` : `getDay` (les 3 poses du jour et celles déjà faites) et `playPose`. Le client
+  envoie les angles de son pantin ; **la ressemblance est calculée par le serveur**, contre la
+  pose du jour, jamais reçue du client. Les poses se font dans l'ordre, une seule fois chacune
+  (contrainte unique : deux envois simultanés ne passent pas tous les deux) ; juste après minuit,
+  une pose pensée pour la veille est refusée (409). La dernière pose publie la journée dans le fil
+  d'activité (`pose/day_completed`, numéro du jour et moyenne seulement ; mise en avant en or à
+  90 % et plus).
 - Une fois les trois poses faites, le résultat du jour (moyenne, note, détail) reste affiché
-  jusqu'au lendemain, avec le temps restant avant les poses suivantes. Il est gardé dans le
-  `localStorage` (clé `potopia:pose-day:<AAAA-MM-JJ>`) ; une vraie limite par membre viendra avec
-  la base. En local, un bouton permet de rejouer la partie du jour (`allowReplay`).
-- Répliques (`src/verdicts.ts`) : de 9 à 12 par note, tirées au hasard, références des parties 1
-  à 6 seulement ; celle du résultat du jour ne dépend que du total (elle ne change pas d'une
-  visite à l'autre).
+  jusqu'au lendemain, avec le temps restant avant les poses suivantes. En local, un bouton permet
+  de rejouer la journée pour de faux, sans rien enregistrer (`allowPractice`).
+- Répliques du résultat (`src/verdicts.ts`) : de 9 à 12 par note, tirées au hasard, références des
+  parties 1 à 6 seulement ; celle du résultat du jour ne dépend que du total (elle ne change pas
+  d'une visite à l'autre).
+
+## Le classement
+
+`src/leaderboard.ts`, `ui/Leaderboard.tsx`, sous le jeu (à côté sur très grand écran), comme celui
+de TROIS :
+
+- **Jour** : tous ceux qui ont joué, plus moi ; points = somme des ressemblances des poses faites
+  (300 au plus), la note de chaque pose en pastille ; à égalité, le plus de poses faites passe
+  devant. **Semaine** (depuis lundi) et **mois** : le cumul des points, le nombre de poses et de
+  jours, la meilleure pose ; à égalité, le moins de jours joués. Ex æquo au même rang.
+- **Historique** : les flèches ‹ › remontent aux jours, semaines et mois passés, jusqu'au premier
+  jour où quelqu'un a joué (`GET /api/pose/leaderboard?period=…&date=AAAA-MM-JJ` : le jour, ou la
+  période qui contient ce jour ; une date future retombe sur aujourd'hui). La période précédente
+  est préchargée ; une période passée, figée, reste en mémoire.
+- Podium des 3 premiers ; la période en cours se rafraîchit chaque minute (pas quand l'onglet est
+  caché) et dès qu'on valide une pose.
+
+## Données
+
+Schéma Postgres `pose`, une table `rounds` (modèle `PoseRound`) : une ligne par pose jouée
+(`user_id`, `date` à Paris, `slot` 0 à 2, `pose_id`, `percent`, `mirrored`), unique par
+(`user_id`, `date`, `slot`), index sur `date`. Migration `20261102230000_pose` (ajout seul).
+
+## Routes
+
+- `GET /api/pose/day` : la journée du membre.
+- `POST /api/pose/play` : `{ date, slot, angles }` → la pose enregistrée et la journée.
+- `GET /api/pose/leaderboard` : `?period=week|month`, `?date=AAAA-MM-JJ`.
 
 ## Les bonus JoJo
 
 `ui/PoseFx.tsx`, par-dessus la carte du pantin : ils ne bloquent jamais le jeu (aucun clic
-intercepté, aucun voile, ils repartent seuls), avec les vrais sprites et voix du thème JoJo
-(`apps/web/public/jojo`, `apps/web/public/audio/jojo-*.mp3`).
+intercepté, aucun voile, ils repartent seuls).
 
 - En posant, des « ゴゴ » animés apparaissent autour du pantin quand on approche de la pose (à
   50, 70 et 85 % de ressemblance), le troisième avec le son du Menacing : une indication « chaud
   ou froid », sans chiffre.
-- À la validation, selon la note : Star Platinum qui frappe vers le pantin en ORA ORA (A), The
-  World en MUDA MUDA (B), une rafale de ゴゴゴ (C), « Yare yare daze » (D).
+- **Répliques de la série** (`src/lines.ts`, 35 voix de l'anime et des jeux officiels, parties 1 à
+  6, dans `apps/web/public/audio/pose`, égalisées en volume, 4 s au plus), tirées au hasard et
+  affichées en grand façon onomatopée de manga, avec qui parle et le sens en français :
+  - à la validation selon la note : réussie (A, B : « NICE ! », « YES I AM ! », « EMERALD
+    SPLASH ! »…), moyenne (C : « Daga kotowaru », « Rero rero »…), ratée (D, E : « OH NOOOO ! »,
+    « HINJAKU HINJAKU ! », « ARRIVEDERCI ! »…) ;
+  - quand on remet le pantin droit (« NIGERUNDAYO ! », « Bites the Dust », « Made in Heaven »…) et
+    au début de la partie, deux fois sur trois ;
+  - quand on ne touche plus au pantin depuis 22 à 40 s (« WRYYY ! », « Toki wo tomare ! »…).
+  - Jamais deux fois la même d'affilée.
+- À la validation aussi : Star Platinum qui frappe vers le pantin (A), The World (B), une rafale
+  de ゴゴゴ (C), avec les vrais sprites du thème JoJo (`apps/web/public/jojo`).
 - En fin de partie : « Yare yare daze » pour une note finale A, l'arrêt sur image To Be
   Continued pour un E (désactivable dans Paramètres, comme partout sur le site).
 
@@ -98,7 +141,9 @@ opacité) ; on pose le pantin dessus et on recopie les angles affichés dans `po
 
 ## Tests
 
+`test/play.test.ts` (base de test) : journée, score calculé par le serveur, refus (ordre, double
+envoi, angles mal formés, veille), fil d'activité, classement du jour et historique.
+`test/lines.test.ts` : chaque moment a ses répliques, chaque son existe, pas deux fois la même.
 `test/score.test.ts` : angles, cinématique, angle relatif retrouvé, score (identique, miroir,
 pose debout à 25 % au plus, sauf pour une pose debout, tolérance, relatif, articulation pliée à tort),
 notes, validité des poses (chacune atteignable à 100 %).
-Logique pure, sans base de données.
