@@ -2,13 +2,13 @@
 
 import { Button, Card, cx, effectiveVolume, onVolumeChange, Select, Textarea } from "@app/ui";
 import { useEffect, useRef, useState } from "react";
+import { DAILY_COUNT, dailyPoses, dayKey } from "../src/daily";
 import { POSES, targetPose, type TargetPose } from "../src/poses";
-import { grade, scorePose, type PoseScore } from "../src/score";
+import { grade, scorePose } from "../src/score";
 import { REST_POSE, SEGMENTS, type Pose } from "../src/skeleton";
+import { verdict } from "../src/verdicts";
+import { endOfDay, PoseFx } from "./PoseFx";
 import { Puppet } from "./Puppet";
-
-/** Nombre de poses par partie. */
-const ROUND = 5;
 
 // « Jojo Pose » d'Apollo Fresh, en boucle pendant la partie (servie par apps/web/public).
 const MUSIC = "/audio/jojo-pose.mp3";
@@ -79,66 +79,154 @@ function MusicToggle({ off, toggle }: { off: boolean; toggle: () => void }) {
   );
 }
 
-const VERDICTS: Record<ReturnType<typeof grade>, string> = {
-  A: "Yare yare daze… Pose parfaite.",
-  B: "Pas mal du tout. Bizarre, même.",
-  C: "Ça ressemble à quelque chose…",
-  D: "Même Speedwagon aurait fait mieux.",
-  E: "WRYYY ?!",
-};
-
-function shuffle<T>(items: readonly T[]): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j] as T, out[i] as T];
-  }
-  return out;
-}
-
 function GradeBadge({ percent, big }: { percent: number; big?: boolean }) {
   const g = grade(percent);
   return <span className={cx("pose-grade", `pose-grade-${g}`, big && "pose-grade-big")}>{g}</span>;
 }
 
-type Result = { pose: TargetPose; score: PoseScore };
+/** Résultat d'une pose : ressemblance, faite en miroir ou non, et la réplique tirée. */
+type Result = { id: string; percent: number; mirrored: boolean; line: string };
+
+// Parties du jour déjà jouées, gardées sur l'appareil (pas encore de base : elle viendra avec le
+// classement).
+const dayStorageKey = (key: string) => `potopia:pose-day:${key}`;
+
+function readDay(key: string): Result[] | null {
+  try {
+    const raw = localStorage.getItem(dayStorageKey(key));
+    return raw ? (JSON.parse(raw) as Result[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDay(key: string, results: Result[]) {
+  try {
+    localStorage.setItem(dayStorageKey(key), JSON.stringify(results));
+  } catch {
+    // stockage indisponible : la partie n'est pas gardée
+  }
+}
+
+/** Temps jusqu'aux poses suivantes (minuit à Paris), en texte : « 5 h 12 min ». */
+function untilTomorrow(key: string): string {
+  let lo = Date.now();
+  let hi = lo + 26 * 3_600_000;
+  while (hi - lo > 60_000) {
+    const mid = (lo + hi) / 2;
+    if (dayKey(new Date(mid)) === key) lo = mid;
+    else hi = mid;
+  }
+  const minutes = Math.max(1, Math.round((hi - Date.now()) / 60_000));
+  const h = Math.floor(minutes / 60);
+  return h ? `${h} h ${minutes % 60} min` : `${minutes} min`;
+}
+
+function Recap({ results }: { results: Result[] }) {
+  const byId = new Map(POSES.map((p) => [p.id, p]));
+  return (
+    <ul className="pose-recap">
+      {results.map((r) => {
+        const p = byId.get(r.id);
+        return (
+          <li key={r.id}>
+            {p && <img src={p.image} alt="" />}
+            <span className="min-w-0 flex-1 truncate">
+              {p ? `${p.character} : ${p.name}` : r.id}
+            </span>
+            <span className="tabular-nums">{r.percent} %</span>
+            <GradeBadge percent={r.percent} />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 /**
- * Pose JoJo : une image de pose célèbre, un pantin à mettre dans la même position. On attrape
- * ses membres ou ses articulations pour les faire pivoter, ou une main ou un pied pour plier tout
- * le membre ; « Valider » compare articulation par articulation (en miroir aussi) et montre la
- * pose attendue en fantôme. Partie de 5 poses, sur « Jojo Pose ».
+ * Pose JoJo : chaque jour, trois poses célèbres (les mêmes pour tout le monde) à reproduire avec
+ * un pantin. On attrape ses membres ou ses articulations pour les faire pivoter, ou une main ou
+ * un pied pour plier tout le membre ; « Valider » compare articulation par articulation (en
+ * miroir aussi) et montre la pose attendue en fantôme. Bonus JoJo pendant la partie (PoseFx),
+ * musique « Jojo Pose ». La partie du jour est gardée sur l'appareil ; `allowReplay` (en local)
+ * permet de la rejouer.
  */
-export function PoseGame({ editor = false }: { editor?: boolean }) {
+export function PoseGame({
+  editor = false,
+  allowReplay = false,
+}: {
+  editor?: boolean;
+  allowReplay?: boolean;
+}) {
+  const [key, setKey] = useState<string | null>(null);
+  const [played, setPlayed] = useState<Result[] | null>(null);
   const [queue, setQueue] = useState<TargetPose[] | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [pose, setPose] = useState<Pose>(REST_POSE);
-  const [score, setScore] = useState<PoseScore | null>(null);
+  const [current, setCurrent] = useState<Result | null>(null);
+  const [fx, setFx] = useState<{ id: number; grade: ReturnType<typeof grade> } | null>(null);
+  const [, tick] = useState(0);
   const music = useMusic();
   const musicButton = <MusicToggle off={music.off} toggle={music.toggle} />;
+
+  // le jour et la partie déjà jouée se lisent sur l'appareil, après le rendu serveur ; le compte à
+  // rebours des poses suivantes se met à jour chaque minute
+  useEffect(() => {
+    const today = dayKey();
+    setKey(today);
+    setPlayed(readDay(today));
+    const timer = window.setInterval(() => tick((n) => n + 1), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   if (editor) return <PoseEditor />;
 
   const start = () => {
+    if (!key) return;
     music.play();
-    setQueue(shuffle(POSES).slice(0, ROUND));
+    setQueue(dailyPoses(key));
     setResults([]);
     setPose(REST_POSE);
-    setScore(null);
+    setCurrent(null);
+    setPlayed(null);
   };
+
+  const finished = played ?? (queue && results.length >= queue.length ? results : null);
+  if (finished && key) {
+    const total = Math.round(finished.reduce((n, r) => n + r.percent, 0) / finished.length);
+    return (
+      <Card title="Les poses du jour" action={musicButton} className="pose-final">
+        <div className="flex items-center gap-4">
+          <GradeBadge percent={total} big />
+          <div>
+            <p className="font-display text-text text-2xl">{total} %</p>
+            {/* réplique fixe pour un même total : elle ne change pas à chaque visite */}
+            <p className="text-muted text-sm">{verdict(grade(total), (total % 7) / 7)}</p>
+          </div>
+        </div>
+        <Recap results={finished} />
+        <p className="text-muted text-sm">Nouvelles poses dans {untilTomorrow(key)}.</p>
+        {allowReplay && (
+          <Button variant="secondary" onClick={start}>
+            Rejouer (en local seulement)
+          </Button>
+        )}
+      </Card>
+    );
+  }
 
   if (!queue) {
     return (
       <Card className="pose-intro">
         <h1 className="font-display text-gradient text-3xl">Pose JoJo</h1>
         <p className="text-muted max-w-prose text-sm">
-          Une pose célèbre s&apos;affiche : mets le pantin dans la même position. Attrape un bras,
-          un avant-bras, une cuisse, une jambe, le tronc ou la tête et fais-le pivoter, ou tire une
-          main ou un pied : le bras ou la jambe se plie tout seul. La pose en miroir compte aussi.{" "}
-          {ROUND} poses par partie.
+          Chaque jour, {DAILY_COUNT} poses célèbres, les mêmes pour tout le monde : mets le pantin
+          dans la même position. Attrape un bras, un avant-bras, une cuisse, une jambe, le tronc ou
+          la tête et fais-le pivoter, ou tire une main ou un pied : le bras ou la jambe se plie tout
+          seul. La pose en miroir compte aussi. Quand tu approches de la bonne pose… ゴゴゴゴ.
         </p>
         <div className="flex items-center gap-2">
-          <Button onClick={start} disabled={POSES.length === 0}>
+          <Button onClick={start} disabled={!key || POSES.length === 0}>
             Commencer
           </Button>
           {musicButton}
@@ -147,47 +235,32 @@ export function PoseGame({ editor = false }: { editor?: boolean }) {
     );
   }
 
-  const done = results.length >= queue.length;
-  if (done) {
-    const total = Math.round(results.reduce((n, r) => n + r.score.percent, 0) / results.length);
-    return (
-      <Card title="Résultat" action={musicButton} className="pose-final">
-        <div className="flex items-center gap-4">
-          <GradeBadge percent={total} big />
-          <div>
-            <p className="font-display text-text text-2xl">{total} %</p>
-            <p className="text-muted text-sm">{VERDICTS[grade(total)]}</p>
-          </div>
-        </div>
-        <ul className="pose-recap">
-          {results.map((r) => (
-            <li key={r.pose.id}>
-              <img src={r.pose.image} alt="" />
-              <span className="min-w-0 flex-1 truncate">{r.pose.name}</span>
-              <span className="tabular-nums">{r.score.percent} %</span>
-              <GradeBadge percent={r.score.percent} />
-            </li>
-          ))}
-        </ul>
-        <Button onClick={start}>Rejouer</Button>
-      </Card>
-    );
-  }
-
   const target = queue[results.length] as TargetPose;
   const expected = targetPose(target);
-  const validate = () => setScore(scorePose(pose, expected));
+  const live = current ? null : scorePose(pose, expected).percent;
+  const validate = () => {
+    const s = scorePose(pose, expected);
+    const g = grade(s.percent);
+    setCurrent({ id: target.id, percent: s.percent, mirrored: s.mirrored, line: verdict(g) });
+    setFx({ id: Date.now(), grade: g });
+  };
   const next = () => {
-    if (!score) return;
-    setResults((all) => [...all, { pose: target, score }]);
-    setScore(null);
+    if (!current || !key) return;
+    const all = [...results, current];
+    setResults(all);
+    if (all.length >= queue.length) {
+      saveDay(key, all);
+      endOfDay(grade(Math.round(all.reduce((n, r) => n + r.percent, 0) / all.length)));
+    }
+    setCurrent(null);
+    setFx(null);
     setPose(REST_POSE);
   };
 
   return (
     <div className="pose-board">
       <Card
-        title={`Pose ${results.length + 1} / ${queue.length}`}
+        title={`Pose ${results.length + 1} / ${queue.length} du jour`}
         action={<span className="text-muted truncate text-xs">{target.character}</span>}
         className="pose-target"
       >
@@ -198,19 +271,20 @@ export function PoseGame({ editor = false }: { editor?: boolean }) {
       <Card title="Ton pantin" action={musicButton} className="pose-stage">
         <Puppet
           pose={pose}
-          onChange={score ? undefined : setPose}
+          onChange={current ? undefined : setPose}
           // la pose attendue, toujours dans le sens de l'image (même si le joueur l'a faite en
           // miroir), pour la comparer à l'image
-          ghost={score ? expected : null}
+          ghost={current ? expected : null}
         />
-        {score ? (
+        <PoseFx live={live} result={fx} />
+        {current ? (
           <div className="pose-score animate-rise">
-            <GradeBadge percent={score.percent} big />
+            <GradeBadge percent={current.percent} big />
             <div className="min-w-0 flex-1">
-              <p className="font-display text-text text-2xl">{score.percent} %</p>
+              <p className="font-display text-text text-2xl">{current.percent} %</p>
               <p className="text-muted text-sm">
-                {VERDICTS[grade(score.percent)]}
-                {score.mirrored && " (en miroir)"}
+                {current.line}
+                {current.mirrored && " (en miroir)"}
               </p>
             </div>
             <Button onClick={next}>

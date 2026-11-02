@@ -2,11 +2,40 @@
 
 _Yare yare daze._
 
-Une pose célèbre de JoJo s'affiche (rendus officiels des jeux JoJo) : il faut
-mettre un pantin articulé dans la même position. Partie de **5 poses** tirées au hasard parmi 41.
+Une pose célèbre de JoJo s'affiche (rendus officiels des jeux JoJo) : il faut mettre un pantin
+articulé dans la même position. **Trois poses par jour**, les mêmes pour tout le monde.
 
 Jeu intégré au portail : page `/pose`, tuile « Pose JoJo » dans le registre des apps. Première
-version sans base de données : rien n'est enregistré (pas de classement ni de récompense).
+version sans base de données : pas encore de classement ni de récompense ; la partie du jour est
+gardée sur l'appareil.
+
+## La partie du jour
+
+- `src/daily.ts` : le jour se compte à l'heure de Paris (`BRAND.timeZone`, changement à minuit).
+  Toutes les poses sont rangées une fois pour toutes dans un ordre mélangé fixe (graine
+  constante) ; chaque jour prend les trois suivantes, si bien qu'une pose ne revient qu'après que
+  toutes les autres sont passées. Ajouter des poses change l'ordre à partir de ce jour-là.
+- Une fois les trois poses faites, le résultat du jour (moyenne, note, détail) reste affiché
+  jusqu'au lendemain, avec le temps restant avant les poses suivantes. Il est gardé dans le
+  `localStorage` (clé `potopia:pose-day:<AAAA-MM-JJ>`) ; une vraie limite par membre viendra avec
+  la base. En local, un bouton permet de rejouer la partie du jour (`allowReplay`).
+- Répliques (`src/verdicts.ts`) : de 9 à 12 par note, tirées au hasard, références des parties 1
+  à 6 seulement ; celle du résultat du jour ne dépend que du total (elle ne change pas d'une
+  visite à l'autre).
+
+## Les bonus JoJo
+
+`ui/PoseFx.tsx`, par-dessus la carte du pantin : ils ne bloquent jamais le jeu (aucun clic
+intercepté, aucun voile, ils repartent seuls), avec les vrais sprites et voix du thème JoJo
+(`apps/web/public/jojo`, `apps/web/public/audio/jojo-*.mp3`).
+
+- En posant, des « ゴゴ » animés apparaissent autour du pantin quand on approche de la pose (à
+  50, 70 et 85 % de ressemblance), le troisième avec le son du Menacing : une indication « chaud
+  ou froid », sans chiffre.
+- À la validation, selon la note : Star Platinum qui frappe vers le pantin en ORA ORA (A), The
+  World en MUDA MUDA (B), une rafale de ゴゴゴ (C), « Yare yare daze » (D).
+- En fin de partie : « Yare yare daze » pour une note finale A, l'arrêt sur image To Be
+  Continued pour un E (désactivable dans Paramètres, comme partout sur le site).
 
 ## Le pantin
 
