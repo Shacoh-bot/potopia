@@ -134,7 +134,7 @@ export function PoseGame({ editor = false }: { editor?: boolean }) {
         <p className="text-muted max-w-prose text-sm">
           Une pose célèbre s&apos;affiche : mets le pantin dans la même position. Attrape un bras,
           un avant-bras, une cuisse, une jambe, le tronc ou la tête et fais-le pivoter, ou tire une
-          main ou un pied : le bras ou la jambe se plie tout seul. La pose en miroir compte aussi.
+          main ou un pied : le bras ou la jambe se plie tout seul. La pose en miroir compte aussi.{" "}
           {ROUND} poses par partie.
         </p>
         <div className="flex items-center gap-2">

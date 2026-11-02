@@ -2,8 +2,8 @@
 
 _Yare yare daze._
 
-Une pose célèbre de JoJo s'affiche (rendus officiels des jeux, surtout All Star Battle) : il faut
-mettre un pantin articulé dans la même position. Partie de **5 poses** tirées au hasard parmi 16.
+Une pose célèbre de JoJo s'affiche (rendus officiels des jeux JoJo) : il faut
+mettre un pantin articulé dans la même position. Partie de **5 poses** tirées au hasard parmi 44.
 
 Jeu intégré au portail : page `/pose`, tuile « Pose JoJo » dans le registre des apps. Première
 version sans base de données : rien n'est enregistré (pas de classement ni de récompense).
@@ -50,10 +50,16 @@ toujours dans le sens de l'image (même si le joueur l'a faite en miroir).
 
 ## Les poses
 
-`src/poses.ts` : personnage, nom de la pose, image (`apps/web/public/pose/<id>.webp`, détourée,
-640 px de haut) et angles du squelette. Ils ont été calés en pointant les articulations sur
-chaque image (épaules, coudes, poignets, hanches, genoux, chevilles), puis vérifiés une à une en
-superposant le squelette à l'image agrandie.
+`src/poses.ts` : 44 poses, de toutes les parties (rendus officiels détourés d'All Star Battle,
+All Star Battle R, Eyes of Heaven et Last Survivor, pris sur jojowiki.com) : personnage, nom de
+la pose, image (`apps/web/public/pose/<id>.webp`, 640 px de haut) et angles du squelette. Les
+angles ont été calés en pointant les articulations sur chaque image (épaules, coudes, poignets,
+hanches, genoux, chevilles), puis vérifiés un à un en superposant le squelette à l'image
+agrandie.
+
+Règles de choix d'une pose : un seul personnage, en pied ; chaque membre lisible à plat (pas de
+bras ni de jambe pointé droit vers l'écran, ni caché derrière le corps) ; au moins une
+articulation à changer par rapport à la pose debout (sinon il n'y a rien à jouer).
 
 Pour ajouter ou corriger une pose : l'**éditeur** `/pose?editeur` (en local seulement, jamais en
 production) met l'image derrière le pantin, avec des curseurs pour la caler (position, échelle,
