@@ -55,7 +55,11 @@ const HUD = ".jojo-fx, .jojo-decor, .jojo-fx-hint";
 
 export const DAMAGE_SOUNDS = {
   glass: "/audio/jojo-glass.mp3",
+  /** Début d'un bris de verre : la fissure principale qui bondit. */
+  crack: "/audio/jojo-glass-crack.mp3",
   restore: "/audio/jojo-cd-restore.mp3",
+  /** Voix de Josuke (« DORARARA ») sur les coups de Crazy Diamond, joués avec `restore`. */
+  doraRush: "/audio/jojo-dora-rush.mp3",
 } as const;
 export const DAMAGE_SPRITES = ["/jojo/crazy-diamond.webp"] as const;
 
@@ -301,6 +305,41 @@ function crackShards(w: number, h: number, a: Point[], b: Point[], cuts: number)
   return polys;
 }
 
+const area = (poly: Point[]) =>
+  Math.abs(
+    poly.reduce((sum, [x1, y1], i) => {
+      const [x2, y2] = poly[(i + 1) % poly.length] ?? [x1, y1];
+      return sum + x1 * y2 - x2 * y1;
+    }, 0),
+  ) / 2;
+
+/**
+ * Un morceau recoupé en `parts` éclats de tailles très différentes, comme du verre : des parts en
+ * éventail depuis un point intérieur décalé au hasard, coupées à des sommets tirés au hasard.
+ */
+function splinter(poly: Point[], parts: number): Point[][] {
+  if (parts <= 1 || poly.length < 4) return [poly];
+  const n = poly.length;
+  let [cx, cy] = poly.reduce<Point>(([sx, sy], [x, y]) => [sx + x / n, sy + y / n], [0, 0]);
+  const toward = poly[Math.floor(rand(0, n))] ?? [cx, cy];
+  const k = rand(0, 0.3);
+  cx += (toward[0] - cx) * k;
+  cy += (toward[1] - cy) * k;
+  const cuts = [
+    ...new Set(Array.from({ length: Math.min(parts, n) }, () => Math.floor(rand(0, n)))),
+  ].sort((a, b) => a - b);
+  if (cuts.length < 2) return [poly];
+  return cuts.map((from, i) => {
+    const to = cuts[(i + 1) % cuts.length] ?? from;
+    const run: Point[] = [];
+    for (let j = from; ; j = (j + 1) % n) {
+      run.push(poly[j] ?? [cx, cy]);
+      if (j === to) break;
+    }
+    return [[cx, cy], ...run];
+  });
+}
+
 /** Première zone qui coupe ce qui déborde (défilement ou overflow), ou null : la page elle-même. */
 function clipParent(el: Element): Element | null {
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
@@ -440,11 +479,51 @@ export function createDamage(env: Env): Damage {
     }
     redraw(b);
   };
+  /** Éclats de verre qui sautent du point (x, y) de l'écran, puis retombent. */
+  const glassBits = (x: number, y: number, count: number, force = 1) => {
+    if (reducedMotion()) return;
+    for (let i = 0; i < count; i++) {
+      const size = rand(3, 10) * (0.7 + force * 0.4);
+      const bit = spawn("jojo-fx-glassbit", {
+        left: `${x}px`,
+        top: `${y}px`,
+        width: `${size}px`,
+        height: `${size}px`,
+        rotate: `${rand(0, 360)}deg`,
+      });
+      const a = rand(0, Math.PI * 2);
+      const v = rand(30, 110) * force;
+      bit.animate(
+        [
+          { transform: "translate(0, 0) rotate(0)", opacity: 1 },
+          {
+            transform: `translate(${Math.cos(a) * v}px, ${Math.sin(a) * v - rand(10, 40)}px) rotate(${rand(-300, 300)}deg)`,
+            opacity: 0.9,
+            offset: 0.4,
+          },
+          {
+            transform: `translate(${Math.cos(a) * v * 1.4}px, ${Math.sin(a) * v + rand(80, 220)}px) rotate(${rand(-600, 600)}deg)`,
+            opacity: 0,
+          },
+        ],
+        { duration: rand(450, 900), easing: "cubic-bezier(0.3, 0.6, 0.7, 1)" },
+      ).onfinish = () => bit.remove();
+    }
+  };
+  /** Trace `count` points du trait (le bond se dessine en quelques images, pas d'un seul coup). */
+  const reveal = (b: Branch, count: number) => {
+    const d = polyline(b.pts.slice(0, count));
+    for (const path of b.paths) path.setAttribute("d", d);
+  };
   /**
    * La fissure principale encaisse un coup. Comme une vraie fissure, elle ne grandit pas d'un peu à
-   * chaque coup : la tension monte, puis elle cède d'un coup, un bond en avant à angles vifs, qui
-   * lâche des ramifications (de plus en plus, à mesure que la case s'use). Ses deux troncs
-   * atteignent les bords vers 80 % de l'usure ; une étoile s'élargit autour du point de départ.
+   * chaque coup : la tension monte, puis elle cède d'un coup, un bond très rapide en avant (dessiné
+   * en une centaine de millisecondes) à angles vifs, par segments très inégaux, avec parfois une
+   * fourche, et qui lâche des ramifications (de plus en plus, à mesure que la case s'use).
+   * Chaque bond craque (début de bris de verre, de plus en plus fort), fait sauter des éclats au
+   * bout de la fissure, et lâche parfois un « ピキッ ». Elle part plutôt du milieu de la case (le
+   * premier coup, ramené vers le centre, surtout dans une grande case) ; ses deux troncs atteignent
+   * les bords vers 80 % de l'usure ; une étoile s'élargit autour du point de départ.
    * Renvoie true si elle vient de bondir (la case tremble alors plus fort).
    */
   const growMain = (box: Element, entry: Box, x: number, y: number): boolean => {
@@ -457,9 +536,13 @@ export function createDamage(env: Env): Damage {
       svg.setAttribute("width", String(w));
       svg.setAttribute("height", String(h));
       entry.host.append(svg);
+      // le premier coup, ramené vers le centre de la case
+      const pull = w * h > 200_000 ? 0.65 : 0.35;
+      const hx = x - r.left;
+      const hy = y - r.top;
       const origin: Point = [
-        Math.min(Math.max(x - r.left, 10), w - 10),
-        Math.min(Math.max(y - r.top, 10), h - 10),
+        Math.min(Math.max(hx + (w / 2 - hx) * pull + rand(-0.06, 0.06) * w, w * 0.15), w * 0.85),
+        Math.min(Math.max(hy + (h / 2 - hy) * pull + rand(-0.06, 0.06) * h, h * 0.2), h * 0.8),
       ];
       // les deux troncs partent dans des directions opposées, en travers de la case
       const cap = Math.atan2(h * rand(-0.35, 0.35), w);
@@ -482,44 +565,99 @@ export function createDamage(env: Env): Damage {
       const last = t.pts[t.pts.length - 1] ?? main.origin;
       // arrivé au bord gauche ou droit : il a traversé la case
       if (last[0] <= 0 || last[0] >= w) continue;
-      // longueur qu'il « devrait » avoir : il ne bouge pas tant que le retard est faible…
+      // longueur qu'il « devrait » avoir : il ne bouge pas tant que le retard est faible (au
+      // hasard), puis il bondit, et dépasse un peu
       const target = t.reach * Math.min(1, wear / 0.8);
-      if (target - t.length < t.reach * rand(0.07, 0.2)) continue;
-      // … puis il bondit, et dépasse un peu
+      const lag = target - t.length;
+      if (lag < t.reach * rand(0.05, 0.24) && !(lag > t.reach * 0.03 && Math.random() < 0.08)) {
+        continue;
+      }
       burst = true;
-      const goal = Math.min(t.reach * 1.05, target + t.reach * rand(0, 0.06));
+      const goal = Math.min(t.reach * 1.05, target + t.reach * rand(0, 0.08));
+      const before = t.pts.length;
+      const pending: [number, () => void][] = [];
       let [px, py] = last;
       while (t.length < goal) {
-        // cap gardé à peu près (jamais en arrière), avec des cassures vives
+        // cap gardé à peu près (jamais en arrière), avec des cassures vives et inégales
         t.dev = Math.max(
-          -0.6,
-          Math.min(0.6, t.dev * 0.5 + (Math.random() < 0.3 ? rand(-0.7, 0.7) : rand(-0.22, 0.22))),
+          -0.7,
+          Math.min(
+            0.7,
+            t.dev * 0.45 + (Math.random() < 0.35 ? rand(-0.85, 0.85) : rand(-0.25, 0.25)),
+          ),
         );
         // trop près du haut ou du bas de la case : la cassure repart vers le milieu
-        const toward = Math.sin(t.cap + t.dev) < 0 ? -1 : 1; // -1 : vers le haut
-        if ((py < 26 && toward < 0) || (py > h - 26 && toward > 0)) t.dev = -t.dev;
+        const up = Math.sin(t.cap + t.dev) < 0;
+        if ((py < 26 && up) || (py > h - 26 && !up)) t.dev = -t.dev;
         const a = t.cap + t.dev;
-        const seg = rand(9, 20);
+        // segments très inégaux : de petits zigzags, et parfois une longue ligne droite
+        const seg = Math.random() < 0.15 ? rand(28, 46) : rand(5, 22);
         px = Math.min(Math.max(px + Math.cos(a) * seg, 0), w);
         py = Math.min(Math.max(py + Math.sin(a) * seg, 0), h);
         t.pts.push([px, py]);
         t.length += seg;
-        // les ramifications partent des cassures, de plus en plus nombreuses
-        if (Math.random() < 0.12 + wear * 0.3) {
-          const side = Math.random() < 0.5 ? -1 : 1;
-          twig(
-            main,
-            w,
-            h,
-            [px, py],
-            a + side * rand(0.5, 1.3),
-            t.reach * rand(0.08, 0.22) * (0.5 + wear),
-            0,
-          );
+        // les ramifications partent des cassures, au moment où le bond y passe ; parfois une fourche
+        const at: Point = [px, py];
+        const step = t.pts.length - before;
+        const side = Math.random() < 0.5 ? -1 : 1;
+        if (wear > 0.25 && Math.random() < 0.05) {
+          pending.push([
+            step,
+            () => twig(main, w, h, at, a + side * rand(0.35, 0.8), t.reach * rand(0.25, 0.45), 0),
+          ]);
+        } else if (Math.random() < 0.12 + wear * 0.3) {
+          pending.push([
+            step,
+            () =>
+              twig(
+                main,
+                w,
+                h,
+                at,
+                a + side * rand(0.5, 1.3),
+                t.reach * rand(0.08, 0.22) * (0.5 + wear),
+                0,
+              ),
+          ]);
         }
         if (px <= 0 || px >= w) break;
       }
-      redraw(t);
+      // le bond se dessine très vite, en 4 images, ses ramifications au fur et à mesure
+      const added = t.pts.length - before;
+      const frames = reducedMotion() ? 1 : 4;
+      for (let f = 1; f <= frames; f++) {
+        const upTo = before + Math.ceil((added * f) / frames);
+        later((f - 1) * 26, () => {
+          reveal(t, upTo);
+          for (const [i, grow] of pending)
+            if (i > (added * (f - 1)) / frames && i <= (added * f) / frames) grow();
+        });
+      }
+      // bruit et éclats au bout de la fissure, là où elle vient d'arriver
+      const tip = t.pts[t.pts.length - 1] ?? main.origin;
+      later(frames * 26, () => {
+        const here = box.getBoundingClientRect();
+        glassBits(here.left + tip[0], here.top + tip[1], 3 + Math.round(wear * 7), 0.6 + wear);
+      });
+    }
+    if (burst) {
+      const snap = play(DAMAGE_SOUNDS.crack, { volume: 0.3 + wear * 0.6 });
+      snap.preservesPitch = false;
+      snap.playbackRate = rand(0.8, 1.35);
+      if (wear > 0.35 && Math.random() < 0.45) {
+        const tip = main.trunks[Math.floor(rand(0, 2))]?.pts.at(-1) ?? main.origin;
+        transient(
+          "jojo-fx-word jojo-fx-kana",
+          {
+            left: `${r.left + tip[0]}px`,
+            top: `${r.top + tip[1] - 20}px`,
+            color: "#e8f4ff",
+            fontSize: `${20 + wear * 26}px`,
+            rotate: `${rand(-20, 20)}deg`,
+          },
+          ["ピキッ", "ビキッ", "バキッ"][Math.floor(rand(0, 3))],
+        );
+      }
     }
     // l'étoile autour du point de départ s'élargit en trois temps
     const webAt = [0.3, 0.6, 0.85];
@@ -612,10 +750,18 @@ export function createDamage(env: Env): Damage {
     // les morceaux suivent la fissure principale ; sans elle, un éventail autour de l'impact (grande
     // case comme La Place : moins de morceaux, chacun est une copie entière de la case)
     const [ta, tb] = entry?.main?.trunks ?? [];
-    const polys =
+    const big = r.width * r.height > 300_000;
+    const base =
       ta && tb && ta.pts.length + tb.pts.length > 4
-        ? crackShards(r.width, r.height, ta.pts, tb.pts, r.width * r.height > 300_000 ? 3 : 4)
-        : shardPolygons(r.width, r.height, lx, ly, r.width * r.height > 300_000 ? 6 : 9);
+        ? crackShards(r.width, r.height, ta.pts, tb.pts, big ? 3 : 4)
+        : shardPolygons(r.width, r.height, lx, ly, big ? 5 : 7);
+    // puis chaque morceau recoupé en éclats de tailles très différentes, comme du verre (moins
+    // d'éclats dans une grande case : chacun est une copie entière de la case)
+    const total = base.reduce((sum, poly) => sum + area(poly), 0) || 1;
+    const wanted = big ? 16 : 30;
+    const polys = base.flatMap((poly) =>
+      splinter(poly, Math.max(1, Math.round(((wanted * area(poly)) / total) * rand(0.5, 1.6)))),
+    );
     const canvases = [...box.querySelectorAll("canvas")];
     const flights = polys.map((poly) => {
       const piece = document.createElement("div");
@@ -647,36 +793,50 @@ export function createDamage(env: Env): Damage {
       const cx = poly.reduce((sum, p) => sum + p[0], 0) / poly.length;
       const cy = poly.reduce((sum, p) => sum + p[1], 0) / poly.length;
       piece.style.transformOrigin = `${cx}px ${cy}px`;
+      // reflet du verre : un éclat de lumière, différent sur chaque morceau
+      piece.style.setProperty("--glint", `${rand(0, 360).toFixed(0)}deg`);
+      piece.style.setProperty("--shine", rand(0.06, 0.38).toFixed(2));
       piece.append(copy);
       shards.append(piece);
-      // chaque morceau s'écarte du point d'impact, tourne, et tombe
+      // chaque éclat part de son côté : les petits plus loin, à des vitesses et des moments
+      // différents, en tournoyant (et en basculant, en 3D), puis tombe
       const dx = cx - lx;
       const dy = cy - ly;
       const len = Math.hypot(dx, dy) || 1;
-      const push = rand(50, 160);
-      const fx = (dx / len) * push;
+      const small = Math.min(1, 6000 / Math.max(area(poly), 1));
+      const push = rand(30, 140) + small * rand(40, 160);
+      const fx = (dx / len) * push + rand(-30, 30);
       const fy = (dy / len) * push;
-      const spin = rand(-70, 70);
+      const spin = rand(-120, 120) * (1 + small);
+      const rx = rand(-260, 260);
+      const ry = rand(-260, 260);
       return piece.animate(
         [
-          { transform: "translate(0, 0) rotate(0)", opacity: 1 },
+          { transform: "translate3d(0, 0, 0) rotate(0) rotateX(0) rotateY(0)", opacity: 1 },
           {
-            transform: `translate(${fx * 0.5}px, ${fy * 0.5 - 18}px) rotate(${spin * 0.3}deg)`,
+            transform: `translate3d(${fx * 0.45}px, ${fy * 0.45 - rand(8, 46)}px, 0) rotate(${spin * 0.25}deg) rotateX(${rx * 0.25}deg) rotateY(${ry * 0.25}deg)`,
             opacity: 1,
-            offset: 0.22,
+            offset: rand(0.15, 0.3),
           },
           {
-            transform: `translate(${fx}px, ${fy + rand(380, 640)}px) rotate(${spin}deg)`,
+            transform: `translate3d(${fx}px, ${fy + rand(420, 780)}px, 0) rotate(${spin}deg) rotateX(${rx}deg) rotateY(${ry}deg)`,
             opacity: 0,
           },
         ],
         {
-          duration: reducedMotion() ? 1 : rand(950, 1300),
+          duration: reducedMotion() ? 1 : rand(800, 1650),
+          delay: reducedMotion() ? 0 : rand(0, 220),
           easing: "cubic-bezier(0.4, 0, 0.9, 0.6)",
-          fill: "forwards",
+          fill: "both",
         },
       );
     });
+    // poussière de verre le long de la fissure
+    const line = [...(ta?.pts ?? []), ...(tb?.pts ?? [])];
+    for (let i = 0; i < 6; i++) {
+      const [bx, by] = line[Math.floor(rand(0, line.length))] ?? [lx, ly];
+      glassBits(r.left + bx, r.top + by, 4, 1.6);
+    }
     // la case elle-même disparaît, avec ses fêlures (elles restent dans les morceaux)
     box.style.visibility = "hidden";
     if (entry) {
@@ -1027,8 +1187,10 @@ export function createDamage(env: Env): Damage {
       left: `${cdX}px`,
       top: `${fy}px`,
     });
-    // tout part en même temps : il sort, le son de ses coups, ses coups, et le rembobinage
+    // tout part en même temps : il sort, le son de la réparation et celui de ses coups
+    // (« DORARARA »), ses coups, et le rembobinage
     play(DAMAGE_SOUNDS.restore, { volume: 1 });
+    play(DAMAGE_SOUNDS.doraRush, { volume: 0.9 });
 
     // les DORA claquent sur ce qui est réparé
     const targets: Element[] = [...broken.keys()].filter(inView);

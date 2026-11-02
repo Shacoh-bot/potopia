@@ -406,15 +406,22 @@ décors.
   défilement n'apparaît ; la colonne de gauche a 6 px de marge intérieure pour ça), et se fissure
   petit à petit (fêlures en étoile tirées au hasard, en SVG dans la case, de plus en plus grandes,
   serrées et fréquentes à mesure qu'elle s'use, et elle tremble de plus en plus fort). Une
-  **fissure principale** part du premier coup et grandit comme une vraie fissure : par à-coups
-  (la tension monte, puis elle bondit d'un coup à angles vifs, et la case accuse le coup), avec des
-  ramifications de plus en plus nombreuses, jusqu'aux bords gauche et droit vers 80 % de l'usure,
-  et une étoile qui s'élargit autour du point de départ. On arrête de la frapper : tout s'estompe
+  **fissure principale** part du premier coup, ramené vers le centre de la case (surtout dans une
+  grande case), et grandit comme une vraie fissure : par à-coups (la tension monte, puis elle
+  bondit d'un coup, dessinée en une centaine de millisecondes, à angles vifs, par segments très
+  inégaux, parfois en fourche, et la case accuse le coup), avec des ramifications de plus en plus
+  nombreuses, jusqu'aux bords gauche et droit vers 80 % de l'usure, et une étoile qui s'élargit
+  autour du point de départ. Chaque bond craque (début de bris de verre,
+  `public/audio/jojo-glass-crack.mp3`, de plus en plus fort, hauteur au hasard), fait sauter des
+  éclats de verre au bout de la fissure et lâche parfois un « ピキッ ». On arrête de la frapper : tout s'estompe
   en 1,5 s. On s'acharne jusqu'au bout (100 coups, environ 8,5 s de rafale sur la même case) :
   elle **vole en éclats** le long de cette fissure (« ガシャーン », verre brisé
   `public/audio/jojo-glass.mp3`) : elle est masquée, et des copies d'elle, découpées selon la
-  fissure (prolongée jusqu'aux bords) et des lignes brisées qui en partent vers le haut et le bas
-  (`clip-path`), retombent et disparaissent. Les éléments marqués `data-ora` encaissent : Sonic
+  fissure (prolongée jusqu'aux bords) et des lignes brisées qui en partent vers le haut et le bas,
+  puis recoupées en éclats de tailles très différentes (`clip-path`, une trentaine, une quinzaine
+  dans une grande case), chacun avec son reflet, partent chacun de son côté, à leur vitesse et à
+  leur moment, en tournoyant et en basculant en 3D, avec de la poussière de verre, puis retombent
+  et disparaissent. Les éléments marqués `data-ora` encaissent : Sonic
   perd ses anneaux, les coups rebondissent sur Luffy (« 効かねェな… ゴムだから »), la steel ball
   tourne, les boutons du header valsent. La **mascotte** encaisse une dizaine de secondes (118
   coups), et quand les poings sont sur elle (à 24 px près), ils ne frappent rien d'autre : des
@@ -423,8 +430,9 @@ décors.
   qui s'en va, ses yeux qui se ferment, puis elle est envoyée s'écraser sur le bord de l'écran, qui
   se fissure, et y reste incrustée. Une fois la rafale finie (0,7 s après), **Crazy Diamond** (le
   Stand de Josuke, rendu officiel du jeu All Star Battle : `public/jojo/crazy-diamond.webp`, halo
-  rose cuit dans l'image) répare tout : il sort, le son de ses coups part
-  (`public/audio/jojo-cd-restore.mp3`, 3 s) et il frappe (« DORA »), et dans le même temps tout se
+  rose cuit dans l'image) répare tout : il sort, le son de la réparation
+  (`public/audio/jojo-cd-restore.mp3`, 3 s) et celui de ses coups (`jojo-dora-rush.mp3`, voix de
+  Josuke dans l'anime) partent ensemble et il frappe (« DORA »), et dans le même temps tout se
   rembobine (les morceaux refont leur chute à l'envers et se recollent, la mascotte revole à sa
   place, ses blessures s'effacent, sa couronne revient), jusqu'à être comme neuf à la fin du son ;
   puis « ドラァ ! » et « グレート ! ». Il attend la fin d'un arrêt du temps ; quitter le thème remet

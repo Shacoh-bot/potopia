@@ -1014,6 +1014,8 @@ html.jojo-rushing * {
    La couche .jojo-fx a la police JoJo : on remet celle de la page pour les copies. */
 .jojo-fx-shards {
   pointer-events: none;
+  /* les éclats basculent en 3D en tombant */
+  perspective: 900px;
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.5;
@@ -1024,6 +1026,27 @@ html.jojo-rushing * {
 .jojo-fx-shard {
   position: absolute;
   inset: 0;
+}
+/* reflet du verre, différent sur chaque éclat (--glint : son angle, --shine : sa force) */
+.jojo-fx-shard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    var(--glint, 30deg),
+    rgb(255 255 255 / var(--shine, 0.2)) 0%,
+    transparent 36%,
+    transparent 64%,
+    rgb(200 225 255 / calc(var(--shine, 0.2) * 0.7)) 100%
+  );
+}
+/* poussière de verre : de petits éclats triangulaires */
+.jojo-fx-glassbit {
+  translate: -50% -50%;
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(170 205 255 / 0.7));
+  clip-path: polygon(50% 0, 100% 80%, 10% 100%);
+  pointer-events: none;
 }
 /* anneau de Sonic perdu sous les coups */
 .jojo-fx-coin {
