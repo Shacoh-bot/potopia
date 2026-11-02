@@ -2,6 +2,7 @@
 
 import { effectiveVolume, ROAD_ROLLER_EVENT, toBeContinued } from "@app/ui";
 import { useEffect } from "react";
+import { createDamage, DAMAGE_SOUNDS, DAMAGE_SPRITES } from "./jojoDamage";
 
 /*
  * Effets interactifs du thème JoJo, actifs seulement quand ce thème est affiché. Sprites du jeu de
@@ -9,8 +10,9 @@ import { useEffect } from "react";
  * - Le bouton « STAND » de la fiche (`data-stand-toggle`) invoque Star Platinum, qui flotte alors
  *   autour de la souris (gardé sur l'appareil). Re-clic : il est rappelé.
  * - Stand invoqué, clic maintenu dans le vide : rafale « ORA ORA ORA » sur le thème de Jotaro ; la
- *   case de la page que frappent les poings tremble. Rafale près de DIO (en bas de l'écran) : il
- *   sort The World, qui répond en « MUDA MUDA ».
+ *   case que frappent les poings tremble et se fissure, les petits éléments du header et la
+ *   mascotte encaissent (`jojoDamage`) ; ensuite, Crazy Diamond répare tout. Rafale près de DIO
+ *   (en bas de l'écran) : il sort The World, qui répond en « MUDA MUDA ».
  * - Secret : pendant l'arrêt du temps (ZA WARUDO), un clic sur DIO, et il lâche son rouleau
  *   compresseur quand le temps reprend. Il faut alors le repousser en rafale, sinon… To Be
  *   Continued.
@@ -27,7 +29,7 @@ const DIO_RANGE = 260; // distance à laquelle DIO sort The World
 const ROLLER_ESCAPE_MS = 4500; // temps pour commencer à repousser le rouleau
 const ROLLER_PUSH_MS = 5000; // rafale sous le rouleau qui le renvoie dans les airs
 const ROLLER_RETRY_MS = 2500; // rafale trop courte : temps avant qu'il retombe
-const RUSH_MAX_MS = 30000; // sécurité : une rafale s'arrête d'elle-même
+const REPAIR_DELAY_MS = 700; // la rafale finie, Crazy Diamond arrive
 const STAND_KEY = "potopia:jojo-stand"; // Stand invoqué, gardé sur l'appareil
 const HINT_KEY = "potopia:jojo-hint-seen"; // bulle d'aide déjà vue sur cet appareil
 // Éléments où un clic maintenu garde son sens habituel.
@@ -43,6 +45,7 @@ const SOUNDS = {
   roller: "/audio/jojo-road-roller.mp3",
   yare: "/audio/jojo-yare-yare.mp3",
   menacing: "/audio/jojo-menacing.mp3",
+  ...DAMAGE_SOUNDS,
 } as const;
 
 // Sprites du thème, préchargés et décodés dès que le thème est affiché : rien ne se télécharge au
@@ -53,6 +56,7 @@ const SPRITES = [
   "/jojo/the-world-muda-strip.webp",
   "/jojo/dio-road-roller-grid.webp",
   "/jojo/menacing-gogo-strip.webp",
+  ...DAMAGE_SPRITES,
 ];
 
 const root = () => document.documentElement;
@@ -86,17 +90,22 @@ function play(src: string, { loop = false, volume = 0.8 } = {}) {
   audio.play().catch(() => {});
   return audio;
 }
-/** Baisse le son jusqu'au silence, puis l'arrête. */
-function fadeOut(audio: HTMLAudioElement, ms: number) {
+/**
+ * Baisse le son jusqu'au silence, puis le met en pause (il garde sa position). Renvoie de quoi
+ * interrompre le fondu (le son repart avant la fin).
+ */
+function fadeOut(audio: HTMLAudioElement, ms: number): () => void {
   const from = audio.volume;
   const t0 = performance.now();
+  let frame = 0;
   const step = () => {
     const k = Math.min(1, (performance.now() - t0) / ms);
     audio.volume = from * (1 - k);
-    if (k < 1) requestAnimationFrame(step);
+    if (k < 1) frame = requestAnimationFrame(step);
     else audio.pause();
   };
-  requestAnimationFrame(step);
+  frame = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(frame);
 }
 
 export function JojoFx() {
@@ -130,23 +139,6 @@ export function JojoFx() {
       return el;
     };
 
-    /*
-     * Tremblement purement visuel : on secoue le contenu d'une case, jamais la case ni une zone qui
-     * défile (sa barre bougerait avec elle) ; dans une zone qui défile, c'est son contenu qui
-     * tremble. Rien ne change de taille ni de place pour la page : les barres de défilement restent
-     * immobiles.
-     */
-    const shaken = new WeakMap<Element, Element[]>();
-    const contents = (el: Element): Element[] => {
-      const known = shaken.get(el);
-      if (known) return known;
-      const parts = [...el.children].flatMap((child) => {
-        const { overflowX, overflowY } = getComputedStyle(child);
-        return /auto|scroll/.test(overflowX + overflowY) ? contents(child) : [child];
-      });
-      shaken.set(el, parts);
-      return parts;
-    };
     const jolt = (targets: Element[], power: number, ms: number) => {
       if (reducedMotion()) return;
       const frames = Array.from({ length: 6 }, (_, i) => ({
@@ -157,18 +149,8 @@ export function JojoFx() {
       }));
       for (const t of targets) t.animate(frames, { duration: ms, composite: "add" });
     };
-    /** Fait trembler le contenu de la case frappée (rien hors d'une case). */
-    const shake = (card: Element | null, power: number, ms: number) => {
-      if (card) jolt(contents(card), power, ms);
-    };
     /** Gros impact (rouleau compresseur) : c'est le décor du fond qui tremble, pas la page. */
     const quake = (power: number, ms: number) => jolt([layer], power, ms);
-    /** La case de la page sous le point (x, y) : là où frappent les poings. */
-    const struck = (x: number, y: number) =>
-      document
-        .elementsFromPoint(x, y)
-        .find((e) => !e.closest(".jojo-fx, .jojo-decor, .jojo-fx-hint"))
-        ?.closest(".theme-frame") ?? null;
 
     /** Mot de rafale (ORA, MUDA) qui claque près du point visé, avec un éclat d'impact. */
     const word = (x: number, y: number, text: string, color: string, spread: number) => {
@@ -193,15 +175,39 @@ export function JojoFx() {
       });
     };
 
+    // Fissures, petits éléments, mascotte, et Crazy Diamond qui répare (jojoDamage)
+    const damage = createDamage({
+      layer,
+      transient,
+      spawn,
+      word,
+      play,
+      later,
+      quake,
+      reducedMotion,
+    });
+    let repairTimer = 0;
+    const scheduleRepair = () => {
+      window.clearTimeout(repairTimer);
+      if (!damage.damaged()) return;
+      repairTimer = later(REPAIR_DELAY_MS, function tryRepair() {
+        if (rush) return; // reprogrammée à la fin de la rafale
+        // temps arrêté (ZA WARUDO) : Crazy Diamond attend qu'il reparte
+        if (!isJojo()) {
+          if (root().dataset.theme === "jojo") repairTimer = later(1000, tryRepair);
+          return;
+        }
+        damage.repair();
+      });
+    };
+
     // ── Le Stand qui flotte autour de la souris ──
     type Rush = {
       star: HTMLElement;
       world?: HTMLElement;
       ora: HTMLAudioElement;
-      theme: HTMLAudioElement;
       muda?: HTMLAudioElement;
       ticker: number;
-      startedAt: number;
       /** Début de la rafale sous le rouleau compresseur. */
       pushedSince?: number;
     };
@@ -276,19 +282,33 @@ export function JojoFx() {
       return { x: b.left + b.width * 0.06, y: b.top + b.height * 0.45 };
     };
 
+    // Le thème de Jotaro : un seul lecteur pour toutes les rafales, mis en pause en fondu à la fin
+    // de chacune et repris là où il s'était arrêté à la suivante.
+    let theme: HTMLAudioElement | null = null;
+    let stopThemeFade = () => {};
+    const playTheme = () => {
+      stopThemeFade();
+      if (!theme) {
+        theme = new Audio(SOUNDS.theme);
+        theme.loop = true;
+      }
+      theme.volume = Math.min(1, effectiveVolume() * 0.6);
+      theme.play().catch(() => {});
+    };
+
     const beginRush = () => {
       if (!standOn || !isJojo()) return;
+      window.clearTimeout(repairTimer);
       root().classList.add("jojo-rushing");
       window.getSelection()?.removeAllRanges();
       floater?.classList.add("jojo-fx-hidden");
       const r: Rush = {
         star: spawn("jojo-fx-sprite jojo-strip jojo-fx-star"),
         ora: play(SOUNDS.ora, { loop: true }),
-        theme: play(SOUNDS.theme, { loop: true, volume: 0.6 }),
         ticker: 0,
-        startedAt: performance.now(),
       };
       rush = r;
+      playTheme();
       placeRush(r);
       r.ticker = window.setInterval(() => {
         placeRush(r);
@@ -317,7 +337,7 @@ export function JojoFx() {
           word((x + d.x) / 2, y, "MUDA", "#c78cff", 60);
         }
         word(x, y, "ORA", "#f4c430", r.world ? 60 : 80);
-        shake(struck(x, y), 4, 120);
+        damage.hit(x, y);
         if (roller) {
           jolt([roller.el], 6, 120);
           // 5 s de rafale sous le rouleau : il valse, sans attendre qu'on relâche
@@ -334,7 +354,6 @@ export function JojoFx() {
             quake(16, 500);
           }
         }
-        if (performance.now() - r.startedAt > RUSH_MAX_MS) endRush(true);
       }, HIT_EVERY_MS);
     };
 
@@ -355,18 +374,19 @@ export function JojoFx() {
       window.clearInterval(r.ticker);
       r.ora.pause();
       r.muda?.pause();
-      fadeOut(r.theme, 1500);
+      if (theme) stopThemeFade = fadeOut(theme, 1500);
       root().classList.remove("jojo-rushing");
       const { x, y } = fist(r);
       r.star.remove();
       r.world?.remove();
       floater?.classList.remove("jojo-fx-hidden");
       wake();
-      if (!final) return;
+      if (!final) return scheduleRepair();
       transient("jojo-fx-final", { left: `${x}px`, top: `${y}px`, color: "#f4c430" }, "ORA !");
       transient("jojo-fx-ring", { left: `${x}px`, top: `${y}px` });
       transient("jojo-fx-don", { left: `${x - 70}px`, top: `${y - 80}px` }, "ドン");
-      shake(struck(x, y), 8, 420);
+      damage.hit(x, y, true);
+      scheduleRepair();
       // rafale lâchée trop tôt sous le rouleau : il retombe bientôt
       if (roller) {
         window.clearTimeout(roller.escape);
@@ -451,6 +471,9 @@ export function JojoFx() {
     const onMove = (e: PointerEvent) => {
       mouse = { x: e.clientX, y: e.clientY };
       wake();
+      // pas de limite de durée : la rafale dure tant que le clic est tenu. Clic relâché hors de la
+      // fenêtre (aucun pointerup reçu) : le premier mouvement sans bouton y met fin.
+      if (rush && e.pointerType === "mouse" && e.buttons === 0) return endRush(true);
       if (!rush && Math.hypot(mouse.x - start.x, mouse.y - start.y) > MOVE_TOLERANCE) {
         window.clearTimeout(holdTimer);
       }
@@ -528,6 +551,7 @@ export function JojoFx() {
     // entrant
     const themeWatch = new MutationObserver(() => {
       preload();
+      if (root().dataset.theme !== "jojo") damage.clear();
       if (root().dataset.theme !== "jojo" && standOn) {
         endRush(false);
         setStand(false, { announce: false });
@@ -568,6 +592,7 @@ export function JojoFx() {
     return () => {
       document.removeEventListener("visibilitychange", onHidden);
       endRush(false);
+      damage.clear();
       cancelAnimationFrame(frame);
       themeWatch.disconnect();
       timers.forEach((t) => window.clearTimeout(t));
@@ -582,6 +607,8 @@ export function JojoFx() {
       window.removeEventListener("click", onClick);
       window.removeEventListener("contextmenu", onContext);
       window.removeEventListener(ROAD_ROLLER_EVENT, roadRoller);
+      stopThemeFade();
+      theme?.pause();
       layer.remove();
     };
   }, []);

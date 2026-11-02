@@ -221,6 +221,8 @@ export function SpinOrb() {
       }
       aria-pressed={playing || combo}
       title={combo ? "Arrêter le combo" : playing ? "Pause" : "Musique"}
+      // sous la rafale de Star Platinum (thème JoJo, jojoDamage), la steel ball tourne sur elle-même
+      data-ora="orb"
       className="hover:bg-surface relative rounded-md p-1 transition-transform hover:scale-110"
     >
       {comboStage === "away" && (

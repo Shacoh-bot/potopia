@@ -182,6 +182,8 @@ export function MascotToy() {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       aria-label="Mascotte"
+      // la rafale de Star Platinum l'assomme et l'envoie dans le décor (thème JoJo, jojoDamage)
+      data-ora="mascot"
       title={pinned ? "Mascotte" : "Mascotte (glisser pour la déplacer)"}
       style={{ right: pos.right, bottom: pos.bottom }}
       // sans image (rien d'envoyé encore), le bouton disparaît ; elle glisse jusqu'à sa place

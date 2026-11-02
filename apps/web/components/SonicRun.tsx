@@ -326,7 +326,12 @@ export function SonicRun({ superSonic: allEmeralds }: { superSonic: boolean }) {
 
   const playing = mode !== "idle";
   return (
-    <div className="relative hidden h-14 shrink-0 lg:block" style={{ width: WIDTH }}>
+    // data-ora : il encaisse la rafale de Star Platinum (thème JoJo, jojoDamage) et perd ses anneaux
+    <div
+      data-ora="sonic"
+      className="relative hidden h-14 shrink-0 lg:block"
+      style={{ width: WIDTH }}
+    >
       {/* traînée de vitesse sur le liseré, derrière lui */}
       <span
         ref={streakRef}

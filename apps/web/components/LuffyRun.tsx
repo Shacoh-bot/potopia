@@ -307,7 +307,13 @@ export function LuffyRun() {
   const riding = phase === "idle" ? 0 : -(GROUND_AMP - 1) * centerHeight * SCALE;
 
   return (
-    <div ref={rootRef} className="relative hidden h-14 shrink-0 sm:block" style={{ width: SIZE }}>
+    // data-ora : sous la rafale de Star Platinum (thème JoJo, jojoDamage), il s'étire, en caoutchouc
+    <div
+      ref={rootRef}
+      data-ora="luffy"
+      className="relative hidden h-14 shrink-0 sm:block"
+      style={{ width: SIZE }}
+    >
       {gradient && (
         <svg
           aria-hidden
