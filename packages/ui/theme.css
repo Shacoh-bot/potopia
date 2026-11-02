@@ -835,6 +835,19 @@
     --pop: translate(65%, -20%) rotate(16deg);
     --d: 140ms;
   }
+  /* Grandes tuiles (AppGrid, écran xl) : lettres à l'échelle. */
+  @media (width >= 80rem) {
+    .app-art::before {
+      padding: 4px;
+    }
+    .app-art-pops > span {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.5rem;
+      border-width: 2px;
+      font-size: 1.25rem;
+    }
+  }
   .app-art-cell:is(:hover, :focus-within) .app-art-pops > span {
     animation:
       art-pop 0.55s cubic-bezier(0.3, 1.7, 0.5, 1) var(--d, 0s) forwards,

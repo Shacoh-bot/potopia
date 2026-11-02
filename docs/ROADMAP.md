@@ -186,7 +186,8 @@ Pour chaque étape, les critères de fin incluent toujours que `pnpm lint`, `pnp
     - Centre : grille de tuiles, puis la place des avatars.
     - Tuile de TROIS illustrée (mascotte et cases Wordle) : au survol, cadre tournant (couleurs
       de Wordle, ou du thème pour JoJo, One Piece et Apothicaire), zoom, lueur et lettres
-      « O U I » qui jaillissent. Même arrondi des tuiles dans tous les thèmes.
+      « O U I » qui jaillissent. Même arrondi des tuiles dans tous les thèmes ; tuiles 175 % plus
+      grandes sur grand écran (`xl`).
     - Header : marque, Sonic (marche, course, sprint ; Super Sonic avec les 7 Émeraudes du
       Chaos), Luffy (fruit du démon étincelant à l'arrêt ; au clic, il en sort avec sa musique et
       rebondit sur le liseré du header ; combo avec la boule, qu'il poursuit sur le liseré),

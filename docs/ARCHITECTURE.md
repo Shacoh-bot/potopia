@@ -365,7 +365,11 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
   flottent. Cadre et lueur aux couleurs de Wordle dans les thèmes de base (Classique, Fantasy,
   RGB), à celles du thème (`--accent`, `--arcane`) dans JoJo, One Piece et Apothicaire ; les
   lettres restent aux couleurs de Wordle.
-- Toutes les tuiles ont le même arrondi (`rounded-xl`) dans tous les thèmes : le `--radius` des
+- Taille des tuiles : 6,5 rem sur mobile, 7,5 rem à partir de `sm`, et 175 % (13,125 rem, avec
+  icônes, noms et lettres « O U I » agrandis) à partir de `xl` (1280 px), pour que le texte des
+  illustrations se lise ; la grille réserve deux rangées (une seule en `xl`, où les apps tiennent
+  sur une ligne) pour que la place ne bouge pas quand une app s'ajoute.
+- Toutes les tuiles ont le même arrondi (`rounded-xl`, `1.25rem` en `xl`) dans tous les thèmes : le `--radius` des
   thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
 - Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents Doubles », « Boîte à idées », « Vote design
