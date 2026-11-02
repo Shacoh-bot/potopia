@@ -20,9 +20,13 @@ const JOINTS: { segment: Segment; name: string; weight: number }[] = [
   { segment: "shinR", name: "genou droit", weight: 1 },
 ];
 
-/** Écart d'angle toléré sans perte, et écart au-delà duquel l'articulation ne rapporte plus rien. */
-const FREE_DEG = 15;
-const ZERO_DEG = 60;
+/**
+ * Écart d'angle toléré sans perte (à peine plus que la précision de la souris), et écart au-delà
+ * duquel une articulation qui devait rester comme debout ne rapporte plus rien. Serré : 100 %
+ * (note Z) demande chaque articulation à quelques degrés près.
+ */
+const FREE_DEG = 4;
+const ZERO_DEG = 50;
 
 /**
  * Une articulation que la pose debout met déjà à moins de STILL_DEG de la cible n'a pas à bouger.
@@ -117,15 +121,23 @@ export function scorePose(player: Pose, target: Pose): PoseScore {
   const mirrored = compare(player, mirrorPose(target));
   const best = mirrored.total > straight.total ? mirrored : straight;
   return {
-    percent: Math.round(best.total * 100),
+    // arrondi par défaut : 100 % seulement pour une pose vraiment parfaite
+    percent: Math.floor(best.total * 100 + 1e-9),
     mirrored: best === mirrored,
     parts: best.parts,
   };
 }
 
-/** Note façon fiche de Stand : A (parfait) à E. */
-export function grade(percent: number): "A" | "B" | "C" | "D" | "E" {
-  if (percent >= 90) return "A";
+export type Grade = "Z" | "S" | "A" | "B" | "C" | "D" | "E";
+
+/**
+ * Note façon fiche de Stand : Z pour une pose parfaite (100 %), S au-delà de 95 %, A de 85 à 95,
+ * puis B, C, D et E.
+ */
+export function grade(percent: number): Grade {
+  if (percent >= 100) return "Z";
+  if (percent > 95) return "S";
+  if (percent >= 85) return "A";
   if (percent >= 75) return "B";
   if (percent >= 60) return "C";
   if (percent >= 40) return "D";

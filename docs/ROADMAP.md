@@ -612,7 +612,7 @@ position. Détails du jeu : [games/pose/README.md](../games/pose/README.md).
 
 - [x] `games/pose` : squelette à 10 segments, pantin SVG à manipuler par ses mains et pieds
       (cinématique inverse), ses articulations ou ses membres (souris et doigt), score sur l'angle de chaque articulation (relatif, pose debout
-      à 25 % au plus, miroir compris), notes A à E et une cinquantaine de répliques, 3 poses par jour (les mêmes pour tous), bonus JoJo (ゴゴゴ quand on approche, Star Platinum, The World), « Jojo Pose » en musique, 59 poses (parties 1 à 6) calées sur les images,
+      à 25 % au plus, miroir compris), notes Z, S puis A à E et une soixantaine de répliques, 3 poses par jour (les mêmes pour tous), bonus JoJo (ゴゴゴ quand on approche, Star Platinum, The World), « Jojo Pose » en musique, 59 poses (parties 1 à 6) calées sur les images,
       éditeur `/pose?editeur` en local.
 - [x] Page `/pose`, tuile « Pose JoJo » dans le registre des apps.
 - [x] Base `pose` (table `rounds`, migration `20261102230000_pose`, ajout seul) : une partie par

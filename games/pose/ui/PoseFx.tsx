@@ -43,8 +43,9 @@ const IDLE_MAX_MS = 40_000;
 /** Chances qu'un évènement mineur (pantin remis droit, début de partie) donne une réplique. */
 const MINOR_CHANCE = 0.65;
 
+const TOP = new Set<Grade>(["Z", "S", "A"]);
 const eventOf = (g: Grade): LineEvent =>
-  g === "A" || g === "B" ? "good" : g === "C" ? "mid" : "bad";
+  TOP.has(g) || g === "B" ? "good" : g === "C" ? "mid" : "bad";
 
 export type FxCue = { id: number; event: "reset" | "start" };
 
@@ -58,11 +59,11 @@ type Props = {
 };
 
 /**
- * Fin de la partie du jour : « Yare yare daze » si la note finale est un A, To Be Continued si
+ * Fin de la partie du jour : « Yare yare daze » si la note finale est un A ou mieux, To Be Continued si
  * c'est un E (l'arrêt sur image des défaites, désactivable dans Paramètres comme partout).
  */
 export function endOfDay(g: Grade) {
-  if (g === "A") play(YARE_YARE);
+  if (TOP.has(g)) play(YARE_YARE);
   else if (g === "E") toBeContinued();
 }
 
@@ -74,7 +75,7 @@ export function endOfDay(g: Grade) {
  *   à la validation selon la note (« NICE ! », « OH NOOOO ! », « Daga kotowaru »…), quand on remet
  *   le pantin droit (« Nigerundayo ! », « Bites the Dust »…), quand on hésite trop longtemps, et
  *   parfois au début de la partie ;
- * - à la validation aussi : Star Platinum (A), The World (B), une rafale de ゴゴゴ (C).
+ * - à la validation aussi : Star Platinum (Z, S, A), The World (B), une rafale de ゴゴゴ (C).
  */
 export function PoseFx({ live, result, cue }: Props) {
   const count = live === null ? 0 : menaceCount(live);
@@ -149,7 +150,7 @@ export function PoseFx({ live, result, cue }: Props) {
       {GOGO_SPOTS.slice(0, count).map((style, i) => (
         <span key={i} className="pose-fx-gogo jojo-strip" style={style} />
       ))}
-      {shown?.grade === "A" && <span key={shown.id} className="pose-fx-star jojo-strip" />}
+      {shown && TOP.has(shown.grade) && <span key={shown.id} className="pose-fx-star jojo-strip" />}
       {shown?.grade === "B" && <span key={shown.id} className="pose-fx-world jojo-strip" />}
       {shown?.grade === "C" &&
         GOGO_SPOTS.map((style, i) => (
