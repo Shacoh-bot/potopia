@@ -25,10 +25,13 @@ const FREE_DEG = 15;
 const ZERO_DEG = 60;
 
 /**
- * Une articulation que la pose debout met déjà à moins de STILL_DEG de la cible n'a pas à bouger :
- * elle ne rapporte rien, mais la plier à tort coûte jusqu'à STILL_COST du score.
+ * Une articulation que la pose debout met déjà à moins de STILL_DEG de la cible n'a pas à bouger.
+ * Ce qui est déjà juste rapporte STILL_SHARE de la note (le pantin qu'on ne touche pas reste donc
+ * loin d'un bon score), le reste vient des articulations à changer ; plier à tort ce qui devait
+ * rester comme debout coûte en plus jusqu'à STILL_COST de cette part.
  */
 const STILL_DEG = 25;
+const STILL_SHARE = 0.25;
 const STILL_COST = 0.4;
 
 const MIRROR: Record<Segment, Segment> = {
@@ -66,8 +69,8 @@ const gap = (a: number, b: number) => Math.abs(wrap(a - b));
 /**
  * Score (0 à 1) d'une pose contre une cible. Chaque articulation que la pose demande de changer
  * est notée sur le chemin parcouru depuis la pose debout jusqu'à la cible (0 sans bouger, 1
- * arrivé à moins de FREE_DEG) ; leur moyenne pondérée fait le score. Celles qui n'ont pas à
- * changer ne rapportent rien, mais les plier à tort retire jusqu'à STILL_COST.
+ * arrivé à moins de FREE_DEG) ; leur moyenne pondérée fait les trois quarts du score. Celles qui
+ * n'ont pas à changer font le dernier quart (STILL_SHARE), tant qu'on ne les plie pas à tort.
  */
 function compare(player: Pose, target: Pose): { total: number; parts: JointScore[] } {
   let moved = 0;
@@ -91,7 +94,9 @@ function compare(player: Pose, target: Pose): { total: number; parts: JointScore
   });
   const progress = movedWeights ? moved / movedWeights : 1;
   const kept = stillWeights ? still / stillWeights : 1;
-  return { total: progress * (1 - STILL_COST * (1 - kept)), parts };
+  if (!movedWeights) return { total: kept, parts };
+  const total = (1 - STILL_SHARE) * progress * (1 - STILL_COST * (1 - kept)) + STILL_SHARE * kept;
+  return { total, parts };
 }
 
 export type PoseScore = {
@@ -104,7 +109,7 @@ export type PoseScore = {
 
 /**
  * Ressemblance entre la pose du joueur et la pose cible, articulation par articulation (voir
- * JOINTS et compare). Le pantin qu'on n'a pas touché vaut 0 %. La pose en miroir compte aussi :
+ * JOINTS et compare). Le pantin qu'on n'a pas touché vaut environ 25 %. La pose en miroir compte aussi :
  * on garde la meilleure des deux.
  */
 export function scorePose(player: Pose, target: Pose): PoseScore {

@@ -54,19 +54,24 @@ describe("score", () => {
     expect(mirrored.mirrored).toBe(true);
   });
 
-  it("le pantin debout, sans y toucher, ne marque rien… sauf si la pose est debout", () => {
-    expect(scorePose(REST_POSE, POINTING).percent).toBe(0);
-    for (const p of POSES) expect(scorePose(REST_POSE, targetPose(p)).percent).toBe(0);
+  it("le pantin debout, sans y toucher, reste à E (ce qui est déjà juste compte un peu)… sauf si la pose est debout", () => {
+    expect(scorePose(REST_POSE, POINTING).percent).toBe(25);
+    for (const p of POSES) {
+      const { percent } = scorePose(REST_POSE, targetPose(p));
+      expect(percent).toBeLessThanOrEqual(25);
+      expect(grade(percent)).toBe("E");
+    }
     expect(scorePose(REST_POSE, REST_POSE).percent).toBe(100);
   });
 
   it("un petit écart d'angle ne coûte rien, un grand fait chuter le score", () => {
     expect(scorePose(tweak(POINTING, { upperArmR: 100 }), POINTING).percent).toBe(100);
-    expect(scorePose(tweak(POINTING, { upperArmR: 150 }), POINTING).percent).toBeLessThan(80);
+    expect(scorePose(tweak(POINTING, { upperArmR: 150 }), POINTING).percent).toBeLessThan(85);
   });
 
   it("à mi-chemin entre debout et la pose, une partie des points seulement", () => {
-    const half = tweak(POINTING, { upperArmR: (REST_POSE.angle.upperArmR + 90) / 2 });
+    // depuis la pose debout, le bras levé à moitié seulement, le reste pas touché
+    const half = tweak(REST_POSE, { upperArmR: (REST_POSE.angle.upperArmR + 90) / 2 });
     const { percent } = scorePose(half, POINTING);
     expect(percent).toBeGreaterThan(30);
     expect(percent).toBeLessThan(90);

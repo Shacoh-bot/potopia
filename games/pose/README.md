@@ -3,7 +3,7 @@
 _Yare yare daze._
 
 Une pose célèbre de JoJo s'affiche (rendus officiels des jeux JoJo) : il faut
-mettre un pantin articulé dans la même position. Partie de **5 poses** tirées au hasard parmi 44.
+mettre un pantin articulé dans la même position. Partie de **5 poses** tirées au hasard parmi 41.
 
 Jeu intégré au portail : page `/pose`, tuile « Pose JoJo » dans le registre des apps. Première
 version sans base de données : rien n'est enregistré (pas de classement ni de récompense).
@@ -35,13 +35,13 @@ l'image, chacun par rapport à son parent : l'inclinaison du tronc, la tête, le
 par rapport au tronc), les coudes, les hanches et les genoux. C'est donc relatif : un tronc mal
 penché ne coûte que ses points, pas ceux des bras.
 
-- **Le pantin debout vaut 0 %** : une articulation que la pose demande de changer (plus de 25°
-  d'écart avec la pose debout) est notée sur le chemin parcouru depuis la pose debout jusqu'à la
-  cible, pleine à moins de 15° ; leur moyenne pondérée fait le score (tronc 1,5, tête 0,5, les
-  autres 1).
-- Une articulation qui n'a pas à changer ne rapporte rien, mais la plier à tort retire jusqu'à
-  40 % (rien jusqu'à 15° d'écart, tout au-delà de 60°). Une pose qui serait simplement debout vaut
-  donc 100 % sans rien toucher.
+- Une articulation que la pose demande de changer (plus de 25° d'écart avec la pose debout)
+  est notée sur le chemin parcouru depuis la pose debout jusqu'à la cible, pleine à moins de
+  15° ; ces articulations font les trois quarts de la note (tronc 1,5, tête 0,5, les autres 1).
+- Celles qui n'ont pas à changer, déjà justes debout, font le dernier quart, tant qu'on ne les
+  plie pas à tort (rien perdu jusqu'à 15° d'écart, tout au-delà de 60°, et jusqu'à 40 % de la
+  part des articulations à changer en plus). Le pantin qu'on ne touche pas fait donc au plus
+  25 % (note E) ; une pose qui serait simplement debout vaudrait 100 % sans rien toucher.
 - La pose en **miroir** compte aussi (gauche et droite échangées) : on garde la meilleure.
 - Note façon fiche de Stand : A (90 % et plus), B (75), C (60), D (40), E.
 
@@ -50,14 +50,16 @@ toujours dans le sens de l'image (même si le joueur l'a faite en miroir).
 
 ## Les poses
 
-`src/poses.ts` : 44 poses, de toutes les parties (rendus officiels détourés d'All Star Battle,
+`src/poses.ts` : 41 poses, des parties 1 à 6 (rendus officiels détourés d'All Star Battle,
 All Star Battle R, Eyes of Heaven et Last Survivor, pris sur jojowiki.com) : personnage, nom de
 la pose, image (`apps/web/public/pose/<id>.webp`, 640 px de haut) et angles du squelette. Les
 angles ont été calés en pointant les articulations sur chaque image (épaules, coudes, poignets,
 hanches, genoux, chevilles), puis vérifiés un à un en superposant le squelette à l'image
 agrandie.
 
-Règles de choix d'une pose : un seul personnage, en pied ; chaque membre lisible à plat (pas de
+Règles de choix d'une pose : rien de Steel Ball Run (en cours de diffusion) ni des parties
+suivantes, sauf Gyro dans sa tenue des premiers épisodes, sans Stand ; un seul personnage, en
+pied ; chaque membre lisible à plat (pas de
 bras ni de jambe pointé droit vers l'écran, ni caché derrière le corps) ; au moins une
 articulation à changer par rapport à la pose debout (sinon il n'y a rien à jouer).
 
@@ -68,6 +70,6 @@ opacité) ; on pose le pantin dessus et on recopie les angles affichés dans `po
 ## Tests
 
 `test/score.test.ts` : angles, cinématique, angle relatif retrouvé, score (identique, miroir,
-pose debout à 0 %, sauf pour une pose debout, tolérance, relatif, articulation pliée à tort),
+pose debout à 25 % au plus, sauf pour une pose debout, tolérance, relatif, articulation pliée à tort),
 notes, validité des poses (chacune atteignable à 100 %).
 Logique pure, sans base de données.
