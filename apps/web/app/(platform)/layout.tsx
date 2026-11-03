@@ -31,6 +31,7 @@ import { MobileMenu } from "@/components/MobileMenu";
 import { SideNav } from "@/components/SideNav";
 import { SonicRun } from "@/components/SonicRun";
 import { SpinOrb } from "@/components/SpinOrb";
+import { SpyroRun } from "@/components/SpyroRun";
 import { getActivityFeed } from "@/lib/activity";
 import { canSendTestNotification } from "@/lib/notifications";
 import { getCurrentMember } from "@/lib/session";
@@ -104,6 +105,7 @@ export default async function PlatformLayout({ children }: { children: ReactNode
         actions={
           <>
             <SonicRun superSonic={hasAllEmeralds(items)} />
+            <SpyroRun />
             <LuffyRun />
             <SpinOrb />
             <ThemeSwitcher current={theme} />
