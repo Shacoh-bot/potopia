@@ -19,11 +19,17 @@
  *   et se recollent, la mascotte revole à sa place, ses blessures s'effacent, sa couronne revient),
  *   jusqu'à être comme neuf à la fin du son. « ドラァ ! », « グレート ! ».
  * Tout passe par le DOM et l'API Web Animations (aucun état React) : fêlures en SVG dans la case
- * frappée, morceaux et effets dans la couche `.jojo-fx`. Animations en transform et opacity.
+ * frappée, morceaux et effets dans la couche `.jojo-fx`. Animations en transform et opacity, en 2D.
+ * Pour rester fluide pendant la rafale : peu de copies de la case au bris (CARRIERS), un seul
+ * tremblement à la fois par case, la zone qui la contient sans barre de défilement (lockScroll).
  */
 
 // Usure d'une case : de 0 (intacte) à 1 (elle se brise), selon les coups reçus d'affilée.
 const SHATTER_AT = 100; // coups sur une même case (environ 8,5 s de rafale) : elle se brise
+// morceaux d'une case brisée qui emportent une copie de son contenu (les autres sont du verre) :
+// chaque copie coûte la case entière à afficher
+const CARRIERS = 6;
+const CARRIERS_BIG = 4;
 const CRACK_EVERY_MS = 320; // une fêlure de plus au plus toutes les 320 ms… jusqu'à 2 fois plus vite
 const CRACKS_PER_BOX = 26;
 const CRACK_SPACING = 46; // en dessous, on ne refissure pas au même endroit (moins, usée)
@@ -329,13 +335,52 @@ function splinter(poly: Point[], parts: number): Point[][] {
   });
 }
 
-/** Première zone qui coupe ce qui déborde (défilement ou overflow), ou null : la page elle-même. */
+/**
+ * Première zone qui coupe ce qui déborde (défilement ou overflow), ou null : la page elle-même.
+ * Gardée en mémoire par case : la chercher remonte l'arbre avec getComputedStyle, à chaque coup.
+ */
+const clips = new WeakMap<Element, Element | null>();
 function clipParent(el: Element): Element | null {
+  if (clips.has(el)) return clips.get(el) ?? null;
+  let found: Element | null = null;
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
     const { overflowX, overflowY } = getComputedStyle(p);
-    if (/auto|scroll|hidden|clip/.test(overflowX + overflowY)) return p;
+    if (/auto|scroll|hidden|clip/.test(overflowX + overflowY)) {
+      found = p;
+      break;
+    }
   }
-  return null;
+  clips.set(el, found);
+  return found;
+}
+
+/**
+ * Pendant que ses cases tremblent, une zone qui défile ne doit jamais faire apparaître de barre de
+ * défilement : sur chaque axe où rien ne déborde encore, son défilement est coupé (overflow:
+ * hidden, sans effet visible), puis rendu peu après le dernier tremblement. Un axe qui défilait
+ * déjà garde sa barre, qui ne change pas.
+ */
+const LOCK_MS = 450;
+const locks = new Map<HTMLElement, { timer: number; x: string; y: string }>();
+function lockScroll(el: Element | null) {
+  if (!(el instanceof HTMLElement)) return;
+  const held = locks.get(el);
+  if (held) {
+    window.clearTimeout(held.timer);
+  } else {
+    const x = el.style.overflowX;
+    const y = el.style.overflowY;
+    if (el.scrollWidth <= el.clientWidth) el.style.overflowX = "hidden";
+    if (el.scrollHeight <= el.clientHeight) el.style.overflowY = "hidden";
+    locks.set(el, { timer: 0, x, y });
+  }
+  const lock = locks.get(el);
+  if (!lock) return;
+  lock.timer = window.setTimeout(() => {
+    locks.delete(el);
+    el.style.overflowX = lock.x;
+    el.style.overflowY = lock.y;
+  }, LOCK_MS);
 }
 
 /**
@@ -411,11 +456,18 @@ export function createDamage(env: Env): Damage {
   /** Dernière case brisée : c'est là que Crazy Diamond apparaît. */
   let lastBox: Element | null = null;
 
-  /** La case tremble, dans la limite de la place qu'elle a autour d'elle. */
+  /**
+   * La case tremble, dans la limite de la place qu'elle a autour d'elle. Un seul tremblement à la
+   * fois par case (le nouveau remplace l'ancien) : deux tremblements additionnés dépasseraient la
+   * place calculée pour chacun, et feraient déborder la case.
+   */
+  const jolts = new WeakMap<Element, Animation>();
   const jolt = (el: Element, power: number, ms: number) => {
     if (reducedMotion()) return;
+    jolts.get(el)?.cancel();
+    lockScroll(clipParent(el));
     const space = room(el);
-    const free = (gap: number) => Math.max(0, Math.min(power, gap));
+    const free = (gap: number) => Math.max(0, Math.min(power, gap - 1));
     const clampX = (v: number) => Math.max(-free(space.left), Math.min(v, free(space.right)));
     const clampY = (v: number) => Math.max(-free(space.top), Math.min(v, free(space.bottom)));
     const frames = Array.from({ length: 6 }, (_, i) => ({
@@ -424,7 +476,7 @@ export function createDamage(env: Env): Damage {
           ? "none"
           : `translate(${clampX(rand(-power, power)).toFixed(1)}px, ${clampY(rand(-power, power)).toFixed(1)}px)`,
     }));
-    el.animate(frames, { duration: ms, composite: "add" });
+    jolts.set(el, el.animate(frames, { duration: ms, composite: "add" }));
   };
 
   const wearOf = (entry: Box | undefined) => Math.min(1, (entry?.hits ?? 0) / SHATTER_AT);
@@ -826,7 +878,7 @@ export function createDamage(env: Env): Damage {
       return shatter(box, r.left + ox, r.top + oy);
     }
     // la fissure principale bondit : la case accuse le coup
-    if (growMain(box, current, x, y) && !reducedMotion()) jolt(box, 6 + wearOf(current) * 8, 220);
+    if (growMain(box, current, x, y) && !reducedMotion()) jolt(box, 8 + wearOf(current) * 9, 220);
     const wear = wearOf(current);
     if (!big && now - current.last < CRACK_EVERY_MS * (1 - 0.5 * wear)) return;
     const r = box.getBoundingClientRect();
@@ -853,9 +905,11 @@ export function createDamage(env: Env): Damage {
   };
 
   /**
-   * La case vole en éclats : elle est masquée (sa place reste dans la page), et des copies d'elle,
-   * chacune découpée selon un morceau (clip-path), partent du point d'impact et retombent.
-   * Crazy Diamond arrive peu après.
+   * La case vole en éclats : elle est masquée (sa place reste dans la page), et ses morceaux
+   * (clip-path) partent du point d'impact et retombent. Seuls les plus gros emportent une copie de
+   * la case (allégée : ni ombres, ni filtres, ni animations, voir .jojo-fx-shards) ; les petits
+   * éclats sont du verre teinté de la couleur de la case : copier la case pour chacun figeait
+   * l'écran. Tout tombe en 2D. Crazy Diamond arrive peu après.
    */
   const shatter = (box: HTMLElement, x: number, y: number) => {
     if (broken.has(box)) return;
@@ -892,43 +946,71 @@ export function createDamage(env: Env): Damage {
       splinter(poly, Math.max(1, Math.round(((wanted * area(poly)) / total) * rand(0.5, 1.6)))),
     );
     const canvases = [...box.querySelectorAll("canvas")];
-    const flights = polys.map((poly) => {
+    // les plus gros morceaux emportent le contenu de la case, les autres sont du verre
+    const bySize = polys.map((poly, i) => [area(poly), i] as const).sort((a, b) => b[0] - a[0]);
+    const carriers = new Set(bySize.slice(0, big ? CARRIERS_BIG : CARRIERS).map(([, i]) => i));
+    const tint = getComputedStyle(box).backgroundImage;
+    const flights = polys.map((poly, index) => {
       const piece = document.createElement("div");
-      piece.className = "jojo-fx-shard";
-      const copy = box.cloneNode(true) as HTMLElement;
-      copy.setAttribute("aria-hidden", "true");
-      copy.inert = true;
-      copy.removeAttribute("id");
-      Object.assign(copy.style, {
-        position: "absolute",
-        left: "0",
-        top: "0",
-        margin: "0",
-        width: `${r.width}px`,
-        height: `${r.height}px`,
-        visibility: "visible",
-        // une animation d'entrée de la case (apparition en fondu…) ne doit pas se rejouer
-        animation: "none",
-        transition: "none",
+      piece.className = carriers.has(index) ? "jojo-fx-shard" : "jojo-fx-shard jojo-fx-shard-glass";
+      // chaque éclat a la taille de son morceau, pas celle de toute la case : bien moins de
+      // surface à dessiner quand ils sont des dizaines à tomber en même temps
+      const xs = poly.map((pt) => pt[0]);
+      const ys = poly.map((pt) => pt[1]);
+      const bx = Math.max(0, Math.floor(Math.min(...xs)));
+      const by = Math.max(0, Math.floor(Math.min(...ys)));
+      const bw = Math.ceil(Math.max(...xs)) - bx;
+      const bh = Math.ceil(Math.max(...ys)) - by;
+      Object.assign(piece.style, {
+        left: `${bx}px`,
+        top: `${by}px`,
+        width: `${bw}px`,
+        height: `${bh}px`,
       });
-      // le contenu des canvas ne se copie pas avec le DOM
-      copy.querySelectorAll("canvas").forEach((c, i) => {
-        const from = canvases[i];
-        if (from && from.width > 0 && from.height > 0) c.getContext("2d")?.drawImage(from, 0, 0);
-      });
+      if (!carriers.has(index)) {
+        // éclat de verre : le fond de la case (son dégradé, calé sur la case), sans son contenu
+        Object.assign(piece.style, {
+          backgroundImage: tint,
+          backgroundSize: `${r.width}px ${r.height}px`,
+          backgroundPosition: `${-bx}px ${-by}px`,
+        });
+      }
+      const copy = carriers.has(index) ? (box.cloneNode(true) as HTMLElement) : null;
+      if (copy) {
+        copy.setAttribute("aria-hidden", "true");
+        copy.inert = true;
+        copy.removeAttribute("id");
+        Object.assign(copy.style, {
+          position: "absolute",
+          left: `${-bx}px`,
+          top: `${-by}px`,
+          margin: "0",
+          width: `${r.width}px`,
+          height: `${r.height}px`,
+          visibility: "visible",
+          // une animation d'entrée de la case (apparition en fondu…) ne doit pas se rejouer
+          animation: "none",
+          transition: "none",
+        });
+        // le contenu des canvas ne se copie pas avec le DOM
+        copy.querySelectorAll("canvas").forEach((c, i) => {
+          const from = canvases[i];
+          if (from && from.width > 0 && from.height > 0) c.getContext("2d")?.drawImage(from, 0, 0);
+        });
+        piece.append(copy);
+      }
       piece.style.clipPath = `polygon(${poly
-        .map(([px, py]) => `${px.toFixed(1)}px ${py.toFixed(1)}px`)
+        .map(([px, py]) => `${(px - bx).toFixed(1)}px ${(py - by).toFixed(1)}px`)
         .join(", ")})`;
       const cx = poly.reduce((sum, p) => sum + p[0], 0) / poly.length;
       const cy = poly.reduce((sum, p) => sum + p[1], 0) / poly.length;
-      piece.style.transformOrigin = `${cx}px ${cy}px`;
+      piece.style.transformOrigin = `${cx - bx}px ${cy - by}px`;
       // reflet du verre : un éclat de lumière, différent sur chaque morceau
       piece.style.setProperty("--glint", `${rand(0, 360).toFixed(0)}deg`);
       piece.style.setProperty("--shine", rand(0.06, 0.38).toFixed(2));
-      piece.append(copy);
       shards.append(piece);
       // chaque éclat part de son côté : les petits plus loin, à des vitesses et des moments
-      // différents, en tournoyant (et en basculant, en 3D), puis tombe
+      // différents, en tournoyant, puis tombe
       const dx = cx - lx;
       const dy = cy - ly;
       const len = Math.hypot(dx, dy) || 1;
@@ -937,18 +1019,19 @@ export function createDamage(env: Env): Damage {
       const fx = (dx / len) * push + rand(-30, 30);
       const fy = (dy / len) * push;
       const spin = rand(-120, 120) * (1 + small);
-      const rx = rand(-260, 260);
-      const ry = rand(-260, 260);
+      // en 2D : le basculement en 3D mettait chaque copie de la case sur sa propre couche 3D. Un
+      // écrasement sur un axe en tournant donne l'effet du verre qui pivote, pour bien moins cher.
+      const flip = rand(0.25, 1);
       return piece.animate(
         [
-          { transform: "translate3d(0, 0, 0) rotate(0) rotateX(0) rotateY(0)", opacity: 1 },
+          { transform: "translate(0, 0) rotate(0) scale(1, 1)", opacity: 1 },
           {
-            transform: `translate3d(${fx * 0.45}px, ${fy * 0.45 - rand(8, 46)}px, 0) rotate(${spin * 0.25}deg) rotateX(${rx * 0.25}deg) rotateY(${ry * 0.25}deg)`,
+            transform: `translate(${fx * 0.45}px, ${fy * 0.45 - rand(8, 46)}px) rotate(${spin * 0.25}deg) scale(1, ${(1 + flip) / 2})`,
             opacity: 1,
             offset: rand(0.15, 0.3),
           },
           {
-            transform: `translate3d(${fx}px, ${fy + rand(420, 780)}px, 0) rotate(${spin}deg) rotateX(${rx}deg) rotateY(${ry}deg)`,
+            transform: `translate(${fx}px, ${fy + rand(420, 780)}px) rotate(${spin}deg) scale(${flip}, 1)`,
             opacity: 0,
           },
         ],

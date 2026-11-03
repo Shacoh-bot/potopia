@@ -445,11 +445,17 @@ décors.
   parfois un « ピキッ ». On arrête de la frapper : tout s'estompe en 1,5 s. On s'acharne jusqu'au
   bout (100 coups, environ 8,5 s de rafale sur la même case) : elle **vole en éclats** le long de
   cette fissure (« ガシャーン », verre brisé `public/audio/jojo-glass.mp3`) : elle est masquée, et
-  des copies d'elle, découpées en secteurs entre les rayons de la fissure (prolongées jusqu'aux
-  bords), puis recoupées en éclats de tailles très différentes (`clip-path`, une trentaine, une
-  quinzaine dans une grande case), chacun avec son reflet, partent chacun de son côté, à leur
-  vitesse et à leur moment, en tournoyant et en basculant en 3D, avec de la poussière de verre,
-  puis retombent et disparaissent. Les éléments marqués `data-ora` encaissent : Sonic perd ses
+  ses morceaux, découpés en secteurs entre les rayons de la fissure (prolongées jusqu'aux bords),
+  puis recoupés en éclats de tailles très différentes (`clip-path`, une trentaine, une quinzaine
+  dans une grande case), chacun avec son reflet, partent chacun de son côté, à leur vitesse et à
+  leur moment, en tournoyant (en 2D, un écrasement sur un axe imite le verre qui pivote), avec de
+  la poussière de verre, puis retombent et disparaissent. Pour rester fluide : seuls les 6 plus
+  gros morceaux (4 dans une grande case) emportent une copie de la case, allégée (ni ombres, ni
+  filtres, ni animations) ; les autres sont du verre teinté de son fond ; chaque éclat a la taille
+  de son morceau, pas celle de toute la case. Une case ne tremble qu'une fois à la fois (deux
+  tremblements additionnés la feraient déborder), sans sortir de la place qu'elle a ; et tant
+  qu'elle tremble, la zone qui la contient (la colonne de gauche…) a son défilement coupé sur les
+  axes où rien ne débordait : aucune barre de défilement n'apparaît. Les éléments marqués `data-ora` encaissent : Sonic perd ses
   anneaux, les coups rebondissent sur Luffy (« 効かねェな… ゴムだから »), la steel ball tourne, les
   boutons du header valsent. La **mascotte** encaisse une dizaine de secondes (118 coups), et quand
   les poings sont sur elle (à 24 px près), ils ne frappent rien d'autre. Thème réservé aux adultes
