@@ -20,16 +20,14 @@
  *   jusqu'à être comme neuf à la fin du son. « ドラァ ! », « グレート ! ».
  * Tout passe par le DOM et l'API Web Animations (aucun état React) : fêlures en SVG dans la case
  * frappée, morceaux et effets dans la couche `.jojo-fx`. Animations en transform et opacity, en 2D.
- * Pour rester fluide pendant la rafale : peu de copies de la case au bris (CARRIERS), un seul
- * tremblement à la fois par case, la zone qui la contient sans barre de défilement (lockScroll).
+ * Pour rester fluide pendant la rafale : au bris, chaque morceau est une copie de la case où ce
+ * qui tombe hors du morceau est mis en sommeil, et les fêlures sont recopiées d'un seul canvas
+ * (prepareCopies) ; un seul tremblement à la fois par case ; la zone qui la contient sans barre de
+ * défilement (lockScroll).
  */
 
 // Usure d'une case : de 0 (intacte) à 1 (elle se brise), selon les coups reçus d'affilée.
 const SHATTER_AT = 100; // coups sur une même case (environ 8,5 s de rafale) : elle se brise
-// morceaux d'une case brisée qui emportent une copie de son contenu (les autres sont du verre) :
-// chaque copie coûte la case entière à afficher
-const CARRIERS = 6;
-const CARRIERS_BIG = 4;
 const CRACK_EVERY_MS = 320; // une fêlure de plus au plus toutes les 320 ms… jusqu'à 2 fois plus vite
 const CRACKS_PER_BOX = 26;
 const CRACK_SPACING = 46; // en dessous, on ne refissure pas au même endroit (moins, usée)
@@ -405,6 +403,104 @@ function room(el: Element) {
     right: c.left + clip.clientLeft + clip.clientWidth - r.right,
     top: r.top - c.top - clip.clientTop,
     bottom: clip.scrollHeight - (r.bottom - c.top - clip.clientTop + clip.scrollTop),
+  };
+}
+
+/**
+ * Les fêlures d'une case (les SVG de son calque `.jojo-cracks`), peintes une fois dans un canvas
+ * de la taille de la case : les morceaux en recopient chacun leur part (drawImage), au lieu de
+ * recopier des centaines de traits SVG à styler et mettre en page dans chaque morceau.
+ */
+function paintCracks(host: Element | null, box: DOMRect, dpr: number): HTMLCanvasElement | null {
+  const svgs = host ? [...host.querySelectorAll("svg")] : [];
+  if (svgs.length === 0) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(box.width * dpr);
+  canvas.height = Math.ceil(box.height * dpr);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.scale(dpr, dpr);
+  for (const svg of svgs) {
+    const at = svg.getBoundingClientRect();
+    for (const el of svg.querySelectorAll<SVGGeometryElement>("path, circle")) {
+      const cs = getComputedStyle(el);
+      const shift = cs.transform === "none" ? new DOMMatrix() : new DOMMatrix(cs.transform);
+      const shape =
+        el instanceof SVGCircleElement
+          ? (() => {
+              const c = new Path2D();
+              c.arc(el.cx.baseVal.value, el.cy.baseVal.value, el.r.baseVal.value, 0, Math.PI * 2);
+              return c;
+            })()
+          : new Path2D(el.getAttribute("d") ?? "");
+      ctx.save();
+      ctx.translate(at.left - box.left + shift.e, at.top - box.top + shift.f);
+      ctx.globalAlpha = Number(cs.opacity) || 1;
+      if (cs.fill && cs.fill !== "none") {
+        ctx.fillStyle = cs.fill;
+        ctx.fill(shape);
+      }
+      if (cs.stroke && cs.stroke !== "none") {
+        ctx.strokeStyle = cs.stroke;
+        ctx.lineWidth = parseFloat(cs.strokeWidth) || 1;
+        ctx.lineCap = cs.strokeLinecap as CanvasLineCap;
+        ctx.lineJoin = cs.strokeLinejoin as CanvasLineJoin;
+        ctx.stroke(shape);
+      }
+      ctx.restore();
+    }
+  }
+  return canvas;
+}
+
+/**
+ * De quoi fabriquer vite les copies d'une case brisée, une par morceau. Chaque copie a la mise en
+ * page de la case, mais seul ce qui touche son morceau y est recopié : ce qui tombe entièrement
+ * hors du morceau y devient une boîte vide à sa taille, en sommeil (content-visibility: hidden),
+ * qui garde sa place sans rien à styler, mettre en page ni dessiner. Les canvas recopiés reçoivent
+ * l'image de l'original. Sans ça, des dizaines de copies complètes figeaient l'écran au bris.
+ */
+function prepareCopies(box: HTMLElement) {
+  const r = box.getBoundingClientRect();
+  type Span = { x: number; y: number; w: number; h: number };
+  // ce qui peut être mis en sommeil : une boîte (pas un morceau de texte en ligne), hors SVG
+  const spans = new Map<Element, Span>();
+  for (const el of box.querySelectorAll("*")) {
+    if (!(el instanceof HTMLElement)) continue;
+    const display = getComputedStyle(el).display;
+    if (display === "inline" || display === "contents" || display === "none") continue;
+    const e = el.getBoundingClientRect();
+    if (e.width === 0 || e.height === 0) continue;
+    spans.set(el, { x: e.left - r.left, y: e.top - r.top, w: e.width, h: e.height });
+  }
+  return {
+    /** Une copie de la case pour le morceau de boîte (bx, by, bw, bh), en px dans la case. */
+    copyFor(bx: number, by: number, bw: number, bh: number): HTMLElement {
+      const outside = (sp: Span) =>
+        sp.x + sp.w < bx - 2 || sp.y + sp.h < by - 2 || sp.x > bx + bw + 2 || sp.y > by + bh + 2;
+      const copyOf = (node: Node): Node | null => {
+        if (!(node instanceof Element)) return node.cloneNode(false);
+        // les fêlures viennent du canvas commun (paintCracks)
+        if (node.classList.contains("jojo-cracks")) return null;
+        const span = spans.get(node);
+        const shell = node.cloneNode(false) as Element;
+        if (span && outside(span) && shell instanceof HTMLElement) {
+          shell.style.contentVisibility = "hidden";
+          shell.style.containIntrinsicSize = `${span.w}px ${span.h}px`;
+          return shell;
+        }
+        if (node instanceof HTMLCanvasElement && shell instanceof HTMLCanvasElement) {
+          if (node.width > 0 && node.height > 0) shell.getContext("2d")?.drawImage(node, 0, 0);
+          return shell;
+        }
+        for (const child of node.childNodes) {
+          const c = copyOf(child);
+          if (c) shell.append(c);
+        }
+        return shell;
+      };
+      return copyOf(box) as HTMLElement;
+    },
   };
 }
 
@@ -945,14 +1041,12 @@ export function createDamage(env: Env): Damage {
     const polys = base.flatMap((poly) =>
       splinter(poly, Math.max(1, Math.round(((wanted * area(poly)) / total) * rand(0.5, 1.6)))),
     );
-    const canvases = [...box.querySelectorAll("canvas")];
-    // les plus gros morceaux emportent le contenu de la case, les autres sont du verre
-    const bySize = polys.map((poly, i) => [area(poly), i] as const).sort((a, b) => b[0] - a[0]);
-    const carriers = new Set(bySize.slice(0, big ? CARRIERS_BIG : CARRIERS).map(([, i]) => i));
-    const tint = getComputedStyle(box).backgroundImage;
-    const flights = polys.map((poly, index) => {
+    const copies = prepareCopies(box);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cracks = paintCracks(entry?.host ?? null, r, dpr);
+    const pieces = polys.map((poly) => {
       const piece = document.createElement("div");
-      piece.className = carriers.has(index) ? "jojo-fx-shard" : "jojo-fx-shard jojo-fx-shard-glass";
+      piece.className = "jojo-fx-shard";
       // chaque éclat a la taille de son morceau, pas celle de toute la case : bien moins de
       // surface à dessiner quand ils sont des dizaines à tomber en même temps
       const xs = poly.map((pt) => pt[0]);
@@ -967,37 +1061,43 @@ export function createDamage(env: Env): Damage {
         width: `${bw}px`,
         height: `${bh}px`,
       });
-      if (!carriers.has(index)) {
-        // éclat de verre : le fond de la case (son dégradé, calé sur la case), sans son contenu
-        Object.assign(piece.style, {
-          backgroundImage: tint,
-          backgroundSize: `${r.width}px ${r.height}px`,
-          backgroundPosition: `${-bx}px ${-by}px`,
-        });
-      }
-      const copy = carriers.has(index) ? (box.cloneNode(true) as HTMLElement) : null;
-      if (copy) {
-        copy.setAttribute("aria-hidden", "true");
-        copy.inert = true;
-        copy.removeAttribute("id");
-        Object.assign(copy.style, {
-          position: "absolute",
-          left: `${-bx}px`,
-          top: `${-by}px`,
-          margin: "0",
-          width: `${r.width}px`,
-          height: `${r.height}px`,
-          visibility: "visible",
-          // une animation d'entrée de la case (apparition en fondu…) ne doit pas se rejouer
-          animation: "none",
-          transition: "none",
-        });
-        // le contenu des canvas ne se copie pas avec le DOM
-        copy.querySelectorAll("canvas").forEach((c, i) => {
-          const from = canvases[i];
-          if (from && from.width > 0 && from.height > 0) c.getContext("2d")?.drawImage(from, 0, 0);
-        });
-        piece.append(copy);
+      const copy = copies.copyFor(bx, by, bw, bh);
+      copy.setAttribute("aria-hidden", "true");
+      copy.inert = true;
+      copy.removeAttribute("id");
+      Object.assign(copy.style, {
+        position: "absolute",
+        left: `${-bx}px`,
+        top: `${-by}px`,
+        margin: "0",
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+        visibility: "visible",
+        // une animation d'entrée de la case (apparition en fondu…) ne doit pas se rejouer
+        animation: "none",
+        transition: "none",
+      });
+      piece.append(copy);
+      // les fêlures de ce morceau, recopiées du canvas commun
+      if (cracks && bw > 0 && bh > 0) {
+        const part = document.createElement("canvas");
+        part.className = "jojo-fx-shard-cracks";
+        part.width = Math.ceil(bw * dpr);
+        part.height = Math.ceil(bh * dpr);
+        part
+          .getContext("2d")
+          ?.drawImage(
+            cracks,
+            bx * dpr,
+            by * dpr,
+            part.width,
+            part.height,
+            0,
+            0,
+            part.width,
+            part.height,
+          );
+        piece.append(part);
       }
       piece.style.clipPath = `polygon(${poly
         .map(([px, py]) => `${(px - bx).toFixed(1)}px ${(py - by).toFixed(1)}px`)
@@ -1008,7 +1108,6 @@ export function createDamage(env: Env): Damage {
       // reflet du verre : un éclat de lumière, différent sur chaque morceau
       piece.style.setProperty("--glint", `${rand(0, 360).toFixed(0)}deg`);
       piece.style.setProperty("--shine", rand(0.06, 0.38).toFixed(2));
-      shards.append(piece);
       // chaque éclat part de son côté : les petits plus loin, à des vitesses et des moments
       // différents, en tournoyant, puis tombe
       const dx = cx - lx;
@@ -1022,7 +1121,7 @@ export function createDamage(env: Env): Damage {
       // en 2D : le basculement en 3D mettait chaque copie de la case sur sa propre couche 3D. Un
       // écrasement sur un axe en tournant donne l'effet du verre qui pivote, pour bien moins cher.
       const flip = rand(0.25, 1);
-      return piece.animate(
+      const fall: [Keyframe[], KeyframeAnimationOptions] = [
         [
           { transform: "translate(0, 0) rotate(0) scale(1, 1)", opacity: 1 },
           {
@@ -1041,14 +1140,11 @@ export function createDamage(env: Env): Damage {
           easing: "cubic-bezier(0.4, 0, 0.9, 0.6)",
           fill: "both",
         },
-      );
+      ];
+      return { piece, fall };
     });
-    // poussière de verre le long de la fissure
-    const line = main?.trunks.flatMap((t) => t.pts) ?? [];
-    for (let i = 0; i < 6; i++) {
-      const [bx, by] = line[Math.floor(rand(0, line.length))] ?? [lx, ly];
-      glassBits(r.left + bx, r.top + by, 4, 1.6);
-    }
+    for (const { piece } of pieces) shards.append(piece);
+    const flights = pieces.map(({ piece, fall }) => piece.animate(...fall));
     // la case elle-même disparaît, avec ses fêlures (elles restent dans les morceaux)
     box.style.visibility = "hidden";
     if (entry) {
@@ -1057,6 +1153,12 @@ export function createDamage(env: Env): Damage {
     }
     broken.set(box, { el: box, shards, flights });
     lastBox = box;
+    // poussière de verre le long de la fissure
+    const line = main?.trunks.flatMap((t) => t.pts) ?? [];
+    for (let i = 0; i < 6; i++) {
+      const [bx, by] = line[Math.floor(rand(0, line.length))] ?? [lx, ly];
+      glassBits(r.left + bx, r.top + by, 4, 1.6);
+    }
     play(DAMAGE_SOUNDS.glass, { volume: 1 });
     quake(16, 480);
     transient(

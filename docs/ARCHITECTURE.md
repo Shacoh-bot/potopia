@@ -449,10 +449,12 @@ décors.
   puis recoupés en éclats de tailles très différentes (`clip-path`, une trentaine, une quinzaine
   dans une grande case), chacun avec son reflet, partent chacun de son côté, à leur vitesse et à
   leur moment, en tournoyant (en 2D, un écrasement sur un axe imite le verre qui pivote), avec de
-  la poussière de verre, puis retombent et disparaissent. Pour rester fluide : seuls les 6 plus
-  gros morceaux (4 dans une grande case) emportent une copie de la case, allégée (ni ombres, ni
-  filtres, ni animations) ; les autres sont du verre teinté de son fond ; chaque éclat a la taille
-  de son morceau, pas celle de toute la case. Une case ne tremble qu'une fois à la fois (deux
+  la poussière de verre, puis retombent et disparaissent. Chaque éclat emporte une copie de la case
+  (texte, avatars, fêlures compris). Pour rester fluide : les copies sont allégées (ni ombres, ni
+  filtres, ni animations) ; dans chacune, ce qui tombe entièrement hors de son morceau est mis en
+  sommeil (`content-visibility: hidden`, à sa taille : rien à styler, mettre en page ni dessiner) ;
+  les fêlures (des centaines de traits SVG) sont peintes une fois dans un canvas dont chaque éclat
+  recopie sa part ; chaque éclat a la taille de son morceau, pas celle de toute la case. Une case ne tremble qu'une fois à la fois (deux
   tremblements additionnés la feraient déborder), sans sortir de la place qu'elle a ; et tant
   qu'elle tremble, la zone qui la contient (la colonne de gauche…) a son défilement coupé sur les
   axes où rien ne débordait : aucune barre de défilement n'apparaît. Les éléments marqués `data-ora` encaissent : Sonic perd ses

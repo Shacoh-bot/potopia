@@ -1012,9 +1012,9 @@ html.jojo-rushing * {
   stroke-width: 1.5;
   transform: translate(1.5px, 1.5px);
 }
-/* case brisée : ses morceaux découpés (clip-path) qui tombent ; les plus gros portent une copie de
-   la case, les autres sont du verre teinté (.jojo-fx-shard-glass). La couche .jojo-fx a la police
-   JoJo : on remet celle de la page pour les copies. */
+/* case brisée : ses morceaux découpés (clip-path) qui tombent, chacun une copie de la case (ce qui
+   tombe hors du morceau y est mis en sommeil). La couche .jojo-fx a la police JoJo : on remet
+   celle de la page pour les copies. */
 .jojo-fx-shards {
   pointer-events: none;
   contain: layout style;
@@ -1041,9 +1041,14 @@ html.jojo-rushing * {
   backdrop-filter: none !important;
   box-shadow: none !important;
 }
-/* éclat de verre : le fond de la case seul (son dégradé, posé par jojoDamage.ts), sans contenu */
-.jojo-fx-shard-glass {
-  background-color: color-mix(in oklab, var(--surface) 92%, transparent);
+/* les fêlures de la case sur le morceau, recopiées d'un canvas commun (jojoDamage.ts) */
+.jojo-fx-shard-cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  pointer-events: none;
 }
 /* reflet du verre, différent sur chaque éclat (--glint : son angle, --shine : sa force) */
 .jojo-fx-shard::after {
