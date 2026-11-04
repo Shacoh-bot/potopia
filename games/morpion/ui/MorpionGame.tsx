@@ -70,8 +70,7 @@ export function MorpionGame({ initial }: { initial: GameView }) {
     setError("");
     try {
       const next = await api<{ id: string }>("/games", {
-        partnerId: opponent.id,
-        theme: game.theme,
+        rematchId: game.id,
       });
       navigate(`/morpion/${next.id}`);
     } catch (e) {
@@ -138,7 +137,7 @@ export function MorpionGame({ initial }: { initial: GameView }) {
           {game.status === "WAITING" && (
             <p>
               {game.mySeat === 1
-                ? "Accepte l’invitation pour commencer. Le créateur joue le premier coup."
+                ? `Accepte l’invitation pour commencer. ${game.players[game.turn]?.name ?? "Ton adversaire"} jouera en premier.`
                 : `${opponent?.name ?? "Ton adversaire"} doit accepter pour commencer.`}
             </p>
           )}
@@ -195,9 +194,14 @@ export function MorpionGame({ initial }: { initial: GameView }) {
               <Button disabled={busy} onClick={() => void rematch()}>
                 Proposer une revanche
               </Button>
-              <AppLink href="/morpion" className="morpion-back">
-                Changer d’univers
-              </AppLink>
+              <p className="text-sm">
+                Nouvel univers au hasard
+                {game.status === "WON"
+                  ? " · le perdant commence"
+                  : game.status === "DRAW"
+                    ? " · l’autre joueur commence"
+                    : ""}
+              </p>
             </>
           )}
         </div>

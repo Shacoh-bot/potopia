@@ -2,7 +2,7 @@ import { db, withTx } from "@app/db";
 import { truncateTestDb } from "@app/db/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { LINES, place } from "../src/game";
-import { act, createGame, getGame, listGames, listPartners } from "../src/service";
+import { act, createGame, createRematch, getGame, listGames, listPartners } from "../src/service";
 
 const A = "morpion-test-a",
   B = "morpion-test-b",
@@ -122,5 +122,65 @@ describe("duels en ligne", () => {
       }),
     ).rejects.toThrow("rollback");
     expect(await db.morpionGame.count()).toBe(0);
+  });
+  it("choisit un autre thème pour la revanche et fait commencer le perdant même s’il est invité", async () => {
+    const id = await start();
+    for (const [who, cell] of [
+      [A, 0],
+      [B, 3],
+      [A, 1],
+      [B, 4],
+      [A, 2],
+    ] as const)
+      await move(id, who, cell);
+    const next = await createRematch({ userId: A, id });
+    const game = await getGame(A, next.id);
+    expect(game.theme).not.toBe("mario");
+    expect(game).toMatchObject({ status: "WAITING", turn: 1, score: [1, 0] });
+    await act({ userId: B, id: next.id, version: 0, action: "accept" });
+    await expect(move(next.id, A, 0)).rejects.toMatchObject({ status: 409 });
+    await move(next.id, B, 0);
+    expect(await getGame(B, next.id)).toMatchObject({ board: "O........", score: [1, 0] });
+  });
+  it("fait commencer le perdant quand il propose lui-même la revanche et garde une seule invitation", async () => {
+    const id = await start();
+    for (const [who, cell] of [
+      [A, 0],
+      [B, 3],
+      [A, 1],
+      [B, 4],
+      [A, 2],
+    ] as const)
+      await move(id, who, cell);
+    const next = await createRematch({ userId: B, id });
+    expect(await getGame(B, next.id)).toMatchObject({ turn: 0, score: [0, 1] });
+    expect((await createRematch({ userId: A, id })).id).toBe(next.id);
+    await act({ userId: A, id: next.id, version: 0, action: "accept" });
+    await move(next.id, B, 0);
+  });
+  it("inverse le premier joueur après une égalité et protège les revanches", async () => {
+    const id = await start();
+    await expect(createRematch({ userId: A, id })).rejects.toMatchObject({ status: 409 });
+    await expect(createRematch({ userId: C, id })).rejects.toMatchObject({ status: 403 });
+    for (const [i, cell] of [0, 1, 2, 4, 3, 5, 7, 6, 8].entries())
+      await move(id, i % 2 === 0 ? A : B, cell);
+    const next = await createRematch({ userId: A, id });
+    expect(await getGame(A, next.id)).toMatchObject({ turn: 1, score: [0, 0] });
+  });
+  it("fait aussi commencer le perdant quand le deuxième joueur a gagné", async () => {
+    const id = await start();
+    for (const [who, cell] of [
+      [A, 0],
+      [B, 3],
+      [A, 1],
+      [B, 4],
+      [A, 8],
+      [B, 5],
+    ] as const)
+      await move(id, who, cell);
+    const next = await createRematch({ userId: B, id });
+    expect(await getGame(B, next.id)).toMatchObject({ turn: 1, score: [1, 0] });
+    await act({ userId: A, id: next.id, version: 0, action: "accept" });
+    await move(next.id, A, 0);
   });
 });

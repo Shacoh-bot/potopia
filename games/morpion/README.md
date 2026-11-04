@@ -10,7 +10,10 @@ Le créateur joue les croix (pion 1), l'invité les ronds (pion 2). Les noms et 
 
 Les invitations et les coups sont synchronisés automatiquement (salon : 4 secondes ; partie : 2 secondes,
 sans requêtes quand l'onglet est masqué). Une déconnexion ou un rechargement conserve la partie.
-Après victoire, égalité ou annulation, une revanche propose une nouvelle invitation. Le score compte toutes
+Après victoire, égalité ou annulation, une revanche propose une nouvelle invitation dans un autre
+univers choisi au hasard par le serveur, sans choix manuel sur l'écran de fin. Le perdant commence
+la revanche ; en cas d'égalité, le premier joueur est inversé. Après une annulation, le joueur dont
+c'était le tour commence. Le score compte toutes
 les manches gagnées par ce duo, tous thèmes confondus. Aucun gain de monnaie n'est attribué.
 Une invitation peut être déclinée ou retirée ; chaque joueur peut quitter une partie après confirmation.
 
@@ -30,7 +33,8 @@ Chaque dossier contient le décor, la case vide, deux pions, la musique principa
 de victoire des deux joueurs et d'égalité. Les versions alternatives inutilisées de l'ancien projet,
 Bootstrap, jQuery et l'ancien code IA ne sont pas importés.
 
-Le bouton **Activer les sons du thème** démarre la musique après un geste utilisateur. Le volume du
+Les sons sont activés par défaut. La musique démarre à l'ouverture ou au premier geste si le navigateur
+bloque la lecture automatique. Le bouton **Couper les sons du jeu** permet de désactiver ce son. Le volume du
 bandeau pilote tous les sons ; la musique est atténuée à 45 % de ce volume, interrompue pendant le
 son de résultat, puis reprend. Quitter la page arrête le son. Les médias restent soumis à l'arrêt
 du temps et à la priorité audio du portail. Les médias fournis conservent leurs ayants droit respectifs.
@@ -41,9 +45,10 @@ du temps et à la priorité audio du portail. Les médias fournis conservent leu
 - Une clé de duo unique empêche les invitations croisées et les parties actives en doublon.
 - États : `WAITING`, `PLAYING`, `WON`, `DRAW`, `ABANDONED`.
 - Règles et résultat calculés côté serveur, version optimiste pour les coups simultanés.
-- Thème fixé à la création ; changer de thème passe par le salon et une nouvelle partie.
+- Thème fixé à la création ; une revanche choisit un autre thème au hasard et fait commencer le perdant.
 - API privée : `GET/POST /api/morpion/games`, `GET/POST /api/morpion/games/<id>`.
-  POST de collection : `partnerId`, `theme`. POST de partie : `action` (`accept`, `move`, `cancel`),
+  POST de collection : `partnerId`, `theme` pour une première invitation, ou `rematchId` pour une revanche
+  (adversaire, thème et premier joueur calculés côté serveur). POST de partie : `action` (`accept`, `move`, `cancel`),
   `version`, et `cell` (0 à 8) pour un coup.
 - Authentification et validation zod à chaque route ; seul l'invité accepte, seuls les deux joueurs
   lisent ou modifient le duel. Dix invitations en attente au maximum par créateur.
