@@ -1,0 +1,61 @@
+.instrument {
+  filter: drop-shadow(0 2px 2px #10163499);
+  transition:
+    filter 180ms,
+    transform 180ms;
+}
+
+.button:hover .instrument {
+  filter: drop-shadow(0 0 7px #7ba8ff99);
+  transform: rotate(-8deg) translateY(-2px);
+}
+
+.playing .instrument {
+  animation: breathe 1.3s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px #8bb8ffaa);
+}
+
+.note {
+  position: absolute;
+  left: 24px;
+  top: 9px;
+  pointer-events: none;
+  color: #b9dbff;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 0 8px #91b7ff;
+  animation: float-note 1.4s ease-out both;
+}
+
+@keyframes breathe {
+  50% {
+    transform: rotate(-5deg) translateY(-2px);
+  }
+}
+
+@keyframes float-note {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.65);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), -48px) rotate(15deg) scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playing .instrument,
+  .note {
+    animation: none;
+  }
+  .note {
+    display: none;
+  }
+  .button:hover .instrument {
+    transform: none;
+  }
+}
