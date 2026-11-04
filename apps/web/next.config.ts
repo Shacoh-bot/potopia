@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
     "@app/ideas",
     "@app/inventory",
     "@app/pose",
+    "@app/morpion",
     "@app/storage",
     "@app/tcg",
     "@app/trois",
@@ -37,7 +38,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:dir(apothicaire|apps|audio|emeralds|jojo|luffy|onepiece|orb|sonic)/:file*",
+        source:
+          "/:dir(apothicaire|apps|audio|emeralds|jojo|luffy|onepiece|orb|sonic|morpion-assets)/:file*",
         headers: [
           {
             key: "Cache-Control",

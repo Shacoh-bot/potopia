@@ -1,0 +1,28 @@
+enum MorpionStatus {
+  WAITING
+  PLAYING
+  WON
+  DRAW
+  ABANDONED
+  @@schema("morpion")
+}
+
+model MorpionGame {
+  id String @id @default(uuid(7))
+  userA String @map("user_a")
+  userB String @map("user_b")
+  theme String
+  board String @default(".........")
+  status MorpionStatus @default(WAITING)
+  turn Int @default(0)
+  winner Int?
+  version Int @default(0)
+  // Une seule invitation ou partie active pour un même duo, dans les deux sens.
+  activePair String? @unique @map("active_pair")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([userA, updatedAt])
+  @@index([userB, updatedAt])
+  @@map("games")
+  @@schema("morpion")
+}

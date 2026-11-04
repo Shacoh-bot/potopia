@@ -21,6 +21,6 @@ export function proxy(request: NextRequest) {
 // n'a pas à s'exécuter pour chacun d'eux (le cache du navigateur les garde, next.config.ts).
 export const config = {
   matcher: [
-    "/((?!login|refused|api/auth|_next/static|_next/image|favicon.ico|brand/|avatar-assets/|apothicaire/|apps/|audio/|emeralds/|jojo/|luffy/|onepiece/|orb/|sonic/).*)",
+    "/((?!login|refused|api/auth|_next/static|_next/image|favicon.ico|brand/|avatar-assets/|apothicaire/|apps/|audio/|emeralds/|jojo/|luffy/|onepiece/|orb/|sonic/|morpion-assets/).*)",
   ],
 };

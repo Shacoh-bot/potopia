@@ -106,6 +106,15 @@ serveur à la connexion, puis toutes les 6 heures.
 
 ---
 
+## Morpion en ligne
+
+La tuile **Morpion** ouvre `/morpion` : choisir un univers (Mario, Star Wars, Les Simpson,
+Game of Thrones ou Ghibli) et inviter un membre. Après son acceptation, chacun joue à son tour.
+Les cinq thèmes reprennent les décors, pions, musiques et bruitages du projet « DM Morpion ».
+Le bouton de son du jeu utilise le volume global. Parties conservées au rechargement, score du duo
+et revanche avec nouvelle invitation ; aucun mode IA. Voir [le module](games/morpion/README.md).
+La migration additive `20261104230000_morpion` crée le schéma du jeu (`pnpm db:deploy` en local).
+
 ## Commandes
 
 | Commande                | Effet                                                                     |

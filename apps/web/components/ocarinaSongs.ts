@@ -8,4 +8,5 @@ export const OCARINA_SONGS = [
   { name: "Chant du Soleil", src: "/audio/ocarina/sun.mp3" },
   { name: "Boléro du feu", src: "/audio/ocarina/bolero-fire.mp3" },
   { name: "Sérénade de l’eau", src: "/audio/ocarina/serenade-water.mp3" },
+  { name: "Navi — Hey, listen!", src: "/audio/ocarina/navi-hey-listen.wav" },
 ] as const;

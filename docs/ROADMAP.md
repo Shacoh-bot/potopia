@@ -1,5 +1,16 @@
 # Plan de développement
 
+## Morpion en ligne
+
+- [x] Adapter le projet « DM Morpion » en module `games/morpion`, sans IA.
+- [x] Reprendre les cinq thèmes, pions, décors et sons (Mario, Star Wars, Les Simpson, Game of Thrones, Ghibli).
+- [x] Salon `/morpion`, invitations entre membres avec acceptation, notifications et parties persistantes.
+- [x] Validation serveur des tours et résultats, protection contre les coups concurrents, score du duo et revanche.
+- [x] Migration additive du domaine `morpion`, tests PostgreSQL des règles et des droits.
+- [ ] Recette visuelle et sonore avec deux membres dans leurs navigateurs.
+
+Voir [le module](../games/morpion/README.md).
+
 Les choix d'architecture et leurs raisons sont dans [ARCHITECTURE.md](ARCHITECTURE.md). Ce fichier
 liste les étapes de réalisation dans l'ordre. Pour chacune : ce qu'on fait, ce qui est livré, et
 comment on vérifie qu'elle est terminée.
