@@ -53,6 +53,14 @@ export const apps: readonly AppEntry[] = [
     art: "/apps/pose.webp",
   },
   {
+    id: "morpion",
+    name: "Morpion",
+    icon: "grid",
+    route: "/morpion",
+    requiredRole: "member",
+    art: "/apps/morpion.webp",
+  },
+  {
     id: "ideas",
     name: "Boîte à idées",
     icon: "lightbulb",

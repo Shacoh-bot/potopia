@@ -1,0 +1,250 @@
+.morpion-themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 12px;
+}
+.morpion-theme {
+  position: relative;
+  display: flex;
+  min-height: 155px;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: end;
+  gap: 12px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  padding: 12px;
+  color: white;
+  text-align: left;
+  transition:
+    transform 180ms,
+    border-color 180ms;
+  isolation: isolate;
+}
+.morpion-theme::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent, #080b18e8);
+  z-index: -1;
+}
+.morpion-theme > span:last-child {
+  font-size: 13px;
+  font-weight: 700;
+}
+.morpion-theme:hover {
+  transform: translateY(-3px);
+}
+.morpion-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent), transparent 75%);
+}
+.morpion-theme-pieces {
+  display: flex;
+  gap: 8px;
+}
+.morpion-theme-pieces img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.morpion-duel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--frame);
+  border-radius: 9px;
+  padding: 15px;
+  background: var(--surface);
+}
+.morpion-duel:hover {
+  border-color: var(--accent);
+}
+.morpion-arena {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--frame);
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center bottom;
+  padding: 24px;
+  color: #fff;
+  isolation: isolate;
+}
+.morpion-arena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#05081780, #05081735 55%, #050817b3);
+  z-index: -1;
+}
+.morpion-player-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+.morpion-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 45%;
+  max-width: 310px;
+  padding: 12px;
+  background: #080d20d9;
+  border: 1px solid #ffffff33;
+  border-radius: 10px;
+}
+.morpion-player img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.morpion-player strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.morpion-player small {
+  display: block;
+  color: #c4cce4;
+  font-size: 11px;
+}
+.morpion-current {
+  border-color: #f9d985;
+  box-shadow: 0 0 20px #e6b85333;
+}
+.morpion-score {
+  margin-left: auto;
+  font-size: 24px;
+  font-weight: 800;
+  color: #f9d985;
+}
+.morpion-status {
+  width: fit-content;
+  max-width: 100%;
+  margin: 22px auto 16px;
+  padding: 12px 22px;
+  background: #080d20d9;
+  border: 1px solid #ffffff26;
+  border-radius: 10px;
+  text-align: center;
+}
+.morpion-status h2 {
+  font-size: 19px;
+  font-weight: 700;
+}
+.morpion-status p {
+  max-width: 420px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #d2daf0;
+}
+.morpion-board {
+  width: min(100%, 348px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px;
+  background: #080d20cb;
+  border: 1px solid #ffffff40;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px #0006;
+}
+.morpion-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 2px solid #ffffff24;
+  border-radius: 6px;
+  background-position: center;
+  background-size: cover;
+  image-rendering: pixelated;
+  transition:
+    transform 120ms,
+    border-color 120ms;
+}
+.morpion-cell img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.morpion-cell:not(:disabled):hover {
+  transform: scale(1.04);
+  border-color: #ffe2a5;
+}
+.morpion-cell:focus-visible,
+.morpion-theme:focus-visible {
+  outline: 3px solid #ffe2a5;
+  outline-offset: 3px;
+}
+.morpion-cell:disabled {
+  cursor: default;
+}
+.morpion-winning {
+  border-color: #ffe2a5;
+  box-shadow: 0 0 16px #ffe2a577;
+}
+.morpion-controls {
+  display: flex;
+  min-height: 56px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.morpion-back {
+  padding: 10px 15px;
+  border-radius: 6px;
+  background: #080d20e6;
+  color: white;
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .morpion-arena {
+    padding: 14px;
+  }
+  .morpion-player-row {
+    gap: 8px;
+  }
+  .morpion-player {
+    width: 50%;
+    padding: 8px;
+    gap: 6px;
+  }
+  .morpion-player img {
+    width: 28px;
+    height: 28px;
+  }
+  .morpion-player small {
+    display: none;
+  }
+  .morpion-player strong {
+    font-size: 12px;
+  }
+  .morpion-score {
+    font-size: 20px;
+  }
+  .morpion-status {
+    margin-top: 16px;
+    padding: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .morpion-theme,
+  .morpion-cell {
+    transition: none;
+  }
+  .morpion-theme:hover,
+  .morpion-cell:not(:disabled):hover {
+    transform: none;
+  }
+}

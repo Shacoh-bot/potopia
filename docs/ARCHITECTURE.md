@@ -4,7 +4,7 @@ Plateforme web de mini-jeux pour un groupe d'amis Discord. Nom de code et nom de
 `packages/config/brand.ts` (seul endroit où ils apparaissent).
 
 Ce document décrit la plateforme telle qu'elle est : socle (accès Discord, monnaie, activité,
-notifications), boîte à idées, avatars et place, trois jeux (TROIS, Agents Doubles et Pose JoJo) et le vote du
+notifications), boîte à idées, avatars et place, quatre jeux (TROIS, Agents Doubles, Pose JoJo et Morpion) et le vote du
 design des futures cartes. Il est tenu à jour à chaque changement (voir CLAUDE.md).
 
 ## Stack
@@ -41,6 +41,7 @@ games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
   pose/              Pose JoJo : un pantin à mettre dans une pose célèbre, 3 poses par jour
+  morpion/           duels entre membres, invitations, cinq univers visuels et sonores du DM original
   tcg/               futur jeu de cartes : pour l'instant, le vote du design des cartes (/cartes)
   trois/             Wordle français à 3 mots par jour (premier jeu intégré)
 packages/

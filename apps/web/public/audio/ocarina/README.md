@@ -11,5 +11,6 @@ Source : https://www.mariomayhem.com/downloads/sound_tracks/zelda_ocarina_of_tim
 - storms.mp3 : piste 56, Ocarina — Song of Storms.
 - bolero-fire.mp3 : piste 60, Bolero of Fire.
 - serenade-water.mp3 : piste 63, Serenade of Water.
+- navi-hey-listen.wav : voix originales `OOT_Navi_Hey3.wav` et `OOT_Navi_Listen3.wav`, assemblées avec 100 ms de pause, depuis https://noproblo.dayjo.org/zeldasounds/oot/ (Nintendo, Ocarina of Time).
 
 Ces enregistrements remplacent les motifs synthétisés du composant. Lecture unique au clic, sans boucle.

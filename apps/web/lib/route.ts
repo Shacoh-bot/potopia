@@ -2,6 +2,7 @@ import { AgentsError } from "@app/agents";
 import { ForbiddenError, UnauthorizedError } from "@app/core";
 import { InvalidImageError, UploadRateLimitError } from "@app/ideas";
 import { PoseError } from "@app/pose";
+import { MorpionError } from "@app/morpion";
 import { TroisError } from "@app/trois";
 import { ZodError } from "zod";
 
@@ -28,7 +29,12 @@ export function json(data: unknown, init?: ResponseInit): Response {
  */
 export function errorResponse(error: unknown): Response {
   // Erreurs de jeu : statut et message choisis par le jeu (essai refusé, mot inconnu…).
-  if (error instanceof TroisError || error instanceof AgentsError || error instanceof PoseError) {
+  if (
+    error instanceof TroisError ||
+    error instanceof AgentsError ||
+    error instanceof PoseError ||
+    error instanceof MorpionError
+  ) {
     return Response.json({ error: error.message }, { status: error.status });
   }
   for (const [type, status] of STATUSES) {
