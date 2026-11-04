@@ -7,6 +7,7 @@
 - [x] Salon `/morpion`, invitations entre membres avec acceptation, notifications et parties persistantes.
 - [x] Validation serveur des tours et résultats, protection contre les coups concurrents, score du duo et revanche.
 - [x] Migration additive du domaine `morpion`, tests PostgreSQL des règles et des droits.
+- [x] Revanche dans un autre univers aléatoire, perdant au premier tour, scores conservés, sons activés par défaut.
 - [ ] Recette visuelle et sonore avec deux membres dans leurs navigateurs.
 
 Voir [le module](../games/morpion/README.md).

@@ -41,7 +41,7 @@ games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
   pose/              Pose JoJo : un pantin à mettre dans une pose célèbre, 3 poses par jour
-  morpion/           duels entre membres, invitations, cinq univers visuels et sonores du DM original
+  morpion/           duels entre membres, cinq univers du DM original, revanches aléatoires (perdant au premier tour)
   tcg/               futur jeu de cartes : pour l'instant, le vote du design des cartes (/cartes)
   trois/             Wordle français à 3 mots par jour (premier jeu intégré)
 packages/

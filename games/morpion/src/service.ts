@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { getUser, getUsersByIds, listUsers, notify } from "@app/core";
 import { db, withTx, type DbTx } from "@app/db";
 import { z } from "zod";
-import { place, type GameView, type ThemeId } from "./game";
+import { place, THEMES, type GameView, type ThemeId } from "./game";
 
 export class MorpionError extends Error {
   constructor(
@@ -100,6 +100,14 @@ export async function listPartners(userId: string) {
 
 export async function createGame(input: unknown, opts?: { tx?: DbTx }): Promise<{ id: string }> {
   const data = createInput.parse(input);
+  return createInvitation(data, data.userId, opts);
+}
+
+async function createInvitation(
+  data: z.infer<typeof createInput>,
+  firstPlayerId: string,
+  opts?: { tx?: DbTx },
+): Promise<{ id: string }> {
   if (data.userId === data.partnerId) throw new MorpionError(400, "Choisis un autre membre.");
   if (!(await getUser(data.partnerId))) throw new MorpionError(404, "Membre introuvable.");
   const activePair = JSON.stringify([data.userId, data.partnerId].sort());
@@ -120,6 +128,7 @@ export async function createGame(input: unknown, opts?: { tx?: DbTx }): Promise<
         userA: data.userId,
         userB: data.partnerId,
         theme: data.theme,
+        turn: firstPlayerId === data.userId ? 0 : 1,
         activePair,
       },
     });
@@ -133,6 +142,27 @@ export async function createGame(input: unknown, opts?: { tx?: DbTx }): Promise<
         { tx },
       );
     return { id: game.id };
+  }, opts);
+}
+
+/** Le thème et le premier joueur sont choisis par le serveur, pas par le demandeur. */
+export async function createRematch(input: unknown, opts?: { tx?: DbTx }): Promise<{ id: string }> {
+  const data = z.object({ userId: identity, id: z.uuid() }).parse(input);
+  return withTx(async (tx) => {
+    const previous = await load(data.id, tx);
+    const mySeat = seat(previous, data.userId);
+    if (previous.status === "WAITING" || previous.status === "PLAYING")
+      throw new MorpionError(409, "Termine la manche avant de proposer une revanche.");
+    const choices = THEMES.filter((theme) => theme.id !== previous.theme);
+    const theme = choices[randomInt(choices.length)]?.id ?? "mario";
+    const firstSeat =
+      previous.status === "WON" && previous.winner !== null ? 1 - previous.winner : previous.turn;
+    const firstPlayerId = firstSeat === 0 ? previous.userA : previous.userB;
+    return createInvitation(
+      { userId: data.userId, partnerId: mySeat === 0 ? previous.userB : previous.userA, theme },
+      firstPlayerId,
+      { tx },
+    );
   }, opts);
 }
 
@@ -181,7 +211,10 @@ export async function act(input: unknown, opts?: { tx?: DbTx }): Promise<{ id: s
       await notify(
         {
           userId: game.userA,
-          title: "Ton duel de Morpion est accepté. À toi de jouer !",
+          title:
+            game.turn === 0
+              ? "Ton duel de Morpion est accepté. À toi de jouer !"
+              : "Ton duel de Morpion est accepté. Ton adversaire commence.",
           link: `/morpion/${game.id}`,
         },
         { tx },
