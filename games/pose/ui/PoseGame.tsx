@@ -394,7 +394,7 @@ function PoseEditor() {
         step={step}
         value={frame[key]}
         onChange={(e) => setFrame({ ...frame, [key]: Number(e.target.value) })}
-        className="flex-1"
+        className="min-w-0 flex-1"
       />
       <span className="w-10 tabular-nums">{frame[key]}</span>
     </label>

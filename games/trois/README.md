@@ -88,9 +88,10 @@ Les mots changent à minuit, heure de Paris. Pour qu'une partie en cours ne soit
   l'app), la ligne en cours pulse en violet.
 - **Mot raté** (mode test compris) : arrêt sur image « To Be Continued » (`toBeContinued()` de `@app/ui`,
   voir ARCHITECTURE).
-- Ces effets (et Mao Mao du thème Apothicaire) se placent à côté de la fenêtre du jeu, jamais
-  dessus : elle est marquée `data-fx-anchor` (`ui/App.tsx`), mesurée par `besideGame` de
-  `apps/web/components`. Les clics les traversent.
+- Aucun effet ne recouvre la fenêtre du jeu, marquée `data-fx-anchor` (`ui/App.tsx`) : Mao Mao
+  (thème Apothicaire) se place à côté (`besideGame` de `apps/web/components`), la flèche « To Be
+  Continued » reste en bas à gauche, sa pointe contre la colonne « Activité récente », sans
+  déborder sur la fenêtre. Les clics les traversent.
 - Les images de ces effets sont chargées dès l'ouverture du jeu (`preloadImages` de `@app/ui`).
 
 ## Mots
