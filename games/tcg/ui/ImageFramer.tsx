@@ -75,7 +75,7 @@ export function ImageFramer({ imageUrl, frame, onChange, width, height }: Props)
             step={0.05}
             value={frame.zoom}
             onChange={(e) => zoom(Number(e.target.value))}
-            className="flex-1"
+            className="min-w-0 flex-1"
           />
         </label>
         <button

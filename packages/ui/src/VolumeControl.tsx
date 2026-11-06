@@ -70,7 +70,9 @@ export function VolumeControl() {
               value={muted ? 0 : percent}
               onChange={(e) => setVolume({ level: Number(e.target.value) / 100, muted: false })}
               aria-label="Volume"
-              className="accent-accent h-1.5 flex-1 cursor-pointer"
+              // min-w-0 : Firefox ne rétrécit pas un curseur sous sa largeur naturelle (~190 px),
+              // il dépassait de la fenêtre
+              className="accent-accent h-1.5 min-w-0 flex-1 cursor-pointer"
             />
           </div>
         </div>

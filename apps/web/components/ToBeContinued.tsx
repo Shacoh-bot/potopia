@@ -3,7 +3,6 @@
 import { cx, effectiveVolume, preloadImages, TO_BE_CONTINUED_EVENT } from "@app/ui";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { besideGame } from "./besideGame";
 
 // Roundabout découpé à la main (public/audio/roundabout.mp3, 6,4 s) : il part directement sur le
 // passage de la guitare, l'image se fige dès la défaite. Discret, avec un petit fondu sur la fin.
@@ -13,19 +12,39 @@ const VOLUME = 0.45;
 const END_MS = 6300;
 const FADE_MS = 900;
 
+const ARROW_W = 520;
+const ARROW_MIN = 200;
+const GAP = 4; // entre la colonne de gauche (6 px de marge intérieure) et la pointe de la flèche
+const GAME_GAP = 24; // entre la flèche et la fenêtre du jeu
+
 type Phase = "off" | "frozen" | "leaving";
+type Spot = { left: number; width: number };
+
+/**
+ * Toujours en bas à gauche : la pointe de la flèche juste à droite de la colonne de gauche
+ * (« Activité récente », marquée `data-fx-side`), sans déborder sur la fenêtre du jeu ouvert
+ * (`data-fx-anchor`). null : pas de colonne (mobile, connexion), contre le bord gauche.
+ */
+function arrowSpot(): Spot | null {
+  const side = document.querySelector("[data-fx-side]")?.getBoundingClientRect();
+  if (!side || side.width === 0) return null;
+  const left = side.right + GAP;
+  const game = document.querySelector("[data-fx-anchor]")?.getBoundingClientRect();
+  const room = game && game.left > left ? game.left - GAME_GAP - left : ARROW_W;
+  return { left, width: Math.max(ARROW_MIN, Math.min(ARROW_W, room)) };
+}
 
 /**
  * « To Be Continued » (JoJo) après une défaite : dès la défaite, l'image se fige en sépia, la
- * flèche glisse en bas, à côté de la fenêtre du jeu (besideGame ; en bas à gauche sans jeu ouvert),
- * sur Roundabout, puis tout repart dans un fondu. Rien ne bloque le jeu : les clics traversent, et
- * la fenêtre du jeu continue de s'animer (on enchaîne sur le mot suivant). Échap l'écourte. Déclenché par `toBeContinued()` de `@app/ui` (TROIS, Agents Doubles), qui ne fait rien
- * si le membre a coupé l'effet dans ses paramètres. Monté une fois, dans le layout racine.
+ * flèche glisse en bas à gauche, sa pointe contre la colonne « Activité récente » (arrowSpot), sur
+ * Roundabout, puis tout repart dans un fondu. Rien ne bloque le jeu : les clics traversent, et la
+ * fenêtre du jeu continue de s'animer (on enchaîne sur le mot suivant). Échap l'écourte. Déclenché
+ * par `toBeContinued()` de `@app/ui` (TROIS, Agents Doubles), qui ne fait rien si le membre a coupé
+ * l'effet dans ses paramètres. Monté une fois, dans le layout racine.
  */
 export function ToBeContinued() {
   const [phase, setPhase] = useState<Phase>("off");
-  // à côté de la fenêtre du jeu (besideGame) ; null : en bas à gauche de l'écran
-  const [spot, setSpot] = useState<{ left: number; width: number } | null>(null);
+  const [spot, setSpot] = useState<Spot | null>(null);
   const phaseRef = useRef<Phase>("off");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timers = useRef<number[]>([]);
@@ -65,7 +84,7 @@ export function ToBeContinued() {
 
     const start = () => {
       if (phaseRef.current !== "off") return;
-      setSpot(besideGame(520, 200));
+      setSpot(arrowSpot());
       const audio = new Audio(MUSIC);
       audio.volume = effectiveVolume() * VOLUME;
       audio.play().catch(() => {});

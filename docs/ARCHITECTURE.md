@@ -586,7 +586,9 @@ ApothicaireOpening.tsx`, `apothicaire()` de `@app/ui`) : la page s'assombrit sou
   feuille CSS par jeu (`games/*/ui/*.css`), importée dans `apps/web/app/globals.css`.
 - Firefox dessine les curseurs (`input type="range"`, volume…) à sa façon, même avec
   `accent-color` : `globals.css` les redessine avec ses pseudo-éléments `::-moz-range-*` comme
-  sous Chrome (rail fin, partie remplie et bouton à la couleur du thème).
+  sous Chrome (rail fin, partie remplie et bouton à la couleur du thème). Firefox ne rétrécit pas
+  non plus un curseur sous sa largeur naturelle (~190 px) : dans une ligne flex, il porte
+  `min-w-0`, sinon il dépasse de son cadre (fenêtre du volume).
 
 **Header** (`packages/core/ui/Header.tsx`, boutons passés par `(platform)/layout.tsx`). De gauche à
 droite : Sonic, Luffy, la boule musicale, thème, cloche, volume, menu du profil.
@@ -641,19 +643,21 @@ droite : Sonic, Luffy, la boule musicale, thème, cloche, volume, menu du profil
 `toBeContinued()` de `@app/ui` le déclenche : un mot raté à TROIS (mode test compris), une mission perdue
 sous les yeux du joueur à Agents Doubles. Dès la défaite, la page se fige en sépia
 (`html.tbc-freeze`, animations en pause, sauf dans la fenêtre du jeu) et la flèche « To Be
-Continued » (`public/jojo/to-be-continued.webp`) glisse en bas, à côté de la fenêtre du jeu (en
-bas à gauche hors de TROIS), sur Roundabout
+Continued » (`public/jojo/to-be-continued.webp`) glisse toujours en bas à gauche, sa pointe
+juste à droite de la colonne de gauche (« Activité récente », marquée `data-fx-side` dans
+`(platform)/layout.tsx`), raccourcie pour ne pas déborder sur la fenêtre du jeu
+(`data-fx-anchor`) ; sans cette colonne (mobile), contre le bord gauche. Sur Roundabout
 (`public/audio/roundabout.mp3`, 6,4 s découpées à la main, à 45 % du volume du site, fondu de
 0,9 s sur la fin). Rien ne bloque : les clics traversent, on enchaîne sur le mot suivant. Échap
-écourte.
+écourte. L'effet se coupe pour de bon dans les paramètres (voir ci-dessous) : `toBeContinued()`
+ne fait alors plus rien.
 
-**Effets à côté du jeu** (`apps/web/components/besideGame.ts`). Les effets qui surgissent en cours
-de partie (Mao Mao, To Be Continued) se placent à côté de la fenêtre du jeu ouvert, jamais
-dessus : la fenêtre est marquée `data-fx-anchor` (celle de TROIS, `games/trois/ui/App.tsx`), et
-`besideGame(largeur voulue, minimale)` la mesure au moment de l'effet. À droite de la fenêtre
-quand la place y est, sinon à sa gauche (sur le podium), la largeur réduite à la place libre ;
-sans la place (petit écran), l'effet garde sa position par défaut. L'effet se coupe pour de bon dans les paramètres
-(voir ci-dessous) : `toBeContinued()` ne fait alors plus rien.
+**Effets à côté du jeu** (`apps/web/components/besideGame.ts`). Mao Mao, qui surgit en cours de
+partie, se place à côté de la fenêtre du jeu ouvert, jamais dessus : la fenêtre est marquée
+`data-fx-anchor` (celle de TROIS, `games/trois/ui/App.tsx`), et `besideGame(largeur voulue,
+minimale, débord)` la mesure au moment de l'effet. À droite de la fenêtre quand la place y est,
+sinon à sa gauche (sur le podium), la largeur réduite à la place libre ; sans la place (petit
+écran), l'effet garde sa position par défaut.
 
 **Mao Mao** (Les Carnets de l'apothicaire, `apps/web/components/MaoMao.tsx`, layout racine), à
 TROIS (`maoMao()` / `maoMaoSoon()` de `@app/ui`, appelés par `maoReact` de `games/trois/ui/Game.tsx`,
