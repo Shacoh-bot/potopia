@@ -102,7 +102,12 @@ export function TroisApp({
         </div>
       </aside>
 
-      <div className="flex w-full max-w-lg flex-col rounded-2xl border border-zinc-800 bg-[#0c0c10]">
+      {/* data-fx-anchor : les effets qui surgissent en cours de partie (Mao Mao, To Be
+          Continued…) se placent à côté de cette fenêtre, jamais dessus */}
+      <div
+        data-fx-anchor
+        className="flex w-full max-w-lg flex-col rounded-2xl border border-zinc-800 bg-[#0c0c10]"
+      >
         <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <h1 className="text-2xl font-black tracking-[0.2em]">
             TROI<span className="text-good">S</span>

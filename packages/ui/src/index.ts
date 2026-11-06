@@ -34,7 +34,7 @@ export {
   toBeContinued,
   useToBeContinuedDisabled,
 } from "./toBeContinued";
-export { ROAD_ROLLER_EVENT, ZA_WARUDO_EVENT, zaWarudo } from "./zaWarudo";
+export { ROAD_ROLLER_EVENT, ZA_WARUDO_EVENT, zaWarudo, type ZaWarudoDetail } from "./zaWarudo";
 export {
   claimMediaFocus,
   isTimeStopped,

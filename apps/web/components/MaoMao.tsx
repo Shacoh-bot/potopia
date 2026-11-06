@@ -10,13 +10,15 @@ import {
 } from "@app/ui";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { besideGame } from "./besideGame";
 
 /*
  * Mao Mao (Les Carnets de l'apothicaire) juge les essais ratés à TROIS. Au 3e raté de suite sur un
- * mot, un rouleau suspendu se déroule à droite du jeu : son regard qui s'assombrit, main sur la
- * bouche, un sceau vermillon « 三連続 » (trois de suite) et une réplique ; à l'avant-dernier essai,
- * son dégoût, cachée derrière sa manche. Le mot enfin trouvé après au moins 3 ratés : elle surgit,
- * détourée, du coin de l'écran, avec un sourire narquois. Rien ne bloque le jeu : les clics
+ * mot, un rouleau suspendu se déroule à droite de la fenêtre du jeu (besideGame, jamais dessus) :
+ * son regard qui s'assombrit, main sur la bouche, un sceau vermillon « 三連続 » (trois de suite) et
+ * une réplique ; à l'avant-dernier essai, son dégoût, cachée derrière sa manche. Le mot enfin
+ * trouvé après au moins 3 ratés : elle surgit, détourée, du bas de l'écran à côté du jeu, avec un
+ * sourire narquois. Rien ne bloque le jeu : les clics
  * traversent (on continue de taper, au clavier ou sur les lettres à l'écran) et tout repart seul
  * après quelques secondes. Déclenché par `maoMao()` de `@app/ui`. Monté une fois, layout racine.
  */
@@ -90,9 +92,20 @@ const TUNES: Record<MaoMood, number[]> = {
   smug: [587.3, 880], // ré, la : petit « hm ! »
 };
 
-type Scene = { mood: MaoMood; misses: number; line: string; key: number };
+type Scene = {
+  mood: MaoMood;
+  misses: number;
+  line: string;
+  key: number;
+  /** À côté de la fenêtre de TROIS (besideGame) ; null : contre le bord droit de l'écran. */
+  spot: { left: number; width: number } | null;
+};
 const SCROLL_MS = 4000; // = la durée de l'animation .mao-layer
 const SMUG_MS = 4200;
+// largeur voulue et minimale à côté du jeu : le rouleau (ses tringles dépassent de 24 px de chaque
+// côté), puis la bulle et Mao Mao narquoise
+const SCROLL_W = [340, 220, 24] as const;
+const SMUG_W = [460, 220] as const;
 
 export function MaoMao() {
   const [scene, setScene] = useState<Scene | null>(null);
@@ -120,6 +133,7 @@ export function MaoMao() {
         misses,
         line: mood === "smug" ? pick(SMUG_LINES) : pick(LINES[mood]),
         key: Date.now(),
+        spot: mood === "smug" ? besideGame(...SMUG_W) : besideGame(...SCROLL_W),
       });
       pluck(TUNES[mood]);
       timer.current = window.setTimeout(
@@ -137,12 +151,21 @@ export function MaoMao() {
   }, []);
 
   if (!scene) return null;
+  const spot: CSSProperties | undefined = scene.spot
+    ? { left: scene.spot.left, right: "auto", width: scene.spot.width }
+    : undefined;
 
   if (scene.mood === "smug") {
     return createPortal(
-      <div key={scene.key} className="mao-smug" role="status" aria-live="polite">
+      <div key={scene.key} className="mao-smug" style={spot} role="status" aria-live="polite">
         <p className="mao-smug-bubble">{scene.line}</p>
-        <img src={SMUG} alt="Mao Mao, sourire narquois" className="mao-smug-face" />
+        <img
+          src={SMUG}
+          alt="Mao Mao, sourire narquois"
+          className="mao-smug-face"
+          // à côté du jeu, elle laisse à sa bulle un peu moins de la moitié de la place
+          style={scene.spot ? { width: Math.min(250, scene.spot.width * 0.56) } : undefined}
+        />
       </div>,
       document.body,
     );
@@ -153,6 +176,7 @@ export function MaoMao() {
     <div
       key={scene.key}
       className="mao-layer"
+      style={spot}
       role="status"
       aria-live="polite"
       aria-label={`${scene.misses} essais ratés de suite. ${scene.line}`}

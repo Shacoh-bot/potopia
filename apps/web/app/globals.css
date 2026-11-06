@@ -19,6 +19,27 @@
 @source "../../../games/tcg/ui";
 @source "../../../games/trois/ui";
 
+/* Curseurs (volume…) sous Firefox : il les dessine à sa façon (rail blanc, gros bouton gris),
+   même avec accent-color. Ses pseudo-éléments ::-moz-range-* (ignorés ailleurs) les redessinent
+   comme Chrome : rail fin et sombre, partie remplie et bouton à la couleur du thème. */
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--text, #fff) 20%, transparent);
+}
+input[type="range"]::-moz-range-progress {
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--accent, #7c8cff);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent, #7c8cff);
+}
+
 /* Boule de musique (SpinOrb) : halo vert pendant la lecture. */
 .orb-glow {
   filter: drop-shadow(0 0 6px rgb(140 230 60 / 0.7));
@@ -374,9 +395,14 @@ html.tbc-freeze body > :not(.tbc-layer) *::before,
 html.tbc-freeze body > :not(.tbc-layer) *::after {
   animation-play-state: paused !important;
 }
+/* la fenêtre du jeu (data-fx-anchor) ne se fige pas : on enchaîne sur le mot suivant */
+html.tbc-freeze body [data-fx-anchor] *,
+html.tbc-freeze body [data-fx-anchor] *::before,
+html.tbc-freeze body [data-fx-anchor] *::after {
+  animation-play-state: running !important;
+}
 
 .tbc-layer {
-  cursor: pointer;
   transition: opacity 0.9s; /* comme le fondu de la musique (FADE_MS) */
 }
 
@@ -1223,15 +1249,15 @@ html.jojo-rushing * {
 }
 
 /* Mao Mao (MaoMao, Les Carnets de l'apothicaire) : rouleau suspendu du jugement après 3 défaites
-   d'affilée, et son sourire narquois à la victoire qui casse la série. Le rouleau se suspend à
-   droite du jeu (colonne de TROIS : max-w-sm, 24rem, centrée), contre le bord de la fenêtre quand
-   la place manque. Rien ne bloque : pas de voile, les clics traversent, et il repart seul (4 s,
-   = SCROLL_MS de MaoMao.tsx). */
+   d'affilée, et son sourire narquois à la victoire qui casse la série. Ils se placent à côté de la
+   fenêtre de TROIS, jamais dessus : position et largeur posées par MaoMao.tsx (besideGame) ; les
+   valeurs ici ne servent que sans la place (petit écran), contre le bord droit. Rien ne bloque :
+   pas de voile, les clics traversent, et tout repart seul (4 s, = SCROLL_MS de MaoMao.tsx). */
 .mao-layer {
   position: fixed;
   top: 0;
   bottom: 0;
-  right: max(28px, calc(50% - 12rem - 40px - min(340px, 82vw)));
+  right: 16px;
   z-index: 100;
   display: grid;
   align-content: center;
@@ -1281,7 +1307,7 @@ html.jojo-rushing * {
 /* le rouleau : tringles laquées aux embouts dorés, papier de soie bordé de brocart */
 .mao-scroll {
   position: relative;
-  width: min(340px, 82vw);
+  width: 100%;
   filter: drop-shadow(0 22px 30px rgb(0 0 0 / 0.55));
   animation: mao-sway 5s ease-in-out 1s infinite;
   transform-origin: 50% -40px;
@@ -1428,14 +1454,21 @@ html.jojo-rushing * {
   z-index: 95;
   display: flex;
   align-items: flex-start;
+  justify-content: flex-end;
   pointer-events: none;
   animation: mao-smug 4.2s cubic-bezier(0.3, 0.8, 0.3, 1) forwards;
 }
 .mao-smug-face {
+  flex-shrink: 0;
   width: min(250px, 42vw);
   filter: drop-shadow(-6px 0 18px rgb(0 0 0 / 0.45));
 }
+/* sur une place étroite à côté du jeu, la réplique passe à la ligne */
+.mao-smug[style] .mao-smug-bubble {
+  white-space: normal;
+}
 .mao-smug-bubble {
+  min-width: 0;
   margin-top: 18px;
   margin-right: -18px;
   padding: 8px 14px;

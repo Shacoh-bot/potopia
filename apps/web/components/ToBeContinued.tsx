@@ -3,6 +3,7 @@
 import { cx, effectiveVolume, preloadImages, TO_BE_CONTINUED_EVENT } from "@app/ui";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { besideGame } from "./besideGame";
 
 // Roundabout découpé à la main (public/audio/roundabout.mp3, 6,4 s) : il part directement sur le
 // passage de la guitare, l'image se fige dès la défaite. Discret, avec un petit fondu sur la fin.
@@ -16,12 +17,15 @@ type Phase = "off" | "frozen" | "leaving";
 
 /**
  * « To Be Continued » (JoJo) après une défaite : dès la défaite, l'image se fige en sépia, la
- * flèche glisse en bas à gauche sur Roundabout, puis tout repart dans un fondu. Un clic ou Échap
- * l'écourte. Déclenché par `toBeContinued()` de `@app/ui` (TROIS, Agents Doubles), qui ne fait rien
+ * flèche glisse en bas, à côté de la fenêtre du jeu (besideGame ; en bas à gauche sans jeu ouvert),
+ * sur Roundabout, puis tout repart dans un fondu. Rien ne bloque le jeu : les clics traversent, et
+ * la fenêtre du jeu continue de s'animer (on enchaîne sur le mot suivant). Échap l'écourte. Déclenché par `toBeContinued()` de `@app/ui` (TROIS, Agents Doubles), qui ne fait rien
  * si le membre a coupé l'effet dans ses paramètres. Monté une fois, dans le layout racine.
  */
 export function ToBeContinued() {
   const [phase, setPhase] = useState<Phase>("off");
+  // à côté de la fenêtre du jeu (besideGame) ; null : en bas à gauche de l'écran
+  const [spot, setSpot] = useState<{ left: number; width: number } | null>(null);
   const phaseRef = useRef<Phase>("off");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timers = useRef<number[]>([]);
@@ -61,6 +65,7 @@ export function ToBeContinued() {
 
     const start = () => {
       if (phaseRef.current !== "off") return;
+      setSpot(besideGame(520, 200));
       const audio = new Audio(MUSIC);
       audio.volume = effectiveVolume() * VOLUME;
       audio.play().catch(() => {});
@@ -90,12 +95,15 @@ export function ToBeContinued() {
   if (phase !== "frozen" && phase !== "leaving") return null;
   return createPortal(
     <div
-      className={cx("tbc-layer fixed inset-0 z-100", phase === "leaving" && "tbc-leaving")}
-      onClick={() => dismissRef.current()}
+      className={cx(
+        "tbc-layer pointer-events-none fixed inset-0 z-100",
+        phase === "leaving" && "tbc-leaving",
+      )}
     >
       <span
         role="img"
         aria-label="To Be Continued"
+        style={spot ? { left: spot.left, width: spot.width } : undefined}
         className="tbc-arrow absolute bottom-6 left-4 block aspect-[874/184] w-[min(70vw,520px)] bg-[url(/jojo/to-be-continued.webp)] bg-contain bg-no-repeat drop-shadow-xl"
       />
     </div>,
