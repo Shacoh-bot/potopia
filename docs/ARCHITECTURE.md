@@ -555,8 +555,10 @@ décors.
 - Passer au thème JoJo, ou cliquer de nouveau dessus dans le sélecteur, déclenche **ZA WARUDO**
   (`apps/web/components/ZaWarudo.tsx`, `zaWarudo()` de `@app/ui`) : la voix
   (`public/audio/za-warudo.mp3`), une onde qui inverse les couleurs, puis la page figée et délavée
-  (« 時よ止まれ ! ») jusqu'à un clic ou Échap, qui lance la reprise (`time-resume.mp3`, onde
-  inverse). Pendant l'arrêt, tout s'arrête vraiment : les animations CSS (classe `time-stop`), les
+  (« 時よ止まれ ! »), puis la reprise (`time-resume.mp3`, onde inverse). En passant au thème, le
+  temps repart seul à la fin de la réplique (4,5 s) ; en cliquant de nouveau sur le thème déjà
+  actif (`zaWarudo({ hold: true })`), il reste arrêté jusqu'à un clic ou Échap. Un clic écourte
+  toujours l'arrêt. Pendant l'arrêt, tout s'arrête vraiment : les animations CSS (classe `time-stop`), les
   animations Web et transitions en cours (`document.getAnimations()`, mises en pause puis
   relancées), les animations en JavaScript, qui lisent l'horloge commune `timeNow()`
   (`packages/ui/src/timeStop.ts`) que `stopTime()` fige (Sonic, Luffy, La Place, sprites
@@ -582,6 +584,9 @@ ApothicaireOpening.tsx`, `apothicaire()` de `@app/ui`) : la page s'assombrit sou
   moins d'animations.
 - Les jeux gardent leur propre style pour l'instant (TROIS, Agents Doubles, Pose JoJo, cartes du vote) : une
   feuille CSS par jeu (`games/*/ui/*.css`), importée dans `apps/web/app/globals.css`.
+- Firefox dessine les curseurs (`input type="range"`, volume…) à sa façon, même avec
+  `accent-color` : `globals.css` les redessine avec ses pseudo-éléments `::-moz-range-*` comme
+  sous Chrome (rail fin, partie remplie et bouton à la couleur du thème).
 
 **Header** (`packages/core/ui/Header.tsx`, boutons passés par `(platform)/layout.tsx`). De gauche à
 droite : Sonic, Luffy, la boule musicale, thème, cloche, volume, menu du profil.
@@ -635,22 +640,31 @@ droite : Sonic, Luffy, la boule musicale, thème, cloche, volume, menu du profil
 **To Be Continued** (`apps/web/components/ToBeContinued.tsx`, monté dans le layout racine).
 `toBeContinued()` de `@app/ui` le déclenche : un mot raté à TROIS (mode test compris), une mission perdue
 sous les yeux du joueur à Agents Doubles. Dès la défaite, la page se fige en sépia
-(`html.tbc-freeze`, animations en pause) et la flèche « To Be Continued »
-(`public/jojo/to-be-continued.webp`) glisse en bas à gauche, sur Roundabout
+(`html.tbc-freeze`, animations en pause, sauf dans la fenêtre du jeu) et la flèche « To Be
+Continued » (`public/jojo/to-be-continued.webp`) glisse en bas, à côté de la fenêtre du jeu (en
+bas à gauche hors de TROIS), sur Roundabout
 (`public/audio/roundabout.mp3`, 6,4 s découpées à la main, à 45 % du volume du site, fondu de
-0,9 s sur la fin). Un clic ou Échap écourte. L'effet se coupe pour de bon dans les paramètres
+0,9 s sur la fin). Rien ne bloque : les clics traversent, on enchaîne sur le mot suivant. Échap
+écourte.
+
+**Effets à côté du jeu** (`apps/web/components/besideGame.ts`). Les effets qui surgissent en cours
+de partie (Mao Mao, To Be Continued) se placent à côté de la fenêtre du jeu ouvert, jamais
+dessus : la fenêtre est marquée `data-fx-anchor` (celle de TROIS, `games/trois/ui/App.tsx`), et
+`besideGame(largeur voulue, minimale)` la mesure au moment de l'effet. À droite de la fenêtre
+quand la place y est, sinon à sa gauche (sur le podium), la largeur réduite à la place libre ;
+sans la place (petit écran), l'effet garde sa position par défaut. L'effet se coupe pour de bon dans les paramètres
 (voir ci-dessous) : `toBeContinued()` ne fait alors plus rien.
 
 **Mao Mao** (Les Carnets de l'apothicaire, `apps/web/components/MaoMao.tsx`, layout racine), à
 TROIS (`maoMao()` / `maoMaoSoon()` de `@app/ui`, appelés par `maoReact` de `games/trois/ui/Game.tsx`,
-mode test compris). Au 3e essai raté de suite sur un mot, elle juge : à droite du jeu (contre le
-bord de la fenêtre quand la place manque), sous quelques pétales de prunier, un rouleau suspendu
+mode test compris). Au 3e essai raté de suite sur un mot, elle juge : à droite de la fenêtre de
+TROIS (`besideGame`, voir ci-dessus ; à sa gauche quand la place manque), sous quelques pétales de prunier, un rouleau suspendu
 glisse et se déroule (tringles laquées, brocart), avec son regard
 qui s'assombrit, main sur la bouche (`public/apothicaire/mao-judge.mp4`), une réplique tirée au
 hasard (clins d'œil à l'anime) et un sceau vermillon « 三連続 » (trois de suite) qui s'imprime. À
 l'avant-dernier essai, son dégoût, cachée derrière sa manche (`mao-disgust.mp4`, « 五連続 »). Le
-mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du coin de
-l'écran avec un sourire narquois. Petite phrase de cordes pincées synthétisée (Karplus-Strong,
+mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du bas de
+l'écran à côté de la fenêtre du jeu, avec un sourire narquois. Petite phrase de cordes pincées synthétisée (Karplus-Strong,
 pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
 pas de voile sur la page, les clics traversent le rouleau (`pointer-events: none`, on continue de
 taper au clavier ou sur les lettres à l'écran) et il repart seul au bout de 4 s, sans clic ; le

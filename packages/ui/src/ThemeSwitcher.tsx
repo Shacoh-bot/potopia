@@ -42,8 +42,9 @@ export function ThemeSwitcher({ current }: { current: ThemeId }) {
   }, [open]);
 
   function choose(id: ThemeId) {
-    // thème JoJo (choisi ou cliqué de nouveau) : « ZA WARUDO ! », le temps s'arrête jusqu'au clic
-    if (id === "jojo") zaWarudo();
+    // thème JoJo : « ZA WARUDO ! ». En y passant, le temps s'arrête puis repart seul ; cliqué de
+    // nouveau alors qu'il est actif, le temps reste arrêté jusqu'au clic
+    if (id === "jojo") zaWarudo({ hold: theme === "jojo" });
     // passer au thème One Piece : « ドン!! », coup de tambour et onomatopée de manga
     if (id === "onepiece" && theme !== "onepiece") don();
     // passer au thème Apothicaire : le rouleau du titre se déroule sur l'opening

@@ -8,6 +8,7 @@ import {
   stopTime,
   trackMedia,
   ZA_WARUDO_EVENT,
+  type ZaWarudoDetail,
 } from "@app/ui";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -17,6 +18,7 @@ const STOP_SOUND = "/audio/za-warudo.mp3";
 const RESUME_SOUND = "/audio/time-resume.mp3";
 const WAVE_MS = 950; // l'onde s'étend puis se referme ; le temps est arrêté à la fin
 const RESUME_HIT_MS = 800;
+const AUTO_RESUME_MS = 4500; // en passant au thème : le temps repart à la fin de la réplique
 const OUT_MS = 500;
 const VOLUME = 0.8;
 const ROLLER_LANDS_MS = 700; // secret JoJo : le rouleau compresseur tombe, puis le temps reprend
@@ -27,9 +29,9 @@ type Phase = "off" | "wave" | "stopped" | "resume";
  * Arrêt du temps façon DIO (thème JoJo). Le cri part, une onde inverse les couleurs depuis le
  * centre, puis la page se fige dans une teinte délavée, « 時よ止まれ ! » : animations CSS et
  * transitions, animations Web (`element.animate`), animations JS qui lisent `timeNow()`, sons.
- * Le temps reste arrêté jusqu'à un clic (ou Échap) : il reprend alors, dans une onde inverse.
- * Déclenché par `zaWarudo()` de `@app/ui` (choix du thème JoJo, ou nouveau clic dessus). Monté une
- * fois, layout racine.
+ * Le temps reprend dans une onde inverse : tout seul à la fin de la réplique quand on passe au
+ * thème JoJo, au clic (ou Échap) seulement quand on clique de nouveau sur le thème déjà actif (un
+ * clic l'écourte toujours). Déclenché par `zaWarudo()` de `@app/ui`. Monté une fois, layout racine.
  */
 export function ZaWarudo() {
   const [phase, setPhase] = useState<Phase>("off");
@@ -46,9 +48,10 @@ export function ZaWarudo() {
     const go = (next: Phase) => {
       phaseRef.current = next;
       setPhase(next);
-      document.documentElement.classList.toggle("time-stop", next === "stopped");
       // tout le reste se fige (animations du header, musiques) pendant l'effet, et repart à la fin
       if (next === "wave" || next === "stopped") stopTime();
+      // relevées avant de poser la teinte délavée : sa transition (filter) ne doit pas être figée
+      // avec le reste, sinon la page reste dans ses couleurs
       if (next === "stopped") {
         frozen = document.getAnimations().filter((a) => {
           const target = (a.effect as KeyframeEffect | null)?.target;
@@ -60,6 +63,7 @@ export function ZaWarudo() {
         });
         frozen.forEach((a) => a.pause());
       }
+      document.documentElement.classList.toggle("time-stop", next === "stopped");
       if (next === "resume") {
         frozen.forEach((a) => a.play());
         frozen = [];
@@ -90,12 +94,15 @@ export function ZaWarudo() {
       later(RESUME_HIT_MS + OUT_MS, () => go("off"));
     };
 
-    const start = () => {
+    const start = (e: Event) => {
       if (phaseRef.current !== "off") return;
+      const hold = (e as CustomEvent<ZaWarudoDetail | undefined>).detail?.hold ?? false;
       voice = play(STOP_SOUND);
       go("wave");
-      // puis le temps reste arrêté, jusqu'à ce qu'on clique
       later(WAVE_MS, () => go("stopped"));
+      // en passant au thème, le temps repart seul à la fin de la réplique ; sinon il reste
+      // arrêté jusqu'à ce qu'on clique
+      if (!hold) later(AUTO_RESUME_MS, () => skipRef.current());
     };
 
     skipRef.current = () => {
