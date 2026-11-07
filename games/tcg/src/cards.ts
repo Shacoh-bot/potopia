@@ -400,7 +400,7 @@ async function renumber(tx: DbTx, setId: string): Promise<void> {
 const uploadInput = z.object({
   contentType: z.enum(
     Object.keys(CARD_IMAGE_TYPES) as [CardImageType, ...CardImageType[]],
-    "Format d'image refusé (JPEG, PNG ou WebP).",
+    "Format d'image refusé : WebP uniquement.",
   ),
   size: z
     .number()
@@ -421,9 +421,7 @@ export async function createCardImageUpload(
   return { key, url };
 }
 
-const imageKey = z
-  .string()
-  .regex(/^cards\/[0-9a-f-]{36}\.(jpg|png|webp)$/, "Clé d'image invalide.");
+const imageKey = z.string().regex(/^cards\/[0-9a-f-]{36}\.webp$/, "Clé d'image invalide.");
 
 /** Pose l'illustration envoyée (vérifiée dans le stockage) sur la carte. */
 export async function setCardImage(

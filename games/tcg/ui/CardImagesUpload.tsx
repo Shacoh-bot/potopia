@@ -2,7 +2,7 @@
 
 import { Button, Input, Label } from "@app/ui";
 import { useState } from "react";
-import { shrinkImage } from "./shrinkImage";
+import { toCardWebp } from "./toCardWebp";
 
 type Row = { file: string; status: string; ok: boolean | null };
 
@@ -51,7 +51,13 @@ export function CardImagesUpload({ cards, request, confirm }: Props) {
       }
       const label = `n°${card.number} · ${card.name}`;
       update(i, { file: file.name, status: `Envoi vers ${label}…`, ok: null });
-      const image = await shrinkImage(file);
+      let image: File;
+      try {
+        image = await toCardWebp(file, file.name);
+      } catch (error) {
+        update(i, { file: file.name, status: (error as Error).message, ok: false });
+        continue;
+      }
       const target = await request(image.type, image.size);
       if ("error" in target) {
         update(i, { file: file.name, status: target.error, ok: false });
@@ -76,12 +82,12 @@ export function CardImagesUpload({ cards, request, confirm }: Props) {
   const done = rows.filter((r) => r.ok).length;
   return (
     <div className="flex flex-col gap-4">
-      <Label hint="Nomme chaque fichier par le numéro de sa carte : 12.jpg, 045.png… JPEG, PNG ou WebP, 5 Mo maximum.">
+      <Label hint="Nomme chaque fichier par le numéro de sa carte : 12.jpg, 045.png… Chaque image est convertie en WebP avant l'envoi.">
         Illustrations
         <Input
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           className="py-1.5"
           onChange={(e) => setFiles([...(e.target.files ?? [])])}
           disabled={busy}

@@ -264,34 +264,40 @@ describe("updateCards", () => {
 });
 
 describe("illustration", () => {
-  const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0]);
+  // en-tête RIFF….WEBP
+  const webp = new Uint8Array([82, 73, 70, 70, 2, 0, 0, 0, 87, 69, 66, 80]);
 
   it("s'envoie par URL présignée, puis se pose sur la carte", async () => {
     const card = await createCard(ADMIN, { ...BASE, setId });
     const { key, url } = await createCardImageUpload(ADMIN, {
-      contentType: "image/png",
-      size: png.length,
+      contentType: "image/webp",
+      size: webp.length,
     });
-    expect(key).toMatch(/^cards\/[0-9a-f-]{36}\.png$/);
+    expect(key).toMatch(/^cards\/[0-9a-f-]{36}\.webp$/);
     const res = await fetch(url, {
       method: "PUT",
-      headers: { "content-type": "image/png" },
-      body: png,
+      headers: { "content-type": "image/webp" },
+      body: webp,
     });
     expect(res.status).toBe(200);
     expect((await setCardImage(ADMIN, card.id, key)).imageKey).toBe(key);
   });
 
-  it("refuse une clé jamais envoyée, inventée, ou un format non image", async () => {
+  it("refuse une clé jamais envoyée, inventée, ou un format autre que WebP", async () => {
     const card = await createCard(ADMIN, { ...BASE, setId });
-    const { key } = await createCardImageUpload(ADMIN, { contentType: "image/png", size: 10 });
+    const { key } = await createCardImageUpload(ADMIN, { contentType: "image/webp", size: 10 });
     await expect(setCardImage(ADMIN, card.id, key)).rejects.toThrow(CardInputError);
     await expect(setCardImage(ADMIN, card.id, "ideas/autre.png")).rejects.toThrow(ZodError);
+    await expect(setCardImage(ADMIN, card.id, `cards/${crypto.randomUUID()}.png`)).rejects.toThrow(
+      ZodError,
+    );
+    for (const contentType of ["image/gif", "image/png", "image/jpeg"]) {
+      await expect(createCardImageUpload(ADMIN, { contentType, size: 10 })).rejects.toThrow(
+        ZodError,
+      );
+    }
     await expect(
-      createCardImageUpload(ADMIN, { contentType: "image/gif", size: 10 }),
-    ).rejects.toThrow(ZodError);
-    await expect(
-      createCardImageUpload(MEMBER, { contentType: "image/png", size: 10 }),
+      createCardImageUpload(MEMBER, { contentType: "image/webp", size: 10 }),
     ).rejects.toThrow("Réservé aux admins.");
   });
 });

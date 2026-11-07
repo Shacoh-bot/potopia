@@ -886,8 +886,13 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   qu'au premier retournement. Sur la planche (`CardFlip still` : dos sans inclinaison, galaxie
   figée) un clic ouvre toujours la fiche ; dans l'éditeur, le dos s'incline au survol comme la
   face et un bouton « Voir le dos » / « Voir la face » retourne la carte (clavier).
-- Illustrations réduites dans le navigateur avant l'envoi (`shrinkImage` : WebP, 1 200 px au plus
-  de côté ; une image déjà petite part telle quelle), dans l'éditeur comme dans l'envoi en masse.
+- Illustrations en **WebP uniquement** : le navigateur convertit chaque image avant l'envoi
+  (`toCardWebp` : WebP, 1 200 px au plus de côté ; un WebP déjà petit part tel quel ; refus avec
+  message si le navigateur ne sait pas encoder le WebP), dans l'éditeur comme dans l'envoi en
+  masse, et le serveur refuse tout autre type (`CARD_IMAGE_TYPES`, clé `cards/<uuid>.webp`). Les
+  illustrations déjà posées dans un autre format restent lisibles. Dans l'éditeur, une image se
+  colle aussi : Ctrl+V n'importe où sur l'éditeur, ou bouton « Coller une image » (lecture du
+  presse-papiers, le navigateur peut demander l'accord).
   Titre (`FitTitle`) : la taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur
   deux lignes.
 - Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration (normale ou

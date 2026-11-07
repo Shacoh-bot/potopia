@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Input, Label, Select, Textarea } from "@app/ui";
+import { ClipboardPaste } from "lucide-react";
 import { useActionState, useMemo, useState, useTransition } from "react";
 import {
   CARD_LIMITS,
@@ -24,7 +25,7 @@ import {
 import { CardFlip } from "./CardFlip";
 import { GameCard, GameCardDefs } from "./GameCard";
 import { ImageFramer } from "./ImageFramer";
-import { shrinkImage } from "./shrinkImage";
+import { pastedImage, toCardWebp } from "./toCardWebp";
 
 export type CardEditorState =
   { status: "idle" } | { status: "ok"; message: string } | { status: "error"; message: string };
@@ -185,10 +186,16 @@ export function CardEditor({
     startTransition(() => dispatch(data));
   }
 
-  async function sendImage(original: File) {
+  async function sendImage(original: Blob, name?: string) {
     if (!upload || !card) return;
+    setUploadState("Conversion en WebP…");
+    let file: File;
+    try {
+      file = await toCardWebp(original, name);
+    } catch (error) {
+      return setUploadState((error as Error).message);
+    }
     setUploadState("Envoi…");
-    const file = await shrinkImage(original);
     const target = await upload.request(file.type, file.size);
     if ("error" in target) return setUploadState(target.error);
     const put = await fetch(target.url, {
@@ -204,8 +211,31 @@ export function CardEditor({
     setUploadState("Illustration enregistrée.");
   }
 
+  /** Bouton « Coller une image » : lit le presse-papiers (le navigateur peut demander l'accord). */
+  async function pasteFromClipboard() {
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (type) return void sendImage(await item.getType(type));
+      }
+      setUploadState("Pas d'image dans le presse-papiers.");
+    } catch {
+      setUploadState("Lecture du presse-papiers impossible : fais Ctrl+V sur l'éditeur.");
+    }
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+    <div
+      className="grid gap-6 lg:grid-cols-[1fr_auto]"
+      // Ctrl+V n'importe où dans l'éditeur : une image collée devient l'illustration (du texte se
+      // colle normalement dans son champ)
+      onPaste={(e) => {
+        const pasted = upload && card ? pastedImage(e.clipboardData) : undefined;
+        if (!pasted) return;
+        e.preventDefault();
+        void sendImage(pasted, pasted.name);
+      }}
+    >
       <form
         className="flex flex-col gap-4"
         onSubmit={(e) => {
@@ -462,21 +492,34 @@ export function CardEditor({
           </div>
         )}
         {upload && card && (
-          <Label
-            className="w-full max-w-[300px]"
-            hint={uploadState ?? "JPEG, PNG ou WebP, 5 Mo maximum."}
-          >
-            Illustration
-            <Input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="py-1.5"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void sendImage(file);
-              }}
-            />
-          </Label>
+          <div className="flex w-full max-w-[300px] flex-col gap-2">
+            <Label
+              className="w-full"
+              hint={
+                uploadState ??
+                "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
+              }
+            >
+              Illustration
+              <Input
+                type="file"
+                accept="image/*"
+                className="py-1.5"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void sendImage(file, file.name);
+                }}
+              />
+            </Label>
+            <button
+              type="button"
+              onClick={() => void pasteFromClipboard()}
+              className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
+            >
+              <ClipboardPaste size={16} aria-hidden />
+              Coller une image
+            </button>
+          </div>
         )}
       </div>
     </div>
