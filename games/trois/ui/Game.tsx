@@ -98,6 +98,7 @@ export function Game({
   onNewDay,
   onSkipToToday,
   onShowLeaderboard,
+  onOutcome,
 }: {
   day: DayView;
   onUpdate: (d: DayView, s?: Stats) => void;
@@ -106,6 +107,8 @@ export function Game({
   /** Délai de grâce : laisser tomber la journée d'hier pour jouer les nouveaux mots. */
   onSkipToToday: () => void;
   onShowLeaderboard: () => void;
+  /** Un mot vient d'être trouvé ou perdu (entraînement compris), à la fin de l'animation. */
+  onOutcome?: (outcome: "won" | "lost") => void;
 }) {
   const current = day.words.findIndex((w) => w.status === "playing");
   const [view, setView] = useState(current === -1 ? day.words.length - 1 : current);
@@ -178,11 +181,13 @@ export function Game({
         setTimeout(() => {
           setRevealing(null);
           if (w.status === "won") {
+            onOutcome?.("won");
             celebrate(false);
             dance(view, row);
             flash(PRAISE[row] ?? "Bravo !");
           }
           if (w.status === "lost") {
+            onOutcome?.("lost");
             sfx.lose();
             flash(`C'était « ${w.answer?.toUpperCase()} »`, 2500);
             toBeContinued();
@@ -209,11 +214,13 @@ export function Game({
       setTimeout(() => {
         setRevealing(null);
         if (w.status === "won") {
+          onOutcome?.("won");
           celebrate(perfect);
           dance(r.slot, row);
           flash(perfect ? "Trois sur trois ! 🏆" : (PRAISE[row] ?? "Bravo !"));
         }
         if (w.status === "lost") {
+          onOutcome?.("lost");
           sfx.lose();
           flash(`C'était « ${w.answer?.toUpperCase()} »`, 2500);
           toBeContinued();

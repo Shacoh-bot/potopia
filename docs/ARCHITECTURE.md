@@ -753,7 +753,10 @@ membre : ses images ne sont jamais dans le repo ni dans `public/`.
   d'origine. Si l'image ne charge pas (401, 404), le composant affiche `fallback`.
 - Pas de mascotte flottante par-dessus les pages (retirée) : elle n'apparaît que sur les écrans
   ci-dessous et sur `/admin/mascotte`.
-- Utilisée par les pages d'erreur, la 404, le chargement et la confirmation de la boîte à
+- Sous le podium de TROIS (`(platform)/trois/TroisWithMascot.tsx`, 180 px, prop `belowPodium` de
+  `TroisApp`, qui reçoit la réaction au dernier mot : saut sur un mot trouvé, affaissée sur un
+  perdu ; le podium de gauche n'existe qu'au-delà de 1280 px).
+- Utilisée aussi par les pages d'erreur, la 404, le chargement et la confirmation de la boîte à
   idées (prop `successIcon` d'`IdeaForm`) : les packages et les jeux ne la connaissent pas, l'app
   la leur passe. Jamais sur `/login` ni `/refused`, vues par des non-membres.
 
