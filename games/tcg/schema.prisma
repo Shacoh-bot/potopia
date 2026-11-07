@@ -49,27 +49,29 @@ model TcgSet {
 // (une idée peut donner plusieurs cartes), sans effet en jeu. Une variante full art pointe vers sa
 // carte de base et en reprend toujours les stats.
 model TcgCard {
-  id           String    @id @default(uuid(7))
-  setId        String?   @map("set_id")
-  number       Int?
-  name         String
-  rarity       TcgRarity
-  type         String
-  family       String?
-  cost         Int
-  power        Int
-  effectKey    String?   @map("effect_key")
-  effectParams Json?     @map("effect_params")
-  effectText   String    @default("") @map("effect_text")
-  flavor       String?
+  id             String    @id @default(uuid(7))
+  setId          String?   @map("set_id")
+  number         Int?
+  name           String
+  rarity         TcgRarity
+  type           String
+  family         String?
+  cost           Int
+  power          Int
+  effectKey      String?   @map("effect_key")
+  effectParams   Json?     @map("effect_params")
+  effectText     String    @default("") @map("effect_text")
+  flavor         String?
   // Clé de l'illustration dans le stockage (jamais une URL) ; sans elle, l'image de l'idée.
-  imageKey     String?   @map("image_key")
+  imageKey       String?   @map("image_key")
   // Cadrage de l'illustration (point central en % et zoom) : l'image n'est jamais rognée.
-  imageFrame   Json?     @map("image_frame")
-  ideaId       String?   @map("idea_id")
-  baseCardId   String?   @map("base_card_id")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  imageFrame     Json?     @map("image_frame")
+  // Cadrage de l'illustration en full art ; null : celui de la carte normale (imageFrame).
+  imageFrameFull Json?     @map("image_frame_full")
+  ideaId         String?   @map("idea_id")
+  baseCardId     String?   @map("base_card_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   set      TcgSet?   @relation(fields: [setId], references: [id])
   base     TcgCard?  @relation("TcgCardVariant", fields: [baseCardId], references: [id])

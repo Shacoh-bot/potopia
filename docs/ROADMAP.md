@@ -552,6 +552,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       fichier `updates`, hors dépôt.
 - [x] Cadrage des illustrations dans l'éditeur (glisser, zoomer), migration
       `tcg_card_image_frame` (ajout d'une colonne).
+- [x] Cadrage et zoom séparés pour la carte normale et la full art, migration
+      `tcg_card_image_frame_full` (ajout d'une colonne ; sans réglage à part, la full art garde
+      celui de la normale).
 - [x] Une carte par idée de la boîte à idées, générée hors du dépôt et importée par l'admin ;
       illustrations libres (Wikimedia Commons, crédits notés) pour les idées sans image.
 - [x] Dos des cartes (`CardBack`, portail du logo dont la galaxie tourne) ; la carte se retourne

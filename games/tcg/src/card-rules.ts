@@ -55,6 +55,19 @@ export type ImageFrame = { x: number; y: number; zoom: number };
 export const DEFAULT_FRAME: ImageFrame = { x: 50, y: 50, zoom: 1 };
 export const FRAME_ZOOM = { min: 1, max: 4 } as const;
 
+/**
+ * Cadrage à appliquer selon la mise en page : la carte normale et la full art ont chacune le leur.
+ * Une carte sans cadrage full art à elle (cadrée avant qu'ils soient séparés) garde celui de la
+ * carte normale.
+ */
+export function frameFor(
+  card: { imageFrame?: ImageFrame | null; imageFrameFull?: ImageFrame | null },
+  layout: "normal" | "fullart",
+): ImageFrame | null {
+  const normal = card.imageFrame ?? null;
+  return layout === "fullart" ? (card.imageFrameFull ?? normal) : normal;
+}
+
 export type Card = {
   id: string;
   /** null : la carte attend dans la réserve (hors set, sans numéro). */
@@ -73,6 +86,8 @@ export type Card = {
   flavor: string | null;
   imageKey: string | null;
   imageFrame: ImageFrame | null;
+  /** Cadrage en full art ; null : celui de la carte normale (voir `frameFor`). */
+  imageFrameFull: ImageFrame | null;
   ideaId: string | null;
   baseCardId: string | null;
   updatedAt: Date;

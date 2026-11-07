@@ -1,4 +1,4 @@
-import type { Card } from "../src/card-rules";
+import { type Card, frameFor } from "../src/card-rules";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
@@ -12,8 +12,10 @@ export type GameCardFields = Pick<
 > & {
   /** Code du set, affiché devant le numéro (« S1 07/116 »). */
   setCode?: string | null;
-  /** Cadrage de l'illustration. */
+  /** Cadrage de l'illustration en carte normale. */
   imageFrame?: Card["imageFrame"];
+  /** Cadrage en full art ; absent ou null : celui de la carte normale. */
+  imageFrameFull?: Card["imageFrameFull"];
 };
 
 /** Ligne de type affichée : « Instrument — Grenouilles », ou le type seul sans famille. */
@@ -69,7 +71,7 @@ export function GameCard({
     cost: card.cost,
     power: card.power,
     imageUrl,
-    imageFrame: card.imageFrame,
+    imageFrame: frameFor(card, layout),
     author: author ?? undefined,
     // Hors set, pas de numéro : la carte est dans la réserve.
     serial:
