@@ -251,7 +251,9 @@ et l'arrêt sur image « To Be Continued », `components/ToBeContinued.tsx`) ; a
 Un bloc `[data-theme="montheme"]` de variables CSS dans `packages/ui/theme.css` (couleurs, dégradés,
 police des titres, décors) et une entrée dans `packages/ui/src/themes.ts`. Le sélecteur du header le
 propose aussitôt. Une police de titres vient de `next/font/google` dans `apps/web/app/layout.tsx`
-(variable CSS, comme `--font-onepiece-face`) ; un décor animé est un composant de `packages/ui`
+(variable CSS, comme `--font-onepiece-face`). Une police variable chez Google (Cinzel, Orbitron…)
+se déclare sans `weight` : avec une liste de graisses, Google renvoie le même fichier pour chacune
+et le build Turbopack échoue (« next/font/google queries have exactly one entry ») ; un décor animé est un composant de `packages/ui`
 monté dans ce layout et affiché par une variable du thème (exemples : `JojoDecor` et `--jojo`,
 `OnePieceDecor` et `--onepiece`, `ApothicaireDecor` et `--apothicaire`). Le cadre du compte peut
 devenir une carte propre au thème (`StandCard`, `WantedPoster`, `PalaceRecord`), rendue par
