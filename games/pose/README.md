@@ -129,14 +129,16 @@ toujours dans le sens de l'image (même si le joueur l'a faite en miroir).
 All Star Battle R, Eyes of Heaven, Last Survivor et OraDora, et visuels officiels de l'anime, pris sur jojowiki.com) : personnage, nom de
 la pose, image (`apps/web/public/pose/<id>.webp`, 640 px de haut) et angles du squelette. Les
 angles sont calés en pointant les articulations sur chaque image agrandie (bassin, base du cou,
-centre de la tête, coudes, poignets, hanches, genoux, chevilles), puis vérifiés un à un en posant
-le pantin cible sur l'image, à l'échelle de son tronc. Le bras se mesure depuis l'**épaule du
-pantin** (posée sur le tronc de l'image) jusqu'au coude de l'image, pas depuis l'épaule du
-personnage : le pantin a les épaules plus étroites, et un bras presque vertical sur l'image lui
-collerait au corps alors qu'il s'en écarte. Les avant-bras, cuisses et jambes gardent l'angle vu
-sur l'image. Repointage complet le 8 novembre 2026 (plusieurs poses étaient fausses : bras,
-jambes inversées, têtes) ; trois poses à bras croisés illisibles en 2D ont été retirées (Kars
-« La lame », Kakyoin « Le doigt levé », Straizo « Bras croisés »).
+centre de la tête, épaules, coudes, poignets, hanches, genoux, chevilles) et se mesurent
+d'articulation à articulation, comme le pantin les juge : le bras de l'épaule au coude,
+l'avant-bras du coude au poignet, la cuisse de la hanche au genou, la jambe du genou à la
+cheville. La largeur des épaules et du bassin ne compte pas (le pantin ne peut pas la changer).
+Chaque articulation se pointe dans l'axe du membre, là où il plie, sous les vêtements : pas au
+bout d'une manche bouffante, d'une épaulette ou d'un pli de pantalon. Vérification : le squelette
+pointé est tracé sur l'image, puis comparé au pantin cible. Repointage complet le 8 novembre 2026
+(plusieurs poses étaient fausses : bras, jambes inversées, têtes) ; trois poses à bras croisés
+illisibles en 2D ont été retirées (Kars « La lame », Kakyoin « Le doigt levé », Straizo « Bras
+croisés »).
 
 Règles de choix d'une pose : rien de Steel Ball Run (en cours de diffusion) ni des parties
 suivantes, sauf Gyro dans sa tenue des premiers épisodes, sans Stand ; un seul personnage, en
