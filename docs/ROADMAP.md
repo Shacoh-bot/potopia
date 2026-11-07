@@ -228,7 +228,8 @@ Pour chaque étape, les critères de fin incluent toujours que `pnpm lint`, `pnp
       puis elle vole en éclats de verre le long de cette fissure
       si on s'acharne jusqu'au bout ; Sonic perd ses anneaux, Luffy encaisse en caoutchouc, la
       mascotte se fait massacrer une dizaine de secondes (sang, blessures, cris) puis s'écrase sur
-      le bord de l'écran ; la rafale finie, Crazy Diamond rembobine tout sous ses coups.
+      le bord de l'écran (plus visible depuis le retrait de la mascotte flottante) ; la rafale
+      finie, Crazy Diamond rembobine tout sous ses coups.
     - Thème One Piece : la Grand Line de nuit (carte du monde en fond, Gear 5, Zoro et Luffy,
       « ドン!! », Haki des rois qui crépite de temps en temps), cadres de carte marine ancienne
       avec le Jolly Roger, titres façon logo ; le cadre du compte devient l'avis de recherche du

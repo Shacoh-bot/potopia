@@ -43,12 +43,8 @@ const comicText = Comic_Neue({
   variable: "--font-comic-text",
   preload: false,
 });
-const fantasy = Cinzel({
-  subsets: ["latin"],
-  weight: ["600", "800"],
-  variable: "--font-fantasy",
-  preload: false,
-});
+// Police variable, sans `weight` (voir app/layout.tsx : une liste de graisses casse le build).
+const fantasy = Cinzel({ subsets: ["latin"], variable: "--font-fantasy", preload: false });
 const fantasyText = EB_Garamond({
   subsets: ["latin"],
   style: ["normal", "italic"],

@@ -460,7 +460,8 @@ décors.
   qu'elle tremble, la zone qui la contient (la colonne de gauche…) a son défilement coupé sur les
   axes où rien ne débordait : aucune barre de défilement n'apparaît. Les éléments marqués `data-ora` encaissent : Sonic perd ses
   anneaux, les coups rebondissent sur Luffy (« 効かねェな… ゴムだから »), la steel ball tourne, les
-  boutons du header valsent. La **mascotte** encaisse une dizaine de secondes (118 coups), et quand
+  boutons du header valsent. La **mascotte** (tout élément `data-ora="mascot"` affiché ; aucun
+  depuis le retrait de la mascotte flottante, le code reste prêt) encaisse une dizaine de secondes (118 coups), et quand
   les poings sont sur elle (à 24 px près), ils ne frappent rien d'autre. Thème réservé aux adultes
   du groupe, la violence est assumée : le sang gicle à chaque coup, de plus en plus, elle crie
   (« グハッ », « ゴフッ »…), et des blessures de plus en plus graves se posent sur son image,
@@ -744,29 +745,15 @@ membre : ses images ne sont jamais dans le repo ni dans `public/`.
 - Lecture : `GET /api/mascotte/[partie]` (requireMember, `corps` ou `couronne`), 302 vers une URL
   présignée de 15 min, redirection gardée 10 min par le navigateur (donc une nouvelle image se
   voit sous 10 min).
-- Phrases (répliques du groupe, donc jamais dans le repo non plus) : tableau JSON à la clé
-  `site/mascotte/phrases`, 50 phrases de 80 caractères au plus. Un admin les édite sur
-  `/admin/mascotte` (une par ligne, `saveMascotPhrasesAction`) ; `GET /api/mascotte/phrases`
-  (requireMember, `no-store`) les renvoie, lues côté serveur par `readMascotPhrases` (URL
-  présignée).
 - `<Mascot mood height fallback>` : `repos` (respiration, couronne qui flotte, clignement),
   `victoire` (saut, couronne qui tourne, halo rose), `chargement` (rebonds), `erreur` (affaissée,
   couronne de travers, yeux mi-clos), `perdu` (regarde à gauche et à droite). Animations en CSS
   dans `globals.css` (bloc « Mascotte », coupées si l'utilisateur réduit les animations), à
   l'échelle `--s` ; les paupières (couleur peau) et la couronne y sont placées en px du dessin
   d'origine. Si l'image ne charge pas (401, 404), le composant affiche `fallback`.
-- Flottante sur toutes les pages de la plateforme (`components/MascotToy.tsx`, posée par
-  `(platform)/layout.tsx`, 180 px, masquée sous 640 px), en bas à droite de l'écran par défaut :
-  elle respire et cligne des yeux, un clic la fait sauter, on la déplace en la faisant glisser.
-  Sans image envoyée, le bouton disparaît.
-- Place réservée : une page peut poser un `MascotAnchor` (bloc vide à sa taille) avec une humeur ;
-  la mascotte flottante glisse jusqu'à lui, le suit et prend cette humeur. Options : `movable` (on
-  peut l'en décrocher en la faisant glisser) et `chatty` (bulle de phrases au hasard, quand
-  l'humeur passe à victoire ou erreur et toutes les 20 à 40 s). Quand il disparaît (on quitte la
-  page), elle attend 1,5 s : si la page suivante lui réserve une place, elle y va directement,
-  sinon elle repart au coin en bas à droite. État partagé dans `components/mascotStage.ts`.
-  Usages : le coin en bas à droite du cadre « Apps » de l'accueil (`movable`, la grille garde une
-  marge pour elle), et sous le podium de TROIS (`chatty`, fixe ; prop `belowPodium` de
+- Pas de mascotte flottante par-dessus les pages (retirée) : elle n'apparaît que sur les écrans
+  ci-dessous et sur `/admin/mascotte`.
+- Sous le podium de TROIS (`(platform)/trois/TroisWithMascot.tsx`, 180 px, prop `belowPodium` de
   `TroisApp`, qui reçoit la réaction au dernier mot : saut sur un mot trouvé, affaissée sur un
   perdu ; le podium de gauche n'existe qu'au-delà de 1280 px).
 - Utilisée aussi par les pages d'erreur, la 404, le chargement et la confirmation de la boîte à
@@ -899,8 +886,13 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   qu'au premier retournement. Sur la planche (`CardFlip still` : dos sans inclinaison, galaxie
   figée) un clic ouvre toujours la fiche ; dans l'éditeur, le dos s'incline au survol comme la
   face et un bouton « Voir le dos » / « Voir la face » retourne la carte (clavier).
-- Illustrations réduites dans le navigateur avant l'envoi (`shrinkImage` : WebP, 1 200 px au plus
-  de côté ; une image déjà petite part telle quelle), dans l'éditeur comme dans l'envoi en masse.
+- Illustrations en **WebP uniquement** : le navigateur convertit chaque image avant l'envoi
+  (`toCardWebp` : WebP, 1 200 px au plus de côté ; un WebP déjà petit part tel quel ; refus avec
+  message si le navigateur ne sait pas encoder le WebP), dans l'éditeur comme dans l'envoi en
+  masse, et le serveur refuse tout autre type (`CARD_IMAGE_TYPES`, clé `cards/<uuid>.webp`). Les
+  illustrations déjà posées dans un autre format restent lisibles. Dans l'éditeur, une image se
+  colle aussi : Ctrl+V n'importe où sur l'éditeur, ou bouton « Coller une image » (lecture du
+  presse-papiers, le navigateur peut demander l'accord).
   Titre (`FitTitle`) : la taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur
   deux lignes.
 - Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration (normale ou

@@ -30,12 +30,19 @@ export function CardFlip({
   const [angle, setAngle] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [backShown, setBackShown] = useState(false);
-  const start = useRef<{ x: number; angle: number } | null>(null);
+  const start = useRef<{ x: number; angle: number; width: number } | null>(null);
   const moved = useRef(false);
 
   function down(e: PointerEvent<HTMLDivElement>) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    start.current = { x: e.clientX, angle };
+    // Largeur de mise en page (offsetWidth ignore la rotation), mesurée une fois : la largeur à
+    // l'écran fond vers 90°, et le même glisser y vaudrait un angle énorme (la carte s'emballait).
+    // Départ sur un côté entier : une carte saisie en pleine animation repart de sa position cible.
+    start.current = {
+      x: e.clientX,
+      angle: Math.round(angle / 180) * 180,
+      width: e.currentTarget.offsetWidth || 300,
+    };
     moved.current = false;
   }
 
@@ -52,14 +59,15 @@ export function CardFlip({
       setBackShown(true);
     }
     // Toute la largeur de la carte = un demi-tour, et jamais plus d'un demi-tour par geste.
-    const width = e.currentTarget.getBoundingClientRect().width || 300;
-    setAngle(s.angle + Math.max(-180, Math.min(180, (dx / width) * 180)));
+    setAngle(s.angle + Math.max(-180, Math.min(180, (dx / s.width) * 180)));
   }
 
   function up() {
     const s = start.current;
     start.current = null;
-    if (!dragging || !s) return;
+    // `moved` (ref) et non `dragging` (état) : un geste très rapide se lâche avant le rendu qui
+    // passe `dragging` à vrai, et la carte resterait de travers.
+    if (!moved.current || !s) return;
     setDragging(false);
     // Passé 45°, la carte finit de se retourner ; sinon elle revient.
     setAngle((a) => {
@@ -89,6 +97,8 @@ export function CardFlip({
         onPointerUp={up}
         onPointerCancel={up}
         onClickCapture={click}
+        // Le glisser natif du lien ou de l'image annulerait le geste (pointercancel)
+        onDragStart={(e) => e.preventDefault()}
       >
         <div className="tcg-flip-face">{children}</div>
         <div className="tcg-flip-face tcg-flip-back">

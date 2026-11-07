@@ -251,7 +251,9 @@ et l'arrêt sur image « To Be Continued », `components/ToBeContinued.tsx`) ; a
 Un bloc `[data-theme="montheme"]` de variables CSS dans `packages/ui/theme.css` (couleurs, dégradés,
 police des titres, décors) et une entrée dans `packages/ui/src/themes.ts`. Le sélecteur du header le
 propose aussitôt. Une police de titres vient de `next/font/google` dans `apps/web/app/layout.tsx`
-(variable CSS, comme `--font-onepiece-face`) ; un décor animé est un composant de `packages/ui`
+(variable CSS, comme `--font-onepiece-face`). Une police variable chez Google (Cinzel, Orbitron…)
+se déclare sans `weight` : avec une liste de graisses, Google renvoie le même fichier pour chacune
+et le build Turbopack échoue (« next/font/google queries have exactly one entry ») ; un décor animé est un composant de `packages/ui`
 monté dans ce layout et affiché par une variable du thème (exemples : `JojoDecor` et `--jojo`,
 `OnePieceDecor` et `--onepiece`, `ApothicaireDecor` et `--apothicaire`). Le cadre du compte peut
 devenir une carte propre au thème (`StandCard`, `WantedPoster`, `PalaceRecord`), rendue par
@@ -267,10 +269,11 @@ dans la réserve (la page s'ouvre dessus) ; une carte rangée dans un set y pren
 prod avec lui. Depuis la page
 d'une idée (Administration › Boîte à idées), « Créer une carte » pré-remplit une carte. On y règle : nom, type, famille,
 mana, puissance, rareté, effet (choisi dans le catalogue `games/tcg/src/effects.ts`, puis réglé),
-description et illustration (à envoyer, puis à cadrer en la faisant glisser et en zoomant). Pour en créer beaucoup d'un coup, `/admin/cartes/import` prend un
+description et illustration (fichier ou image collée avec Ctrl+V, convertie en WebP avant l'envoi,
+puis à cadrer en la faisant glisser et en zoomant). Pour en créer beaucoup d'un coup, `/admin/cartes/import` prend un
 fichier JSON (format affiché sur la page ; un fichier `updates` y change en masse le coût, la
 puissance et l'effet de cartes existantes), et `/admin/cartes/illustrations` plusieurs images d'un
-coup (chaque fichier porte le numéro de sa carte : `12.jpg`). Les cartes générées à partir des
+coup (chaque fichier porte le numéro de sa carte : `12.jpg` ; converties en WebP elles aussi). Les cartes générées à partir des
 idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Un effet nouveau s'ajoute dans
 `effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise) et devient disponible pour
 toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
@@ -281,9 +284,7 @@ La mascotte a le visage d'un membre : ses images ne sont pas dans le dépôt. El
 **Administration › Mascotte** (`/admin/mascotte`) : le corps (512 × 673 px, fond transparent, sans
 la couronne) et la couronne (102 × 92 px environ), en PNG ou WebP. Tant que rien n'est envoyé, le
 site affiche les icônes habituelles à sa place. Un dessin aux proportions différentes demande de
-recaler les paupières et la couronne dans `apps/web/app/globals.css` (bloc « Mascotte »). Ses
-phrases (bulle sur TROIS) s'éditent sur la même page, une par ligne ; elles ne sont pas dans le
-dépôt non plus.
+recaler les paupières et la couronne dans `apps/web/app/globals.css` (bloc « Mascotte »).
 
 ---
 
@@ -338,7 +339,7 @@ dépôt non plus.
   présignées de 5 minutes (et, pour la seule idée exemple `SHOWCASE_IDEA_ID`, à tout membre via
   `/api/cartes/exemple`) ; la base ne stocke que leur clé. Les images envoyées puis abandonnées
   sont purgées au bout de 24 h.
-- Les images de la mascotte (visage d'un membre) et ses phrases sont dans le même bucket privé,
-  servies aux seuls membres connectés par `/api/mascotte/<partie>` et `/api/mascotte/phrases`.
+- Les images de la mascotte (visage d'un membre) sont dans le même bucket privé, servies aux
+  seuls membres connectés par `/api/mascotte/<partie>`.
 - Pseudo, image et e-mail viennent de Discord : les endpoints de Better Auth qui permettraient de
   les changer depuis le site sont désactivés.

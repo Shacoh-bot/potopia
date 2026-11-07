@@ -32,16 +32,11 @@ import "./globals.css";
 // Polices des titres, exposées aux thèmes (voir packages/ui/theme.css) : Cinzel pour Fantasy,
 // Orbitron pour RGB, Anton pour JoJo, Luckiest Guy pour One Piece (Abril Fatface : le nom et la
 // prime de l'avis de recherche).
-const display = Cinzel({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-display-face",
-});
-const gaming = Orbitron({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-gaming-face",
-});
+// Cinzel et Orbitron sont des polices variables : sans `weight`, un seul fichier couvre toutes les
+// graisses. Avec une liste de graisses, Google renvoie le même fichier pour chacune et le build
+// Turbopack échoue (« next/font/google queries have exactly one entry »).
+const display = Cinzel({ subsets: ["latin"], variable: "--font-display-face" });
+const gaming = Orbitron({ subsets: ["latin"], variable: "--font-gaming-face" });
 const jojo = Anton({
   subsets: ["latin"],
   weight: "400",

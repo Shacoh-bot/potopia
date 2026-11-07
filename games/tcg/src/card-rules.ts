@@ -37,9 +37,8 @@ export const CARD_LIMITS = {
   imageBytes: 5 * 1024 * 1024,
 } as const;
 
+/** Illustrations de cartes : WebP uniquement (l'interface convertit avant l'envoi). */
 export const CARD_IMAGE_TYPES = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
   "image/webp": "webp",
 } as const;
 export type CardImageType = keyof typeof CARD_IMAGE_TYPES;
