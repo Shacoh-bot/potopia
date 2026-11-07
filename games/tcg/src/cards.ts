@@ -34,6 +34,7 @@ export {
   type CardSet,
   DEFAULT_FRAME,
   FRAME_ZOOM,
+  frameFor,
   type ImageFrame,
 } from "./card-rules";
 
@@ -68,6 +69,16 @@ const int = (label: string, min: number, max: number) =>
     .min(min, `${label} : ${min} minimum.`)
     .max(max, `${label} : ${max} maximum.`);
 
+/** Cadrage d'une illustration (`ImageFrame`). */
+const frameSchema = z.object({
+  x: z.coerce.number().min(0).max(100),
+  y: z.coerce.number().min(0).max(100),
+  zoom: z.coerce
+    .number()
+    .min(FRAME_ZOOM.min, "Zoom trop petit.")
+    .max(FRAME_ZOOM.max, "Zoom trop grand."),
+});
+
 const cardFields = z.object({
   name: z
     .string()
@@ -91,17 +102,10 @@ const cardFields = z.object({
   effectParams: z.record(z.string(), z.union([z.string(), z.number()])).nullish(),
   effectText: optionalText(CARD_LIMITS.effectText, "Texte de l'effet"),
   flavor: optionalText(CARD_LIMITS.flavor, "Description"),
-  imageFrame: z
-    .object({
-      x: z.coerce.number().min(0).max(100),
-      y: z.coerce.number().min(0).max(100),
-      zoom: z.coerce
-        .number()
-        .min(FRAME_ZOOM.min, "Zoom trop petit.")
-        .max(FRAME_ZOOM.max, "Zoom trop grand."),
-    })
-    .nullish()
-    .transform((v) => v ?? null),
+  imageFrame: frameSchema.nullish().transform((v) => v ?? null),
+  // Absent : le cadrage full art enregistré ne change pas (mise à jour en masse, anciens appels) ;
+  // null : la full art reprend le cadrage de la carte normale.
+  imageFrameFull: frameSchema.nullish(),
 });
 
 export type CardInput = z.input<typeof cardFields>;
@@ -117,13 +121,20 @@ function parseCard(input: CardInput) {
     effectText: fields.effectText ?? effectText(fields.effectKey, params),
     // JSON null en base : Prisma attend DbNull.
     imageFrame: fields.imageFrame ?? Prisma.DbNull,
+    // undefined : Prisma laisse la colonne telle quelle
+    imageFrameFull:
+      fields.imageFrameFull === undefined ? undefined : (fields.imageFrameFull ?? Prisma.DbNull),
   };
 }
 
-type CardRow = Omit<Card, "setCode" | "effectParams" | "rarity" | "imageFrame"> & {
+type CardRow = Omit<
+  Card,
+  "setCode" | "effectParams" | "rarity" | "imageFrame" | "imageFrameFull"
+> & {
   rarity: string;
   effectParams: unknown;
   imageFrame: unknown;
+  imageFrameFull: unknown;
   set: { code: string } | null;
 };
 
@@ -134,6 +145,7 @@ function toCard(row: CardRow): Card {
     rarity: row.rarity as CardRarityId,
     effectParams: (row.effectParams as EffectParams | null) ?? null,
     imageFrame: (row.imageFrame as ImageFrame | null) ?? null,
+    imageFrameFull: (row.imageFrameFull as ImageFrame | null) ?? null,
     setCode: set?.code ?? null,
   };
 }
@@ -311,6 +323,7 @@ export async function updateCard(
           rarity: fields.rarity,
           flavor: fields.flavor,
           imageFrame: fields.imageFrame,
+          imageFrameFull: fields.imageFrameFull,
         },
         include: withSet,
       });
@@ -325,6 +338,7 @@ export async function updateCard(
         rarity: fields.rarity,
         flavor: fields.flavor,
         imageFrame: fields.imageFrame,
+        imageFrameFull: fields.imageFrameFull,
       },
       include: withSet,
     });

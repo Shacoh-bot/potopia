@@ -10,6 +10,7 @@ import {
   EFFECTS,
   effectText,
   ensureSet,
+  frameFor,
   getCard,
   importCards,
   listCards,
@@ -99,6 +100,37 @@ describe("createCard", () => {
     expect((await updateCard(ADMIN, card.id, { ...BASE, imageFrame: null })).imageFrame).toBeNull();
     await expect(
       updateCard(ADMIN, card.id, { ...BASE, imageFrame: { x: 50, y: 50, zoom: 9 } }),
+    ).rejects.toThrow(ZodError);
+  });
+
+  it("garde un cadrage à part pour la full art, sans perdre l'ancien", async () => {
+    const normal = { x: 30, y: 70, zoom: 1.5 };
+    const full = { x: 60, y: 40, zoom: 2.5 };
+    // carte cadrée avant la séparation : la full art reprend le cadrage de la normale
+    const card = await createCard(ADMIN, { ...BASE, setId, imageFrame: normal });
+    expect(card.imageFrameFull).toBeNull();
+    expect(frameFor(card, "fullart")).toEqual(normal);
+
+    const split = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      imageFrame: normal,
+      imageFrameFull: full,
+    });
+    expect(frameFor(split, "normal")).toEqual(normal);
+    expect(frameFor(split, "fullart")).toEqual(full);
+
+    // une mise à jour sans cadrage full art (mise à jour en masse) le laisse tel quel
+    const kept = await updateCard(ADMIN, card.id, { ...BASE, imageFrame: { ...normal, zoom: 2 } });
+    expect(kept.imageFrameFull).toEqual(full);
+    // null : la full art reprend le cadrage de la normale
+    const reset = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      imageFrame: normal,
+      imageFrameFull: null,
+    });
+    expect(frameFor(reset, "fullart")).toEqual(normal);
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, imageFrameFull: { x: 50, y: 50, zoom: 9 } }),
     ).rejects.toThrow(ZodError);
   });
 

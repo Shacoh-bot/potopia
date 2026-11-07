@@ -195,7 +195,8 @@ passe d'une partie à l'autre sans rechargement.
   numéro si et seulement si la carte est dans un set, sinon elle est dans la réserve), name, rarity (enum `TcgRarity` :
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power, effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
-  l'illustration, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais rognée), ideaId? (index simple, `ideas.ideas`
+  l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
+  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), ideaId? (index simple, `ideas.ideas`
   sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt, updatedAt. La base ne
   contient aucune logique d'effet : seulement la clé d'un effet du catalogue et ses réglages.
 
@@ -895,9 +896,13 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   presse-papiers, le navigateur peut demander l'accord).
   Titre (`FitTitle`) : la taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur
   deux lignes.
-- Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration (normale ou
-  full art) ; on y fait glisser l'image et on règle le zoom, le cadrage est enregistré avec la
-  carte et appliqué partout où elle s'affiche (`frameStyle`).
+- Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration de la mise
+  en page choisie (normale ou full art) ; on y fait glisser l'image et on règle le zoom. Chaque
+  mise en page a son cadrage (`imageFrame`, `imageFrameFull`), enregistré avec la carte et
+  appliqué partout où elle s'affiche (`frameFor` choisit le bon, `frameStyle` l'applique). Une carte
+  sans cadrage full art à elle (cadrée avant la séparation) garde en full art celui de la carte
+  normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
+  pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
 - Illustration : celle de la carte ou, à défaut, celle de son idée (`listIdeaImageUrls`). Les pages
   admin la signent directement (`cardImageUrls`) avec `presignGetStable` (`@app/storage`) : l'URL
   reste identique pendant une fenêtre de 5 min (signée au début de la fenêtre, valable 15 min) et

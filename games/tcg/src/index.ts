@@ -19,6 +19,7 @@ export {
   createSet,
   DEFAULT_FRAME,
   FRAME_ZOOM,
+  frameFor,
   createCardImageUpload,
   ensureSet,
   getCard,

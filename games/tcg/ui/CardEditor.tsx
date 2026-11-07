@@ -10,6 +10,7 @@ import {
   type Card,
   type CardSet,
   DEFAULT_FRAME,
+  frameFor,
   type ImageFrame,
 } from "../src/card-rules";
 import {
@@ -26,6 +27,9 @@ import { CardFlip } from "./CardFlip";
 import { GameCard, GameCardDefs } from "./GameCard";
 import { ImageFramer } from "./ImageFramer";
 import { pastedImage, toCardWebp } from "./toCardWebp";
+
+/** Mise en page de l'aperçu, et du cadrage qu'on règle. */
+type Layout = "normal" | "fullart";
 
 export type CardEditorState =
   { status: "idle" } | { status: "ok"; message: string } | { status: "error"; message: string };
@@ -140,9 +144,14 @@ export function CardEditor({
   const [customText, setCustomText] = useState(
     () => !!card && card.effectText !== effectText(card.effectKey, card.effectParams),
   );
-  const [layout, setLayout] = useState<"normal" | "fullart">("normal");
+  const [layout, setLayout] = useState<Layout>("normal");
   const [image, setImage] = useState(imageUrl);
-  const [frame, setFrame] = useState<ImageFrame>(card?.imageFrame ?? DEFAULT_FRAME);
+  // Un cadrage par mise en page. La full art part du cadrage de la carte normale tant qu'elle n'a
+  // pas le sien (cartes cadrées avant la séparation) : rien n'est perdu.
+  const [frames, setFrames] = useState<Record<Layout, ImageFrame>>(() => ({
+    normal: frameFor(card ?? {}, "normal") ?? DEFAULT_FRAME,
+    fullart: frameFor(card ?? {}, "fullart") ?? DEFAULT_FRAME,
+  }));
   const [uploadState, setUploadState] = useState<string | null>(null);
 
   const variant = !!card?.baseCardId;
@@ -158,9 +167,10 @@ export function CardEditor({
       effectText: shownText,
       number: card ? card.number : setId ? (setSizes?.[setId] ?? 0) + 1 : null,
       setCode: card ? card.setCode : sets.find((s) => s.id === setId)?.code,
-      imageFrame: frame,
+      imageFrame: frames.normal,
+      imageFrameFull: frames.fullart,
     }),
-    [fields, shownText, card, sets, setId, setSizes, frame],
+    [fields, shownText, card, sets, setId, setSizes, frames],
   );
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
@@ -176,7 +186,12 @@ export function CardEditor({
     const data = new FormData();
     data.set(
       "card",
-      JSON.stringify({ ...fields, effectText: shownText, imageFrame: image ? frame : null }),
+      JSON.stringify({
+        ...fields,
+        effectText: shownText,
+        imageFrame: image ? frames.normal : null,
+        imageFrameFull: image ? frames.fullart : null,
+      }),
     );
     if (!card) {
       data.set("setId", setId);
@@ -207,7 +222,7 @@ export function CardEditor({
     const failed = await upload.confirm(target.key);
     if (failed) return setUploadState(failed.error);
     setImage(URL.createObjectURL(file));
-    setFrame(DEFAULT_FRAME);
+    setFrames({ normal: DEFAULT_FRAME, fullart: DEFAULT_FRAME });
     setUploadState("Illustration enregistrée.");
   }
 
@@ -479,16 +494,28 @@ export function CardEditor({
         {image && (
           <div className="flex flex-col items-center gap-1">
             <p className="text-muted text-sm">
-              Cadrage : glisse l&apos;image, zoome, puis enregistre la carte.
+              Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} : glisse
+              l&apos;image, zoome, puis enregistre la carte.
             </p>
             <ImageFramer
+              // un cadrage par mise en page : changer de mise en page change de réglage
+              key={layout}
               imageUrl={image}
-              frame={frame}
-              onChange={setFrame}
+              frame={frames[layout]}
+              onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
               // Proportions de la fenêtre d'illustration : carte normale (264 × 172) ou full art.
               width={layout === "normal" ? 264 : 200}
               height={layout === "normal" ? 172 : 280}
             />
+            {layout === "fullart" && (
+              <button
+                type="button"
+                className="text-accent text-sm underline-offset-4 hover:underline"
+                onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+              >
+                Reprendre le cadrage de la carte normale
+              </button>
+            )}
           </div>
         )}
         {upload && card && (
