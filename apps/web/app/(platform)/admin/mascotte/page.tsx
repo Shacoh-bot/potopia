@@ -1,9 +1,9 @@
-import { Button, Card, Textarea } from "@app/ui";
+import { Button, Card } from "@app/ui";
 import type { Metadata } from "next";
 import { Mascot } from "@/components/Mascot";
-import { MASCOT_MAX_BYTES, readMascotPhrases } from "@/lib/mascot";
+import { MASCOT_MAX_BYTES } from "@/lib/mascot";
 import { getCurrentAdmin } from "@/lib/session";
-import { saveMascotPhrasesAction, uploadMascotAction } from "./actions";
+import { uploadMascotAction } from "./actions";
 
 export const metadata: Metadata = { title: "Mascotte" };
 
@@ -19,7 +19,6 @@ export default async function MascotPage({
 }) {
   await getCurrentAdmin();
   const { ok, erreur } = await searchParams;
-  const phrases = await readMascotPhrases();
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,27 +67,6 @@ export default async function MascotPage({
             fallback={<p className="text-muted">Aucune image pour l&apos;instant.</p>}
           />
         </div>
-      </Card>
-      <Card title="Phrases">
-        <form action={saveMascotPhrasesAction} className="flex flex-col gap-3 text-sm">
-          <p className="text-muted">
-            Une phrase par ligne (80 caractères et 50 phrases au plus). Sur TROIS, la mascotte en
-            dit une au hasard dans une bulle, quand un mot est trouvé ou perdu et de temps en temps.
-            Comme les images, elles restent dans le stockage privé, jamais dans le repo.
-          </p>
-          <Textarea name="phrases" rows={8} defaultValue={phrases.join("\n")} />
-          <div>
-            <Button type="submit">Enregistrer</Button>
-          </div>
-          <div role="status">
-            {ok === "phrases" && <p className="text-success">Phrases enregistrées.</p>}
-            {erreur === "phrases" && (
-              <p className="text-danger">
-                Phrases refusées : 80 caractères par phrase et 50 phrases au plus.
-              </p>
-            )}
-          </div>
-        </form>
       </Card>
     </div>
   );
