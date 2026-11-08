@@ -107,6 +107,17 @@ export const FINAL_ART = {
   width: 300 - 2 * FRAME_THIN,
 } as const;
 
+/**
+ * Encadrés de la carte retenue (bandeau du titre, ligne de type, effet) : l'ardoise, plus
+ * transparente en full art pour laisser voir l'illustration.
+ */
+function finalPanel(card: CardData, layout: TopLayout): CSSProperties {
+  const style = panelStyle(card, STYLE.panel, layout);
+  return layout === "fullart"
+    ? { ...style, background: "rgb(30 34 44 / 0.35)", backdropFilter: "blur(3px)" }
+    : style;
+}
+
 /** Rayon de l'échancrure (4 px d'écart autour du mana) et de l'anneau serti. */
 const NOTCH = MANA.r + 4.5;
 const SOCKET = 34.5;
@@ -163,7 +174,7 @@ function Band({ card, layout, shape }: { card: CardData; layout: TopLayout; shap
           ? `${FRAME - top}px ${Math.round(MANA.x + MANA.r) + 2 - left}px 0`
           : `0 ${TITLE.inset - left}px`,
         overflow: "hidden",
-        ...panelStyle(card, STYLE.panel, layout),
+        ...finalPanel(card, layout),
         border: 0,
         borderBottom: "1px solid rgb(255 255 255 / 0.14)",
         borderRadius: `${R - left}px ${R - left}px 0 0`,
@@ -454,7 +465,7 @@ export function FinalCard({
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
   // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
   const panel: CSSProperties = {
-    ...panelStyle(card, STYLE.panel, layout),
+    ...finalPanel(card, layout),
     border: 0,
     position: "relative",
   };

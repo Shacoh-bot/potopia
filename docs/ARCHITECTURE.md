@@ -891,6 +891,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   coins droits), fermée en bas par le même trait que sous le titre, proportions reprises par le cadrage de l'éditeur.
   Les encadrés (ligne de type, effet) ont le même esprit, très fin (`PanelTrim`) : un filet doré
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
+  En full art, les encadrés (bandeau du titre compris) sont plus transparents (`finalPanel` :
+  ardoise à 35 %, flou de 3 px).
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et
