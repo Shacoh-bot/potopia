@@ -901,8 +901,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `listVisualEffects`, admins seulement, triée en français) ; l'effet choisi s'affiche sur la
   carte (aperçu, planche, fiche). Rendu dans `games/tcg/ui/visual-effects.tsx` : `VISUAL_EFFECTS`
   associe chaque clé du catalogue à un composant React (CSS de `tcg.css`, classes `tcg-vfx-…`, et
-  JS au besoin), posé par `FinalCard` en calque sur toute la carte, au-dessus des encadrés et sous
-  le coût et la puissance, sans capter le pointeur. Sur la planche (`still`) et avec
+  JS au besoin), posé par `FinalCard` en calque sans capter le pointeur : en carte normale sur
+  l'illustration seule (dans sa fenêtre), en full art sur toute la carte, au-dessus des encadrés
+  et sous le coût et la puissance. Sur la planche (`still`) et avec
   `prefers-reduced-motion`, les animations sont coupées. Une clé sans rendu codé ne montre rien
   (la fiche l'indique « rendu pas encore codé ») ; une clé hors catalogue est refusée à
   l'enregistrement et à l'import. Premiers effets : `holo` (« Reflet holographique » :

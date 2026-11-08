@@ -516,6 +516,8 @@ export function FinalCard({
             }}
           >
             <PremiumArt card={card} />
+            {/* Carte normale : l'effet visuel ne couvre que l'illustration. */}
+            {visualEffect && <VisualEffectLayer effectKey={visualEffect} still={still} />}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
             {band === "court" && (
               // Même trait que sous le titre, pour fermer l'illustration en bas.
@@ -610,8 +612,9 @@ export function FinalCard({
         </div>
       </Layer>
 
-      {/* Effet visuel : sur toute la carte, encadrés compris, sous le coût et la puissance. */}
-      {visualEffect && (
+      {/* Full art : l'effet visuel couvre toute la carte, encadrés compris, sous le coût et la
+          puissance (en carte normale, il est dans la fenêtre d'illustration, plus haut). */}
+      {full && visualEffect && (
         <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
           <VisualEffectLayer effectKey={visualEffect} still={still} />
         </Layer>

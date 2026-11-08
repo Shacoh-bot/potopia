@@ -12,8 +12,8 @@ import { type ComponentType, useRef } from "react";
  * 2. son composant ci-dessous, ajouté à `VISUAL_EFFECTS` sous la même clé ;
  * 3. ses styles dans tcg.css (classes `tcg-vfx-…`), coupés avec `prefers-reduced-motion`.
  *
- * Un effet est un calque posé sur toute la carte (au-dessus des encadrés, sous le coût et la
- * puissance), rogné à ses coins arrondis, qui ne capte jamais le pointeur. Sur les planches
+ * Un effet est un calque qui ne capte jamais le pointeur : sur l'illustration seule en carte
+ * normale, sur toute la carte en full art (au-dessus des encadrés, sous le coût et la puissance). Sur les planches
  * (`still`), tcg.css coupe toutes les animations : l'effet doit rester joli à l'arrêt.
  */
 
