@@ -344,6 +344,217 @@ const snapStyle = (style: ExtraStyle) =>
     return <ExtraArt card={card} style={style} />;
   };
 
+/* ── Effets d'ambiance ── */
+
+/** Mouvement réduit demandé par le système (lu après le premier rendu, faux côté serveur). */
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+  return reduced;
+}
+
+/**
+ * Parallaxe : l'illustration, un peu agrandie, glisse à l'opposé du pointeur et une poussière de
+ * lumière au premier plan glisse avec lui, d'où une impression de profondeur (CSS seul).
+ */
+function Parallax({ card }: EffectProps) {
+  return (
+    <div style={{ ...fillAbs, overflow: "hidden" }}>
+      <div className="tcg-vfx-plx-back">
+        <PremiumArt card={card} />
+      </div>
+      <div className="tcg-vfx-plx-front" />
+    </div>
+  );
+}
+
+/** Lampe torche : la carte est dans le noir, un rond de lumière suit le pointeur. */
+const Flashlight = () => <div className="tcg-vfx-lamp" />;
+
+/** Métal brossé : fines stries et reflet net qui suit l'inclinaison de la carte. */
+const BrushedMetal = () => (
+  <>
+    <div className="tcg-vfx-metal" />
+    <div className="tcg-vfx-metal-shine" />
+  </>
+);
+
+const RAIN_CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789";
+/** Colonnes de la pluie de données : position, vitesse, décalage et texte, tirés une fois pour toutes. */
+const RAIN = (() => {
+  const rnd = seeded(23);
+  return Array.from({ length: 15 }, (_, i) => ({
+    left: 2 + i * 6.6 + rnd() * 3,
+    top: -40 + rnd() * 260,
+    duration: 4 + rnd() * 5,
+    delay: -rnd() * 9,
+    text: Array.from(
+      { length: 12 + Math.floor(rnd() * 8) },
+      () => RAIN_CHARS[Math.floor(rnd() * RAIN_CHARS.length)],
+    ).join(""),
+  }));
+})();
+
+/** Pluie de données : colonnes de caractères cyan qui tombent, la tête plus claire. */
+const DataRain = () => (
+  <>
+    {RAIN.map((c, i) => (
+      <div
+        key={i}
+        className="tcg-vfx-rain"
+        style={{
+          left: `${c.left}%`,
+          top: c.top,
+          animationDuration: `${c.duration}s`,
+          animationDelay: `${c.delay}s`,
+        }}
+      >
+        {c.text}
+      </div>
+    ))}
+  </>
+);
+
+const MOTE_COLORS = ["#67e8f9", "#ff2d7a", "#ffffff", "#a855f7"];
+/** Particules : position, taille, couleur, dérive et rythme, tirés une fois pour toutes. */
+const MOTES = (() => {
+  const rnd = seeded(37);
+  return Array.from({ length: 22 }, () => ({
+    left: 4 + rnd() * 92,
+    top: 30 + rnd() * 68,
+    size: 2 + rnd() * 2.5,
+    color: MOTE_COLORS[Math.floor(rnd() * MOTE_COLORS.length)],
+    dx: (rnd() - 0.5) * 40,
+    duration: 5 + rnd() * 6,
+    delay: -rnd() * 11,
+  }));
+})();
+
+/** Particules flottantes : des lucioles cyan, magenta et blanches montent lentement. */
+const Motes = () => (
+  <>
+    {MOTES.map((m, i) => (
+      <div
+        key={i}
+        className="tcg-vfx-mote"
+        style={
+          {
+            left: `${m.left}%`,
+            top: `${m.top}%`,
+            width: m.size,
+            height: m.size,
+            background: m.color,
+            boxShadow: `0 0 6px 1px ${m.color}`,
+            "--dx": `${m.dx}px`,
+            animationDuration: `${m.duration}s`,
+            animationDelay: `${m.delay}s`,
+          } as CSSProperties
+        }
+      />
+    ))}
+  </>
+);
+
+/** Onde de choc : un anneau cyan part du centre de l'illustration toutes les 3 s, suivi d'un écho. */
+const Shockwave = () => (
+  <>
+    <div className="tcg-vfx-wave" />
+    <div className="tcg-vfx-wave" style={{ animationDelay: "0.35s" }} />
+  </>
+);
+
+/**
+ * Distorsion de chaleur : l'illustration ondule comme un mirage (filtre SVG de turbulence dont la
+ * fréquence varie en boucle). Carte figée ou mouvement réduit : ondulation fixe, plus légère.
+ */
+function HeatHaze({ card, still }: EffectProps) {
+  const reduced = useReducedMotion();
+  const moving = !still && !reduced;
+  // Un id par variante : deux définitions identiques sous le même id ne gênent pas.
+  const id = moving ? "tcg-vfx-mirage" : "tcg-vfx-mirage-still";
+  return (
+    <div style={fillAbs}>
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+        <filter id={id} x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.06" numOctaves="2" seed="4">
+            {moving && (
+              <animate
+                attributeName="baseFrequency"
+                dur="6s"
+                values="0.012 0.06;0.016 0.09;0.012 0.06"
+                repeatCount="indefinite"
+              />
+            )}
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" scale={moving ? 9 : 5} />
+        </filter>
+      </svg>
+      <div style={{ ...fillAbs, transform: "scale(1.04)", filter: `url(#${id})` }}>
+        <PremiumArt card={card} />
+      </div>
+      <div className="tcg-vfx-haze" />
+    </div>
+  );
+}
+
+/** Cristaux de givre d'un coin : branches qui partent du coin vers l'intérieur, avec des aiguilles. */
+const FROST = (() => {
+  const rnd = seeded(53);
+  const corners: { at: Point; dir: Point }[] = [
+    { at: [0, 0], dir: [1, 1] },
+    { at: [CW, 0], dir: [-1, 1] },
+    { at: [0, CH], dir: [1, -1] },
+    { at: [CW, CH], dir: [-1, -1] },
+  ];
+  return corners.map(({ at, dir }) => {
+    const paths: string[] = [];
+    for (let k = 0; k < 6; k++) {
+      const angle = (0.08 + (k / 5) * 0.84 + (rnd() - 0.5) * 0.1) * (Math.PI / 2);
+      const len = 35 + rnd() * 55;
+      const [ux, uy] = [Math.cos(angle) * dir[0], Math.sin(angle) * dir[1]];
+      const end: Point = [at[0] + ux * len, at[1] + uy * len];
+      paths.push(pathOf([at, end]));
+      // Aiguilles à 60° de part et d'autre, de plus en plus courtes vers le bout.
+      for (let t = 0.3; t < 0.95; t += 0.18) {
+        const p: Point = [at[0] + ux * len * t, at[1] + uy * len * t];
+        const n = (1 - t) * 18 + rnd() * 5;
+        for (const s of [-1, 1]) {
+          const a = Math.atan2(uy, ux) + (s * Math.PI) / 3;
+          paths.push(pathOf([p, [p[0] + Math.cos(a) * n, p[1] + Math.sin(a) * n]]));
+        }
+      }
+    }
+    return { origin: `${at[0]}px ${at[1]}px`, d: paths.join(" ") };
+  });
+})();
+
+/** Givre : des cristaux poussent depuis les quatre coins puis reculent, en boucle. */
+const Frost = () => (
+  <>
+    <div className="tcg-vfx-frost-fog" />
+    <svg className="tcg-vfx-frost" viewBox={`0 0 ${CW} ${CH}`}>
+      {FROST.map((c, i) => (
+        <path
+          key={i}
+          d={c.d}
+          className="tcg-vfx-frost-c"
+          style={{ transformOrigin: c.origin, animationDelay: `${-i * 1.7}s` }}
+        />
+      ))}
+    </svg>
+  </>
+);
+
+/** Brume : deux voiles qui dérivent lentement en sens contraire, dans le bas de la carte. */
+const Mist = () => (
+  <>
+    <div className="tcg-vfx-mist" />
+    <div className="tcg-vfx-mist tcg-vfx-mist-2" />
+  </>
+);
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
@@ -365,6 +576,15 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   croquis: { render: snapStyle("sketch"), place: "image" },
   cosmos: { render: Cosmic, place: "image" },
   vitrail: { render: snapStyle("stained"), place: "image" },
+  parallaxe: { render: Parallax, place: "image" },
+  lampe: { render: Flashlight, place: "card" },
+  metal: { render: BrushedMetal },
+  donnees: { render: DataRain, place: "card" },
+  particules: { render: Motes, place: "card" },
+  onde: { render: Shockwave },
+  mirage: { render: HeatHaze, place: "image" },
+  givre: { render: Frost, place: "frame" },
+  brume: { render: Mist, place: "card" },
 };
 
 /** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */

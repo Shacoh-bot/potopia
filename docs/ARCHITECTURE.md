@@ -940,7 +940,21 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `or` (« Or massif »), `popart`, `croquis`, `vitrail`, plus `aquarelle` et `cosmos` (« Ciel
   cosmique »), refaits dans `visual-effects.tsx` (`Watercolor`, `Cosmic`) avec des marges et un
   fondu plus petits, réglés selon la mise en page (`full`), pour que l'illustration en garde la
-  plus grande part. **Ajouter un effet** : une
+  plus grande part. Effets d'ambiance (migration `tcg_visual_effects_ambiance`, classes
+  `tcg-vfx-…`) : `parallaxe` (« Parallaxe », place `image` : l'illustration agrandie glisse à
+  l'opposé du pointeur, une poussière de lumière au premier plan glisse avec lui), `lampe`
+  (« Lampe torche », place `card` : carte assombrie sauf un rond de lumière qui suit le
+  pointeur, pénombre légère au repos), `metal` (« Métal brossé » : stries fines et reflet net
+  qui suit le pointeur), `donnees` (« Pluie de données », place `card` : colonnes de caractères
+  cyan qui tombent), `particules` (« Particules flottantes », place `card` : lucioles cyan,
+  magenta et blanches qui montent), `onde` (« Onde de choc » : anneau cyan qui part du centre
+  de l'illustration toutes les 3 s), `mirage` (« Distorsion de chaleur », place `image` :
+  l'illustration ondule par un filtre SVG de turbulence animé en SMIL, figé et plus léger sur
+  la planche ou en mouvement réduit), `givre` (« Givre », place `frame` : cristaux tirés une
+  fois pour toutes qui poussent depuis les coins et reculent) et `brume` (« Brume », place
+  `card` : deux voiles qui dérivent dans le bas de la carte). Positions et rythmes des éléments
+  tirés au hasard le sont avec une graine fixe, pour un rendu serveur identique.
+  **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
 (…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (avec sa `place` si ce n'est
   pas l'illustration), ses styles dans `tcg.css`.
