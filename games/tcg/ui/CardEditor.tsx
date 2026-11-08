@@ -504,8 +504,8 @@ export function CardEditor({
               imageUrl={image}
               frame={frames[layout]}
               onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-              // Proportions de la fenêtre d'illustration : carte normale (264 × FINAL_ART) ou full art.
-              width={layout === "normal" ? 264 : 200}
+              // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
+              width={layout === "normal" ? FINAL_ART.width : 200}
               height={layout === "normal" ? FINAL_ART.height : 280}
             />
             {layout === "fullart" && (

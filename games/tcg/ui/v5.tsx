@@ -97,9 +97,15 @@ export type BandShape = "plein" | "echancre" | "serti" | "court" | "aucun";
 const MANA = { x: -2 + 34 * BADGE, y: -2 + 33 * BADGE, r: 29.75 * BADGE };
 /**
  * Fenêtre d'illustration de la carte normale avec le bandeau court (cartes du jeu) : collée au
- * trait sous le titre, en bas au même endroit qu'avant (y = 232). Coins droits en haut.
+ * trait sous le titre et pleine largeur contre la bordure ; en bas au même endroit qu'avant
+ * (y = 232). Coins droits.
  */
-export const FINAL_ART = { top: 46, height: 186 } as const;
+export const FINAL_ART = {
+  top: 46,
+  height: 186,
+  inset: FRAME_THIN,
+  width: 300 - 2 * FRAME_THIN,
+} as const;
 
 /** Rayon de l'échancrure (4 px d'écart autour du mana) et de l'anneau serti. */
 const NOTCH = MANA.r + 4.5;
@@ -480,7 +486,13 @@ export function FinalCard({
             style={{
               ...windowBox(STYLE),
               ...(band === "court"
-                ? { top: FINAL_ART.top, height: FINAL_ART.height, borderRadius: "0 0 8px 8px" }
+                ? {
+                    top: FINAL_ART.top,
+                    height: FINAL_ART.height,
+                    left: FINAL_ART.inset,
+                    right: FINAL_ART.inset,
+                    borderRadius: 0,
+                  }
                 : null),
               background: "#0b0d18",
             }}
