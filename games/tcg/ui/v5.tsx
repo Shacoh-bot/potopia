@@ -477,7 +477,9 @@ export function FinalCard({
   const cardEffects = placed("card");
   const frameEffects = placed("frame");
   const effects = (keys: string[]) =>
-    keys.map((k) => <VisualEffectLayer key={k} effectKey={k} card={card} still={still} />);
+    keys.map((k) => (
+      <VisualEffectLayer key={k} effectKey={k} card={card} full={full} still={still} />
+    ));
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
   // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
   const panel: CSSProperties = {

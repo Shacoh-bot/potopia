@@ -13,11 +13,8 @@ INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
   ('lenticulaire', 'Lenticulaire'),
   ('glitch', 'Glitch'),
   ('or', 'Or massif'),
-  ('orcentre', 'Or, sauf le centre'),
-  ('kawaii', 'Kawaii'),
   ('popart', 'Pop art'),
   ('aquarelle', 'Aquarelle'),
   ('croquis', 'Croquis'),
   ('cosmos', 'Ciel cosmique'),
-  ('vitrail', 'Vitrail'),
-  ('theme', 'Teinte du thème');
+  ('vitrail', 'Vitrail');

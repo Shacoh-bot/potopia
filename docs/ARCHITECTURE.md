@@ -937,9 +937,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   l'illustration aux couleurs inversées quand la carte penche à droite, toute seule sans
   pointeur ; une vraie seconde image demanderait une colonne de plus) et les styles
   d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch`,
-  `or` (« Or massif »), `orcentre` (« Or, sauf le centre »), `kawaii`, `popart`, `aquarelle`,
-  `croquis`, `cosmos` (« Ciel cosmique »), `vitrail`, `theme` (« Teinte du thème », couleur
-  d'accent du thème du site). **Ajouter un effet** : une
+  `or` (« Or massif »), `popart`, `croquis`, `vitrail`, plus `aquarelle` et `cosmos` (« Ciel
+  cosmique »), refaits dans `visual-effects.tsx` (`Watercolor`, `Cosmic`) avec des marges et un
+  fondu plus petits, réglés selon la mise en page (`full`), pour que l'illustration en garde la
+  plus grande part. **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
 (…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (avec sa `place` si ce n'est
   pas l'illustration), ses styles dans `tcg.css`.

@@ -2,7 +2,7 @@
 
 import { type ComponentType, type CSSProperties, useEffect, useState } from "react";
 import type { CardData } from "./cards";
-import { PremiumArt } from "./premium";
+import { faction, PremiumArt } from "./premium";
 import { ExtraArt, type ExtraStyle } from "./snap-styles";
 
 /*
@@ -36,6 +36,8 @@ type EffectProps = {
   still: boolean;
   /** La carte affichée (illustration et son cadrage), pour les effets qui la redessinent. */
   card: CardData;
+  /** Mise en page : les effets qui redessinent l'illustration s'y règlent. */
+  full: boolean;
 };
 
 /** Place d'un effet (voir plus haut). */
@@ -259,6 +261,83 @@ function Lenticular({ card, still }: EffectProps) {
   );
 }
 
+/** Fondu en ellipse : `#000` jusqu'à `solid` %, transparent à `fade` %. */
+const ellipse = (w: number, h: number, y: number, solid: number, fade: number) => {
+  const m = `radial-gradient(ellipse ${w}% ${h}% at 50% ${y}%, #000 ${solid}%, transparent ${fade}%)`;
+  return { WebkitMaskImage: m, maskImage: m } as CSSProperties;
+};
+
+/**
+ * Aquarelle (style Snap repris et resserré) : l'illustration peinte sur papier, fondue sur les
+ * bords. Marges et fondu plus petits que dans la proposition, pensée pour une carte entière ;
+ * en carte normale, l'image remplit presque toute la fenêtre.
+ */
+function Watercolor({ card, full }: EffectProps) {
+  const f = faction(card.tag);
+  return (
+    <div style={{ ...fillAbs, background: "#f6f0e4" }}>
+      <div className="tcg-grain" style={{ opacity: 0.45 }} />
+      <div
+        style={{
+          position: "absolute",
+          inset: full ? "10px 8px 34px" : "3px 4px",
+          filter: "url(#tcg-watercolor) saturate(1.25) contrast(0.92) brightness(1.06)",
+          ...(full ? ellipse(80, 78, 46, 70, 92) : ellipse(86, 84, 50, 74, 98)),
+        }}
+      >
+        <PremiumArt card={card} />
+      </div>
+      <div
+        aria-hidden
+        style={{
+          ...fillAbs,
+          background: `radial-gradient(ellipse at 30% 25%, ${f.light}55, transparent 50%), radial-gradient(ellipse at 75% 70%, ${f.base}33, transparent 55%)`,
+          mixBlendMode: "multiply",
+        }}
+      />
+    </div>
+  );
+}
+
+/** Ciel étoilé du style cosmique. */
+const STAR_SKY =
+  "radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 72% 12%, #fff, transparent), radial-gradient(1.5px 1.5px at 40% 76%, #fff, transparent), radial-gradient(1px 1px at 88% 64%, #fff, transparent), radial-gradient(1px 1px at 22% 58%, #cfe, transparent), radial-gradient(1.5px 1.5px at 62% 40%, #fff, transparent), radial-gradient(1px 1px at 8% 88%, #fff, transparent), radial-gradient(1px 1px at 92% 90%, #fde, transparent), radial-gradient(1px 1px at 50% 8%, #fff, transparent), radial-gradient(1px 1px at 30% 30%, #fff, transparent)";
+
+/**
+ * Ciel cosmique (style Snap repris et resserré) : l'illustration fondue dans un ciel étoilé.
+ * Le ciel ne fait plus qu'une bordure : l'image en garde la plus grande part.
+ */
+function Cosmic({ card, full }: EffectProps) {
+  return (
+    <div
+      style={{
+        ...fillAbs,
+        background: `${STAR_SKY}, radial-gradient(ellipse at 20% 15%, #5b2a9e 0%, transparent 50%), radial-gradient(ellipse at 85% 80%, #0e6f7a 0%, transparent 55%), #070516`,
+      }}
+    >
+      <div
+        style={{
+          ...fillAbs,
+          ...(full ? ellipse(78, 66, 44, 62, 94) : ellipse(84, 82, 50, 66, 100)),
+        }}
+      >
+        <PremiumArt card={card} />
+      </div>
+      <div
+        aria-hidden
+        style={{
+          ...fillAbs,
+          background:
+            "radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(140 80 255 / 0.3) 85%)",
+          mixBlendMode: "screen",
+        }}
+      />
+    </div>
+  );
+}
+
+const fillAbs: CSSProperties = { position: "absolute", inset: 0 };
+
 /** Un style d'illustration des propositions « Snap » : l'illustration redessinée. */
 const snapStyle = (style: ExtraStyle) =>
   function SnapStyle({ card }: EffectProps) {
@@ -281,14 +360,11 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   lenticulaire: { render: Lenticular, place: "image" },
   glitch: { render: snapStyle("glitch"), place: "image" },
   or: { render: snapStyle("gold"), place: "image" },
-  orcentre: { render: snapStyle("goldspot"), place: "image" },
-  kawaii: { render: snapStyle("kawaii"), place: "image" },
   popart: { render: snapStyle("popart"), place: "image" },
-  aquarelle: { render: snapStyle("watercolor"), place: "image" },
+  aquarelle: { render: Watercolor, place: "image" },
   croquis: { render: snapStyle("sketch"), place: "image" },
-  cosmos: { render: snapStyle("cosmic"), place: "image" },
+  cosmos: { render: Cosmic, place: "image" },
   vitrail: { render: snapStyle("stained"), place: "image" },
-  theme: { render: snapStyle("theme"), place: "image" },
 };
 
 /** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */
@@ -300,10 +376,13 @@ export function effectPlace(effectKey: string): EffectPlace {
 export function VisualEffectLayer({
   effectKey,
   card,
+  full = false,
   still = false,
 }: {
   effectKey: string | null | undefined;
   card: CardData;
+  /** Full art (sinon carte normale). */
+  full?: boolean;
   still?: boolean;
 }) {
   const def = effectKey ? VISUAL_EFFECTS[effectKey] : undefined;
@@ -311,7 +390,7 @@ export function VisualEffectLayer({
   const Effect = def.render;
   return (
     <div className="tcg-vfx" aria-hidden data-effect={effectKey}>
-      <Effect still={still} card={card} />
+      <Effect still={still} card={card} full={full} />
     </div>
   );
 }
