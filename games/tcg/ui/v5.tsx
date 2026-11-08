@@ -234,6 +234,15 @@ function FitTitle({ title, width }: { title: string; width: number }) {
         fontWeight: 700,
         textTransform: "uppercase",
         letterSpacing: "0.04em",
+        // Effet de « POTOMON » au dos : italique, dégradé blanc → cyan, halo cyan.
+        fontStyle: "italic",
+        backgroundImage: "linear-gradient(180deg, #ffffff 30%, #67e8f9 100%)",
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        color: "transparent",
+        filter: "drop-shadow(0 0 2.5px rgb(103 232 249 / 0.75))",
+        // L'italique penche à droite : un peu d'air pour ne pas couper la dernière lettre.
+        paddingInline: "0.15em",
         fontSize: size,
         lineHeight: twoLines ? 1.1 : 1.2,
         textAlign: "center",

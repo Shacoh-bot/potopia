@@ -899,7 +899,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   illustrations déjà posées dans un autre format restent lisibles. Dans l'éditeur, une image se
   colle aussi : Ctrl+V n'importe où sur l'éditeur, ou bouton « Coller une image » (lecture du
   presse-papiers, le navigateur peut demander l'accord).
-  Titre (`FitTitle`) : en majuscules, police Rajdhani gras (celle de « POTOMON » au dos) ; la
+  Titre (`FitTitle`) : en majuscules, police Rajdhani gras et même effet que « POTOMON » au
+  dos (italique, dégradé blanc → cyan, halo cyan) ; la
   taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur deux lignes.
 - Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration de la mise
   en page choisie (normale ou full art) ; on y fait glisser l'image et on règle le zoom. Chaque
