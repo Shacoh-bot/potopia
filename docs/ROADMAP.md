@@ -565,7 +565,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       le style du dos, illustration pleine largeur collée au bandeau du titre, encadrés plus
       transparents en full art.
 - [x] Effets visuels des cartes : catalogue `tcg.visual_effects` (clé + nom, rempli par
-      migration), colonne `visual_effect_key` sur la carte, choix « Effet visuel » dans la fiche,
+      migration), plusieurs effets par carte (`tcg.card_visual_effects`, ordre des calques),
+      cases « Effets visuels » dans la fiche,
       rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `eclair`
       (migration `tcg_visual_effects`, ajout seul).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
@@ -581,8 +582,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
   mal réglé refusé, variantes (stats reprises et recopiées, pas de variante d'une variante), import
   (idées déjà importées ignorées, tout ou rien), illustration (envoi présigné, clé vérifiée dans le
   stockage, formats et droits).
-- Effets visuels : catalogue réservé aux admins et trié en français, effet posé, gardé quand il
-  n'est pas envoyé, retiré, effet inconnu refusé, variante avec son propre effet.
+- Effets visuels : catalogue réservé aux admins et trié en français, plusieurs effets posés dans
+  l'ordre (doublons retirés), gardés quand ils ne sont pas envoyés, remplacés, retirés, effet
+  inconnu refusé sans rien enregistrer, variante avec ses propres effets, import.
 - Mise à jour en masse : carte retrouvée par son idée (le nom départage), reste gardé, variantes
   suivies, tout ou rien, admins seulement.
 - Idées : `listIdeaImageUrls` réservé aux admins.

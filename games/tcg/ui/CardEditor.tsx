@@ -51,8 +51,8 @@ type Fields = {
   effectParams: EffectParams;
   effectText: string;
   flavor: string;
-  /** Clé de l'effet visuel ; vide : aucun. */
-  visualEffectKey: string;
+  /** Effets visuels cochés, dans l'ordre des calques (le premier en dessous). */
+  visualEffectKeys: string[];
 };
 
 type Props = {
@@ -122,7 +122,7 @@ function defaults(card: Card | null): Fields {
     effectParams: card?.effectParams ?? {},
     effectText: card?.effectText ?? "",
     flavor: card?.flavor ?? "",
-    visualEffectKey: card?.visualEffectKey ?? "",
+    visualEffectKeys: card?.visualEffectKeys ?? [],
   };
 }
 
@@ -446,20 +446,42 @@ export function CardEditor({
             onChange={(e) => set("flavor", e.target.value)}
           />
         </Label>
-        <Label hint="Calque animé posé sur toute la carte. Nouveaux effets : ajoutés par migration.">
-          Effet visuel
-          <Select
-            value={fields.visualEffectKey}
-            onChange={(e) => set("visualEffectKey", e.target.value)}
-          >
-            <option value="">Aucun</option>
-            {visualEffects.map((v) => (
-              <option key={v.key} value={v.key}>
-                {VISUAL_EFFECTS[v.key] ? v.name : `${v.name} (rendu pas encore codé)`}
-              </option>
-            ))}
-          </Select>
-        </Label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-text mb-1 text-sm font-medium">Effets visuels</legend>
+          <p className="text-muted text-xs">
+            Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
+            Nouveaux effets : ajoutés par migration.
+          </p>
+          {visualEffects.length === 0 && (
+            <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
+          )}
+          {visualEffects.map((v) => {
+            const rank = fields.visualEffectKeys.indexOf(v.key);
+            return (
+              <label key={v.key} className="text-text flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={rank >= 0}
+                  onChange={(e) =>
+                    set(
+                      "visualEffectKeys",
+                      e.target.checked
+                        ? [...fields.visualEffectKeys, v.key]
+                        : fields.visualEffectKeys.filter((k) => k !== v.key),
+                    )
+                  }
+                />
+                {v.name}
+                {!VISUAL_EFFECTS[v.key] && (
+                  <span className="text-muted text-xs">(rendu pas encore codé)</span>
+                )}
+                {rank >= 0 && fields.visualEffectKeys.length > 1 && (
+                  <span className="text-muted text-xs">calque {rank + 1}</span>
+                )}
+              </label>
+            );
+          })}
+        </fieldset>
 
         {fromIdea?.hasCards && (
           <label className="text-text flex items-center gap-2 text-sm">

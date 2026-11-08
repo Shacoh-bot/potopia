@@ -407,32 +407,48 @@ describe("effets visuels", () => {
     await expect(listVisualEffects(MEMBER)).rejects.toThrow();
   });
 
-  it("pose, garde et retire l'effet d'une carte", async () => {
-    const card = await createCard(ADMIN, { ...BASE, setId, visualEffectKey: "holo" });
-    expect(card.visualEffectKey).toBe("holo");
+  it("pose plusieurs effets dans l'ordre, les garde, les remplace et les retire", async () => {
+    const card = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      visualEffectKeys: ["eclair", "holo", "eclair"],
+    });
+    // Ordre gardé, doublon retiré.
+    expect(card.visualEffectKeys).toEqual(["eclair", "holo"]);
+    expect((await getCard(ADMIN, card.id))?.visualEffectKeys).toEqual(["eclair", "holo"]);
     // Absent : inchangé.
     const kept = await updateCard(ADMIN, card.id, { ...BASE, name: "Renommée" });
-    expect(kept.visualEffectKey).toBe("holo");
-    // Vide : aucun effet.
-    const cleared = await updateCard(ADMIN, card.id, { ...BASE, visualEffectKey: "" });
-    expect(cleared.visualEffectKey).toBeNull();
+    expect(kept.visualEffectKeys).toEqual(["eclair", "holo"]);
+    const swapped = await updateCard(ADMIN, card.id, { ...BASE, visualEffectKeys: ["holo"] });
+    expect(swapped.visualEffectKeys).toEqual(["holo"]);
+    // Liste vide : aucun effet.
+    const cleared = await updateCard(ADMIN, card.id, { ...BASE, visualEffectKeys: [] });
+    expect(cleared.visualEffectKeys).toEqual([]);
   });
 
-  it("refuse un effet absent du catalogue", async () => {
-    await expect(createCard(ADMIN, { ...BASE, setId, visualEffectKey: "inconnu" })).rejects.toThrow(
-      CardInputError,
-    );
+  it("refuse un effet absent du catalogue, sans rien enregistrer", async () => {
+    await expect(
+      createCard(ADMIN, { ...BASE, setId, visualEffectKeys: ["holo", "inconnu"] }),
+    ).rejects.toThrow(CardInputError);
+    expect(await listCards(ADMIN)).toHaveLength(0);
   });
 
-  it("une variante a son propre effet", async () => {
+  it("une variante a ses propres effets", async () => {
     const base = await createCard(ADMIN, { ...BASE, setId });
     const variant = await createCard(ADMIN, {
       ...BASE,
       setId,
       baseCardId: base.id,
-      visualEffectKey: "eclair",
+      visualEffectKeys: ["eclair"],
     });
-    expect(variant.visualEffectKey).toBe("eclair");
-    expect((await getCard(ADMIN, base.id))?.visualEffectKey).toBeNull();
+    expect(variant.visualEffectKeys).toEqual(["eclair"]);
+    expect((await getCard(ADMIN, base.id))?.visualEffectKeys).toEqual([]);
+  });
+
+  it("l'import pose les effets des cartes", async () => {
+    await importCards(ADMIN, {
+      cards: [{ ...BASE, name: "Importée", visualEffectKeys: ["holo"] }],
+    });
+    expect((await listCards(ADMIN))[0]?.visualEffectKeys).toEqual(["holo"]);
   });
 });

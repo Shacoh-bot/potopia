@@ -70,14 +70,13 @@ model TcgCard {
   imageFrameFull Json?     @map("image_frame_full")
   ideaId         String?   @map("idea_id")
   baseCardId     String?   @map("base_card_id")
-  // Effet visuel de la carte (holo, étincelles…) : clé du catalogue `visual_effects`.
-  visualEffectKey String?  @map("visual_effect_key")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   set      TcgSet?   @relation(fields: [setId], references: [id])
   base     TcgCard?  @relation("TcgCardVariant", fields: [baseCardId], references: [id])
-  visualEffect TcgVisualEffect? @relation(fields: [visualEffectKey], references: [key])
+  // Effets visuels de la carte, dans l'ordre des calques.
+  visualEffects TcgCardVisualEffect[]
   variants TcgCard[] @relation("TcgCardVariant")
 
   @@unique([setId, number])
@@ -94,8 +93,24 @@ model TcgVisualEffect {
   name      String
   createdAt DateTime @default(now()) @map("created_at")
 
-  cards TcgCard[]
+  cards TcgCardVisualEffect[]
 
   @@map("visual_effects")
+  @@schema("tcg")
+}
+
+// Effet visuel posé sur une carte. Une carte en a plusieurs : `position` donne l'ordre des
+// calques (0 en dessous). Retirer un effet du catalogue le retire des cartes.
+model TcgCardVisualEffect {
+  cardId    String @map("card_id")
+  effectKey String @map("effect_key")
+  position  Int
+
+  card   TcgCard         @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  effect TcgVisualEffect @relation(fields: [effectKey], references: [key], onDelete: Cascade)
+
+  @@id([cardId, effectKey])
+  @@index([effectKey])
+  @@map("card_visual_effects")
   @@schema("tcg")
 }

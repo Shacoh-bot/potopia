@@ -3,7 +3,7 @@ import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
-import { effectSpills, VisualEffectLayer } from "./visual-effects";
+import { coversWholeCard, VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
   cardBackground,
@@ -452,7 +452,7 @@ export function FinalCard({
   band = "plein",
   typeLine,
   gameFooter = false,
-  visualEffect,
+  visualEffects = [],
   still = false,
 }: {
   card: CardData;
@@ -463,12 +463,17 @@ export function FinalCard({
   typeLine?: string;
   /** Pied des vraies cartes (rareté abrégée, auteur de l'idée) ; les propositions notées gardent le leur. */
   gameFooter?: boolean;
-  /** Effet visuel (clé du catalogue, voir `visual-effects.tsx`) ; vide : aucun. */
-  visualEffect?: string | null;
+  /** Effets visuels (clés du catalogue, voir `visual-effects.tsx`), le premier en dessous. */
+  visualEffects?: string[];
   /** Carte figée (planches) : l'effet visuel reste à l'arrêt. */
   still?: boolean;
 }) {
   const full = layout === "fullart";
+  // Carte normale : les effets rognés vont sur l'illustration, ceux de toute la carte dessous les encadrés.
+  const artEffects = visualEffects.filter((k) => !coversWholeCard(k));
+  const cardEffects = visualEffects.filter((k) => coversWholeCard(k));
+  const effects = (keys: string[]) =>
+    keys.map((k) => <VisualEffectLayer key={k} effectKey={k} still={still} />);
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
   // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
   const panel: CSSProperties = {
@@ -516,10 +521,8 @@ export function FinalCard({
             }}
           >
             <PremiumArt card={card} />
-            {/* Carte normale : l'effet visuel ne couvre que l'illustration. */}
-            {visualEffect && !effectSpills(visualEffect) && (
-              <VisualEffectLayer effectKey={visualEffect} still={still} />
-            )}
+            {/* Carte normale : les effets visuels rognés ne couvrent que l'illustration. */}
+            {effects(artEffects)}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
             {band === "court" && (
               // Même trait que sous le titre, pour fermer l'illustration en bas.
@@ -539,11 +542,11 @@ export function FinalCard({
         </>
       )}
 
-      {/* Carte normale, effet qui déborde (éclair) : sur toute la carte mais sous le bandeau du
-          titre, la bordure et les encadrés (profondeur 5, sous leurs 10 et 30). */}
-      {!full && effectSpills(visualEffect) && (
+      {/* Carte normale, effets de toute la carte (éclair) : sur toute la carte mais sous le bandeau
+          du titre, la bordure et les encadrés (profondeur 5, sous leurs 10 et 30). */}
+      {!full && cardEffects.length > 0 && (
         <Layer z={5} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
-          <VisualEffectLayer effectKey={visualEffect} still={still} />
+          {effects(cardEffects)}
         </Layer>
       )}
 
@@ -622,12 +625,12 @@ export function FinalCard({
         </div>
       </Layer>
 
-      {/* Full art : l'effet visuel couvre toute la carte, encadrés compris, sous le coût et la
+      {/* Full art : les effets visuels couvrent toute la carte, encadrés compris, sous le coût et la
           puissance. En carte normale, il est plus haut, sous les encadrés : dans la fenêtre
-          d'illustration, ou sur toute la carte pour un effet qui déborde. */}
-      {full && visualEffect && (
+          d'illustration, ou sur toute la carte pour un effet `wholeCard`. */}
+      {full && visualEffects.length > 0 && (
         <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
-          <VisualEffectLayer effectKey={visualEffect} still={still} />
+          {effects(visualEffects)}
         </Layer>
       )}
 
