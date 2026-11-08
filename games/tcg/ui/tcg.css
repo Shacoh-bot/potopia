@@ -667,30 +667,39 @@
   pointer-events: none;
 }
 
-/* holo : arc-en-ciel qui balaie la carte en diagonale. */
+/* holo : bandes arc-en-ciel qui glissent avec le pointeur (--mx/--my posées par <Tilt>), plus
+   vives autour de lui et quand la carte est survolée. Sans pointeur (planche, mobile au repos) :
+   reflet discret, figé au centre. */
 .tcg-vfx-holo {
   position: absolute;
-  inset: -50%;
-  background: linear-gradient(
+  inset: 0;
+  background: repeating-linear-gradient(
     115deg,
-    transparent 36%,
-    rgb(255 80 200 / 0.32) 42%,
-    rgb(255 230 120 / 0.32) 47%,
-    rgb(120 255 200 / 0.32) 52%,
-    rgb(100 200 255 / 0.32) 57%,
-    transparent 63%
+    rgb(255 80 200 / 0.55) 0%,
+    rgb(255 230 120 / 0.55) 7%,
+    rgb(120 255 200 / 0.55) 14%,
+    rgb(100 200 255 / 0.55) 21%,
+    rgb(190 120 255 / 0.55) 28%,
+    rgb(255 80 200 / 0.55) 35%
   );
+  background-size: 260% 260%;
+  background-position: var(--mx, 50%) var(--my, 35%);
   mix-blend-mode: color-dodge;
-  transform: translateX(-10%);
-  animation: tcg-vfx-holo 4.5s ease-in-out infinite alternate;
+  -webkit-mask-image: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 35%),
+    #000 0%,
+    rgb(0 0 0 / 0.3) 65%
+  );
+  mask-image: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 35%),
+    #000 0%,
+    rgb(0 0 0 / 0.3) 65%
+  );
+  opacity: 0.3;
+  transition: opacity 0.3s;
 }
-@keyframes tcg-vfx-holo {
-  from {
-    transform: translateX(-35%);
-  }
-  to {
-    transform: translateX(35%);
-  }
+.tcg-tilt[data-active] .tcg-vfx-holo {
+  opacity: 0.7;
 }
 
 /* etincelles : éclats en étoile à quatre branches, halo cyan. */
@@ -723,7 +732,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tcg-vfx-holo,
   .tcg-vfx-spark {
     animation: none;
   }

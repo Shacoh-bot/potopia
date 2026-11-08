@@ -906,7 +906,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `prefers-reduced-motion`, les animations sont coupées. Une clé sans rendu codé ne montre rien
   (la fiche l'indique « rendu pas encore codé ») ; une clé hors catalogue est refusée à
   l'enregistrement et à l'import. Premiers effets : `holo` (« Reflet holographique » :
-  arc-en-ciel en diagonale qui balaie la carte, CSS seul) et `etincelles` (« Étincelles » :
+  bandes arc-en-ciel qui glissent avec le pointeur quand on incline la carte, plus vives autour de
+  lui, d'après `--mx`/`--my` de `Tilt` ; CSS seul, discret et figé sans pointeur) et `etincelles` (« Étincelles » :
   éclats en étoile à halo cyan, placés de façon déterministe puis déplacés au hasard en JS à
   chaque scintillement). **Ajouter un effet** : une migration qui insère sa ligne
   (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES (…)`), son composant dans

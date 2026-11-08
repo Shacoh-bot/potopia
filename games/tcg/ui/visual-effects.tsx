@@ -22,7 +22,10 @@ type EffectProps = {
   still: boolean;
 };
 
-/** Reflet holographique : un arc-en-ciel qui balaie la carte en diagonale (CSS seul). */
+/**
+ * Reflet holographique : des bandes arc-en-ciel qui glissent avec le pointeur quand on incline la
+ * carte (CSS seul, d'après les variables posées par `Tilt`).
+ */
 function Holo() {
   return <div className="tcg-vfx-holo" />;
 }
