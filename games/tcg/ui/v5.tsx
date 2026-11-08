@@ -3,7 +3,7 @@ import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
-import { coversWholeCard, VisualEffectLayer } from "./visual-effects";
+import { effectPlace, VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
   cardBackground,
@@ -469,9 +469,11 @@ export function FinalCard({
   still?: boolean;
 }) {
   const full = layout === "fullart";
-  // Carte normale : les effets rognés vont sur l'illustration, ceux de toute la carte dessous les encadrés.
-  const artEffects = visualEffects.filter((k) => !coversWholeCard(k));
-  const cardEffects = visualEffects.filter((k) => coversWholeCard(k));
+  // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
+  const placed = (place: string) => visualEffects.filter((k) => effectPlace(k) === place);
+  const artEffects = placed("art");
+  const cardEffects = placed("card");
+  const frameEffects = placed("frame");
   const effects = (keys: string[]) =>
     keys.map((k) => <VisualEffectLayer key={k} effectKey={k} still={still} />);
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
@@ -521,7 +523,7 @@ export function FinalCard({
             }}
           >
             <PremiumArt card={card} />
-            {/* Carte normale : les effets visuels rognés ne couvrent que l'illustration. */}
+            {/* Carte normale : les effets « art » ne couvrent que l'illustration. */}
             {effects(artEffects)}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
             {band === "court" && (
@@ -573,6 +575,14 @@ export function FinalCard({
         <BackStyleFrame />
       </Layer>
       {band === "serti" && <Socket finish={finish} />}
+
+      {/* Carte normale, effets de cadre (liserés, prisme, halo) : par-dessus la bordure et le
+          bandeau du titre (profondeur 20, au-dessus de leurs 10), sous les encadrés (30). */}
+      {!full && frameEffects.length > 0 && (
+        <Layer z={20} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          {effects(frameEffects)}
+        </Layer>
+      )}
 
       <Layer z={30} style={{ left: SIDE, right: SIDE, top: TYPE.top, height: TYPE.height }}>
         <div
@@ -627,7 +637,7 @@ export function FinalCard({
 
       {/* Full art : les effets visuels couvrent toute la carte, encadrés compris, sous le coût et la
           puissance. En carte normale, il est plus haut, sous les encadrés : dans la fenêtre
-          d'illustration, ou sur toute la carte pour un effet `wholeCard`. */}
+          d'illustration, ou selon la place de l'effet (`effectPlace`). */}
       {full && visualEffects.length > 0 && (
         <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
           {effects(visualEffects)}

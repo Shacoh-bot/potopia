@@ -909,8 +909,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   composant React (CSS de `tcg.css`, classes `tcg-vfx-…`, et JS au besoin), posé par
   `FinalCard` en calque rogné qui ne capte pas le pointeur : en carte normale sur l'illustration
   seule (dans sa fenêtre), en full art sur toute la carte, au-dessus des encadrés et sous le coût
-  et la puissance. Un effet marqué `wholeCard` (l'éclair) couvre toute la carte aussi en carte
-  normale, sous le bandeau du titre, la bordure et les encadrés (calque de profondeur 5). Sur la
+  et la puissance. En carte normale, chaque effet a sa place (`place` dans `VISUAL_EFFECTS`) :
+  `art` par défaut (l'illustration seule), `card` (toute la carte, sous le bandeau du titre, la
+  bordure et les encadrés : calque de profondeur 5, l'éclair) ou `frame` (toute la carte,
+  par-dessus la bordure et le bandeau mais sous les encadrés : profondeur 20, effets de cadre). Sur la
   planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées. Une clé sans
   rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
@@ -919,10 +921,17 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   seul, discret et figé sans pointeur) et `eclair` (« Éclair » : un éclair en zigzag tiré au
   hasard en JS part d'un bord de la carte (haut, gauche ou droite) toutes les 1 à 3,5 s, la
   traverse avec deux ou trois ramifications, scintille et l'illumine d'un flash, sans sortir de
-  la carte ; carte figée ou mouvement réduit : un éclair fixe). **Ajouter un effet** : une
+  la carte ; carte figée ou mouvement réduit : un éclair fixe). Repris des anciennes propositions de
+  design, avec leurs styles de `tcg.css` tels quels (migration
+  `tcg_visual_effects_propositions`) : sur l'illustration, `paillettes` (« Paillettes »,
+  `tcg-sparkle`), `eclat` (« Éclat de lumière », `tcg-shine`), `gravure` (« Gravure nacrée »,
+  `tcg-etched`), `balayage` (« Lignes de balayage », `tcg-scan`) ; sur le cadre, `orbite`
+  (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
+  `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
+  qui respire », `tcg-breathe` : lueur cyan intérieure). **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
-(…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (`wholeCard` s'il doit couvrir
-  toute la carte), ses styles dans `tcg.css`.
+(…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (avec sa `place` si ce n'est
+  pas l'illustration), ses styles dans `tcg.css`.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et

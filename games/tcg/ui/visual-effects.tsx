@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentType, useEffect, useState } from "react";
+import { type ComponentType, type CSSProperties, useEffect, useState } from "react";
 
 /*
  * Effets visuels des cartes : le rendu (CSS de tcg.css, section « Effets visuels », et JS ici) de
@@ -12,11 +12,17 @@ import { type ComponentType, useEffect, useState } from "react";
  * 2. son composant ci-dessous, ajouté à `VISUAL_EFFECTS` sous la même clé ;
  * 3. ses styles dans tcg.css (classes `tcg-vfx-…`), coupés avec `prefers-reduced-motion`.
  *
- * Un effet est un calque rogné qui ne capte jamais le pointeur : sur l'illustration seule en
- * carte normale, sur toute la carte en full art (au-dessus des encadrés, sous le coût et la
- * puissance). Un effet `wholeCard` couvre toute la carte aussi en carte normale, sous le bandeau
- * du titre et les encadrés. Sur les planches (`still`), tcg.css coupe
- * toutes les animations : l'effet doit rester joli à l'arrêt.
+ * Un effet est un calque rogné qui ne capte jamais le pointeur. En full art, il couvre toute la
+ * carte, au-dessus des encadrés et sous le coût et la puissance. En carte normale, sa place
+ * (`place`) dépend de l'effet :
+ * - `art` (par défaut) : sur l'illustration seule ;
+ * - `card` : sur toute la carte, sous le bandeau du titre, la bordure et les encadrés ;
+ * - `frame` : sur toute la carte, au-dessus de la bordure mais sous les encadrés (effets de cadre).
+ * Sur les planches (`still`), tcg.css coupe toutes les animations : l'effet doit rester joli à
+ * l'arrêt.
+ *
+ * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
+ * (paillettes, éclat, gravure, balayage, liserés, prisme, halo : classes `tcg-…` de tcg.css).
  */
 
 type EffectProps = {
@@ -24,13 +30,12 @@ type EffectProps = {
   still: boolean;
 };
 
+/** Place d'un effet en carte normale (voir plus haut). */
+export type EffectPlace = "art" | "card" | "frame";
+
 type EffectDef = {
   render: ComponentType<EffectProps>;
-  /**
-   * Posé sur toute la carte, même en carte normale (sous les encadrés) ; sinon, en carte normale,
-   * sur l'illustration seule.
-   */
-  wholeCard?: boolean;
+  place?: EffectPlace;
 };
 
 /**
@@ -158,15 +163,57 @@ function Lightning({ still }: EffectProps) {
   );
 }
 
+/* ── Effets repris des propositions de design (styles de tcg.css) ── */
+
+/** Paillettes : points scintillants qui glissent un peu avec le pointeur. */
+const Glitter = () => <div className="tcg-sparkle" />;
+/** Éclat de lumière : un reflet balaie la carte de temps en temps. */
+const Shine = () => <div className="tcg-shine" />;
+/** Gravure nacrée : fines diagonales gravées et reflet nacré, visibles même au repos. */
+const Etched = () => <div className="tcg-etched" />;
+/** Lignes de balayage : trame d'écran cathodique. */
+const Scanlines = () => <div className="tcg-scan" />;
+/** Liseré lumineux : un trait de lumière cyan fait le tour du cadre. */
+const Orbit = () => <div className="tcg-orbit" style={{ "--orbit": "#67e8f9" } as CSSProperties} />;
+/** Cadre prismatique : un arc-en-ciel tourne lentement dans la bordure. */
+const Prism = () => <div className="tcg-prism" style={{ "--prism-w": "7px" } as CSSProperties} />;
+/** Liseré d'énergie : un courant cyan et magenta court sans fin autour de la carte. */
+const Flow = () => (
+  <div
+    className="tcg-flow"
+    style={{ "--flow": "#67e8f9, #ffffff, #ff2d7a, #a855f7, #67e8f9" } as CSSProperties}
+  />
+);
+/** Halo qui respire : une lueur cyan intérieure, le long du cadre, qui s'allume et s'éteint. */
+const Breathe = () => (
+  <div
+    className="tcg-breathe"
+    style={{
+      position: "absolute",
+      inset: 7,
+      borderRadius: 15,
+      boxShadow: "inset 0 0 26px rgb(103 232 249 / 0.6)",
+    }}
+  />
+);
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
-  eclair: { render: Lightning, wholeCard: true },
+  eclair: { render: Lightning, place: "card" },
+  paillettes: { render: Glitter },
+  eclat: { render: Shine },
+  gravure: { render: Etched },
+  balayage: { render: Scanlines },
+  orbite: { render: Orbit, place: "frame" },
+  prisme: { render: Prism, place: "frame" },
+  flux: { render: Flow, place: "frame" },
+  halo: { render: Breathe, place: "frame" },
 };
 
-/** L'effet couvre-t-il toute la carte même en carte normale (au lieu de l'illustration seule) ? */
-export function coversWholeCard(effectKey: string | null | undefined): boolean {
-  return !!(effectKey && VISUAL_EFFECTS[effectKey]?.wholeCard);
+/** Place de l'effet en carte normale : illustration, toute la carte, ou par-dessus la bordure. */
+export function effectPlace(effectKey: string): EffectPlace {
+  return VISUAL_EFFECTS[effectKey]?.place ?? "art";
 }
 
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */
