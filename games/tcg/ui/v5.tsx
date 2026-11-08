@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
@@ -396,6 +397,32 @@ function BackStyleFrame() {
   );
 }
 
+/** Or des filets des encadrés : reflets le long du bord, comme le cadre du dos. */
+const PANEL_GOLD =
+  "linear-gradient(100deg, #8a5a14 0%, #fde68a 22%, #e0a93a 45%, #fff3c4 68%, #9a6418 100%)";
+
+/**
+ * Filets très fins des encadrés (ligne de type, effet) dans le style du dos : un filet doré de
+ * 1 px à la place de la bordure, doublé à l'intérieur d'un liseré cyan à peine visible.
+ */
+function PanelTrim() {
+  return (
+    <>
+      <Ring background={PANEL_GOLD} width={1} style={{ inset: 0, borderRadius: 8 }} />
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 1.5,
+          borderRadius: 6.5,
+          border: "0.5px solid rgb(103 232 249 / 0.3)",
+          pointerEvents: "none",
+        }}
+      />
+    </>
+  );
+}
+
 export function FinalCard({
   card,
   layout,
@@ -414,7 +441,13 @@ export function FinalCard({
   gameFooter?: boolean;
 }) {
   const full = layout === "fullart";
-  const panel = panelStyle(card, STYLE.panel, layout);
+  // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
+  // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
+  const panel: CSSProperties = {
+    ...panelStyle(card, STYLE.panel, layout),
+    border: 0,
+    position: "relative",
+  };
   const relief = windowRelief(STYLE);
 
   return (
@@ -484,6 +517,7 @@ export function FinalCard({
           <span style={{ fontFamily: font("magic", "serif"), fontWeight: 700, fontSize: 12.5 }}>
             {typeLine ?? `Créature — ${card.tag}`}
           </span>
+          <PanelTrim />
         </div>
       </Layer>
 
@@ -501,6 +535,7 @@ export function FinalCard({
             ...panel,
           }}
         >
+          <PanelTrim />
           <div>{card.effect}</div>
           {card.flavor && (
             <div
