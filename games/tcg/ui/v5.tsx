@@ -95,6 +95,12 @@ export type BandShape = "plein" | "echancre" | "serti" | "court" | "aucun";
 
 /** Centre et rayon du rond du mana (`Cost` réduit de `BADGE`, posé à -2 px du coin). */
 const MANA = { x: -2 + 34 * BADGE, y: -2 + 33 * BADGE, r: 29.75 * BADGE };
+/**
+ * Fenêtre d'illustration de la carte normale avec le bandeau court (cartes du jeu) : collée au
+ * trait sous le titre, en bas au même endroit qu'avant (y = 232). Coins droits en haut.
+ */
+export const FINAL_ART = { top: 46, height: 186 } as const;
+
 /** Rayon de l'échancrure (4 px d'écart autour du mana) et de l'anneau serti. */
 const NOTCH = MANA.r + 4.5;
 const SOCKET = 34.5;
@@ -354,7 +360,7 @@ const H = 420;
 /**
  * Cadre repris du dos de la carte, posé sur la bordure de rareté : polissage en diagonale,
  * plaques d'angle dorées, gemmes cyan (haut) et magenta (bas) dans les coins libres (le coût et
- * la puissance couvrent les deux autres), plaque du haut avec son losange magenta.
+ * la puissance couvrent les deux autres). La plaque du haut et son losange restent au dos.
  */
 function BackStyleFrame() {
   const band = `M${R} 0 H${W - R} A${R} ${R} 0 0 1 ${W} ${R} V${H - R} A${R} ${R} 0 0 1 ${W - R} ${H} H${R} A${R} ${R} 0 0 1 0 ${H - R} V${R} A${R} ${R} 0 0 1 ${R} 0 Z M${R} ${FRAME} H${W - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - FRAME} ${R} V${H - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - R} ${H - FRAME} H${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${FRAME} ${H - R} V${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${R} ${FRAME} Z`;
@@ -386,10 +392,8 @@ function BackStyleFrame() {
         <polygon points={CORNER} transform={`translate(${W} 0) scale(-1 1)`} />
         <polygon points={CORNER} transform={`translate(0 ${H}) scale(1 -1)`} />
         <polygon points={CORNER} transform={`translate(${W} ${H}) scale(-1 -1)`} />
-        <polygon points={`${W / 2 - 38},0 ${W / 2 + 38},0 ${W / 2 + 30},11 ${W / 2 - 30},11`} />
       </g>
       <g filter="url(#tcg-back-glow)">
-        <path d={`M${W / 2} 1 L${W / 2 + 5} 5.5 L${W / 2} 10 L${W / 2 - 5} 5.5 Z`} fill="#ff2d7a" />
         <Gem x={W - 13} y={13} color="c" />
         <Gem x={13} y={H - 13} color="p" />
       </g>
@@ -472,7 +476,15 @@ export function FinalCard({
             aria-hidden
             style={{ ...fill, borderRadius: R, background: cardBackground(STYLE.panel) }}
           />
-          <div style={{ ...windowBox(STYLE), background: "#0b0d18" }}>
+          <div
+            style={{
+              ...windowBox(STYLE),
+              ...(band === "court"
+                ? { top: FINAL_ART.top, height: FINAL_ART.height, borderRadius: "0 0 8px 8px" }
+                : null),
+              background: "#0b0d18",
+            }}
+          >
             <PremiumArt card={card} />
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
           </div>

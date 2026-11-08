@@ -27,6 +27,7 @@ import { CardFlip } from "./CardFlip";
 import { GameCard, GameCardDefs } from "./GameCard";
 import { ImageFramer } from "./ImageFramer";
 import { pastedImage, toCardWebp } from "./toCardWebp";
+import { FINAL_ART } from "./v5";
 
 /** Mise en page de l'aperçu, et du cadrage qu'on règle. */
 type Layout = "normal" | "fullart";
@@ -503,9 +504,9 @@ export function CardEditor({
               imageUrl={image}
               frame={frames[layout]}
               onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-              // Proportions de la fenêtre d'illustration : carte normale (264 × 172) ou full art.
+              // Proportions de la fenêtre d'illustration : carte normale (264 × FINAL_ART) ou full art.
               width={layout === "normal" ? 264 : 200}
-              height={layout === "normal" ? 172 : 280}
+              height={layout === "normal" ? FINAL_ART.height : 280}
             />
             {layout === "fullart" && (
               <button

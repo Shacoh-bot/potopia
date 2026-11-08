@@ -883,9 +883,11 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   badges dessinés (`Cost`, `Power`).
 - Cadre de la carte retenue (`BackStyleFrame` de `v5.tsx`) : le style du dos posé sur la bordure
   de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur, plaques d'angle
-  dorées, plaque du haut avec son losange magenta, gemmes cyan (haut droit) et magenta (bas
+  dorées, gemmes cyan (haut droit) et magenta (bas
   gauche) dans les coins que le coût et la puissance laissent libres. Dégradés et halo dans
-  `SnapDefs` (`tcg-back-*`).
+  `SnapDefs` (`tcg-back-*`). La plaque du haut et son losange magenta restent au dos seulement.
+  Avec le bandeau court, la fenêtre d'illustration monte jusqu'au trait sous le titre
+  (`FINAL_ART`, 46 → 232 px, coins droits en haut), proportions reprises par le cadrage de l'éditeur.
   Les encadrés (ligne de type, effet) ont le même esprit, très fin (`PanelTrim`) : un filet doré
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
