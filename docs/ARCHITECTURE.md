@@ -881,6 +881,11 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
   par-dessus (plus petit à partir de deux chiffres). Les anciennes propositions gardent leurs
   badges dessinés (`Cost`, `Power`).
+- Cadre de la carte retenue (`BackStyleFrame` de `v5.tsx`) : le style du dos posé sur la bordure
+  de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur, plaques d'angle
+  dorées, plaque du haut avec son losange magenta, gemmes cyan (haut droit) et magenta (bas
+  gauche) dans les coins que le coût et la puissance laissent libres. Dégradés et halo dans
+  `SnapDefs` (`tcg-back-*`).
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et

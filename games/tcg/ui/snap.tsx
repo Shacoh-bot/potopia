@@ -65,6 +65,38 @@ export function SnapDefs() {
           <feComposite in="SourceGraphic" in2="grid" operator="in" />
           <feMorphology operator="dilate" radius="4" />
         </filter>
+        {/* Cadre de la carte retenue, repris du dos (`CardBack`) : or, polissage, gemmes, halo. */}
+        <linearGradient id="tcg-back-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fde68a" />
+          <stop offset="0.5" stopColor="#e0a93a" />
+          <stop offset="1" stopColor="#8a5a14" />
+        </linearGradient>
+        {/* Reflets clairs et creux sombres en diagonale, posés sur la couleur de rareté. */}
+        <linearGradient id="tcg-back-polish" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity={0.55} />
+          <stop offset="0.18" stopColor="#000" stopOpacity={0.4} />
+          <stop offset="0.42" stopColor="#fff" stopOpacity={0.6} />
+          <stop offset="0.6" stopColor="#000" stopOpacity={0.4} />
+          <stop offset="0.82" stopColor="#fff" stopOpacity={0.3} />
+          <stop offset="1" stopColor="#000" stopOpacity={0.5} />
+        </linearGradient>
+        <radialGradient id="tcg-back-gem-c" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#cffafe" />
+          <stop offset="0.45" stopColor="#22d3ee" />
+          <stop offset="1" stopColor="#0e5a7a" />
+        </radialGradient>
+        <radialGradient id="tcg-back-gem-p" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#ffe4ef" />
+          <stop offset="0.45" stopColor="#ff2d7a" />
+          <stop offset="1" stopColor="#7a0f3a" />
+        </radialGradient>
+        <filter id="tcg-back-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       <ExtraDefs />
     </svg>

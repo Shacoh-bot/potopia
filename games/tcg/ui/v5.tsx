@@ -327,6 +327,75 @@ function Footer({
  * Carte de la cinquième vague, en carte normale ou full art. `finish` ne change que le pied de
  * carte : les effets de rareté se votent à part.
  */
+/** Facettes d'une gemme octogonale, comme au dos (`CardBack`). */
+const GEM_OUTER = "-3.1,-7.5 3.1,-7.5 7.5,-3.1 7.5,3.1 3.1,7.5 -3.1,7.5 -7.5,3.1 -7.5,-3.1";
+const GEM_TABLE = "-1.5,-3.6 1.5,-3.6 3.6,-1.5 3.6,1.5 1.5,3.6 -1.5,3.6 -3.6,1.5 -3.6,-1.5";
+
+function Gem({ x, y, color }: { x: number; y: number; color: "c" | "p" }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(0.62)`}>
+      <polygon
+        points={GEM_OUTER}
+        fill={`url(#tcg-back-gem-${color})`}
+        stroke="url(#tcg-back-gold)"
+        strokeWidth={1.4}
+      />
+      <polygon points={GEM_TABLE} fill="#fff" fillOpacity={0.3} />
+    </g>
+  );
+}
+
+/** Plaque d'angle dorée du dos, dans le coin haut gauche (les autres en miroir). */
+const CORNER = "0,48 0,22 22,0 48,0 40,7 24,7 7,24 7,40";
+const W = 300;
+const H = 420;
+
+/**
+ * Cadre repris du dos de la carte, posé sur la bordure de rareté : polissage en diagonale,
+ * plaques d'angle dorées, gemmes cyan (haut) et magenta (bas) dans les coins libres (le coût et
+ * la puissance couvrent les deux autres), plaque du haut avec son losange magenta.
+ */
+function BackStyleFrame() {
+  const band = `M${R} 0 H${W - R} A${R} ${R} 0 0 1 ${W} ${R} V${H - R} A${R} ${R} 0 0 1 ${W - R} ${H} H${R} A${R} ${R} 0 0 1 0 ${H - R} V${R} A${R} ${R} 0 0 1 ${R} 0 Z M${R} ${FRAME} H${W - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - FRAME} ${R} V${H - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - R} ${H - FRAME} H${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${FRAME} ${H - R} V${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${R} ${FRAME} Z`;
+  return (
+    <svg
+      aria-hidden
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ ...fill, width: "100%", height: "100%", overflow: "visible" }}
+    >
+      <path
+        d={band}
+        fillRule="evenodd"
+        fill="url(#tcg-back-polish)"
+        style={{ mixBlendMode: "soft-light" }}
+      />
+      {/* Filet doré le long du bord intérieur. */}
+      <rect
+        x={FRAME + 0.75}
+        y={FRAME + 0.75}
+        width={W - 2 * FRAME - 1.5}
+        height={H - 2 * FRAME - 1.5}
+        rx={R - FRAME - 0.75}
+        fill="none"
+        stroke="url(#tcg-back-gold)"
+        strokeWidth={1.5}
+      />
+      <g fill="url(#tcg-back-gold)" stroke="rgb(0 0 0 / 0.45)" strokeWidth={0.6}>
+        <polygon points={CORNER} />
+        <polygon points={CORNER} transform={`translate(${W} 0) scale(-1 1)`} />
+        <polygon points={CORNER} transform={`translate(0 ${H}) scale(1 -1)`} />
+        <polygon points={CORNER} transform={`translate(${W} ${H}) scale(-1 -1)`} />
+        <polygon points={`${W / 2 - 38},0 ${W / 2 + 38},0 ${W / 2 + 30},11 ${W / 2 - 30},11`} />
+      </g>
+      <g filter="url(#tcg-back-glow)">
+        <path d={`M${W / 2} 1 L${W / 2 + 5} 5.5 L${W / 2} 10 L${W / 2 - 5} 5.5 Z`} fill="#ff2d7a" />
+        <Gem x={W - 13} y={13} color="c" />
+        <Gem x={13} y={H - 13} color="p" />
+      </g>
+    </svg>
+  );
+}
+
 export function FinalCard({
   card,
   layout,
@@ -397,6 +466,7 @@ export function FinalCard({
             boxShadow: "0 0 0 1.5px rgb(0 0 0 / 0.7), inset 0 0 16px rgb(0 0 0 / 0.45)",
           }}
         />
+        <BackStyleFrame />
       </Layer>
       {band === "serti" && <Socket finish={finish} />}
 
