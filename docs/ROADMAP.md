@@ -567,8 +567,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
 - [x] Effets visuels des cartes : catalogue `tcg.visual_effects` (clé + nom, rempli par
       migration), plusieurs effets par carte (`tcg.card_visual_effects`, ordre des calques),
       cases « Effets visuels » dans la fiche,
-      rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `eclair`, puis cinq effets repris des anciennes propositions
-      (éclat, liserés, prisme, halo ; migration
+      rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `eclair`, puis vingt effets repris des anciennes propositions
+      (éclat, liserés, prisme, halo, holo classique, néon, torches, aurore, lenticulaire et les
+      styles d'illustration Snap ; migration
       `tcg_visual_effects_propositions`)
       (migration `tcg_visual_effects`, ajout seul).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et

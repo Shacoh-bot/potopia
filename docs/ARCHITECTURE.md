@@ -912,7 +912,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   et la puissance. En carte normale, chaque effet a sa place (`place` dans `VISUAL_EFFECTS`) :
   `art` par défaut (l'illustration seule), `card` (toute la carte, sous le bandeau du titre, la
   bordure et les encadrés : calque de profondeur 5, l'éclair) ou `frame` (toute la carte,
-  par-dessus la bordure et le bandeau mais sous les encadrés : profondeur 20, effets de cadre). Sur la
+  par-dessus la bordure et le bandeau mais sous les encadrés : profondeur 20, effets de cadre).
+  Un effet `image` redessine l'illustration (il reçoit la carte et la redessine avec
+  `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
+  texte, en carte normale comme en full art. Sur la
   planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées. Une clé sans
   rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
@@ -926,7 +929,17 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
   `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
-  qui respire », `tcg-breathe` : lueur cyan intérieure). **Ajouter un effet** : une
+  qui respire », `tcg-breathe` : lueur cyan intérieure), `holoclassique` (« Holo classique »,
+  `tcg-holo`), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
+  `torches` (« Torches », deux lueurs orange qui vacillent en haut, `tcg-torch`), `aurore`
+  (« Aurore cosmique », `tcg-aurora` et `tcg-stars` dans la carte, place `card`) ; illustration
+  redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
+  l'illustration aux couleurs inversées quand la carte penche à droite, toute seule sans
+  pointeur ; une vraie seconde image demanderait une colonne de plus) et les styles
+  d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch`,
+  `or` (« Or massif »), `orcentre` (« Or, sauf le centre »), `kawaii`, `popart`, `aquarelle`,
+  `croquis`, `cosmos` (« Ciel cosmique »), `vitrail`, `theme` (« Teinte du thème », couleur
+  d'accent du thème du site). **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
 (…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (avec sa `place` si ce n'est
   pas l'illustration), ses styles dans `tcg.css`.

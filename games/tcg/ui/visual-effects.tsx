@@ -1,6 +1,9 @@
 "use client";
 
 import { type ComponentType, type CSSProperties, useEffect, useState } from "react";
+import type { CardData } from "./cards";
+import { PremiumArt } from "./premium";
+import { ExtraArt, type ExtraStyle } from "./snap-styles";
 
 /*
  * Effets visuels des cartes : le rendu (CSS de tcg.css, section « Effets visuels », et JS ici) de
@@ -18,20 +21,25 @@ import { type ComponentType, type CSSProperties, useEffect, useState } from "rea
  * - `art` (par défaut) : sur l'illustration seule ;
  * - `card` : sur toute la carte, sous le bandeau du titre, la bordure et les encadrés ;
  * - `frame` : sur toute la carte, au-dessus de la bordure mais sous les encadrés (effets de cadre).
+ * Un effet `image` redessine l'illustration (or, pop art, aquarelle…) : il se pose juste sur elle,
+ * sous tout le reste, dans les deux mises en page, et sous les autres effets de l'illustration.
  * Sur les planches (`still`), tcg.css coupe toutes les animations : l'effet doit rester joli à
  * l'arrêt.
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
- * (éclat, liserés, prisme, halo : classes `tcg-…` de tcg.css).
+ * (holo classique, éclat, liserés, prisme, halo, néon, torches, aurore : classes `tcg-…` de
+ * tcg.css) et les styles d'illustration « Snap » (`ExtraArt` de snap-styles.tsx).
  */
 
 type EffectProps = {
   /** Carte figée (planches) : pas d'animation, l'effet doit tenir en image fixe. */
   still: boolean;
+  /** La carte affichée (illustration et son cadrage), pour les effets qui la redessinent. */
+  card: CardData;
 };
 
-/** Place d'un effet en carte normale (voir plus haut). */
-export type EffectPlace = "art" | "card" | "frame";
+/** Place d'un effet (voir plus haut). */
+export type EffectPlace = "art" | "card" | "frame" | "image";
 
 type EffectDef = {
   render: ComponentType<EffectProps>;
@@ -191,6 +199,72 @@ const Breathe = () => (
   />
 );
 
+/** Holo classique : l'holo des premières propositions, bandes irisées fines et reflet blanc. */
+const HoloClassic = () => <div className="tcg-holo" />;
+
+/** Néon qui grésille : un tube magenta le long du cadre, qui clignote par moments. */
+const Neon = () => (
+  <div
+    className="tcg-flicker"
+    style={{
+      position: "absolute",
+      inset: 8,
+      borderRadius: 14,
+      boxShadow:
+        "inset 0 0 0 1.5px #ffd1e6, inset 0 0 10px #ff2d7a, 0 0 0 1px #ff2d7a, 0 0 12px #ff2d7a",
+    }}
+  />
+);
+
+/** Torches : deux lueurs orange qui vacillent de chaque côté, en haut de la carte. */
+const torch: CSSProperties = {
+  position: "absolute",
+  top: 30,
+  width: 90,
+  height: 90,
+  borderRadius: "50%",
+  background: "radial-gradient(circle, rgb(255 170 60 / 0.55), transparent 70%)",
+};
+const Torches = () => (
+  <>
+    <div className="tcg-torch" style={{ ...torch, left: -10 }} />
+    <div className="tcg-torch" style={{ ...torch, right: -10, animationDelay: "0.7s" }} />
+  </>
+);
+
+/** Aurore cosmique : aurore violette et cyan qui ondule, étoiles qui dérivent (dans la carte). */
+const Aurora = () => (
+  <>
+    <div className="tcg-aurora" style={{ position: "absolute", inset: 0, opacity: 0.7 }} />
+    <div className="tcg-stars" style={{ position: "absolute", inset: 0 }} />
+  </>
+);
+
+/**
+ * Lenticulaire : quand la carte penche à droite, l'illustration bascule sur une seconde version
+ * (ici l'illustration aux couleurs inversées, faute de seconde image), avec les fines lignes du
+ * plastique lenticulaire. Sans pointeur, elle bascule toute seule.
+ */
+function Lenticular({ card, still }: EffectProps) {
+  return (
+    <>
+      <div
+        className={still ? "tcg-lenti" : "tcg-lenti tcg-lenti-auto"}
+        style={{ position: "absolute", inset: 0, filter: "hue-rotate(180deg) saturate(1.4)" }}
+      >
+        <PremiumArt card={card} />
+      </div>
+      <div className="tcg-lenti-lines" />
+    </>
+  );
+}
+
+/** Un style d'illustration des propositions « Snap » : l'illustration redessinée. */
+const snapStyle = (style: ExtraStyle) =>
+  function SnapStyle({ card }: EffectProps) {
+    return <ExtraArt card={card} style={style} />;
+  };
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
@@ -200,9 +274,24 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   prisme: { render: Prism, place: "frame" },
   flux: { render: Flow, place: "frame" },
   halo: { render: Breathe, place: "frame" },
+  holoclassique: { render: HoloClassic },
+  neon: { render: Neon, place: "frame" },
+  torches: { render: Torches, place: "frame" },
+  aurore: { render: Aurora, place: "card" },
+  lenticulaire: { render: Lenticular, place: "image" },
+  glitch: { render: snapStyle("glitch"), place: "image" },
+  or: { render: snapStyle("gold"), place: "image" },
+  orcentre: { render: snapStyle("goldspot"), place: "image" },
+  kawaii: { render: snapStyle("kawaii"), place: "image" },
+  popart: { render: snapStyle("popart"), place: "image" },
+  aquarelle: { render: snapStyle("watercolor"), place: "image" },
+  croquis: { render: snapStyle("sketch"), place: "image" },
+  cosmos: { render: snapStyle("cosmic"), place: "image" },
+  vitrail: { render: snapStyle("stained"), place: "image" },
+  theme: { render: snapStyle("theme"), place: "image" },
 };
 
-/** Place de l'effet en carte normale : illustration, toute la carte, ou par-dessus la bordure. */
+/** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */
 export function effectPlace(effectKey: string): EffectPlace {
   return VISUAL_EFFECTS[effectKey]?.place ?? "art";
 }
@@ -210,9 +299,11 @@ export function effectPlace(effectKey: string): EffectPlace {
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */
 export function VisualEffectLayer({
   effectKey,
+  card,
   still = false,
 }: {
   effectKey: string | null | undefined;
+  card: CardData;
   still?: boolean;
 }) {
   const def = effectKey ? VISUAL_EFFECTS[effectKey] : undefined;
@@ -220,7 +311,7 @@ export function VisualEffectLayer({
   const Effect = def.render;
   return (
     <div className="tcg-vfx" aria-hidden data-effect={effectKey}>
-      <Effect still={still} />
+      <Effect still={still} card={card} />
     </div>
   );
 }

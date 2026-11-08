@@ -471,11 +471,13 @@ export function FinalCard({
   const full = layout === "fullart";
   // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
   const placed = (place: string) => visualEffects.filter((k) => effectPlace(k) === place);
-  const artEffects = placed("art");
+  // Les effets qui redessinent l'illustration passent sous ceux posés dessus.
+  const imageEffects = placed("image");
+  const artEffects = [...imageEffects, ...placed("art")];
   const cardEffects = placed("card");
   const frameEffects = placed("frame");
   const effects = (keys: string[]) =>
-    keys.map((k) => <VisualEffectLayer key={k} effectKey={k} still={still} />);
+    keys.map((k) => <VisualEffectLayer key={k} effectKey={k} card={card} still={still} />);
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
   // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
   const panel: CSSProperties = {
@@ -490,6 +492,12 @@ export function FinalCard({
       {full ? (
         <>
           <Art card={card} />
+          {/* Full art : l'illustration redessinée (or, aquarelle…) reste sous le texte. */}
+          {imageEffects.length > 0 && (
+            <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
+              {effects(imageEffects)}
+            </div>
+          )}
           {/* Assombrit le bas de l'image, pour la lisibilité des encadrés transparents. */}
           <div
             aria-hidden
@@ -638,9 +646,9 @@ export function FinalCard({
       {/* Full art : les effets visuels couvrent toute la carte, encadrés compris, sous le coût et la
           puissance. En carte normale, il est plus haut, sous les encadrés : dans la fenêtre
           d'illustration, ou selon la place de l'effet (`effectPlace`). */}
-      {full && visualEffects.length > 0 && (
+      {full && visualEffects.length > imageEffects.length && (
         <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
-          {effects(visualEffects)}
+          {effects(visualEffects.filter((k) => !imageEffects.includes(k)))}
         </Layer>
       )}
 
