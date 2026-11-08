@@ -202,8 +202,11 @@ function Socket({ finish }: { finish: CardFinish }) {
   );
 }
 
-/** Largeur moyenne d'un caractère du titre (police « magic », gras), en fraction de sa taille. */
-const TITLE_CHAR = 0.53;
+/**
+ * Largeur moyenne d'un caractère du titre (Rajdhani gras en majuscules, espacement compris), en
+ * fraction de sa taille.
+ */
+const TITLE_CHAR = 0.6;
 const TITLE_SIZE = { max: 17, min: 13, twoLines: 12 } as const;
 
 /**
@@ -226,8 +229,11 @@ function FitTitle({ title, width }: { title: string; width: number }) {
   return (
     <span
       style={{
-        fontFamily: font("magic", "serif"),
-        fontWeight: 800,
+        // Même police que « POTOMON » au dos de la carte, en majuscules.
+        fontFamily: font("rajdhani", "Rajdhani, sans-serif"),
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
         fontSize: size,
         lineHeight: twoLines ? 1.1 : 1.2,
         textAlign: "center",

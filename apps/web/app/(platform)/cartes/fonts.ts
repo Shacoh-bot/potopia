@@ -17,7 +17,7 @@ import {
 
 // Polices des propositions de design (games/tcg/ui), exposées en variables CSS : chargées
 // seulement sur cette page. Seules celles de l'onglet Design (snap, magic, fantasyText, franklin,
-// hand) sont préchargées ; les autres ne servent qu'aux anciens designs (archives) et se chargent
+// hand, rajdhani) sont préchargées ; les autres ne servent qu'aux anciens designs (archives) et se chargent
 // quand une planche les utilise.
 const pixel = Press_Start_2P({
   subsets: ["latin"],
@@ -53,12 +53,11 @@ const fantasyText = EB_Garamond({
 const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-grotesk", preload: false });
 const hand = Caveat({ subsets: ["latin"], variable: "--font-hand" });
 const round = Nunito({ subsets: ["latin"], variable: "--font-round", preload: false });
-// Mot « POTOMON » du dos des cartes (`CardBack`).
+// Titre des cartes (`FinalCard`) et mot « POTOMON » du dos (`CardBack`) : préchargée.
 const rajdhani = Rajdhani({
   subsets: ["latin"],
   weight: "700",
   variable: "--font-rajdhani",
-  preload: false,
 });
 // Designs premium : Snap, textes, Arcanes, Poké.
 const snap = Anton({ subsets: ["latin"], weight: "400", variable: "--font-snap" });
