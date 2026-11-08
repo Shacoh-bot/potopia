@@ -791,3 +791,246 @@
     opacity: 0.85;
   }
 }
+
+/* parallaxe : l'illustration (agrandie) glisse à l'opposé du pointeur, la poussière au premier
+   plan glisse avec lui, deux fois plus. Sans pointeur : au centre. */
+.tcg-vfx-plx-back,
+.tcg-vfx-plx-front {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.25s ease-out;
+}
+.tcg-vfx-plx-back {
+  transform: scale(1.14)
+    translate(calc((var(--mx, 50%) - 50%) * -0.07), calc((var(--my, 35%) - 35%) * -0.07));
+}
+.tcg-vfx-plx-front {
+  inset: -12%;
+  background:
+    radial-gradient(3px 3px at 14% 22%, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(5px 5px at 78% 18%, rgb(103 232 249 / 0.7), transparent),
+    radial-gradient(4px 4px at 32% 70%, rgb(255 45 122 / 0.6), transparent),
+    radial-gradient(9px 9px at 86% 64%, rgb(103 232 249 / 0.35), transparent),
+    radial-gradient(12px 12px at 22% 46%, rgb(255 255 255 / 0.18), transparent),
+    radial-gradient(3px 3px at 58% 88%, rgb(255 255 255 / 0.8), transparent),
+    radial-gradient(7px 7px at 62% 34%, rgb(168 85 247 / 0.4), transparent);
+  filter: blur(0.6px);
+  transform: translate(calc((var(--mx, 50%) - 50%) * 0.14), calc((var(--my, 35%) - 35%) * 0.14));
+}
+
+/* lampe : tout est assombri sauf un rond de lumière autour du pointeur ; au repos, rond large au
+   centre et pénombre légère. */
+.tcg-vfx-lamp {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 35%),
+    transparent 0,
+    transparent 70px,
+    rgb(4 6 14 / 0.88) 150px
+  );
+  opacity: 0.45;
+  transition: opacity 0.3s;
+}
+.tcg-tilt[data-active] .tcg-vfx-lamp {
+  opacity: 1;
+}
+
+/* metal : stries horizontales très fines + reflet net en biais qui suit le pointeur. */
+.tcg-vfx-metal {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgb(255 255 255 / 0.07) 0 1px,
+      transparent 1px 2px,
+      rgb(0 0 0 / 0.06) 2px 3px
+    ),
+    linear-gradient(180deg, rgb(200 215 230 / 0.25), rgb(80 95 115 / 0.25));
+  mix-blend-mode: overlay;
+}
+.tcg-vfx-metal-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgb(255 255 255 / 0.15) 45%,
+    rgb(255 255 255 / 0.75) 49%,
+    rgb(255 255 255 / 0.15) 53%,
+    transparent 60%
+  );
+  background-size: 300% 100%;
+  background-position: var(--mx, 50%) 0;
+  mix-blend-mode: soft-light;
+  opacity: 0.6;
+}
+.tcg-tilt[data-active] .tcg-vfx-metal-shine {
+  opacity: 1;
+}
+
+/* donnees : colonnes de caractères qui tombent, effacées vers le haut. */
+.tcg-vfx-rain {
+  position: absolute;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font:
+    600 10px/1 ui-monospace,
+    monospace;
+  letter-spacing: 1px;
+  color: #67e8f9;
+  text-shadow: 0 0 4px #67e8f9;
+  opacity: 0.5;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 75%, #fff);
+  mask-image: linear-gradient(180deg, transparent, #000 75%, #fff);
+  animation: tcg-vfx-rain linear infinite;
+}
+@keyframes tcg-vfx-rain {
+  from {
+    transform: translateY(-120%);
+  }
+  to {
+    transform: translateY(260%);
+  }
+}
+
+/* particules : chaque point monte de 160 px en dérivant de --dx, en apparaissant puis s'éteignant. */
+.tcg-vfx-mote {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: tcg-vfx-mote ease-in-out infinite;
+}
+@keyframes tcg-vfx-mote {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  20%,
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--dx), -160px);
+    opacity: 0;
+  }
+}
+
+/* onde : anneau qui grandit depuis le centre et s'efface ; figé, un anneau à mi-course. */
+.tcg-vfx-wave {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  border: 2px solid rgb(165 243 252 / 0.9);
+  box-shadow:
+    0 0 12px #67e8f9,
+    inset 0 0 12px #67e8f9;
+  transform: scale(2.4);
+  opacity: 0.35;
+  animation: tcg-vfx-wave 3s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+@keyframes tcg-vfx-wave {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    transform: scale(6);
+    opacity: 0;
+  }
+}
+
+/* mirage : voile chaud léger par-dessus l'illustration qui ondule. */
+.tcg-vfx-haze {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgb(255 150 60 / 0.18), transparent 55%);
+  mix-blend-mode: screen;
+}
+
+/* givre : brume froide dans les coins, cristaux qui poussent depuis le coin et reculent. */
+.tcg-vfx-frost-fog {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 0 0, rgb(200 240 255 / 0.45), transparent 32%),
+    radial-gradient(circle at 100% 0, rgb(200 240 255 / 0.45), transparent 32%),
+    radial-gradient(circle at 0 100%, rgb(200 240 255 / 0.45), transparent 32%),
+    radial-gradient(circle at 100% 100%, rgb(200 240 255 / 0.45), transparent 32%);
+}
+.tcg-vfx-frost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 2px #a5f3fc);
+}
+.tcg-vfx-frost-c {
+  fill: none;
+  stroke: rgb(240 252 255 / 0.85);
+  stroke-width: 1;
+  stroke-linecap: round;
+  transform-box: view-box;
+  animation: tcg-vfx-frost 7s ease-in-out infinite alternate;
+}
+@keyframes tcg-vfx-frost {
+  from {
+    transform: scale(0.45);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* brume : voiles larges qui dérivent dans le bas de la carte, en sens contraire. */
+.tcg-vfx-mist {
+  position: absolute;
+  left: 0;
+  bottom: -10%;
+  width: 200%;
+  height: 60%;
+  background:
+    radial-gradient(ellipse 30% 45% at 18% 60%, rgb(220 225 255 / 0.5), transparent),
+    radial-gradient(ellipse 26% 35% at 50% 75%, rgb(200 210 255 / 0.4), transparent),
+    radial-gradient(ellipse 30% 40% at 82% 65%, rgb(230 220 255 / 0.45), transparent);
+  /* Motif répété : la moitié gauche et la droite sont identiques, la boucle ne saute pas. */
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+  filter: blur(6px);
+  animation: tcg-vfx-mist 26s linear infinite;
+}
+.tcg-vfx-mist-2 {
+  bottom: -20%;
+  opacity: 0.7;
+  animation-duration: 38s;
+  animation-direction: reverse;
+}
+@keyframes tcg-vfx-mist {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-rain,
+  .tcg-vfx-mote,
+  .tcg-vfx-wave,
+  .tcg-vfx-frost-c,
+  .tcg-vfx-mist {
+    animation: none;
+  }
+}
