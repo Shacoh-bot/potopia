@@ -888,7 +888,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `SnapDefs` (`tcg-back-*`). La plaque du haut et son losange magenta restent au dos seulement.
   Avec le bandeau court, la fenêtre d'illustration monte jusqu'au trait sous le titre
   et s'étend sur toute la largeur contre la bordure (`FINAL_ART`, 286 × 186 px, de 46 à 232,
-  coins droits), proportions reprises par le cadrage de l'éditeur.
+  coins droits), fermée en bas par le même trait que sous le titre, proportions reprises par le cadrage de l'éditeur.
   Les encadrés (ligne de type, effet) ont le même esprit, très fin (`PanelTrim`) : un filet doré
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »

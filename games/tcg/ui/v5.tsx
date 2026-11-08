@@ -499,6 +499,20 @@ export function FinalCard({
           >
             <PremiumArt card={card} />
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
+            {band === "court" && (
+              // Même trait que sous le titre, pour fermer l'illustration en bas.
+              <div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 1,
+                  background: "rgb(255 255 255 / 0.14)",
+                }}
+              />
+            )}
           </div>
         </>
       )}
