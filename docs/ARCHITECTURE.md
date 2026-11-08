@@ -876,6 +876,11 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   règle de la boîte noire). Sur la planche, les cartes sont figées (`GameCard still`, classe
   `tcg-still`) : sans 3D, animation, reflet ni grande ombre floue, pour un défilement fluide ;
   l'éditeur garde la carte vivante.
+- Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
+  pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
+  `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
+  par-dessus (plus petit à partir de deux chiffres). Les anciennes propositions gardent leurs
+  badges dessinés (`Cost`, `Power`).
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et

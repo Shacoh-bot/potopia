@@ -1,6 +1,6 @@
 import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
-import { Cost, Power, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
+import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
 import {
   BADGE,
@@ -441,7 +441,7 @@ export function FinalCard({
         z={80}
         style={{ left: -2, top: -2, zIndex: 5, scale: String(BADGE), transformOrigin: "0 0" }}
       >
-        <Cost value={card.cost} />
+        <ImageCost value={card.cost} />
       </Layer>
       <Layer
         z={80}
@@ -453,7 +453,7 @@ export function FinalCard({
           transformOrigin: "100% 100%",
         }}
       >
-        <Power value={card.power} />
+        <ImagePower value={card.power} />
       </Layer>
     </Shell>
   );

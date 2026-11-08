@@ -149,6 +149,37 @@ export function Power({ value }: { value: number }) {
   );
 }
 
+/** Dossier public des images des badges (servi par apps/web/public/tcg, comme le dos des cartes). */
+const BADGE_ASSETS = "/tcg";
+
+/** Taille du chiffre d'un badge illustré : plus petit à partir de deux chiffres. */
+const badgeNumSize = (value: number, size: number) =>
+  String(value).length > 1 ? size * 0.78 : size;
+
+/** Coût illustré : losange néon cyan serti d'or (image), le chiffre en texte par-dessus. */
+export function ImageCost({ value }: { value: number }) {
+  return (
+    <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`Coût ${value}`}>
+      <image href={`${BADGE_ASSETS}/badge-cost.webp`} x="-3" y="-3" width="74" height="74" />
+      <Num x={34} y={35} size={badgeNumSize(value, 30)} stroke="#04163f">
+        {value}
+      </Num>
+    </svg>
+  );
+}
+
+/** Puissance illustrée : arche néon magenta sertie d'or (image), le chiffre en texte par-dessus. */
+export function ImagePower({ value }: { value: number }) {
+  return (
+    <svg width="70" height="70" viewBox="0 0 70 70" role="img" aria-label={`Puissance ${value}`}>
+      <image href={`${BADGE_ASSETS}/badge-power.webp`} x="-4" y="-4" width="78" height="78" />
+      <Num x={35} y={36} size={badgeNumSize(value, 30)} stroke="#4a0630">
+        {value}
+      </Num>
+    </svg>
+  );
+}
+
 /** Anneau de cadre : n'importe quel fond (dégradé, or…) découpé en bordure. */
 export function Ring({
   background,
