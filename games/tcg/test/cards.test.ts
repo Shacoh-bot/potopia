@@ -394,14 +394,14 @@ describe("effets visuels", () => {
     await db.tcgVisualEffect.createMany({
       data: [
         { key: "holo", name: "Reflet holographique" },
-        { key: "etincelles", name: "Étincelles" },
+        { key: "eclair", name: "Éclair" },
       ],
     });
   });
 
   it("liste le catalogue par nom, pour les admins seulement", async () => {
     expect(await listVisualEffects(ADMIN)).toEqual([
-      { key: "etincelles", name: "Étincelles" },
+      { key: "eclair", name: "Éclair" },
       { key: "holo", name: "Reflet holographique" },
     ]);
     await expect(listVisualEffects(MEMBER)).rejects.toThrow();
@@ -430,9 +430,9 @@ describe("effets visuels", () => {
       ...BASE,
       setId,
       baseCardId: base.id,
-      visualEffectKey: "etincelles",
+      visualEffectKey: "eclair",
     });
-    expect(variant.visualEffectKey).toBe("etincelles");
+    expect(variant.visualEffectKey).toBe("eclair");
     expect((await getCard(ADMIN, base.id))?.visualEffectKey).toBeNull();
   });
 });

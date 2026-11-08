@@ -3,7 +3,7 @@ import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
-import { VisualEffectLayer } from "./visual-effects";
+import { effectSpills, VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
   cardBackground,
@@ -517,7 +517,9 @@ export function FinalCard({
           >
             <PremiumArt card={card} />
             {/* Carte normale : l'effet visuel ne couvre que l'illustration. */}
-            {visualEffect && <VisualEffectLayer effectKey={visualEffect} still={still} />}
+            {visualEffect && !effectSpills(visualEffect) && (
+              <VisualEffectLayer effectKey={visualEffect} still={still} />
+            )}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
             {band === "court" && (
               // Même trait que sous le titre, pour fermer l'illustration en bas.
@@ -613,8 +615,9 @@ export function FinalCard({
       </Layer>
 
       {/* Full art : l'effet visuel couvre toute la carte, encadrés compris, sous le coût et la
-          puissance (en carte normale, il est dans la fenêtre d'illustration, plus haut). */}
-      {full && visualEffect && (
+          puissance (en carte normale, il est dans la fenêtre d'illustration, plus haut). Un effet qui
+          déborde (éclair) est toujours ici, quelle que soit la mise en page. */}
+      {visualEffect && (full || effectSpills(visualEffect)) && (
         <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
           <VisualEffectLayer effectKey={visualEffect} still={still} />
         </Layer>

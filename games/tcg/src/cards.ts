@@ -171,7 +171,7 @@ async function checkVisualEffect(tx: DbTx, key: string | null | undefined): Prom
 export async function listVisualEffects(admin: Admin): Promise<VisualEffect[]> {
   assertAdmin(admin);
   const effects = await db.tcgVisualEffect.findMany({ select: { key: true, name: true } });
-  // Tri français (la base classerait « Étincelles » après « Reflet »).
+  // Tri français (la base classerait « Éclair » après « Reflet »).
   return effects.sort((a, b) => a.name.localeCompare(b.name, "fr"));
 }
 

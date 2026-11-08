@@ -16,4 +16,4 @@ ALTER TABLE "tcg"."cards" ADD CONSTRAINT "cards_visual_effect_key_fkey" FOREIGN 
 -- Premiers effets visuels du catalogue (rendu codé dans games/tcg/ui/visual-effects.tsx).
 INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
   ('holo', 'Reflet holographique'),
-  ('etincelles', 'Étincelles');
+  ('eclair', 'Éclair');

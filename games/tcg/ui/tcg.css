@@ -702,37 +702,95 @@
   opacity: 0.7;
 }
 
-/* etincelles : éclats en étoile à quatre branches, halo cyan. */
-.tcg-vfx-spark {
-  position: absolute;
-  translate: -50% -50%;
-  filter: drop-shadow(0 0 3px #67e8f9);
-  opacity: 0.75;
-  animation: tcg-vfx-spark 2s ease-in-out infinite both;
+/* Effet qui déborde de la carte (éclair) : pas rogné. */
+.tcg-vfx-spill {
+  overflow: visible;
 }
-.tcg-vfx-spark::before {
-  content: "";
+
+/* eclair : tronc et ramifications blancs, halo cyan et violet ; flash sur la carte à chaque coup. */
+.tcg-vfx-bolt {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px #67e8f9) drop-shadow(0 0 12px #a855f7);
+  animation: tcg-vfx-bolt 0.55s ease-out both;
+}
+.tcg-vfx-bolt-still {
+  opacity: 0.85;
+  animation: none;
+}
+.tcg-vfx-bolt-rest {
+  opacity: 0;
+  animation: none;
+}
+.tcg-vfx-bolt-glow,
+.tcg-vfx-bolt-core {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tcg-vfx-bolt-glow {
+  stroke: rgb(103 232 249 / 0.55);
+}
+.tcg-vfx-bolt-core {
+  stroke: #fff;
+}
+@keyframes tcg-vfx-bolt {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0.25;
+  }
+  28% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.tcg-vfx-flash {
   position: absolute;
   inset: 0;
-  background: #fff;
-  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  border-radius: 22px;
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgb(220 245 255 / 0.55),
+    rgb(168 85 247 / 0.15) 70%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: tcg-vfx-flash 0.45s ease-out both;
 }
-@keyframes tcg-vfx-spark {
+@keyframes tcg-vfx-flash {
   0%,
   100% {
     opacity: 0;
-    scale: 0.2;
-    rotate: 0deg;
   }
-  50% {
+  10% {
     opacity: 1;
-    scale: 1;
-    rotate: 45deg;
+  }
+  22% {
+    opacity: 0.2;
+  }
+  32% {
+    opacity: 0.8;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tcg-vfx-spark {
+  .tcg-vfx-bolt,
+  .tcg-vfx-flash {
     animation: none;
+  }
+  /* Pas de coups : l'éclair fixe reste affiché. */
+  .tcg-vfx-bolt-rest {
+    opacity: 0.85;
   }
 }

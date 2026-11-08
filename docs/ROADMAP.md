@@ -566,7 +566,7 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       transparents en full art.
 - [x] Effets visuels des cartes : catalogue `tcg.visual_effects` (clé + nom, rempli par
       migration), colonne `visual_effect_key` sur la carte, choix « Effet visuel » dans la fiche,
-      rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `etincelles`
+      rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `eclair`
       (migration `tcg_visual_effects`, ajout seul).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.

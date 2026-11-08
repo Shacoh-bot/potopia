@@ -908,9 +908,12 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   (la fiche l'indique « rendu pas encore codé ») ; une clé hors catalogue est refusée à
   l'enregistrement et à l'import. Premiers effets : `holo` (« Reflet holographique » :
   bandes arc-en-ciel qui glissent avec le pointeur quand on incline la carte, plus vives autour de
-  lui, d'après `--mx`/`--my` de `Tilt` ; CSS seul, discret et figé sans pointeur) et `etincelles` (« Étincelles » :
-  éclats en étoile à halo cyan, placés de façon déterministe puis déplacés au hasard en JS à
-  chaque scintillement). **Ajouter un effet** : une migration qui insère sa ligne
+  lui, d'après `--mx`/`--my` de `Tilt` ; CSS seul, discret et figé sans pointeur) et `eclair` (« Éclair » : un
+  éclair en zigzag tiré au hasard en JS frappe la carte toutes les 1 à 3,5 s, scintille et
+  illumine la carte d'un flash ; il part souvent d'au-dessus du cadre et peut en sortir). Un effet
+  marqué `spill` dans `VISUAL_EFFECTS` (l'éclair) est posé sur toute la carte quelle que soit la
+  mise en page, sans être rogné, pour pouvoir déborder ; carte figée ou mouvement réduit : un
+  éclair fixe. **Ajouter un effet** : une migration qui insère sa ligne
   (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES (…)`), son composant dans
   `VISUAL_EFFECTS` sous la même clé, ses styles dans `tcg.css`.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
