@@ -912,7 +912,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   éclair en zigzag tiré au hasard en JS frappe la carte toutes les 1 à 3,5 s, scintille et
   illumine la carte d'un flash ; il part souvent d'au-dessus du cadre et peut en sortir). Un effet
   marqué `spill` dans `VISUAL_EFFECTS` (l'éclair) est posé sur toute la carte quelle que soit la
-  mise en page, sans être rogné, pour pouvoir déborder ; carte figée ou mouvement réduit : un
+  mise en page, sans être rogné, pour pouvoir déborder ; en carte normale il passe sous le
+  bandeau du titre, la bordure et les encadrés (calque de profondeur 5), en full art par-dessus ; carte figée ou mouvement réduit : un
   éclair fixe. **Ajouter un effet** : une migration qui insère sa ligne
   (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES (…)`), son composant dans
   `VISUAL_EFFECTS` sous la même clé, ses styles dans `tcg.css`.

@@ -539,6 +539,14 @@ export function FinalCard({
         </>
       )}
 
+      {/* Carte normale, effet qui déborde (éclair) : sur toute la carte mais sous le bandeau du
+          titre, la bordure et les encadrés (profondeur 5, sous leurs 10 et 30). */}
+      {!full && effectSpills(visualEffect) && (
+        <Layer z={5} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          <VisualEffectLayer effectKey={visualEffect} still={still} />
+        </Layer>
+      )}
+
       <Band card={card} layout={layout} shape={band} />
 
       {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
@@ -615,9 +623,9 @@ export function FinalCard({
       </Layer>
 
       {/* Full art : l'effet visuel couvre toute la carte, encadrés compris, sous le coût et la
-          puissance (en carte normale, il est dans la fenêtre d'illustration, plus haut). Un effet qui
-          déborde (éclair) est toujours ici, quelle que soit la mise en page. */}
-      {visualEffect && (full || effectSpills(visualEffect)) && (
+          puissance. En carte normale, il est plus haut, sous les encadrés : dans la fenêtre
+          d'illustration, ou sur toute la carte pour un effet qui déborde. */}
+      {full && visualEffect && (
         <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
           <VisualEffectLayer effectKey={visualEffect} still={still} />
         </Layer>
