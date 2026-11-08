@@ -900,8 +900,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
   En full art, les encadrés (bandeau du titre compris) sont plus transparents (`finalPanel` :
   ardoise à 35 %, flou de 3 px).
-- Effets visuels : rubrique « Effets visuels » de la fiche (`CardEditor`), cases à cocher tirées
-  de `listVisualEffects` (admins seulement, tri français) ; on en coche plusieurs, empilés dans
+- Effets visuels : rubrique « Effets visuels » de la fiche (`CardEditor`), cases à cocher sur trois
+  colonnes (deux sur mobile) tirées de `listVisualEffects` (admins seulement, tri français) ; on en coche plusieurs, empilés dans
   l'ordre où on les coche (le premier en dessous, « calque n » affiché), enregistrés dans
   `visualEffectKeys` (absent : inchangé ; liste vide : aucun ; doublons retirés ; 10 au plus).
   Les effets s'affichent sur la carte (aperçu, planche, fiche). Rendu dans
@@ -923,9 +923,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   traverse avec deux ou trois ramifications, scintille et l'illumine d'un flash, sans sortir de
   la carte ; carte figée ou mouvement réduit : un éclair fixe). Repris des anciennes propositions de
   design, avec leurs styles de `tcg.css` tels quels (migration
-  `tcg_visual_effects_propositions`) : sur l'illustration, `paillettes` (« Paillettes »,
-  `tcg-sparkle`), `eclat` (« Éclat de lumière », `tcg-shine`), `gravure` (« Gravure nacrée »,
-  `tcg-etched`), `balayage` (« Lignes de balayage », `tcg-scan`) ; sur le cadre, `orbite`
+  `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
   `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
   qui respire », `tcg-breathe` : lueur cyan intérieure). **Ajouter un effet** : une

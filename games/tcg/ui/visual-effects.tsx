@@ -22,7 +22,7 @@ import { type ComponentType, type CSSProperties, useEffect, useState } from "rea
  * l'arrêt.
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
- * (paillettes, éclat, gravure, balayage, liserés, prisme, halo : classes `tcg-…` de tcg.css).
+ * (éclat, liserés, prisme, halo : classes `tcg-…` de tcg.css).
  */
 
 type EffectProps = {
@@ -165,14 +165,8 @@ function Lightning({ still }: EffectProps) {
 
 /* ── Effets repris des propositions de design (styles de tcg.css) ── */
 
-/** Paillettes : points scintillants qui glissent un peu avec le pointeur. */
-const Glitter = () => <div className="tcg-sparkle" />;
 /** Éclat de lumière : un reflet balaie la carte de temps en temps. */
 const Shine = () => <div className="tcg-shine" />;
-/** Gravure nacrée : fines diagonales gravées et reflet nacré, visibles même au repos. */
-const Etched = () => <div className="tcg-etched" />;
-/** Lignes de balayage : trame d'écran cathodique. */
-const Scanlines = () => <div className="tcg-scan" />;
 /** Liseré lumineux : un trait de lumière cyan fait le tour du cadre. */
 const Orbit = () => <div className="tcg-orbit" style={{ "--orbit": "#67e8f9" } as CSSProperties} />;
 /** Cadre prismatique : un arc-en-ciel tourne lentement dans la bordure. */
@@ -201,10 +195,7 @@ const Breathe = () => (
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
   eclair: { render: Lightning, place: "card" },
-  paillettes: { render: Glitter },
   eclat: { render: Shine },
-  gravure: { render: Etched },
-  balayage: { render: Scanlines },
   orbite: { render: Orbit, place: "frame" },
   prisme: { render: Prism, place: "frame" },
   flux: { render: Flow, place: "frame" },

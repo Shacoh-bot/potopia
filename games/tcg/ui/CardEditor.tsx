@@ -455,32 +455,34 @@ export function CardEditor({
           {visualEffects.length === 0 && (
             <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
           )}
-          {visualEffects.map((v) => {
-            const rank = fields.visualEffectKeys.indexOf(v.key);
-            return (
-              <label key={v.key} className="text-text flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={rank >= 0}
-                  onChange={(e) =>
-                    set(
-                      "visualEffectKeys",
-                      e.target.checked
-                        ? [...fields.visualEffectKeys, v.key]
-                        : fields.visualEffectKeys.filter((k) => k !== v.key),
-                    )
-                  }
-                />
-                {v.name}
-                {!VISUAL_EFFECTS[v.key] && (
-                  <span className="text-muted text-xs">(rendu pas encore codé)</span>
-                )}
-                {rank >= 0 && fields.visualEffectKeys.length > 1 && (
-                  <span className="text-muted text-xs">calque {rank + 1}</span>
-                )}
-              </label>
-            );
-          })}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
+            {visualEffects.map((v) => {
+              const rank = fields.visualEffectKeys.indexOf(v.key);
+              return (
+                <label key={v.key} className="text-text flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={rank >= 0}
+                    onChange={(e) =>
+                      set(
+                        "visualEffectKeys",
+                        e.target.checked
+                          ? [...fields.visualEffectKeys, v.key]
+                          : fields.visualEffectKeys.filter((k) => k !== v.key),
+                      )
+                    }
+                  />
+                  {v.name}
+                  {!VISUAL_EFFECTS[v.key] && (
+                    <span className="text-muted text-xs">(rendu pas encore codé)</span>
+                  )}
+                  {rank >= 0 && fields.visualEffectKeys.length > 1 && (
+                    <span className="text-muted text-xs">calque {rank + 1}</span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
         </fieldset>
 
         {fromIdea?.hasCards && (
