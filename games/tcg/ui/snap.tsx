@@ -160,8 +160,8 @@ const badgeNumSize = (value: number, size: number) =>
 export function ImageCost({ value }: { value: number }) {
   return (
     <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`Coût ${value}`}>
-      <image href={`${BADGE_ASSETS}/badge-cost.webp`} x="-3" y="-3" width="74" height="74" />
-      <Num x={34} y={35} size={badgeNumSize(value, 30)} stroke="#04163f">
+      <image href={`${BADGE_ASSETS}/badge-cost.webp`} x="6" y="5" width="56" height="56" />
+      <Num x={34} y={34} size={badgeNumSize(value, 26)} stroke="#04163f">
         {value}
       </Num>
     </svg>
@@ -172,8 +172,8 @@ export function ImageCost({ value }: { value: number }) {
 export function ImagePower({ value }: { value: number }) {
   return (
     <svg width="70" height="70" viewBox="0 0 70 70" role="img" aria-label={`Puissance ${value}`}>
-      <image href={`${BADGE_ASSETS}/badge-power.webp`} x="-4" y="-4" width="78" height="78" />
-      <Num x={35} y={36} size={badgeNumSize(value, 30)} stroke="#4a0630">
+      <image href={`${BADGE_ASSETS}/badge-power.webp`} x="6" y="5" width="58" height="58" />
+      <Num x={35} y={35} size={badgeNumSize(value, 26)} stroke="#4a0630">
         {value}
       </Num>
     </svg>
