@@ -27,6 +27,7 @@ export {
   updateCards,
   listCards,
   listSets,
+  listVisualEffects,
   moveCards,
   setCardImage,
   updateCard,
@@ -37,6 +38,7 @@ export {
   type CardRarityId,
   type CardSet,
   type ImageFrame,
+  type VisualEffect,
 } from "./cards";
 export {
   defaultParams,

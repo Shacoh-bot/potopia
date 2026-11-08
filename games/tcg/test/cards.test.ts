@@ -14,6 +14,7 @@ import {
   getCard,
   importCards,
   listCards,
+  listVisualEffects,
   moveCards,
   paramsSchema,
   setCardImage,
@@ -384,5 +385,54 @@ describe("réserve et sets", () => {
       skipped: 0,
     });
     expect(await listCards(ADMIN, { setId: null })).toHaveLength(1);
+  });
+});
+
+describe("effets visuels", () => {
+  beforeEach(async () => {
+    // Les tests vident toutes les tables : le catalogue rempli par la migration aussi.
+    await db.tcgVisualEffect.createMany({
+      data: [
+        { key: "holo", name: "Reflet holographique" },
+        { key: "etincelles", name: "Étincelles" },
+      ],
+    });
+  });
+
+  it("liste le catalogue par nom, pour les admins seulement", async () => {
+    expect(await listVisualEffects(ADMIN)).toEqual([
+      { key: "etincelles", name: "Étincelles" },
+      { key: "holo", name: "Reflet holographique" },
+    ]);
+    await expect(listVisualEffects(MEMBER)).rejects.toThrow();
+  });
+
+  it("pose, garde et retire l'effet d'une carte", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId, visualEffectKey: "holo" });
+    expect(card.visualEffectKey).toBe("holo");
+    // Absent : inchangé.
+    const kept = await updateCard(ADMIN, card.id, { ...BASE, name: "Renommée" });
+    expect(kept.visualEffectKey).toBe("holo");
+    // Vide : aucun effet.
+    const cleared = await updateCard(ADMIN, card.id, { ...BASE, visualEffectKey: "" });
+    expect(cleared.visualEffectKey).toBeNull();
+  });
+
+  it("refuse un effet absent du catalogue", async () => {
+    await expect(createCard(ADMIN, { ...BASE, setId, visualEffectKey: "inconnu" })).rejects.toThrow(
+      CardInputError,
+    );
+  });
+
+  it("une variante a son propre effet", async () => {
+    const base = await createCard(ADMIN, { ...BASE, setId });
+    const variant = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      baseCardId: base.id,
+      visualEffectKey: "etincelles",
+    });
+    expect(variant.visualEffectKey).toBe("etincelles");
+    expect((await getCard(ADMIN, base.id))?.visualEffectKey).toBeNull();
   });
 });

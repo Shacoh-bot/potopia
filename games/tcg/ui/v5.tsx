@@ -3,6 +3,7 @@ import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
+import { VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
   cardBackground,
@@ -451,6 +452,8 @@ export function FinalCard({
   band = "plein",
   typeLine,
   gameFooter = false,
+  visualEffect,
+  still = false,
 }: {
   card: CardData;
   layout: TopLayout;
@@ -460,6 +463,10 @@ export function FinalCard({
   typeLine?: string;
   /** Pied des vraies cartes (rareté abrégée, auteur de l'idée) ; les propositions notées gardent le leur. */
   gameFooter?: boolean;
+  /** Effet visuel (clé du catalogue, voir `visual-effects.tsx`) ; vide : aucun. */
+  visualEffect?: string | null;
+  /** Carte figée (planches) : l'effet visuel reste à l'arrêt. */
+  still?: boolean;
 }) {
   const full = layout === "fullart";
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
@@ -602,6 +609,13 @@ export function FinalCard({
           )}
         </div>
       </Layer>
+
+      {/* Effet visuel : sur toute la carte, encadrés compris, sous le coût et la puissance. */}
+      {visualEffect && (
+        <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          <VisualEffectLayer effectKey={visualEffect} still={still} />
+        </Layer>
+      )}
 
       <Footer card={card} finish={finish} game={gameFooter} />
 

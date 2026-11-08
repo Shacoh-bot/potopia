@@ -90,5 +90,10 @@ export type Card = {
   imageFrameFull: ImageFrame | null;
   ideaId: string | null;
   baseCardId: string | null;
+  /** Effet visuel (clé du catalogue `visual_effects`) ; null : aucun. */
+  visualEffectKey: string | null;
   updatedAt: Date;
 };
+
+/** Effet visuel du catalogue : la clé (même clé que son rendu dans le code) et son nom. */
+export type VisualEffect = { key: string; name: string };

@@ -197,8 +197,12 @@ passe d'une partie à l'autre sans rechargement.
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), ideaId? (index simple, `ideas.ideas`
-  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt, updatedAt. La base ne
-  contient aucune logique d'effet : seulement la clé d'un effet du catalogue et ses réglages.
+  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), visualEffectKey?
+  (effet visuel → `TcgVisualEffect`, `ON DELETE SET NULL` ; propre à chaque carte, variantes
+  comprises), createdAt, updatedAt. La base ne contient aucune logique d'effet : seulement la clé
+  d'un effet du catalogue et ses réglages.
+- `TcgVisualEffect` (`visual_effects`) : key (clé primaire, `holo`), name (affiché dans la fiche),
+  createdAt. Catalogue des effets visuels, rempli par migration ; le rendu est dans le code.
 
 ### goty
 
@@ -893,6 +897,20 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
   En full art, les encadrés (bandeau du titre compris) sont plus transparents (`finalPanel` :
   ardoise à 35 %, flou de 3 px).
+- Effets visuels : rubrique « Effet visuel » de la fiche (`CardEditor`, liste tirée de
+  `listVisualEffects`, admins seulement, triée en français) ; l'effet choisi s'affiche sur la
+  carte (aperçu, planche, fiche). Rendu dans `games/tcg/ui/visual-effects.tsx` : `VISUAL_EFFECTS`
+  associe chaque clé du catalogue à un composant React (CSS de `tcg.css`, classes `tcg-vfx-…`, et
+  JS au besoin), posé par `FinalCard` en calque sur toute la carte, au-dessus des encadrés et sous
+  le coût et la puissance, sans capter le pointeur. Sur la planche (`still`) et avec
+  `prefers-reduced-motion`, les animations sont coupées. Une clé sans rendu codé ne montre rien
+  (la fiche l'indique « rendu pas encore codé ») ; une clé hors catalogue est refusée à
+  l'enregistrement et à l'import. Premiers effets : `holo` (« Reflet holographique » :
+  arc-en-ciel en diagonale qui balaie la carte, CSS seul) et `etincelles` (« Étincelles » :
+  éclats en étoile à halo cyan, placés de façon déterministe puis déplacés au hasard en JS à
+  chaque scintillement). **Ajouter un effet** : une migration qui insère sa ligne
+  (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES (…)`), son composant dans
+  `VISUAL_EFFECTS` sous la même clé, ses styles dans `tcg.css`.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et

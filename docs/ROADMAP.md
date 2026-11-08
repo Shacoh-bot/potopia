@@ -560,6 +560,14 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
 - [x] Dos des cartes (`CardBack`, portail du logo dont la galaxie tourne) ; la carte se retourne
       en la faisant tourner à la souris ou au doigt, un demi-tour par geste (`CardFlip`), sur la planche de l'admin et
       dans la fiche d'une carte (bouton « Voir le dos » en plus).
+- [x] Face retravaillée : coût et puissance en images pixel art néon (chiffre en texte
+      par-dessus), titre en majuscules Rajdhani avec l'effet de « POTOMON », cadre et encadrés dans
+      le style du dos, illustration pleine largeur collée au bandeau du titre, encadrés plus
+      transparents en full art.
+- [x] Effets visuels des cartes : catalogue `tcg.visual_effects` (clé + nom, rempli par
+      migration), colonne `visual_effect_key` sur la carte, choix « Effet visuel » dans la fiche,
+      rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `etincelles`
+      (migration `tcg_visual_effects`, ajout seul).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
@@ -573,6 +581,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
   mal réglé refusé, variantes (stats reprises et recopiées, pas de variante d'une variante), import
   (idées déjà importées ignorées, tout ou rien), illustration (envoi présigné, clé vérifiée dans le
   stockage, formats et droits).
+- Effets visuels : catalogue réservé aux admins et trié en français, effet posé, gardé quand il
+  n'est pas envoyé, retiré, effet inconnu refusé, variante avec son propre effet.
 - Mise à jour en masse : carte retrouvée par son idée (le nom départage), reste gardé, variantes
   suivies, tout ou rien, admins seulement.
 - Idées : `listIdeaImageUrls` réservé aux admins.

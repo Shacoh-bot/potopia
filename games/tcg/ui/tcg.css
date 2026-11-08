@@ -657,3 +657,74 @@
 .tcg-flip-back .tcg-tilt {
   box-shadow: 0 24px 46px rgb(0 0 0 / 0.55);
 }
+
+/* ── Effets visuels des cartes (ui/visual-effects.tsx, catalogue tcg.visual_effects) ── */
+.tcg-vfx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* holo : arc-en-ciel qui balaie la carte en diagonale. */
+.tcg-vfx-holo {
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(
+    115deg,
+    transparent 36%,
+    rgb(255 80 200 / 0.32) 42%,
+    rgb(255 230 120 / 0.32) 47%,
+    rgb(120 255 200 / 0.32) 52%,
+    rgb(100 200 255 / 0.32) 57%,
+    transparent 63%
+  );
+  mix-blend-mode: color-dodge;
+  transform: translateX(-10%);
+  animation: tcg-vfx-holo 4.5s ease-in-out infinite alternate;
+}
+@keyframes tcg-vfx-holo {
+  from {
+    transform: translateX(-35%);
+  }
+  to {
+    transform: translateX(35%);
+  }
+}
+
+/* etincelles : éclats en étoile à quatre branches, halo cyan. */
+.tcg-vfx-spark {
+  position: absolute;
+  translate: -50% -50%;
+  filter: drop-shadow(0 0 3px #67e8f9);
+  opacity: 0.75;
+  animation: tcg-vfx-spark 2s ease-in-out infinite both;
+}
+.tcg-vfx-spark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+}
+@keyframes tcg-vfx-spark {
+  0%,
+  100% {
+    opacity: 0;
+    scale: 0.2;
+    rotate: 0deg;
+  }
+  50% {
+    opacity: 1;
+    scale: 1;
+    rotate: 45deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-holo,
+  .tcg-vfx-spark {
+    animation: none;
+  }
+}

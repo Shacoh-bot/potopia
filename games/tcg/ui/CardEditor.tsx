@@ -12,6 +12,7 @@ import {
   DEFAULT_FRAME,
   frameFor,
   type ImageFrame,
+  type VisualEffect,
 } from "../src/card-rules";
 import {
   defaultParams,
@@ -28,6 +29,7 @@ import { GameCard, GameCardDefs } from "./GameCard";
 import { ImageFramer } from "./ImageFramer";
 import { pastedImage, toCardWebp } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
+import { VISUAL_EFFECTS } from "./visual-effects";
 
 /** Mise en page de l'aperçu, et du cadrage qu'on règle. */
 type Layout = "normal" | "fullart";
@@ -49,6 +51,8 @@ type Fields = {
   effectParams: EffectParams;
   effectText: string;
   flavor: string;
+  /** Clé de l'effet visuel ; vide : aucun. */
+  visualEffectKey: string;
 };
 
 type Props = {
@@ -57,6 +61,8 @@ type Props = {
   sets: CardSet[];
   /** Familles déjà utilisées, proposées à la saisie. */
   families: string[];
+  /** Catalogue des effets visuels (`listVisualEffects`), proposés dans la fiche. */
+  visualEffects: VisualEffect[];
   imageUrl: string | null;
   /** Auteur de l'idée d'origine, affiché en pied de carte (« idée de … »). */
   author?: string | null;
@@ -116,6 +122,7 @@ function defaults(card: Card | null): Fields {
     effectParams: card?.effectParams ?? {},
     effectText: card?.effectText ?? "",
     flavor: card?.flavor ?? "",
+    visualEffectKey: card?.visualEffectKey ?? "",
   };
 }
 
@@ -127,6 +134,7 @@ export function CardEditor({
   card,
   sets,
   families,
+  visualEffects,
   imageUrl,
   author,
   setSize,
@@ -437,6 +445,20 @@ export function CardEditor({
             maxLength={CARD_LIMITS.flavor}
             onChange={(e) => set("flavor", e.target.value)}
           />
+        </Label>
+        <Label hint="Calque animé posé sur toute la carte. Nouveaux effets : ajoutés par migration.">
+          Effet visuel
+          <Select
+            value={fields.visualEffectKey}
+            onChange={(e) => set("visualEffectKey", e.target.value)}
+          >
+            <option value="">Aucun</option>
+            {visualEffects.map((v) => (
+              <option key={v.key} value={v.key}>
+                {VISUAL_EFFECTS[v.key] ? v.name : `${v.name} (rendu pas encore codé)`}
+              </option>
+            ))}
+          </Select>
         </Label>
 
         {fromIdea?.hasCards && (

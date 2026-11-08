@@ -16,6 +16,8 @@ export type GameCardFields = Pick<
   imageFrame?: Card["imageFrame"];
   /** Cadrage en full art ; absent ou null : celui de la carte normale. */
   imageFrameFull?: Card["imageFrameFull"];
+  /** Effet visuel (clé du catalogue) ; absent ou null : aucun. */
+  visualEffectKey?: string | null;
 };
 
 /** Ligne de type affichée : « Instrument — Grenouilles », ou le type seul sans famille. */
@@ -89,6 +91,8 @@ export function GameCard({
       band="court"
       typeLine={typeLine(card)}
       gameFooter
+      visualEffect={card.visualEffectKey}
+      still={still}
     />
   );
   return still ? <div className="tcg-still">{face}</div> : face;

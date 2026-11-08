@@ -13,6 +13,7 @@ import {
   type CardRarityId,
   type CardSet,
   type ImageFrame,
+  type VisualEffect,
 } from "./card-rules";
 import { EFFECT_KEYS, type EffectParams, effectText, getEffect, paramsSchema } from "./effects";
 
@@ -36,6 +37,7 @@ export {
   FRAME_ZOOM,
   frameFor,
   type ImageFrame,
+  type VisualEffect,
 } from "./card-rules";
 
 /** Utilisateur qui lit ou modifie : seuls les admins (ADMIN_DISCORD_IDS) y ont droit. */
@@ -106,6 +108,12 @@ const cardFields = z.object({
   // Absent : le cadrage full art enregistré ne change pas (mise à jour en masse, anciens appels) ;
   // null : la full art reprend le cadrage de la carte normale.
   imageFrameFull: frameSchema.nullish(),
+  // Absent : l'effet visuel enregistré ne change pas ; vide ou null : aucun effet.
+  visualEffectKey: z
+    .string()
+    .max(60)
+    .nullish()
+    .transform((v) => (v === undefined ? undefined : v || null)),
 });
 
 export type CardInput = z.input<typeof cardFields>;
@@ -151,6 +159,21 @@ function toCard(row: CardRow): Card {
 }
 
 const withSet = { set: { select: { code: true } } } as const;
+
+/** Refuse un effet visuel absent du catalogue (message clair plutôt qu'une erreur de clé). */
+async function checkVisualEffect(tx: DbTx, key: string | null | undefined): Promise<void> {
+  if (!key) return;
+  const found = await tx.tcgVisualEffect.findUnique({ where: { key } });
+  if (!found) throw new CardInputError(`Effet visuel inconnu : ${key}.`);
+}
+
+/** Le catalogue des effets visuels, par nom (ordre alphabétique français). */
+export async function listVisualEffects(admin: Admin): Promise<VisualEffect[]> {
+  assertAdmin(admin);
+  const effects = await db.tcgVisualEffect.findMany({ select: { key: true, name: true } });
+  // Tri français (la base classerait « Étincelles » après « Reflet »).
+  return effects.sort((a, b) => a.name.localeCompare(b.name, "fr"));
+}
 
 type Stats = {
   type: string;
@@ -283,6 +306,7 @@ export async function createCard(
     const base = baseCardId ? await tx.tcgCard.findUnique({ where: { id: baseCardId } }) : null;
     if (baseCardId && !base) throw new CardInputError("Carte de base introuvable.");
     if (base?.baseCardId) throw new CardInputError("Une variante ne peut pas avoir de variante.");
+    await checkVisualEffect(tx, fields.visualEffectKey);
     const number = setId ? await nextNumber(tx, setId) : null;
     const row = await tx.tcgCard.create({
       data: {
@@ -315,6 +339,7 @@ export async function updateCard(
   return withTx(async (tx) => {
     const current = await tx.tcgCard.findUnique({ where: { id } });
     if (!current) throw new CardInputError("Carte introuvable.");
+    await checkVisualEffect(tx, fields.visualEffectKey);
     if (current.baseCardId) {
       const row = await tx.tcgCard.update({
         where: { id },
@@ -324,6 +349,7 @@ export async function updateCard(
           flavor: fields.flavor,
           imageFrame: fields.imageFrame,
           imageFrameFull: fields.imageFrameFull,
+          visualEffectKey: fields.visualEffectKey,
         },
         include: withSet,
       });
@@ -339,6 +365,7 @@ export async function updateCard(
         flavor: fields.flavor,
         imageFrame: fields.imageFrame,
         imageFrameFull: fields.imageFrameFull,
+        visualEffectKey: fields.visualEffectKey,
       },
       include: withSet,
     });
@@ -509,6 +536,8 @@ export async function importCards(
       ).map((c) => c.ideaId),
     );
     const fresh = parsed.filter((c) => !c.ideaId || !existing.has(c.ideaId));
+    for (const key of new Set(fresh.map((c) => c.visualEffectKey)))
+      await checkVisualEffect(tx, key);
     let number = setId ? await nextNumber(tx, setId) : null;
     for (const card of fresh) {
       await tx.tcgCard.create({

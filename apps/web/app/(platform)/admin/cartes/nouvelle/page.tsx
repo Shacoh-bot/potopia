@@ -1,6 +1,6 @@
 import { getUser } from "@app/core";
 import { getIdea } from "@app/ideas";
-import { CARD_LIMITS, CARD_RARITIES, listCards, listSets } from "@app/tcg";
+import { CARD_LIMITS, CARD_RARITIES, listCards, listSets, listVisualEffects } from "@app/tcg";
 import { CardEditor, type CardFields } from "@app/tcg/ui";
 import { Card } from "@app/ui";
 import type { Metadata } from "next";
@@ -33,9 +33,10 @@ export default async function NewCardPage({
 }) {
   const admin = await getCurrentAdmin();
   const { set: code, idee } = await searchParams;
-  const [sets, cards, idea] = await Promise.all([
+  const [sets, cards, visualEffects, idea] = await Promise.all([
     listSets(admin),
     listCards(admin),
+    listVisualEffects(admin),
     idee ? getIdea(admin, idee) : null,
   ]);
   if (idee && !idea) notFound();
@@ -86,6 +87,7 @@ export default async function NewCardPage({
           card={null}
           sets={sets}
           families={familiesOf(cards)}
+          visualEffects={visualEffects}
           imageUrl={idea?.imageKey ? `/api/admin/ideas/${idea.id}/image` : null}
           author={author?.name}
           setSizes={setSizes}

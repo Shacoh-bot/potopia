@@ -70,15 +70,32 @@ model TcgCard {
   imageFrameFull Json?     @map("image_frame_full")
   ideaId         String?   @map("idea_id")
   baseCardId     String?   @map("base_card_id")
+  // Effet visuel de la carte (holo, étincelles…) : clé du catalogue `visual_effects`.
+  visualEffectKey String?  @map("visual_effect_key")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   set      TcgSet?   @relation(fields: [setId], references: [id])
   base     TcgCard?  @relation("TcgCardVariant", fields: [baseCardId], references: [id])
+  visualEffect TcgVisualEffect? @relation(fields: [visualEffectKey], references: [key])
   variants TcgCard[] @relation("TcgCardVariant")
 
   @@unique([setId, number])
   @@index([ideaId])
   @@map("cards")
+  @@schema("tcg")
+}
+
+// Catalogue des effets visuels qu'on peut poser sur une carte (choisis dans la fiche). La base ne
+// garde que la clé et le nom affiché ; le rendu (CSS/JS) est codé dans `ui/visual-effects.tsx`,
+// sous la même clé. Nouvel effet : une migration qui ajoute la ligne, plus son rendu dans le code.
+model TcgVisualEffect {
+  key       String   @id
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cards TcgCard[]
+
+  @@map("visual_effects")
   @@schema("tcg")
 }
