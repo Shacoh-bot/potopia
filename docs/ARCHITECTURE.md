@@ -197,8 +197,15 @@ passe d'une partie à l'autre sans rechargement.
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), ideaId? (index simple, `ideas.ideas`
-  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt, updatedAt. La base ne
-  contient aucune logique d'effet : seulement la clé d'un effet du catalogue et ses réglages.
+  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt,
+  updatedAt. La base ne contient aucune logique d'effet : seulement la clé
+  d'un effet du catalogue et ses réglages.
+- `TcgVisualEffect` (`visual_effects`) : key (clé primaire, `holo`), name (affiché dans la fiche),
+  createdAt. Catalogue des effets visuels, rempli par migration ; le rendu est dans le code.
+- `TcgCardVisualEffect` (`card_visual_effects`) : cardId, effectKey, position (ordre des calques,
+  0 en dessous). Clé primaire `(card_id, effect_key)`, index sur `effect_key`, suppression en
+  cascade des deux côtés. Les effets visuels d'une carte, plusieurs à la fois, propres à chaque
+  carte (variantes comprises).
 
 ### goty
 
@@ -876,6 +883,67 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   règle de la boîte noire). Sur la planche, les cartes sont figées (`GameCard still`, classe
   `tcg-still`) : sans 3D, animation, reflet ni grande ombre floue, pour un défilement fluide ;
   l'éditeur garde la carte vivante.
+- Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
+  pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
+  `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
+  par-dessus (plus petit à partir de deux chiffres). Les anciennes propositions gardent leurs
+  badges dessinés (`Cost`, `Power`).
+- Cadre de la carte retenue (`BackStyleFrame` de `v5.tsx`) : le style du dos posé sur la bordure
+  de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur, plaques d'angle
+  dorées, gemmes cyan (haut droit) et magenta (bas
+  gauche) dans les coins que le coût et la puissance laissent libres. Dégradés et halo dans
+  `SnapDefs` (`tcg-back-*`). La plaque du haut et son losange magenta restent au dos seulement.
+  Avec le bandeau court, la fenêtre d'illustration monte jusqu'au trait sous le titre
+  et s'étend sur toute la largeur contre la bordure (`FINAL_ART`, 286 × 186 px, de 46 à 232,
+  coins droits), fermée en bas par le même trait que sous le titre, proportions reprises par le cadrage de l'éditeur.
+  Les encadrés (ligne de type, effet) ont le même esprit, très fin (`PanelTrim`) : un filet doré
+  de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
+  En full art, les encadrés (bandeau du titre compris) sont plus transparents (`finalPanel` :
+  ardoise à 35 %, flou de 3 px).
+- Effets visuels : rubrique « Effets visuels » de la fiche (`CardEditor`), cases à cocher sur trois
+  colonnes (deux sur mobile) tirées de `listVisualEffects` (admins seulement, tri français) ; on en coche plusieurs, empilés dans
+  l'ordre où on les coche (le premier en dessous, « calque n » affiché), enregistrés dans
+  `visualEffectKeys` (absent : inchangé ; liste vide : aucun ; doublons retirés ; 10 au plus).
+  Les effets s'affichent sur la carte (aperçu, planche, fiche). Rendu dans
+  `games/tcg/ui/visual-effects.tsx` : `VISUAL_EFFECTS` associe chaque clé du catalogue à un
+  composant React (CSS de `tcg.css`, classes `tcg-vfx-…`, et JS au besoin), posé par
+  `FinalCard` en calque rogné qui ne capte pas le pointeur : en carte normale sur l'illustration
+  seule (dans sa fenêtre), en full art sur toute la carte, au-dessus des encadrés et sous le coût
+  et la puissance. En carte normale, chaque effet a sa place (`place` dans `VISUAL_EFFECTS`) :
+  `art` par défaut (l'illustration seule), `card` (toute la carte, sous le bandeau du titre, la
+  bordure et les encadrés : calque de profondeur 5, l'éclair) ou `frame` (toute la carte,
+  par-dessus la bordure et le bandeau mais sous les encadrés : profondeur 20, effets de cadre).
+  Un effet `image` redessine l'illustration (il reçoit la carte et la redessine avec
+  `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
+  texte, en carte normale comme en full art. Sur la
+  planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées. Une clé sans
+  rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
+  catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
+  effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
+  quand on incline la carte, plus vives autour de lui, d'après `--mx`/`--my` de `Tilt` ; CSS
+  seul, discret et figé sans pointeur) et `eclair` (« Éclair » : un éclair en zigzag tiré au
+  hasard en JS part d'un bord de la carte (haut, gauche ou droite) toutes les 1 à 3,5 s, la
+  traverse avec deux ou trois ramifications, scintille et l'illumine d'un flash, sans sortir de
+  la carte ; carte figée ou mouvement réduit : un éclair fixe). Repris des anciennes propositions de
+  design, avec leurs styles de `tcg.css` tels quels (migration
+  `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
+  (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
+  `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
+  qui respire », `tcg-breathe` : lueur cyan intérieure), `holoclassique` (« Holo classique »,
+  `tcg-holo`), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
+  `torches` (« Torches », deux lueurs orange qui vacillent en haut, `tcg-torch`), `aurore`
+  (« Aurore cosmique », `tcg-aurora` et `tcg-stars` dans la carte, place `card`) ; illustration
+  redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
+  l'illustration aux couleurs inversées quand la carte penche à droite, toute seule sans
+  pointeur ; une vraie seconde image demanderait une colonne de plus) et les styles
+  d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch`,
+  `or` (« Or massif »), `popart`, `croquis`, `vitrail`, plus `aquarelle` et `cosmos` (« Ciel
+  cosmique »), refaits dans `visual-effects.tsx` (`Watercolor`, `Cosmic`) avec des marges et un
+  fondu plus petits, réglés selon la mise en page (`full`), pour que l'illustration en garde la
+  plus grande part. **Ajouter un effet** : une
+  migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
+(…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (avec sa `place` si ce n'est
+  pas l'illustration), ses styles dans `tcg.css`.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et
@@ -894,8 +962,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   illustrations déjà posées dans un autre format restent lisibles. Dans l'éditeur, une image se
   colle aussi : Ctrl+V n'importe où sur l'éditeur, ou bouton « Coller une image » (lecture du
   presse-papiers, le navigateur peut demander l'accord).
-  Titre (`FitTitle`) : la taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur
-  deux lignes.
+  Titre (`FitTitle`) : en majuscules, police Rajdhani gras et même effet que « POTOMON » au
+  dos (italique, dégradé blanc → cyan, halo cyan) ; la
+  taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur deux lignes.
 - Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration de la mise
   en page choisie (normale ou full art) ; on y fait glisser l'image et on règle le zoom. Chaque
   mise en page a son cadrage (`imageFrame`, `imageFrameFull`), enregistré avec la carte et

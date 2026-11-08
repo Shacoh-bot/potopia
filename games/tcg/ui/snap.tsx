@@ -65,6 +65,38 @@ export function SnapDefs() {
           <feComposite in="SourceGraphic" in2="grid" operator="in" />
           <feMorphology operator="dilate" radius="4" />
         </filter>
+        {/* Cadre de la carte retenue, repris du dos (`CardBack`) : or, polissage, gemmes, halo. */}
+        <linearGradient id="tcg-back-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fde68a" />
+          <stop offset="0.5" stopColor="#e0a93a" />
+          <stop offset="1" stopColor="#8a5a14" />
+        </linearGradient>
+        {/* Reflets clairs et creux sombres en diagonale, posés sur la couleur de rareté. */}
+        <linearGradient id="tcg-back-polish" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity={0.55} />
+          <stop offset="0.18" stopColor="#000" stopOpacity={0.4} />
+          <stop offset="0.42" stopColor="#fff" stopOpacity={0.6} />
+          <stop offset="0.6" stopColor="#000" stopOpacity={0.4} />
+          <stop offset="0.82" stopColor="#fff" stopOpacity={0.3} />
+          <stop offset="1" stopColor="#000" stopOpacity={0.5} />
+        </linearGradient>
+        <radialGradient id="tcg-back-gem-c" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#cffafe" />
+          <stop offset="0.45" stopColor="#22d3ee" />
+          <stop offset="1" stopColor="#0e5a7a" />
+        </radialGradient>
+        <radialGradient id="tcg-back-gem-p" cx="0.35" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#ffe4ef" />
+          <stop offset="0.45" stopColor="#ff2d7a" />
+          <stop offset="1" stopColor="#7a0f3a" />
+        </radialGradient>
+        <filter id="tcg-back-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       <ExtraDefs />
     </svg>
@@ -143,6 +175,37 @@ export function Power({ value }: { value: number }) {
       />
       <polygon points="35,5 60,19 35,27 10,19" fill="rgb(255 255 255 / 0.35)" />
       <Num x={35} y={35} size={32} stroke="#6b3300">
+        {value}
+      </Num>
+    </svg>
+  );
+}
+
+/** Dossier public des images des badges (servi par apps/web/public/tcg, comme le dos des cartes). */
+const BADGE_ASSETS = "/tcg";
+
+/** Taille du chiffre d'un badge illustré : plus petit à partir de deux chiffres. */
+const badgeNumSize = (value: number, size: number) =>
+  String(value).length > 1 ? size * 0.78 : size;
+
+/** Coût illustré : losange néon cyan serti d'or (image), le chiffre en texte par-dessus. */
+export function ImageCost({ value }: { value: number }) {
+  return (
+    <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`Coût ${value}`}>
+      <image href={`${BADGE_ASSETS}/badge-cost.webp`} x="6" y="5" width="56" height="56" />
+      <Num x={34} y={34} size={badgeNumSize(value, 26)} stroke="#04163f">
+        {value}
+      </Num>
+    </svg>
+  );
+}
+
+/** Puissance illustrée : arche néon magenta sertie d'or (image), le chiffre en texte par-dessus. */
+export function ImagePower({ value }: { value: number }) {
+  return (
+    <svg width="70" height="70" viewBox="0 0 70 70" role="img" aria-label={`Puissance ${value}`}>
+      <image href={`${BADGE_ASSETS}/badge-power.webp`} x="6" y="5" width="58" height="58" />
+      <Num x={35} y={35} size={badgeNumSize(value, 26)} stroke="#4a0630">
         {value}
       </Num>
     </svg>

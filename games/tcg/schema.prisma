@@ -75,10 +75,42 @@ model TcgCard {
 
   set      TcgSet?   @relation(fields: [setId], references: [id])
   base     TcgCard?  @relation("TcgCardVariant", fields: [baseCardId], references: [id])
+  // Effets visuels de la carte, dans l'ordre des calques.
+  visualEffects TcgCardVisualEffect[]
   variants TcgCard[] @relation("TcgCardVariant")
 
   @@unique([setId, number])
   @@index([ideaId])
   @@map("cards")
+  @@schema("tcg")
+}
+
+// Catalogue des effets visuels qu'on peut poser sur une carte (choisis dans la fiche). La base ne
+// garde que la clé et le nom affiché ; le rendu (CSS/JS) est codé dans `ui/visual-effects.tsx`,
+// sous la même clé. Nouvel effet : une migration qui ajoute la ligne, plus son rendu dans le code.
+model TcgVisualEffect {
+  key       String   @id
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cards TcgCardVisualEffect[]
+
+  @@map("visual_effects")
+  @@schema("tcg")
+}
+
+// Effet visuel posé sur une carte. Une carte en a plusieurs : `position` donne l'ordre des
+// calques (0 en dessous). Retirer un effet du catalogue le retire des cartes.
+model TcgCardVisualEffect {
+  cardId    String @map("card_id")
+  effectKey String @map("effect_key")
+  position  Int
+
+  card   TcgCard         @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  effect TcgVisualEffect @relation(fields: [effectKey], references: [key], onDelete: Cascade)
+
+  @@id([cardId, effectKey])
+  @@index([effectKey])
+  @@map("card_visual_effects")
   @@schema("tcg")
 }

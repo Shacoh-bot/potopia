@@ -560,6 +560,18 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
 - [x] Dos des cartes (`CardBack`, portail du logo dont la galaxie tourne) ; la carte se retourne
       en la faisant tourner à la souris ou au doigt, un demi-tour par geste (`CardFlip`), sur la planche de l'admin et
       dans la fiche d'une carte (bouton « Voir le dos » en plus).
+- [x] Face retravaillée : coût et puissance en images pixel art néon (chiffre en texte
+      par-dessus), titre en majuscules Rajdhani avec l'effet de « POTOMON », cadre et encadrés dans
+      le style du dos, illustration pleine largeur collée au bandeau du titre, encadrés plus
+      transparents en full art.
+- [x] Effets visuels des cartes : catalogue `tcg.visual_effects` (clé + nom, rempli par
+      migration), plusieurs effets par carte (`tcg.card_visual_effects`, ordre des calques),
+      cases « Effets visuels » dans la fiche,
+      rendu CSS/JS par clé (`ui/visual-effects.tsx`) ; premiers effets `holo` et `eclair`, puis dix-sept effets repris des anciennes propositions
+      (éclat, liserés, prisme, halo, holo classique, néon, torches, aurore, lenticulaire et les
+      styles d'illustration Snap ; migration
+      `tcg_visual_effects_propositions`)
+      (migration `tcg_visual_effects`, ajout seul).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
@@ -573,6 +585,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
   mal réglé refusé, variantes (stats reprises et recopiées, pas de variante d'une variante), import
   (idées déjà importées ignorées, tout ou rien), illustration (envoi présigné, clé vérifiée dans le
   stockage, formats et droits).
+- Effets visuels : catalogue réservé aux admins et trié en français, plusieurs effets posés dans
+  l'ordre (doublons retirés), gardés quand ils ne sont pas envoyés, remplacés, retirés, effet
+  inconnu refusé sans rien enregistrer, variante avec ses propres effets, import.
 - Mise à jour en masse : carte retrouvée par son idée (le nom départage), reste gardé, variantes
   suivies, tout ou rien, admins seulement.
 - Idées : `listIdeaImageUrls` réservé aux admins.

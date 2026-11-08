@@ -1,7 +1,9 @@
+import type { CSSProperties } from "react";
 import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
-import { Cost, Power, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
+import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
+import { effectPlace, VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
   cardBackground,
@@ -94,6 +96,29 @@ export type BandShape = "plein" | "echancre" | "serti" | "court" | "aucun";
 
 /** Centre et rayon du rond du mana (`Cost` réduit de `BADGE`, posé à -2 px du coin). */
 const MANA = { x: -2 + 34 * BADGE, y: -2 + 33 * BADGE, r: 29.75 * BADGE };
+/**
+ * Fenêtre d'illustration de la carte normale avec le bandeau court (cartes du jeu) : collée au
+ * trait sous le titre et pleine largeur contre la bordure ; en bas au même endroit qu'avant
+ * (y = 232). Coins droits.
+ */
+export const FINAL_ART = {
+  top: 46,
+  height: 186,
+  inset: FRAME_THIN,
+  width: 300 - 2 * FRAME_THIN,
+} as const;
+
+/**
+ * Encadrés de la carte retenue (bandeau du titre, ligne de type, effet) : l'ardoise, plus
+ * transparente en full art pour laisser voir l'illustration.
+ */
+function finalPanel(card: CardData, layout: TopLayout): CSSProperties {
+  const style = panelStyle(card, STYLE.panel, layout);
+  return layout === "fullart"
+    ? { ...style, background: "rgb(30 34 44 / 0.35)", backdropFilter: "blur(3px)" }
+    : style;
+}
+
 /** Rayon de l'échancrure (4 px d'écart autour du mana) et de l'anneau serti. */
 const NOTCH = MANA.r + 4.5;
 const SOCKET = 34.5;
@@ -150,7 +175,7 @@ function Band({ card, layout, shape }: { card: CardData; layout: TopLayout; shap
           ? `${FRAME - top}px ${Math.round(MANA.x + MANA.r) + 2 - left}px 0`
           : `0 ${TITLE.inset - left}px`,
         overflow: "hidden",
-        ...panelStyle(card, STYLE.panel, layout),
+        ...finalPanel(card, layout),
         border: 0,
         borderBottom: "1px solid rgb(255 255 255 / 0.14)",
         borderRadius: `${R - left}px ${R - left}px 0 0`,
@@ -202,8 +227,11 @@ function Socket({ finish }: { finish: CardFinish }) {
   );
 }
 
-/** Largeur moyenne d'un caractère du titre (police « magic », gras), en fraction de sa taille. */
-const TITLE_CHAR = 0.53;
+/**
+ * Largeur moyenne d'un caractère du titre (Rajdhani gras en majuscules, espacement compris), en
+ * fraction de sa taille.
+ */
+const TITLE_CHAR = 0.6;
 const TITLE_SIZE = { max: 17, min: 13, twoLines: 12 } as const;
 
 /**
@@ -226,8 +254,20 @@ function FitTitle({ title, width }: { title: string; width: number }) {
   return (
     <span
       style={{
-        fontFamily: font("magic", "serif"),
-        fontWeight: 800,
+        // Même police que « POTOMON » au dos de la carte, en majuscules.
+        fontFamily: font("rajdhani", "Rajdhani, sans-serif"),
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+        // Effet de « POTOMON » au dos : italique, dégradé blanc → cyan, halo cyan.
+        fontStyle: "italic",
+        backgroundImage: "linear-gradient(180deg, #ffffff 30%, #67e8f9 100%)",
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        color: "transparent",
+        filter: "drop-shadow(0 0 2.5px rgb(103 232 249 / 0.75))",
+        // L'italique penche à droite : un peu d'air pour ne pas couper la dernière lettre.
+        paddingInline: "0.15em",
         fontSize: size,
         lineHeight: twoLines ? 1.1 : 1.2,
         textAlign: "center",
@@ -312,6 +352,99 @@ function Footer({
  * Carte de la cinquième vague, en carte normale ou full art. `finish` ne change que le pied de
  * carte : les effets de rareté se votent à part.
  */
+/** Facettes d'une gemme octogonale, comme au dos (`CardBack`). */
+const GEM_OUTER = "-3.1,-7.5 3.1,-7.5 7.5,-3.1 7.5,3.1 3.1,7.5 -3.1,7.5 -7.5,3.1 -7.5,-3.1";
+const GEM_TABLE = "-1.5,-3.6 1.5,-3.6 3.6,-1.5 3.6,1.5 1.5,3.6 -1.5,3.6 -3.6,1.5 -3.6,-1.5";
+
+function Gem({ x, y, color }: { x: number; y: number; color: "c" | "p" }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(0.62)`}>
+      <polygon
+        points={GEM_OUTER}
+        fill={`url(#tcg-back-gem-${color})`}
+        stroke="url(#tcg-back-gold)"
+        strokeWidth={1.4}
+      />
+      <polygon points={GEM_TABLE} fill="#fff" fillOpacity={0.3} />
+    </g>
+  );
+}
+
+/** Plaque d'angle dorée du dos, dans le coin haut gauche (les autres en miroir). */
+const CORNER = "0,48 0,22 22,0 48,0 40,7 24,7 7,24 7,40";
+const W = 300;
+const H = 420;
+
+/**
+ * Cadre repris du dos de la carte, posé sur la bordure de rareté : polissage en diagonale,
+ * plaques d'angle dorées, gemmes cyan (haut) et magenta (bas) dans les coins libres (le coût et
+ * la puissance couvrent les deux autres). La plaque du haut et son losange restent au dos.
+ */
+function BackStyleFrame() {
+  const band = `M${R} 0 H${W - R} A${R} ${R} 0 0 1 ${W} ${R} V${H - R} A${R} ${R} 0 0 1 ${W - R} ${H} H${R} A${R} ${R} 0 0 1 0 ${H - R} V${R} A${R} ${R} 0 0 1 ${R} 0 Z M${R} ${FRAME} H${W - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - FRAME} ${R} V${H - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - R} ${H - FRAME} H${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${FRAME} ${H - R} V${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${R} ${FRAME} Z`;
+  return (
+    <svg
+      aria-hidden
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ ...fill, width: "100%", height: "100%", overflow: "visible" }}
+    >
+      <path
+        d={band}
+        fillRule="evenodd"
+        fill="url(#tcg-back-polish)"
+        style={{ mixBlendMode: "soft-light" }}
+      />
+      {/* Filet doré le long du bord intérieur. */}
+      <rect
+        x={FRAME + 0.75}
+        y={FRAME + 0.75}
+        width={W - 2 * FRAME - 1.5}
+        height={H - 2 * FRAME - 1.5}
+        rx={R - FRAME - 0.75}
+        fill="none"
+        stroke="url(#tcg-back-gold)"
+        strokeWidth={1.5}
+      />
+      <g fill="url(#tcg-back-gold)" stroke="rgb(0 0 0 / 0.45)" strokeWidth={0.6}>
+        <polygon points={CORNER} />
+        <polygon points={CORNER} transform={`translate(${W} 0) scale(-1 1)`} />
+        <polygon points={CORNER} transform={`translate(0 ${H}) scale(1 -1)`} />
+        <polygon points={CORNER} transform={`translate(${W} ${H}) scale(-1 -1)`} />
+      </g>
+      <g filter="url(#tcg-back-glow)">
+        <Gem x={W - 13} y={13} color="c" />
+        <Gem x={13} y={H - 13} color="p" />
+      </g>
+    </svg>
+  );
+}
+
+/** Or des filets des encadrés : reflets le long du bord, comme le cadre du dos. */
+const PANEL_GOLD =
+  "linear-gradient(100deg, #8a5a14 0%, #fde68a 22%, #e0a93a 45%, #fff3c4 68%, #9a6418 100%)";
+
+/**
+ * Filets très fins des encadrés (ligne de type, effet) dans le style du dos : un filet doré de
+ * 1 px à la place de la bordure, doublé à l'intérieur d'un liseré cyan à peine visible.
+ */
+function PanelTrim() {
+  return (
+    <>
+      <Ring background={PANEL_GOLD} width={1} style={{ inset: 0, borderRadius: 8 }} />
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 1.5,
+          borderRadius: 6.5,
+          border: "0.5px solid rgb(103 232 249 / 0.3)",
+          pointerEvents: "none",
+        }}
+      />
+    </>
+  );
+}
+
 export function FinalCard({
   card,
   layout,
@@ -319,6 +452,8 @@ export function FinalCard({
   band = "plein",
   typeLine,
   gameFooter = false,
+  visualEffects = [],
+  still = false,
 }: {
   card: CardData;
   layout: TopLayout;
@@ -328,9 +463,30 @@ export function FinalCard({
   typeLine?: string;
   /** Pied des vraies cartes (rareté abrégée, auteur de l'idée) ; les propositions notées gardent le leur. */
   gameFooter?: boolean;
+  /** Effets visuels (clés du catalogue, voir `visual-effects.tsx`), le premier en dessous. */
+  visualEffects?: string[];
+  /** Carte figée (planches) : l'effet visuel reste à l'arrêt. */
+  still?: boolean;
 }) {
   const full = layout === "fullart";
-  const panel = panelStyle(card, STYLE.panel, layout);
+  // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
+  const placed = (place: string) => visualEffects.filter((k) => effectPlace(k) === place);
+  // Les effets qui redessinent l'illustration passent sous ceux posés dessus.
+  const imageEffects = placed("image");
+  const artEffects = [...imageEffects, ...placed("art")];
+  const cardEffects = placed("card");
+  const frameEffects = placed("frame");
+  const effects = (keys: string[]) =>
+    keys.map((k) => (
+      <VisualEffectLayer key={k} effectKey={k} card={card} full={full} still={still} />
+    ));
+  // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
+  // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
+  const panel: CSSProperties = {
+    ...finalPanel(card, layout),
+    border: 0,
+    position: "relative",
+  };
   const relief = windowRelief(STYLE);
 
   return (
@@ -338,6 +494,12 @@ export function FinalCard({
       {full ? (
         <>
           <Art card={card} />
+          {/* Full art : l'illustration redessinée (or, aquarelle…) reste sous le texte. */}
+          {imageEffects.length > 0 && (
+            <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
+              {effects(imageEffects)}
+            </div>
+          )}
           {/* Assombrit le bas de l'image, pour la lisibilité des encadrés transparents. */}
           <div
             aria-hidden
@@ -355,11 +517,49 @@ export function FinalCard({
             aria-hidden
             style={{ ...fill, borderRadius: R, background: cardBackground(STYLE.panel) }}
           />
-          <div style={{ ...windowBox(STYLE), background: "#0b0d18" }}>
+          <div
+            style={{
+              ...windowBox(STYLE),
+              ...(band === "court"
+                ? {
+                    top: FINAL_ART.top,
+                    height: FINAL_ART.height,
+                    left: FINAL_ART.inset,
+                    right: FINAL_ART.inset,
+                    borderRadius: 0,
+                  }
+                : null),
+              background: "#0b0d18",
+            }}
+          >
             <PremiumArt card={card} />
+            {/* Carte normale : les effets « art » ne couvrent que l'illustration. */}
+            {effects(artEffects)}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
+            {band === "court" && (
+              // Même trait que sous le titre, pour fermer l'illustration en bas.
+              <div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 1,
+                  background: "rgb(255 255 255 / 0.14)",
+                }}
+              />
+            )}
           </div>
         </>
+      )}
+
+      {/* Carte normale, effets de toute la carte (éclair) : sur toute la carte mais sous le bandeau
+          du titre, la bordure et les encadrés (profondeur 5, sous leurs 10 et 30). */}
+      {!full && cardEffects.length > 0 && (
+        <Layer z={5} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          {effects(cardEffects)}
+        </Layer>
       )}
 
       <Band card={card} layout={layout} shape={band} />
@@ -382,8 +582,17 @@ export function FinalCard({
             boxShadow: "0 0 0 1.5px rgb(0 0 0 / 0.7), inset 0 0 16px rgb(0 0 0 / 0.45)",
           }}
         />
+        <BackStyleFrame />
       </Layer>
       {band === "serti" && <Socket finish={finish} />}
+
+      {/* Carte normale, effets de cadre (liserés, prisme, halo) : par-dessus la bordure et le
+          bandeau du titre (profondeur 20, au-dessus de leurs 10), sous les encadrés (30). */}
+      {!full && frameEffects.length > 0 && (
+        <Layer z={20} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          {effects(frameEffects)}
+        </Layer>
+      )}
 
       <Layer z={30} style={{ left: SIDE, right: SIDE, top: TYPE.top, height: TYPE.height }}>
         <div
@@ -399,6 +608,7 @@ export function FinalCard({
           <span style={{ fontFamily: font("magic", "serif"), fontWeight: 700, fontSize: 12.5 }}>
             {typeLine ?? `Créature — ${card.tag}`}
           </span>
+          <PanelTrim />
         </div>
       </Layer>
 
@@ -416,6 +626,7 @@ export function FinalCard({
             ...panel,
           }}
         >
+          <PanelTrim />
           <div>{card.effect}</div>
           {card.flavor && (
             <div
@@ -434,6 +645,15 @@ export function FinalCard({
         </div>
       </Layer>
 
+      {/* Full art : les effets visuels couvrent toute la carte, encadrés compris, sous le coût et la
+          puissance. En carte normale, il est plus haut, sous les encadrés : dans la fenêtre
+          d'illustration, ou selon la place de l'effet (`effectPlace`). */}
+      {full && visualEffects.length > imageEffects.length && (
+        <Layer z={60} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          {effects(visualEffects.filter((k) => !imageEffects.includes(k)))}
+        </Layer>
+      )}
+
       <Footer card={card} finish={finish} game={gameFooter} />
 
       {/* Coût et puissance en dernier : toujours au-dessus du reste, sans sertissage. */}
@@ -441,7 +661,7 @@ export function FinalCard({
         z={80}
         style={{ left: -2, top: -2, zIndex: 5, scale: String(BADGE), transformOrigin: "0 0" }}
       >
-        <Cost value={card.cost} />
+        <ImageCost value={card.cost} />
       </Layer>
       <Layer
         z={80}
@@ -453,7 +673,7 @@ export function FinalCard({
           transformOrigin: "100% 100%",
         }}
       >
-        <Power value={card.power} />
+        <ImagePower value={card.power} />
       </Layer>
     </Shell>
   );

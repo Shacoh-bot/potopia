@@ -12,6 +12,7 @@ import {
   DEFAULT_FRAME,
   frameFor,
   type ImageFrame,
+  type VisualEffect,
 } from "../src/card-rules";
 import {
   defaultParams,
@@ -27,6 +28,8 @@ import { CardFlip } from "./CardFlip";
 import { GameCard, GameCardDefs } from "./GameCard";
 import { ImageFramer } from "./ImageFramer";
 import { pastedImage, toCardWebp } from "./toCardWebp";
+import { FINAL_ART } from "./v5";
+import { VISUAL_EFFECTS } from "./visual-effects";
 
 /** Mise en page de l'aperçu, et du cadrage qu'on règle. */
 type Layout = "normal" | "fullart";
@@ -48,6 +51,8 @@ type Fields = {
   effectParams: EffectParams;
   effectText: string;
   flavor: string;
+  /** Effets visuels cochés, dans l'ordre des calques (le premier en dessous). */
+  visualEffectKeys: string[];
 };
 
 type Props = {
@@ -56,6 +61,8 @@ type Props = {
   sets: CardSet[];
   /** Familles déjà utilisées, proposées à la saisie. */
   families: string[];
+  /** Catalogue des effets visuels (`listVisualEffects`), proposés dans la fiche. */
+  visualEffects: VisualEffect[];
   imageUrl: string | null;
   /** Auteur de l'idée d'origine, affiché en pied de carte (« idée de … »). */
   author?: string | null;
@@ -115,6 +122,7 @@ function defaults(card: Card | null): Fields {
     effectParams: card?.effectParams ?? {},
     effectText: card?.effectText ?? "",
     flavor: card?.flavor ?? "",
+    visualEffectKeys: card?.visualEffectKeys ?? [],
   };
 }
 
@@ -126,6 +134,7 @@ export function CardEditor({
   card,
   sets,
   families,
+  visualEffects,
   imageUrl,
   author,
   setSize,
@@ -437,6 +446,44 @@ export function CardEditor({
             onChange={(e) => set("flavor", e.target.value)}
           />
         </Label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-text mb-1 text-sm font-medium">Effets visuels</legend>
+          <p className="text-muted text-xs">
+            Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
+            Nouveaux effets : ajoutés par migration.
+          </p>
+          {visualEffects.length === 0 && (
+            <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
+          )}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
+            {visualEffects.map((v) => {
+              const rank = fields.visualEffectKeys.indexOf(v.key);
+              return (
+                <label key={v.key} className="text-text flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={rank >= 0}
+                    onChange={(e) =>
+                      set(
+                        "visualEffectKeys",
+                        e.target.checked
+                          ? [...fields.visualEffectKeys, v.key]
+                          : fields.visualEffectKeys.filter((k) => k !== v.key),
+                      )
+                    }
+                  />
+                  {v.name}
+                  {!VISUAL_EFFECTS[v.key] && (
+                    <span className="text-muted text-xs">(rendu pas encore codé)</span>
+                  )}
+                  {rank >= 0 && fields.visualEffectKeys.length > 1 && (
+                    <span className="text-muted text-xs">calque {rank + 1}</span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
 
         {fromIdea?.hasCards && (
           <label className="text-text flex items-center gap-2 text-sm">
@@ -503,9 +550,9 @@ export function CardEditor({
               imageUrl={image}
               frame={frames[layout]}
               onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-              // Proportions de la fenêtre d'illustration : carte normale (264 × 172) ou full art.
-              width={layout === "normal" ? 264 : 200}
-              height={layout === "normal" ? 172 : 280}
+              // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
+              width={layout === "normal" ? FINAL_ART.width : 200}
+              height={layout === "normal" ? FINAL_ART.height : 280}
             />
             {layout === "fullart" && (
               <button

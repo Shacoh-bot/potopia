@@ -1,4 +1,4 @@
-import { getCard, listCards, listSets } from "@app/tcg";
+import { getCard, listCards, listSets, listVisualEffects } from "@app/tcg";
 import { CardEditor } from "@app/tcg/ui";
 import { Card } from "@app/ui";
 import type { Metadata } from "next";
@@ -17,7 +17,11 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const card = await getCard(admin, id);
   if (!card) notFound();
-  const [sets, allCards] = await Promise.all([listSets(admin), listCards(admin)]);
+  const [sets, allCards, visualEffects] = await Promise.all([
+    listSets(admin),
+    listCards(admin),
+    listVisualEffects(admin),
+  ]);
   const setCards = allCards.filter((c) => c.setId === card.setId);
   const [images, authors] = await Promise.all([
     cardImageUrls(admin, [card]),
@@ -99,6 +103,7 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
           card={card}
           sets={sets}
           families={familiesOf(allCards)}
+          visualEffects={visualEffects}
           imageUrl={images.get(card.id) ?? null}
           author={authors.get(card.id)}
           setSize={setCards.length}
