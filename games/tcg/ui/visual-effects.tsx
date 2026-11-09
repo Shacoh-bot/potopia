@@ -12,12 +12,14 @@ import { ExtraArt, type ExtraStyle } from "./snap-styles";
  *
  * Ajouter un effet :
  * 1. une migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name")`) ;
- * 2. son composant ci-dessous, ajouté à `VISUAL_EFFECTS` sous la même clé ;
+ * 2. son composant ci-dessous, ajouté à `VISUAL_EFFECTS` sous la même clé, et sa place dans
+ *    `effect-places.ts` si ce n'est pas l'illustration ;
  * 3. ses styles dans tcg.css (classes `tcg-vfx-…`), coupés avec `prefers-reduced-motion`.
  *
  * Un effet est un calque rogné qui ne capte jamais le pointeur. En full art, il couvre toute la
  * carte, au-dessus des encadrés et sous le coût et la puissance. En carte normale, sa place
- * (`place`) dépend de l'effet :
+ * dépend de l'effet (`effect-places.ts`, hors de ce module client : `FinalCard` la lit côté
+ * serveur) :
  * - `art` (par défaut) : sur l'illustration seule ;
  * - `card` : sur toute la carte, sous le bandeau du titre, la bordure et les encadrés ;
  * - `frame` : sur toute la carte, au-dessus de la bordure mais sous les encadrés (effets de cadre).
@@ -40,12 +42,8 @@ type EffectProps = {
   full: boolean;
 };
 
-/** Place d'un effet (voir plus haut). */
-export type EffectPlace = "art" | "card" | "frame" | "image";
-
 type EffectDef = {
   render: ComponentType<EffectProps>;
-  place?: EffectPlace;
 };
 
 /**
@@ -558,39 +556,34 @@ const Mist = () => (
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
-  eclair: { render: Lightning, place: "card" },
+  eclair: { render: Lightning },
   eclat: { render: Shine },
-  orbite: { render: Orbit, place: "frame" },
-  prisme: { render: Prism, place: "frame" },
-  flux: { render: Flow, place: "frame" },
-  halo: { render: Breathe, place: "frame" },
+  orbite: { render: Orbit },
+  prisme: { render: Prism },
+  flux: { render: Flow },
+  halo: { render: Breathe },
   holoclassique: { render: HoloClassic },
-  neon: { render: Neon, place: "frame" },
-  torches: { render: Torches, place: "frame" },
-  aurore: { render: Aurora, place: "card" },
-  lenticulaire: { render: Lenticular, place: "image" },
-  glitch: { render: snapStyle("glitch"), place: "image" },
-  or: { render: snapStyle("gold"), place: "image" },
-  popart: { render: snapStyle("popart"), place: "image" },
-  aquarelle: { render: Watercolor, place: "image" },
-  croquis: { render: snapStyle("sketch"), place: "image" },
-  cosmos: { render: Cosmic, place: "image" },
-  vitrail: { render: snapStyle("stained"), place: "image" },
-  parallaxe: { render: Parallax, place: "image" },
-  lampe: { render: Flashlight, place: "card" },
+  neon: { render: Neon },
+  torches: { render: Torches },
+  aurore: { render: Aurora },
+  lenticulaire: { render: Lenticular },
+  glitch: { render: snapStyle("glitch") },
+  or: { render: snapStyle("gold") },
+  popart: { render: snapStyle("popart") },
+  aquarelle: { render: Watercolor },
+  croquis: { render: snapStyle("sketch") },
+  cosmos: { render: Cosmic },
+  vitrail: { render: snapStyle("stained") },
+  parallaxe: { render: Parallax },
+  lampe: { render: Flashlight },
   metal: { render: BrushedMetal },
-  donnees: { render: DataRain, place: "card" },
-  particules: { render: Motes, place: "card" },
+  donnees: { render: DataRain },
+  particules: { render: Motes },
   onde: { render: Shockwave },
-  mirage: { render: HeatHaze, place: "image" },
-  givre: { render: Frost, place: "frame" },
-  brume: { render: Mist, place: "card" },
+  mirage: { render: HeatHaze },
+  givre: { render: Frost },
+  brume: { render: Mist },
 };
-
-/** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */
-export function effectPlace(effectKey: string): EffectPlace {
-  return VISUAL_EFFECTS[effectKey]?.place ?? "art";
-}
 
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */
 export function VisualEffectLayer({

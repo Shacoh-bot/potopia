@@ -3,7 +3,8 @@ import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { Art, fill, Layer, R, Shell } from "./v2";
-import { effectPlace, VisualEffectLayer } from "./visual-effects";
+import { effectPlace } from "./effect-places";
+import { VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
   cardBackground,
