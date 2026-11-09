@@ -1,9 +1,17 @@
 "use client";
 
-import { type ComponentType, type CSSProperties, useEffect, useState } from "react";
+import {
+  type ComponentType,
+  type CSSProperties,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { CardData } from "./cards";
 import { faction, PremiumArt } from "./premium";
 import { ExtraArt, type ExtraStyle } from "./snap-styles";
+import { watchStillHover } from "./still-hover";
 
 /*
  * Effets visuels des cartes : le rendu (CSS de tcg.css, section « Effets visuels », et JS ici) de
@@ -26,7 +34,7 @@ import { ExtraArt, type ExtraStyle } from "./snap-styles";
  * Un effet `image` redessine l'illustration (or, pop art, aquarelle…) : il se pose juste sur elle,
  * sous tout le reste, dans les deux mises en page, et sous les autres effets de l'illustration.
  * Sur les planches (`still`), tcg.css coupe toutes les animations : l'effet doit rester joli à
- * l'arrêt.
+ * l'arrêt. La carte survolée les reprend (CSS, et `still` passé à faux aux effets JS).
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
  * (holo classique, éclat, liserés, prisme, halo, néon, torches, aurore : classes `tcg-…` de
@@ -143,16 +151,18 @@ function Lightning({ still }: EffectProps) {
     return () => clearTimeout(timer);
   }, [still]);
 
-  const paths = bolt?.paths ?? STILL_BOLT;
+  // Figée à nouveau (fin du survol d'une carte de planche) : retour à l'éclair fixe.
+  const shown = still ? null : bolt;
+  const paths = shown?.paths ?? STILL_BOLT;
   return (
     <>
-      {bolt && <div key={`flash-${bolt.id}`} className="tcg-vfx-flash" />}
+      {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" />}
       <svg
         // Une nouvelle clé à chaque coup relance l'animation.
-        key={bolt?.id ?? "still"}
+        key={shown?.id ?? "still"}
         // Avant le premier coup : caché (montré seulement avec le mouvement réduit, voir tcg.css).
         className={
-          bolt
+          shown
             ? "tcg-vfx-bolt"
             : still
               ? "tcg-vfx-bolt tcg-vfx-bolt-still"
@@ -585,6 +595,27 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   brume: { render: Mist },
 };
 
+/**
+ * Carte figée survolée (`watchStillHover`) : les effets animés en JS (éclair, mirage) y reçoivent
+ * `still` à faux ; tcg.css y relance les animations CSS. Toujours faux hors carte figée.
+ */
+function useHovered(ref: RefObject<HTMLElement | null>, still: boolean) {
+  const [hovered, setHovered] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!still || !el) return;
+    const stop = watchStillHover(el, {
+      enter: () => setHovered(true),
+      leave: () => setHovered(false),
+    });
+    return () => {
+      stop?.();
+      setHovered(false);
+    };
+  }, [ref, still]);
+  return hovered;
+}
+
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */
 export function VisualEffectLayer({
   effectKey,
@@ -598,12 +629,14 @@ export function VisualEffectLayer({
   full?: boolean;
   still?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const hovered = useHovered(ref, still);
   const def = effectKey ? VISUAL_EFFECTS[effectKey] : undefined;
   if (!def) return null;
   const Effect = def.render;
   return (
-    <div className="tcg-vfx" aria-hidden data-effect={effectKey}>
-      <Effect still={still} card={card} full={full} />
+    <div ref={ref} className="tcg-vfx" aria-hidden data-effect={effectKey}>
+      <Effect still={still && !hovered} card={card} full={full} />
     </div>
   );
 }

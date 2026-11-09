@@ -1,10 +1,13 @@
 "use client";
 
-import { type CSSProperties, type PointerEvent, type ReactNode, useRef } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
+import { watchStillHover } from "./still-hover";
 
 /**
  * Carte qui s'incline vers le pointeur, avec reflet et holo qui suivent (classes de tcg.css).
  * Les effets lisent --mx/--my (%), --x (0 à 1) et --rx/--ry, posées ici sans re-rendu React.
+ * Dans une carte figée (planche), elle suit le survol de son parent (`watchStillHover`) et pose
+ * `data-live` sur la carte : tcg.css lui rend alors 3D, reflet et animations.
  */
 export function Tilt({
   children,
@@ -17,7 +20,7 @@ export function Tilt({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  function move(e: PointerEvent<HTMLDivElement>) {
+  function move(e: { clientX: number; clientY: number }) {
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -37,6 +40,22 @@ export function Tilt({
     for (const v of ["--mx", "--my", "--x", "--rx", "--ry"]) el.style.removeProperty(v);
     delete el.dataset.active;
   }
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const card = el.closest<HTMLElement>(".tcg-still");
+    return (
+      watchStillHover(el, {
+        enter: () => card && (card.dataset.live = ""),
+        move,
+        leave: () => {
+          leave();
+          if (card) delete card.dataset.live;
+        },
+      }) ?? undefined
+    );
+  }, []);
 
   return (
     <div

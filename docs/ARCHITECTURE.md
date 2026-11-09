@@ -882,7 +882,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   cartes ; quand les membres les verront, ce pied dira qui a proposé l'idée (à décider avec la
   règle de la boîte noire). Sur la planche, les cartes sont figées (`GameCard still`, classe
   `tcg-still`) : sans 3D, animation, reflet ni grande ombre floue, pour un défilement fluide ;
-  l'éditeur garde la carte vivante.
+  la carte survolée redevient vivante, comme dans sa fiche : inclinaison 3D vers le pointeur,
+  reflet, ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
+  `still-hover.ts` écoute le survol sur le lien, la carte y étant insensible au pointeur, et
+  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante.
 - Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
   pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
   `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
@@ -918,7 +921,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   Un effet `image` redessine l'illustration (il reçoit la carte et la redessine avec
   `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
   texte, en carte normale comme en full art. Sur la
-  planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées. Une clé sans
+  planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées ; sur la
+  planche, la carte survolée les reprend (`data-live`, voir plus haut ; `VisualEffectLayer` passe
+  alors `still` à faux aux effets en JS). Une clé sans
   rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
