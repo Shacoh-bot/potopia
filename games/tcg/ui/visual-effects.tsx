@@ -11,6 +11,7 @@ import {
 import type { CardData } from "./cards";
 import { faction, PremiumArt } from "./premium";
 import { ExtraArt, type ExtraStyle } from "./snap-styles";
+import { watchStillHover } from "./still-hover";
 
 /*
  * Effets visuels des cartes : le rendu (CSS de tcg.css, section « Effets visuels », et JS ici) de
@@ -595,33 +596,21 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
 };
 
 /**
- * Carte figée survolée : ses animations reprennent. Le survol est écouté sur le premier parent qui
- * reçoit le pointeur (sur la planche, la carte est en `pointer-events: none` sous son lien) ; la
- * carte (`.tcg-still`) reçoit alors `data-live`, d'où tcg.css relance ses animations CSS, et les
- * effets animés en JS (éclair, mirage) reçoivent `still` à faux. Toujours faux hors carte figée.
+ * Carte figée survolée (`watchStillHover`) : les effets animés en JS (éclair, mirage) y reçoivent
+ * `still` à faux ; tcg.css y relance les animations CSS. Toujours faux hors carte figée.
  */
 function useHovered(ref: RefObject<HTMLElement | null>, still: boolean) {
   const [hovered, setHovered] = useState(false);
   useEffect(() => {
-    const card = still ? ref.current?.closest<HTMLElement>(".tcg-still") : null;
-    if (!card) return;
-    let host: HTMLElement | null = card;
-    while (host && getComputedStyle(host).pointerEvents === "none") host = host.parentElement;
-    if (!host) return;
-    const enter = () => {
-      card.dataset.live = "";
-      setHovered(true);
-    };
-    const leave = () => {
-      delete card.dataset.live;
-      setHovered(false);
-    };
-    host.addEventListener("pointerenter", enter);
-    host.addEventListener("pointerleave", leave);
+    const el = ref.current;
+    if (!still || !el) return;
+    const stop = watchStillHover(el, {
+      enter: () => setHovered(true),
+      leave: () => setHovered(false),
+    });
     return () => {
-      host.removeEventListener("pointerenter", enter);
-      host.removeEventListener("pointerleave", leave);
-      leave();
+      stop?.();
+      setHovered(false);
     };
   }, [ref, still]);
   return hovered;

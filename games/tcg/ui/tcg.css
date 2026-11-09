@@ -549,15 +549,15 @@
 
 /* Carte figée (`GameCard still`, planches de l'admin) : sans 3D, sans animation ni reflet, et sans
    grande ombre floue. Des dizaines de cartes vivantes à l'écran rendent le défilement saccadé.
-   La carte survolée reprend ses animations (une seule à la fois) : `VisualEffectLayer` lui pose
-   `data-live` (pas `:hover` : la planche la rend insensible au pointeur, sous son lien). */
-.tcg-still .tcg-tilt,
-.tcg-still .tcg-depth,
-.tcg-still .tcg-layer {
+   La carte survolée redevient vivante (une seule à la fois) : `Tilt` lui pose `data-live` (pas
+   `:hover` : la planche la rend insensible au pointeur, sous son lien ; voir still-hover.ts). */
+.tcg-still:not([data-live]) .tcg-tilt,
+.tcg-still:not([data-live]) .tcg-depth,
+.tcg-still:not([data-live]) .tcg-layer {
   transform: none;
   transform-style: flat;
 }
-.tcg-still .tcg-depth {
+.tcg-still:not([data-live]) .tcg-depth {
   box-shadow: none !important;
 }
 .tcg-still:not([data-live]) *,
@@ -566,7 +566,7 @@
   animation: none !important;
   transition: none !important;
 }
-.tcg-still .tcg-glare {
+.tcg-still:not([data-live]) .tcg-glare {
   display: none;
 }
 
