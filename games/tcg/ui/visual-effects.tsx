@@ -595,23 +595,33 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
 };
 
 /**
- * Carte figée survolée : tcg.css y relance les animations CSS (`.tcg-still:not(:hover)`) ; les
- * effets animés en JS (éclair, mirage) l'apprennent ici, en écoutant le survol de la carte
- * (`.tcg-still`, l'effet lui-même ne capte pas le pointeur). Toujours faux hors carte figée.
+ * Carte figée survolée : ses animations reprennent. Le survol est écouté sur le premier parent qui
+ * reçoit le pointeur (sur la planche, la carte est en `pointer-events: none` sous son lien) ; la
+ * carte (`.tcg-still`) reçoit alors `data-live`, d'où tcg.css relance ses animations CSS, et les
+ * effets animés en JS (éclair, mirage) reçoivent `still` à faux. Toujours faux hors carte figée.
  */
 function useHovered(ref: RefObject<HTMLElement | null>, still: boolean) {
   const [hovered, setHovered] = useState(false);
   useEffect(() => {
     const card = still ? ref.current?.closest<HTMLElement>(".tcg-still") : null;
     if (!card) return;
-    const enter = () => setHovered(true);
-    const leave = () => setHovered(false);
-    card.addEventListener("pointerenter", enter);
-    card.addEventListener("pointerleave", leave);
-    return () => {
-      card.removeEventListener("pointerenter", enter);
-      card.removeEventListener("pointerleave", leave);
+    let host: HTMLElement | null = card;
+    while (host && getComputedStyle(host).pointerEvents === "none") host = host.parentElement;
+    if (!host) return;
+    const enter = () => {
+      card.dataset.live = "";
+      setHovered(true);
+    };
+    const leave = () => {
+      delete card.dataset.live;
       setHovered(false);
+    };
+    host.addEventListener("pointerenter", enter);
+    host.addEventListener("pointerleave", leave);
+    return () => {
+      host.removeEventListener("pointerenter", enter);
+      host.removeEventListener("pointerleave", leave);
+      leave();
     };
   }, [ref, still]);
   return hovered;

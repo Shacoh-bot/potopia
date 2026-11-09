@@ -920,8 +920,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
   texte, en carte normale comme en full art. Sur la
   planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées ; sur la
-  planche, la carte survolée les reprend (`.tcg-still:not(:hover)` dans `tcg.css`, et
-  `VisualEffectLayer` écoute le survol pour passer `still` à faux aux effets en JS). Une clé sans
+  planche, la carte survolée les reprend (`VisualEffectLayer` écoute le survol sur le premier
+  parent qui reçoit le pointeur, pose `data-live` sur la carte, que `tcg.css` relance, et passe
+  `still` à faux aux effets en JS). Une clé sans
   rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
