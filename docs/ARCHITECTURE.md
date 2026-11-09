@@ -909,7 +909,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   composant React (CSS de `tcg.css`, classes `tcg-vfx-…`, et JS au besoin), posé par
   `FinalCard` en calque rogné qui ne capte pas le pointeur : en carte normale sur l'illustration
   seule (dans sa fenêtre), en full art sur toute la carte, au-dessus des encadrés et sous le coût
-  et la puissance. En carte normale, chaque effet a sa place (`place` dans `VISUAL_EFFECTS`) :
+  et la puissance. En carte normale, chaque effet a sa place (`effectPlace` de
+  `games/tcg/ui/effect-places.ts`, module à part sans « use client » parce que `FinalCard`, rendu
+  côté serveur, l'appelle : une fonction d'un module client n'y est qu'une référence) :
   `art` par défaut (l'illustration seule), `card` (toute la carte, sous le bandeau du titre, la
   bordure et les encadrés : calque de profondeur 5, l'éclair) ou `frame` (toute la carte,
   par-dessus la bordure et le bandeau mais sous les encadrés : profondeur 20, effets de cadre).
@@ -956,8 +958,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   tirés au hasard le sont avec une graine fixe, pour un rendu serveur identique.
   **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
-(…)`), son composant dans `VISUAL_EFFECTS` sous la même clé (avec sa `place` si ce n'est
-  pas l'illustration), ses styles dans `tcg.css`.
+(…)`), son composant dans `VISUAL_EFFECTS` sous la même clé, sa place dans `effect-places.ts`
+  si ce n'est pas l'illustration, ses styles dans `tcg.css`.
 - Dos des cartes (`CardBack`, le même pour toutes) : cadre SVG tout en or, mot « POTOMON »
   (police Rajdhani, `--font-rajdhani` dans `cartes/fonts.ts`) et portail du logo en deux
   calques, `apps/web/public/tcg/portal-frame.webp` (la porte, transparente) et
