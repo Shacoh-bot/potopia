@@ -548,7 +548,8 @@
 }
 
 /* Carte figée (`GameCard still`, planches de l'admin) : sans 3D, sans animation ni reflet, et sans
-   grande ombre floue. Des dizaines de cartes vivantes à l'écran rendent le défilement saccadé. */
+   grande ombre floue. Des dizaines de cartes vivantes à l'écran rendent le défilement saccadé.
+   La carte survolée reprend ses animations (une seule à la fois) : ses effets visuels bougent. */
 .tcg-still .tcg-tilt,
 .tcg-still .tcg-depth,
 .tcg-still .tcg-layer {
@@ -558,9 +559,9 @@
 .tcg-still .tcg-depth {
   box-shadow: none !important;
 }
-.tcg-still *,
-.tcg-still *::before,
-.tcg-still *::after {
+.tcg-still:not(:hover) *,
+.tcg-still:not(:hover) *::before,
+.tcg-still:not(:hover) *::after {
   animation: none !important;
   transition: none !important;
 }
