@@ -196,7 +196,9 @@ passe d'une partie à l'autre sans rechargement.
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power, effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
-  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), ideaId? (index simple, `ideas.ideas`
+  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), layout
+  (enum `TcgCardLayout` : normal, fullart ; mise en page dans laquelle la carte s'affiche, normale
+  par défaut, full art par défaut pour une variante), ideaId? (index simple, `ideas.ideas`
   sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt,
   updatedAt. La base ne contient aucune logique d'effet : seulement la clé
   d'un effet du catalogue et ses réglages.
@@ -872,8 +874,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   sets et la réserve, sans tenir compte des accents : `CardSearch` met l'adresse à jour pendant
   la frappe (300 ms après la dernière touche, Entrée tout de suite, Échap efface) par une
   navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup ; création d'un set), `/admin/cartes/[id]` et
-  `/admin/cartes/nouvelle` (`CardEditor` : formulaire et aperçu en direct, normale ou full art,
-  envoi d'illustration), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
+  `/admin/cartes/nouvelle` (`CardEditor` : formulaire et aperçu en direct, choix de l'affichage
+  de la carte, normale ou full art, enregistré avec elle, envoi d'illustration), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).
   Pied des vraies cartes (`gameFooter` de `FinalCard`, les propositions notées gardent le leur) :
@@ -993,6 +995,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   sans cadrage full art à elle (cadrée avant la séparation) garde en full art celui de la carte
   normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
+- Mise en page : les boutons « Normale » / « Full art » sous l'aperçu de l'éditeur choisissent
+  l'affichage de la carte (`layout`), enregistré avec elle : la planche de l'admin et `GameCard`
+  l'appliquent (le prop `layout` de `GameCard` ne sert qu'à forcer une mise en page). Une mise à
+  jour sans `layout` (fichier `updates`, import) la laisse telle quelle.
 - Illustration : celle de la carte ou, à défaut, celle de son idée (`listIdeaImageUrls`). Les pages
   admin la signent directement (`cardImageUrls`) avec `presignGetStable` (`@app/storage`) : l'URL
   reste identique pendant une fenêtre de 5 min (signée au début de la fenêtre, valable 15 min) et

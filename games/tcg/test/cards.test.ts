@@ -135,6 +135,28 @@ describe("createCard", () => {
     ).rejects.toThrow(ZodError);
   });
 
+  it("enregistre la mise en page affichée (normale par défaut, full art pour une variante)", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    expect(card.layout).toBe("normal");
+    const full = await updateCard(ADMIN, card.id, { ...BASE, layout: "fullart" });
+    expect(full.layout).toBe("fullart");
+    // absente (mise à jour en masse, anciens appels) : celle enregistrée ne change pas
+    expect((await updateCard(ADMIN, card.id, { ...BASE })).layout).toBe("fullart");
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, layout: "geante" as "normal" }),
+    ).rejects.toThrow(ZodError);
+
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: card.id });
+    expect(variant.layout).toBe("fullart");
+    const shown = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      baseCardId: card.id,
+      layout: "normal",
+    });
+    expect(shown.layout).toBe("normal");
+  });
+
   it("refuse un effet inconnu ou mal réglé", async () => {
     await expect(createCard(ADMIN, { ...BASE, setId, effectKey: "inconnu" })).rejects.toThrow(
       ZodError,
