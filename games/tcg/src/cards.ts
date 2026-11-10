@@ -5,11 +5,13 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   CARD_IMAGE_TYPES,
+  CARD_LAYOUTS,
   CARD_LIMITS,
   CARD_RARITIES,
   FRAME_ZOOM,
   type Card,
   type CardImageType,
+  type CardLayout,
   type CardRarityId,
   type CardSet,
   type ImageFrame,
@@ -27,10 +29,13 @@ import { EFFECT_KEYS, type EffectParams, effectText, getEffect, paramsSchema } f
 
 export {
   CARD_IMAGE_TYPES,
+  CARD_LAYOUT_LABELS,
+  CARD_LAYOUTS,
   CARD_LIMITS,
   CARD_RARITIES,
   CARD_RARITY_LABELS,
   type Card,
+  type CardLayout,
   type CardRarityId,
   type CardSet,
   DEFAULT_FRAME,
@@ -108,6 +113,9 @@ const cardFields = z.object({
   // Absent : le cadrage full art enregistré ne change pas (mise à jour en masse, anciens appels) ;
   // null : la full art reprend le cadrage de la carte normale.
   imageFrameFull: frameSchema.nullish(),
+  // Mise en page affichée. Absent : celle enregistrée ne change pas ; à la création, normale (full
+  // art pour une variante).
+  layout: z.enum(CARD_LAYOUTS, "Mise en page inconnue.").optional(),
   // Effets visuels, dans l'ordre des calques (le premier en dessous). Absent : ceux enregistrés ne
   // changent pas ; liste vide : aucun. Les doublons sont retirés.
   visualEffectKeys: z
@@ -138,9 +146,16 @@ function parseCard(input: CardInput) {
 
 type CardRow = Omit<
   Card,
-  "setCode" | "effectParams" | "rarity" | "imageFrame" | "imageFrameFull" | "visualEffectKeys"
+  | "setCode"
+  | "effectParams"
+  | "rarity"
+  | "layout"
+  | "imageFrame"
+  | "imageFrameFull"
+  | "visualEffectKeys"
 > & {
   rarity: string;
+  layout: string;
   visualEffects: { effectKey: string }[];
   effectParams: unknown;
   imageFrame: unknown;
@@ -154,6 +169,7 @@ function toCard(row: CardRow): Card {
     ...rest,
     visualEffectKeys: visualEffects.map((e) => e.effectKey),
     rarity: row.rarity as CardRarityId,
+    layout: row.layout as CardLayout,
     effectParams: (row.effectParams as EffectParams | null) ?? null,
     imageFrame: (row.imageFrame as ImageFrame | null) ?? null,
     imageFrameFull: (row.imageFrameFull as ImageFrame | null) ?? null,
@@ -332,6 +348,7 @@ export async function createCard(
       data: {
         ...fields,
         ...shared(base ?? fields),
+        layout: fields.layout ?? (base ? "fullart" : "normal"),
         setId,
         number,
         ideaId: ideaId ?? null,
@@ -370,6 +387,7 @@ export async function updateCard(
           flavor: fields.flavor,
           imageFrame: fields.imageFrame,
           imageFrameFull: fields.imageFrameFull,
+          layout: fields.layout,
           visualEffects: replaceEffects(visualEffectKeys),
         },
         include: withSet,
@@ -386,6 +404,7 @@ export async function updateCard(
         flavor: fields.flavor,
         imageFrame: fields.imageFrame,
         imageFrameFull: fields.imageFrameFull,
+        layout: fields.layout,
         visualEffects: replaceEffects(visualEffectKeys),
       },
       include: withSet,

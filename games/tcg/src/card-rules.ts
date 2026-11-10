@@ -55,6 +55,15 @@ export type ImageFrame = { x: number; y: number; zoom: number };
 export const DEFAULT_FRAME: ImageFrame = { x: 50, y: 50, zoom: 1 };
 export const FRAME_ZOOM = { min: 1, max: 4 } as const;
 
+/** Mise en page d'une carte : illustration dans une fenêtre (normale) ou sur toute la carte. */
+export const CARD_LAYOUTS = ["normal", "fullart"] as const;
+export type CardLayout = (typeof CARD_LAYOUTS)[number];
+
+export const CARD_LAYOUT_LABELS: Record<CardLayout, string> = {
+  normal: "Normale",
+  fullart: "Full art",
+};
+
 /**
  * Cadrage à appliquer selon la mise en page : la carte normale et la full art ont chacune le leur.
  * Une carte sans cadrage full art à elle (cadrée avant qu'ils soient séparés) garde celui de la
@@ -62,7 +71,7 @@ export const FRAME_ZOOM = { min: 1, max: 4 } as const;
  */
 export function frameFor(
   card: { imageFrame?: ImageFrame | null; imageFrameFull?: ImageFrame | null },
-  layout: "normal" | "fullart",
+  layout: CardLayout,
 ): ImageFrame | null {
   const normal = card.imageFrame ?? null;
   return layout === "fullart" ? (card.imageFrameFull ?? normal) : normal;
@@ -88,6 +97,8 @@ export type Card = {
   imageFrame: ImageFrame | null;
   /** Cadrage en full art ; null : celui de la carte normale (voir `frameFor`). */
   imageFrameFull: ImageFrame | null;
+  /** Mise en page choisie pour afficher la carte. */
+  layout: CardLayout;
   ideaId: string | null;
   baseCardId: string | null;
   /** Effets visuels (clés du catalogue `visual_effects`), dans l'ordre des calques. */

@@ -4,6 +4,8 @@ import { Button, Input, Label, Select, Textarea } from "@app/ui";
 import { ClipboardPaste } from "lucide-react";
 import { useActionState, useMemo, useState, useTransition } from "react";
 import {
+  CARD_LAYOUT_LABELS,
+  CARD_LAYOUTS,
   CARD_LIMITS,
   CARD_RARITIES,
   CARD_RARITY_LABELS,
@@ -31,8 +33,8 @@ import { pastedImage, toCardWebp } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
-/** Mise en page de l'aperçu, et du cadrage qu'on règle. */
-type Layout = "normal" | "fullart";
+/** Mise en page de la carte (enregistrée), de l'aperçu et du cadrage qu'on règle. */
+type Layout = Card["layout"];
 
 export type CardEditorState =
   { status: "idle" } | { status: "ok"; message: string } | { status: "error"; message: string };
@@ -153,7 +155,7 @@ export function CardEditor({
   const [customText, setCustomText] = useState(
     () => !!card && card.effectText !== effectText(card.effectKey, card.effectParams),
   );
-  const [layout, setLayout] = useState<Layout>("normal");
+  const [layout, setLayout] = useState<Layout>(card?.layout ?? "normal");
   const [image, setImage] = useState(imageUrl);
   // Un cadrage par mise en page. La full art part du cadrage de la carte normale tant qu'elle n'a
   // pas le sien (cartes cadrées avant la séparation) : rien n'est perdu.
@@ -200,6 +202,7 @@ export function CardEditor({
         effectText: shownText,
         imageFrame: image ? frames.normal : null,
         imageFrameFull: image ? frames.fullart : null,
+        layout,
       }),
     );
     if (!card) {
@@ -521,22 +524,32 @@ export function CardEditor({
             author={author}
           />
         </CardFlip>
-        <div className="flex gap-2 text-sm">
-          {(["normal", "fullart"] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              aria-pressed={layout === l}
-              onClick={() => setLayout(l)}
-              className={
-                layout === l
-                  ? "border-accent text-text rounded-full border px-3 py-1"
-                  : "border-border text-muted rounded-full border px-3 py-1"
-              }
-            >
-              {l === "normal" ? "Normale" : "Full art"}
-            </button>
-          ))}
+        {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}
+        <div
+          role="group"
+          aria-label="Affichage de la carte"
+          className="flex flex-col items-center gap-1"
+        >
+          <div className="flex gap-2 text-sm">
+            {CARD_LAYOUTS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                aria-pressed={layout === l}
+                onClick={() => setLayout(l)}
+                className={
+                  layout === l
+                    ? "border-accent text-text rounded-full border px-3 py-1"
+                    : "border-border text-muted rounded-full border px-3 py-1"
+                }
+              >
+                {CARD_LAYOUT_LABELS[l]}
+              </button>
+            ))}
+          </div>
+          <p className="text-muted text-xs">
+            Affichage de la carte{layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
+          </p>
         </div>
         {image && (
           <div className="flex flex-col items-center gap-1">

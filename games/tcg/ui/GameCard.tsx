@@ -16,6 +16,8 @@ export type GameCardFields = Pick<
   imageFrame?: Card["imageFrame"];
   /** Cadrage en full art ; absent ou null : celui de la carte normale. */
   imageFrameFull?: Card["imageFrameFull"];
+  /** Mise en page enregistrée ; absente : normale. */
+  layout?: Card["layout"];
   /** Effets visuels (clés du catalogue), le premier en dessous ; absent : aucun. */
   visualEffectKeys?: string[];
 };
@@ -37,18 +39,20 @@ export function GameCardDefs() {
 
 /**
  * Une carte du jeu, dans le design retenu (n°70 : le 65 affiné, bandeau court), en carte normale
- * ou full art. La rareté ne se voit pour l'instant qu'en pied de carte.
+ * ou full art (la mise en page enregistrée sur la carte, sauf `layout` donné). La rareté ne se
+ * voit pour l'instant qu'en pied de carte.
  */
 export function GameCard({
   card,
   imageUrl,
-  layout = "normal",
+  layout: forced,
   setSize,
   still = false,
   author,
 }: {
   card: GameCardFields;
   imageUrl: string | null;
+  /** Force une mise en page ; absente : celle de la carte. */
   layout?: TopLayout;
   /** Nombre de cartes du set, pour le numéro « 07/44 ». */
   setSize?: number;
@@ -57,6 +61,7 @@ export function GameCard({
   /** Auteur de l'idée d'origine, en pied de carte (« idée de … »). */
   author?: string | null;
 }) {
+  const layout = forced ?? card.layout ?? "normal";
   const pad = (n: number) => String(n).padStart(2, "0");
   const data: CardData = {
     title: card.name || "Sans nom",
