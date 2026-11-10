@@ -714,10 +714,6 @@
   filter: drop-shadow(0 0 4px #67e8f9) drop-shadow(0 0 12px #a855f7);
   animation: tcg-vfx-bolt 0.55s ease-out both;
 }
-.tcg-vfx-bolt-still {
-  opacity: 0.85;
-  animation: none;
-}
 .tcg-vfx-bolt-rest {
   opacity: 0;
   animation: none;
@@ -788,10 +784,17 @@
   .tcg-vfx-flash {
     animation: none;
   }
-  /* Pas de coups : l'éclair fixe reste affiché. */
-  .tcg-vfx-bolt-rest {
+  /* Pas de coups : un éclair fixe, seulement quand le pointeur est sur la carte. */
+  .tcg-tilt[data-active] .tcg-vfx-bolt-rest {
     opacity: 0.85;
   }
+}
+
+/* holoclassique : l'holo des propositions (.tcg-holo), atténué (fondu doux, plus transparent)
+   pour irriser la carte sans l'éclaircir. */
+.tcg-vfx-holoclassique {
+  mix-blend-mode: soft-light;
+  opacity: calc(0.12 + var(--glare) * 0.2);
 }
 
 /* parallaxe : l'illustration (agrandie) glisse à l'opposé du pointeur, la poussière au premier

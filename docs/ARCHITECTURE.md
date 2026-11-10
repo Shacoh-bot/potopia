@@ -930,16 +930,19 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
   quand on incline la carte, plus vives autour de lui, d'après `--mx`/`--my` de `Tilt` ; CSS
-  seul, discret et figé sans pointeur) et `eclair` (« Éclair » : un éclair en zigzag tiré au
-  hasard en JS part d'un bord de la carte (haut, gauche ou droite) toutes les 1 à 3,5 s, la
-  traverse avec deux ou trois ramifications, scintille et l'illumine d'un flash, sans sortir de
-  la carte ; carte figée ou mouvement réduit : un éclair fixe). Repris des anciennes propositions de
+  seul, discret et figé sans pointeur) et `eclair` (« Éclair » : seulement quand le pointeur
+  est sur la carte (`data-active` de `Tilt`, suivi par un `MutationObserver`) ; un éclair en
+  zigzag tiré au hasard en JS part d'un bord de la carte (haut, gauche ou droite) tout de suite,
+  puis toutes les 1 à 3,5 s, la traverse avec deux ou trois ramifications, scintille et l'illumine
+  d'un flash, sans sortir de la carte ; sans pointeur, carte figée comprise : aucun éclair ;
+  mouvement réduit : un éclair fixe au survol). Repris des anciennes propositions de
   design, avec leurs styles de `tcg.css` tels quels (migration
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
   `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
   qui respire », `tcg-breathe` : lueur cyan intérieure), `holoclassique` (« Holo classique »,
-  `tcg-holo`), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
+  `tcg-holo` atténué par `tcg-vfx-holoclassique` : fondu `soft-light`, plus transparent, pour ne
+  pas éclaircir la carte), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
   `torches` (« Torches », deux lueurs orange qui vacillent en haut, `tcg-torch`), `aurore`
   (« Aurore cosmique », `tcg-aurora` et `tcg-stars` dans la carte, place `card`) ; illustration
   redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
