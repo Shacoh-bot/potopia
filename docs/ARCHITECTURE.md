@@ -196,7 +196,8 @@ passe d'une partie à l'autre sans rechargement.
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power, effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
-  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), layout
+  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
+  l'illustration, voir plus bas ; null, aucun), layout
   (enum `TcgCardLayout` : normal, fullart ; mise en page dans laquelle la carte s'affiche, normale
   par défaut, full art par défaut pour une variante), ideaId? (index simple, `ideas.ideas`
   sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), deletedAt? (mise à la corbeille ; null,
@@ -1033,6 +1034,19 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   sans cadrage full art à elle (cadrée avant la séparation) garde en full art celui de la carte
   normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
+- Points lumineux (`glowPoints`, 8 au plus par carte ; des yeux qui brillent…) : chaque point a
+  une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
+  couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :
+  6 s / vitesse, `glowPeriod`). Accrochés à l'image et pas à la carte : `glowPlacement`
+  (`src/glow.ts`, testé) refait le placement de l'illustration (`object-fit: cover`, cadrage
+  `object-position`, zoom `scale`) pour savoir où tombe le point dans la fenêtre, d'après la
+  taille réelle de l'image (lue une fois par URL, `useNaturalSize`) ; le point suit donc le
+  cadrage, le zoom et la mise en page. Rendu (`GlowPoints`, client) : halo flou de sa couleur et
+  cœur net blanc teinté, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
+  la carte en full art) ; figé sur la planche et en mouvement réduit. Fiche : `GlowPointsEditor`,
+  sous le cadrage, montre l'image entière ; un clic pose un point, un glisser le déplace, le point
+  choisi se règle (couleur, taille, clignotement) ou se supprime. Une mise à jour sans
+  `glowPoints` (fichier `updates`) les laisse tels quels.
 - Mise en page : les boutons « Normale » / « Full art » sous l'aperçu de l'éditeur choisissent
   l'affichage de la carte (`layout`), enregistré avec elle : la planche de l'admin et `GameCard`
   l'appliquent (le prop `layout` de `GameCard` ne sert qu'à forcer une mise en page). Une mise à

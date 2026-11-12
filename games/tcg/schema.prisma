@@ -76,6 +76,9 @@ model TcgCard {
   imageFrame     Json?     @map("image_frame")
   // Cadrage de l'illustration en full art ; null : celui de la carte normale (imageFrame).
   imageFrameFull Json?     @map("image_frame_full")
+  // Points lumineux posés sur l'illustration (JSON : position en % de l'image, taille, couleur,
+  // vitesse de clignotement) ; null : aucun.
+  glowPoints     Json?     @map("glow_points")
   // Mise en page choisie pour afficher la carte (normale ou full art).
   layout         TcgCardLayout @default(normal)
   ideaId        String?   @map("idea_id")

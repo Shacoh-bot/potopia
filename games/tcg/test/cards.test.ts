@@ -159,6 +159,34 @@ describe("createCard", () => {
     expect(shown.layout).toBe("normal");
   });
 
+  it("garde les points lumineux, bornés, et les laisse quand on ne les envoie pas", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    expect(card.glowPoints).toEqual([]);
+    const eyes = [
+      { x: 40, y: 30, size: 6, color: "#7cff6b", speed: 0 },
+      { x: 60, y: 30, size: 6, color: "#ff2d7a", speed: 4 },
+    ];
+    expect((await updateCard(ADMIN, card.id, { ...BASE, glowPoints: eyes })).glowPoints).toEqual(
+      eyes,
+    );
+    // absents (mise à jour en masse, anciens appels) : ceux enregistrés restent
+    expect((await updateCard(ADMIN, card.id, { ...BASE })).glowPoints).toEqual(eyes);
+    expect((await updateCard(ADMIN, card.id, { ...BASE, glowPoints: [] })).glowPoints).toEqual([]);
+    for (const bad of [
+      { ...eyes[0], x: 120 },
+      { ...eyes[0], size: 50 },
+      { ...eyes[0], color: "vert" },
+      { ...eyes[0], speed: 11 },
+    ]) {
+      await expect(
+        updateCard(ADMIN, card.id, { ...BASE, glowPoints: [bad as (typeof eyes)[0]] }),
+      ).rejects.toThrow(ZodError);
+    }
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, glowPoints: Array(9).fill(eyes[0]) }),
+    ).rejects.toThrow(ZodError);
+  });
+
   it("refuse un effet inconnu ou mal réglé", async () => {
     await expect(createCard(ADMIN, { ...BASE, setId, effectKey: "inconnu" })).rejects.toThrow(
       ZodError,

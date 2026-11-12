@@ -77,6 +77,24 @@ export function frameFor(
   return layout === "fullart" ? (card.imageFrameFull ?? normal) : normal;
 }
 
+/**
+ * Point lumineux posé sur l'illustration (des yeux qui brillent…) : position en % de l'image
+ * (accroché à elle, il suit le cadrage et le zoom), taille du halo en % de la largeur de l'image,
+ * couleur (#rrggbb) et vitesse de clignotement (0 : fixe, 10 : le plus rapide).
+ */
+export type GlowPoint = { x: number; y: number; size: number; color: string; speed: number };
+
+export const GLOW_LIMITS = {
+  points: 8,
+  size: { min: 1, max: 30, default: 6 },
+  speed: { min: 0, max: 10 },
+} as const;
+
+/** Durée d'un clignotement (s) pour une vitesse ; 0 : fixe (null). */
+export function glowPeriod(speed: number): number | null {
+  return speed > 0 ? 6 / speed : null;
+}
+
 export type Card = {
   id: string;
   /** null : la carte attend dans la réserve (hors set, sans numéro). */
@@ -99,6 +117,8 @@ export type Card = {
   imageFrameFull: ImageFrame | null;
   /** Mise en page choisie pour afficher la carte. */
   layout: CardLayout;
+  /** Points lumineux sur l'illustration (vide : aucun). */
+  glowPoints: GlowPoint[];
   ideaId: string | null;
   baseCardId: string | null;
   /** Effets visuels (clés du catalogue `visual_effects`), dans l'ordre des calques. */

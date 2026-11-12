@@ -21,6 +21,8 @@ export {
   deleteCards,
   FRAME_ZOOM,
   frameFor,
+  GLOW_LIMITS,
+  glowPeriod,
   createCardImageUpload,
   ensureSet,
   getCard,
@@ -39,6 +41,7 @@ export {
   type CardInput,
   type CardRarityId,
   type CardSet,
+  type GlowPoint,
   type ImageFrame,
   type VisualEffect,
 } from "./cards";

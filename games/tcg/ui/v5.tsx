@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
+import { GlowPoints } from "./GlowPoints";
 import { Art, fill, Layer, R, Shell } from "./v2";
 import { effectPlace } from "./effect-places";
 import { VisualEffectLayer } from "./visual-effects";
@@ -489,6 +490,7 @@ export function FinalCard({
     position: "relative",
   };
   const relief = windowRelief(STYLE);
+  const glow = card.imageUrl && card.glowPoints?.length ? card.glowPoints : null;
 
   return (
     <Shell card={card}>
@@ -499,6 +501,17 @@ export function FinalCard({
           {imageEffects.length > 0 && (
             <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
               {effects(imageEffects)}
+            </div>
+          )}
+          {/* Points lumineux : accrochés à l'image, qui couvre toute la carte. */}
+          {glow && (
+            <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
+              <GlowPoints
+                points={glow}
+                imageUrl={card.imageUrl}
+                frame={card.imageFrame}
+                box={{ width: W, height: H }}
+              />
             </div>
           )}
           {/* Assombrit le bas de l'image, pour la lisibilité des encadrés transparents. */}
@@ -536,6 +549,15 @@ export function FinalCard({
             <PremiumArt card={card} />
             {/* Carte normale : les effets « art » ne couvrent que l'illustration. */}
             {effects(artEffects)}
+            {/* Points lumineux, accrochés à l'image (fenêtre du bandeau court seulement). */}
+            {glow && band === "court" && (
+              <GlowPoints
+                points={glow}
+                imageUrl={card.imageUrl}
+                frame={card.imageFrame}
+                box={{ width: FINAL_ART.width, height: FINAL_ART.height }}
+              />
+            )}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
             {band === "court" && (
               // Même trait que sous le titre, pour fermer l'illustration en bas.

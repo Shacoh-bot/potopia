@@ -9,11 +9,13 @@ import {
   CARD_LIMITS,
   CARD_RARITIES,
   FRAME_ZOOM,
+  GLOW_LIMITS,
   type Card,
   type CardImageType,
   type CardLayout,
   type CardRarityId,
   type CardSet,
+  type GlowPoint,
   type ImageFrame,
   type VisualEffect,
 } from "./card-rules";
@@ -41,6 +43,9 @@ export {
   DEFAULT_FRAME,
   FRAME_ZOOM,
   frameFor,
+  GLOW_LIMITS,
+  glowPeriod,
+  type GlowPoint,
   type ImageFrame,
   type VisualEffect,
 } from "./card-rules";
@@ -86,6 +91,18 @@ const frameSchema = z.object({
     .max(FRAME_ZOOM.max, "Zoom trop grand."),
 });
 
+/** Point lumineux (`GlowPoint`). */
+const glowPointSchema = z.object({
+  x: z.coerce.number().min(0).max(100),
+  y: z.coerce.number().min(0).max(100),
+  size: z.coerce
+    .number()
+    .min(GLOW_LIMITS.size.min, "Point lumineux : trop petit.")
+    .max(GLOW_LIMITS.size.max, "Point lumineux : trop grand."),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Point lumineux : couleur #rrggbb attendue."),
+  speed: z.coerce.number().min(GLOW_LIMITS.speed.min).max(GLOW_LIMITS.speed.max),
+});
+
 const cardFields = z.object({
   name: z
     .string()
@@ -113,6 +130,11 @@ const cardFields = z.object({
   // Absent : le cadrage full art enregistré ne change pas (mise à jour en masse, anciens appels) ;
   // null : la full art reprend le cadrage de la carte normale.
   imageFrameFull: frameSchema.nullish(),
+  // Points lumineux. Absent : ceux enregistrés ne changent pas ; liste vide : aucun.
+  glowPoints: z
+    .array(glowPointSchema, "Points lumineux : liste attendue.")
+    .max(GLOW_LIMITS.points, `Points lumineux : ${GLOW_LIMITS.points} au plus.`)
+    .optional(),
   // Mise en page affichée. Absent : celle enregistrée ne change pas ; à la création, normale (full
   // art pour une variante).
   layout: z.enum(CARD_LAYOUTS, "Mise en page inconnue.").optional(),
@@ -150,12 +172,14 @@ type CardRow = Omit<
   | "effectParams"
   | "rarity"
   | "layout"
+  | "glowPoints"
   | "imageFrame"
   | "imageFrameFull"
   | "visualEffectKeys"
 > & {
   rarity: string;
   layout: string;
+  glowPoints: unknown;
   visualEffects: { effectKey: string }[];
   effectParams: unknown;
   imageFrame: unknown;
@@ -170,6 +194,7 @@ function toCard(row: CardRow): Card {
     visualEffectKeys: visualEffects.map((e) => e.effectKey),
     rarity: row.rarity as CardRarityId,
     layout: row.layout as CardLayout,
+    glowPoints: (row.glowPoints as GlowPoint[] | null) ?? [],
     effectParams: (row.effectParams as EffectParams | null) ?? null,
     imageFrame: (row.imageFrame as ImageFrame | null) ?? null,
     imageFrameFull: (row.imageFrameFull as ImageFrame | null) ?? null,
@@ -394,6 +419,7 @@ export async function updateCard(
           imageFrame: fields.imageFrame,
           imageFrameFull: fields.imageFrameFull,
           layout: fields.layout,
+          glowPoints: fields.glowPoints,
           visualEffects: replaceEffects(visualEffectKeys),
         },
         include: withSet,
@@ -411,6 +437,7 @@ export async function updateCard(
         imageFrame: fields.imageFrame,
         imageFrameFull: fields.imageFrameFull,
         layout: fields.layout,
+        glowPoints: fields.glowPoints,
         visualEffects: replaceEffects(visualEffectKeys),
       },
       include: withSet,

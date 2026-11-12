@@ -21,6 +21,7 @@ import {
   type CardSet,
   DEFAULT_FRAME,
   frameFor,
+  type GlowPoint,
   type ImageFrame,
   type VisualEffect,
 } from "../src/card-rules";
@@ -36,6 +37,7 @@ import {
 } from "../src/effects";
 import { CardFlip } from "./CardFlip";
 import { GameCard, GameCardDefs } from "./GameCard";
+import { GlowPointsEditor } from "./GlowPointsEditor";
 import { ImageFramer } from "./ImageFramer";
 import { pastedImage, toCardWebp } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
@@ -174,6 +176,8 @@ export function CardEditor({
   const [image, setImage] = useState(imageUrl);
   // Un cadrage par mise en page. La full art part du cadrage de la carte normale tant qu'elle n'a
   // pas le sien (cartes cadrées avant la séparation) : rien n'est perdu.
+  // Points lumineux, en % de l'image (accrochés à elle).
+  const [glowPoints, setGlowPoints] = useState<GlowPoint[]>(() => card?.glowPoints ?? []);
   const [frames, setFrames] = useState<Record<Layout, ImageFrame>>(() => ({
     normal: frameFor(card ?? {}, "normal") ?? DEFAULT_FRAME,
     fullart: frameFor(card ?? {}, "fullart") ?? DEFAULT_FRAME,
@@ -227,8 +231,9 @@ export function CardEditor({
       setCode: card ? card.setCode : sets.find((s) => s.id === setId)?.code,
       imageFrame: frames.normal,
       imageFrameFull: frames.fullart,
+      glowPoints,
     }),
-    [fields, shownText, card, sets, setId, setSizes, frames],
+    [fields, shownText, card, sets, setId, setSizes, frames, glowPoints],
   );
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
@@ -249,6 +254,7 @@ export function CardEditor({
         effectText: shownText,
         imageFrame: image ? frames.normal : null,
         imageFrameFull: image ? frames.fullart : null,
+        glowPoints,
         layout,
       }),
     );
@@ -647,6 +653,9 @@ export function CardEditor({
                     </button>
                   )}
                 </div>
+              )}
+              {image && (
+                <GlowPointsEditor imageUrl={image} points={glowPoints} onChange={setGlowPoints} />
               )}
               {upload && card && (
                 <div className="flex w-full flex-col gap-2">

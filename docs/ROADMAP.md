@@ -590,6 +590,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       données) ; le reflet holographique garde la luminosité de la carte (fusion `color`).
 - [x] Effets « Fumée verte » et « Fumée blanche », migration `tcg_visual_effects_fumee` (ajout
       seul).
+- [x] Points lumineux sur l'illustration (position, taille, couleur, clignotement), accrochés à
+      l'image, posés dans la fiche ; migration `tcg_card_glow_points` (ajout d'une colonne).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.

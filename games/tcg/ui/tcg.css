@@ -1061,7 +1061,63 @@
   }
 }
 
+/* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo flou
+   de leur couleur (::before) et cœur net, blanc teinté (::after), ajoutés comme de la lumière
+   (screen). Clignotement à leur vitesse (--blink) ; figés sur la planche et en mouvement réduit. */
+.tcg-glow-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tcg-glow {
+  position: absolute;
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  margin: calc(var(--r) * -1) 0 0 calc(var(--r) * -1);
+  mix-blend-mode: screen;
+}
+.tcg-glow::before,
+.tcg-glow::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+.tcg-glow::before {
+  inset: 0;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--glow) 90%, transparent) 0%,
+    color-mix(in srgb, var(--glow) 40%, transparent) 38%,
+    transparent 70%
+  );
+  filter: blur(calc(var(--r) * 0.2));
+}
+.tcg-glow::after {
+  inset: 32%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    color-mix(in srgb, var(--glow) 70%, #fff) 40%,
+    transparent 75%
+  );
+  filter: blur(1px);
+}
+.tcg-glow[data-blink] {
+  animation: tcg-glow-blink var(--blink) ease-in-out infinite;
+}
+@keyframes tcg-glow-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .tcg-glow,
   .tcg-vfx-rain,
   .tcg-vfx-mote,
   .tcg-vfx-frost-c,
