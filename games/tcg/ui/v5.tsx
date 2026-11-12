@@ -491,6 +491,24 @@ export function FinalCard({
   };
   const relief = windowRelief(STYLE);
   const glow = card.imageUrl && card.glowPoints?.length ? card.glowPoints : null;
+  // Points lumineux sur une fenêtre donnée. Avec la parallaxe, ils suivent le même mouvement que
+  // l'illustration (agrandie, glissant à l'opposé du pointeur) pour rester à leur place sur elle.
+  const glowLayer = (width: number, height: number) => {
+    if (!glow) return null;
+    const points = (
+      <GlowPoints
+        points={glow}
+        imageUrl={card.imageUrl}
+        frame={card.imageFrame}
+        box={{ width, height }}
+      />
+    );
+    return visualEffects.includes("parallaxe") ? (
+      <div className="tcg-vfx-plx-back">{points}</div>
+    ) : (
+      points
+    );
+  };
 
   return (
     <Shell card={card}>
@@ -505,14 +523,7 @@ export function FinalCard({
           )}
           {/* Points lumineux : accrochés à l'image, qui couvre toute la carte. */}
           {glow && (
-            <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
-              <GlowPoints
-                points={glow}
-                imageUrl={card.imageUrl}
-                frame={card.imageFrame}
-                box={{ width: W, height: H }}
-              />
-            </div>
+            <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>{glowLayer(W, H)}</div>
           )}
           {/* Assombrit le bas de l'image, pour la lisibilité des encadrés transparents. */}
           <div
@@ -550,14 +561,7 @@ export function FinalCard({
             {/* Carte normale : les effets « art » ne couvrent que l'illustration. */}
             {effects(artEffects)}
             {/* Points lumineux, accrochés à l'image (fenêtre du bandeau court seulement). */}
-            {glow && band === "court" && (
-              <GlowPoints
-                points={glow}
-                imageUrl={card.imageUrl}
-                frame={card.imageFrame}
-                box={{ width: FINAL_ART.width, height: FINAL_ART.height }}
-              />
-            )}
+            {band === "court" && glowLayer(FINAL_ART.width, FINAL_ART.height)}
             {relief && <div aria-hidden style={{ ...fill, ...relief, borderRadius: "inherit" }} />}
             {band === "court" && (
               // Même trait que sous le titre, pour fermer l'illustration en bas.
