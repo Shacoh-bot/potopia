@@ -3,8 +3,17 @@
 import { Button, Input, Label, Select } from "@app/ui";
 import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { createSetAction, type FormState, moveCardsAction } from "./actions";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { createSetAction, type FormState, moveCardsAction, placeCardAction } from "./actions";
 
 function Status({ state }: { state: FormState }) {
   if (state.status === "idle") return null;
@@ -26,7 +35,16 @@ const SEARCH_DELAY = 300;
  * seulement `?q=` de l'adresse : le serveur renvoie les cartes trouvées, sans recharger la page.
  * Le champ n'a pas de `name` : il vit dans le formulaire des cases à cocher sans s'y envoyer.
  */
-export function CardSearch({ query, set }: { query: string; set: string }) {
+export function CardSearch({
+  query,
+  set,
+  list,
+}: {
+  query: string;
+  set: string;
+  /** Vue en liste (`?vue=liste`), gardée d'une recherche à l'autre. */
+  list: boolean;
+}) {
   const router = useRouter();
   const [value, setValue] = useState(query);
   const [pending, startTransition] = useTransition();
@@ -40,6 +58,7 @@ export function CardSearch({ query, set }: { query: string; set: string }) {
     sent.current = trimmed;
     const params = new URLSearchParams({ set });
     if (trimmed) params.set("q", trimmed);
+    if (list) params.set("vue", "liste");
     startTransition(() => router.replace(`/admin/cartes?${params}`, { scroll: false }));
   }
 
@@ -125,41 +144,122 @@ export function NewSetForm() {
   );
 }
 
+/** Destination d'un déplacement : la réserve (`id` vide), un set, « trash » ou « delete ». */
+export type MoveTarget = { id: string; label: string };
+
+function TargetSelect({
+  targets,
+  onChange,
+  disabled,
+}: {
+  targets: MoveTarget[];
+  onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Select
+      name="target"
+      required
+      defaultValue=""
+      style={{ width: "auto" }}
+      onChange={onChange}
+      disabled={disabled}
+    >
+      <option value="" disabled>
+        Déplacer vers…
+      </option>
+      {targets.map((t) => (
+        <option key={t.id || "reserve"} value={t.id || "reserve"}>
+          {t.label}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
 /**
- * Planche de cartes à cocher, avec le déplacement de la sélection vers un set ou la réserve. Les
- * cases (`name="ids"`) sont posées par la page à côté de chaque carte.
+ * Édition d'une carte dans la vue liste : changer le choix range la carte tout de suite (set,
+ * réserve ou corbeille). Le menu n'a pas de `name` : il ne part pas avec les cases cochées.
+ */
+export function PlaceSelect({
+  cardId,
+  cardName,
+  value,
+  targets,
+}: {
+  cardId: string;
+  cardName: string;
+  /** Place actuelle : id du set, « reserve » ou « trash ». */
+  value: string;
+  /** Choix : les sets (id), la réserve (« reserve ») et la corbeille (« trash »). */
+  targets: MoveTarget[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <span className="flex flex-col gap-0.5">
+      <Select
+        // Nouvelle place renvoyée par le serveur : le menu repart de celle-ci.
+        key={value}
+        defaultValue={value}
+        disabled={pending}
+        aria-label={`Édition de ${cardName}`}
+        aria-busy={pending}
+        style={{ width: "auto" }}
+        className="h-8 py-0 text-xs"
+        onChange={(e) => {
+          const target = e.target.value;
+          startTransition(async () => {
+            setError((await placeCardAction(cardId, target))?.error ?? null);
+          });
+        }}
+      >
+        {targets.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+      </Select>
+      {error && <span className="text-danger text-xs">{error}</span>}
+    </span>
+  );
+}
+
+/** La suppression définitive se confirme ; le reste part tout de suite. */
+function confirmDelete(e: FormEvent<HTMLFormElement>) {
+  const target = new FormData(e.currentTarget).get("target");
+  if (target === "delete" && !window.confirm("Supprimer définitivement ? Impossible à annuler.")) {
+    e.preventDefault();
+  }
+}
+
+/**
+ * Planche de cartes à cocher, avec le déplacement de la sélection vers un set, la réserve ou la
+ * corbeille (ou, dans la corbeille, la suppression définitive). Les cases (`name="ids"`) sont
+ * posées par la page à côté de chaque carte.
  */
 export function MoveCardsForm({
   targets,
+  hint,
   children,
 }: {
-  /** Destinations possibles : la réserve (`id` vide) et les sets, sauf celui affiché. */
-  targets: { id: string; label: string }[];
+  targets: MoveTarget[];
+  /** Rappel affiché à côté du bouton. */
+  hint: string;
   children: ReactNode;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(moveCardsAction, {
     status: "idle",
   });
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} onSubmit={confirmDelete} className="flex flex-col gap-4">
       <div className="bg-surface border-border sticky top-2 z-10 flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
         <span className="text-muted">Cartes cochées :</span>
-        <Select name="target" required defaultValue="" style={{ width: "auto" }}>
-          <option value="" disabled>
-            Déplacer vers…
-          </option>
-          {targets.map((t) => (
-            <option key={t.id || "reserve"} value={t.id || "reserve"}>
-              {t.label}
-            </option>
-          ))}
-        </Select>
+        <TargetSelect targets={targets} />
         <Button type="submit" size="sm" disabled={pending}>
-          Déplacer
+          Valider
         </Button>
-        <span className="text-muted text-xs">
-          Une carte qui quitte un set perd son numéro ; les suivantes sont renumérotées.
-        </span>
+        <span className="text-muted text-xs">{hint}</span>
         <Status state={state} />
       </div>
       {children}
@@ -167,33 +267,35 @@ export function MoveCardsForm({
   );
 }
 
-/** Déplacement d'une seule carte (page de la carte) vers un set ou la réserve. */
-export function MoveCardForm({
-  cardId,
-  targets,
-}: {
-  cardId: string;
-  targets: { id: string; label: string }[];
-}) {
+/**
+ * Déplacement d'une seule carte (page de la carte) vers un set, la réserve ou la corbeille, dès
+ * le choix dans le menu ; à la corbeille, suppression définitive (confirmée, puis retour à la
+ * corbeille).
+ */
+export function MoveCardForm({ cardId, targets }: { cardId: string; targets: MoveTarget[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(moveCardsAction, {
     status: "idle",
   });
   return (
     <form action={action} className="flex flex-wrap items-center gap-2 text-sm">
       <input type="hidden" name="ids" value={cardId} />
-      <Select name="target" required defaultValue="" style={{ width: "auto" }}>
-        <option value="" disabled>
-          Déplacer vers…
-        </option>
-        {targets.map((t) => (
-          <option key={t.id || "reserve"} value={t.id || "reserve"}>
-            {t.label}
-          </option>
-        ))}
-      </Select>
-      <Button type="submit" size="sm" variant="secondary" disabled={pending}>
-        Déplacer
-      </Button>
+      <input type="hidden" name="back" value="on" />
+      <TargetSelect
+        targets={targets}
+        disabled={pending}
+        // Enregistré dès le choix ; la suppression définitive se confirme d'abord.
+        onChange={(e) => {
+          const select = e.currentTarget;
+          if (
+            select.value === "delete" &&
+            !window.confirm("Supprimer définitivement ? Impossible à annuler.")
+          ) {
+            select.value = "";
+            return;
+          }
+          select.form?.requestSubmit();
+        }}
+      />
       <Status state={state} />
     </form>
   );

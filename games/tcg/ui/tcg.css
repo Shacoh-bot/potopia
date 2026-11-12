@@ -670,23 +670,24 @@
 }
 
 /* holo : bandes arc-en-ciel qui glissent avec le pointeur (--mx/--my posées par <Tilt>), plus
-   vives autour de lui et quand la carte est survolée. Sans pointeur (planche, mobile au repos) :
-   reflet discret, figé au centre. */
+   vives autour de lui. Seulement quand le pointeur bouge sur la carte : invisible au repos, la
+   carte garde ses couleurs. Fusion « color » : la carte prend la teinte des bandes mais garde
+   sa luminosité, point par point ; l'holo ne l'éclaircit ni ne l'assombrit. */
 .tcg-vfx-holo {
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
     115deg,
-    rgb(255 80 200 / 0.55) 0%,
-    rgb(255 230 120 / 0.55) 7%,
-    rgb(120 255 200 / 0.55) 14%,
-    rgb(100 200 255 / 0.55) 21%,
-    rgb(190 120 255 / 0.55) 28%,
-    rgb(255 80 200 / 0.55) 35%
+    rgb(255 60 190) 0%,
+    rgb(255 220 80) 7%,
+    rgb(60 255 180) 14%,
+    rgb(60 180 255) 21%,
+    rgb(170 90 255) 28%,
+    rgb(255 60 190) 35%
   );
   background-size: 260% 260%;
   background-position: var(--mx, 50%) var(--my, 35%);
-  mix-blend-mode: color-dodge;
+  mix-blend-mode: color;
   -webkit-mask-image: radial-gradient(
     circle at var(--mx, 50%) var(--my, 35%),
     #000 0%,
@@ -697,22 +698,31 @@
     #000 0%,
     rgb(0 0 0 / 0.3) 65%
   );
-  opacity: 0.3;
+  opacity: 0;
   transition: opacity 0.3s;
 }
 .tcg-tilt[data-active] .tcg-vfx-holo {
-  opacity: 0.7;
+  opacity: 0.55;
 }
 
-/* eclair : part d'un bord ; tronc et ramifications blancs, halo cyan et violet ; flash sur la carte à chaque coup. */
+/* eclair : part d'un bord ; cœur blanc, lueur cyan, grand halo flou violet et cyan (bloom), point
+   d'impact qui brille ; le tout ajouté à l'image comme de la lumière (screen). Flash sur la carte
+   à chaque coup, depuis le départ de l'éclair. */
 .tcg-vfx-bolt {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  filter: drop-shadow(0 0 4px #67e8f9) drop-shadow(0 0 12px #a855f7);
+  overflow: visible;
+  mix-blend-mode: screen;
   animation: tcg-vfx-bolt 0.55s ease-out both;
+}
+.tcg-vfx-bolt-bloom {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
 }
 .tcg-vfx-bolt-rest {
   opacity: 0;
@@ -725,7 +735,7 @@
   stroke-linejoin: round;
 }
 .tcg-vfx-bolt-glow {
-  stroke: rgb(103 232 249 / 0.55);
+  stroke: rgb(165 243 252 / 0.9);
 }
 .tcg-vfx-bolt-core {
   stroke: #fff;
@@ -755,9 +765,10 @@
   inset: 0;
   border-radius: 22px;
   background: radial-gradient(
-    circle at 50% 30%,
-    rgb(220 245 255 / 0.55),
-    rgb(168 85 247 / 0.15) 70%
+    circle at var(--fx, 50%) var(--fy, 30%),
+    rgb(230 250 255 / 0.6),
+    rgb(103 232 249 / 0.25) 35%,
+    rgb(168 85 247 / 0.12) 75%
   );
   mix-blend-mode: screen;
   pointer-events: none;
@@ -784,17 +795,13 @@
   .tcg-vfx-flash {
     animation: none;
   }
-  /* Pas de coups : un éclair fixe, seulement quand le pointeur est sur la carte. */
-  .tcg-tilt[data-active] .tcg-vfx-bolt-rest {
+  /* Pas de coups : un éclair fixe, sauf sur une carte figée de planche (non survolée). */
+  .tcg-vfx-bolt-rest {
     opacity: 0.85;
   }
-}
-
-/* holoclassique : l'holo des propositions (.tcg-holo), atténué (fondu doux, plus transparent)
-   pour irriser la carte sans l'éclaircir. */
-.tcg-vfx-holoclassique {
-  mix-blend-mode: soft-light;
-  opacity: calc(0.12 + var(--glare) * 0.2);
+  .tcg-still:not([data-live]) .tcg-vfx-bolt-rest {
+    opacity: 0;
+  }
 }
 
 /* parallaxe : l'illustration (agrandie) glisse à l'opposé du pointeur, la poussière au premier
@@ -922,38 +929,6 @@
   }
 }
 
-/* onde : anneau qui grandit depuis le centre et s'efface ; figé, un anneau à mi-course. */
-.tcg-vfx-wave {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 60px;
-  height: 60px;
-  margin: -30px 0 0 -30px;
-  border-radius: 50%;
-  border: 2px solid rgb(165 243 252 / 0.9);
-  box-shadow:
-    0 0 12px #67e8f9,
-    inset 0 0 12px #67e8f9;
-  transform: scale(2.4);
-  opacity: 0.35;
-  animation: tcg-vfx-wave 3s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
-}
-@keyframes tcg-vfx-wave {
-  0% {
-    transform: scale(0.2);
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  60%,
-  100% {
-    transform: scale(6);
-    opacity: 0;
-  }
-}
-
 /* mirage : voile chaud léger par-dessus l'illustration qui ondule. */
 .tcg-vfx-haze {
   position: absolute;
@@ -1030,12 +1005,455 @@
   }
 }
 
+/* fumeeverte, fumeeblanche : couleur dans --smoke (« r g b »). Fond de fumée au pied de la carte,
+   bouffées floues qui montent en grossissant et s'estompent ; ajoutées comme de la lumière
+   (screen). Figées (planche, mouvement réduit) : posées à mi-hauteur, à demi transparentes. */
+.tcg-vfx-smoke {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tcg-vfx-smoke-base {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -8%;
+  height: 38%;
+  background: radial-gradient(
+    ellipse 60% 70% at 50% 100%,
+    rgb(var(--smoke) / 0.45),
+    transparent 70%
+  );
+  filter: blur(10px);
+  mix-blend-mode: screen;
+}
+.tcg-vfx-puff {
+  position: absolute;
+  bottom: -60px;
+  width: var(--s);
+  height: var(--s);
+  margin-left: calc(var(--s) / -2);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--smoke) / 0.55),
+    rgb(var(--smoke) / 0.2) 45%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  mix-blend-mode: screen;
+  opacity: 0.45;
+  transform: translate(var(--dx-mid), -180px) scale(1.6);
+  animation: tcg-vfx-puff 7s ease-out infinite;
+}
+@keyframes tcg-vfx-puff {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(var(--dx), -420px) scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo flou
+   de leur couleur (::before) et cœur net, blanc teinté (::after), ajoutés comme de la lumière
+   (screen). Clignotement à leur vitesse (--blink), seulement quand le pointeur est sur la carte ;
+   sinon (et en mouvement réduit), un point clignotant reste à son niveau le plus faible. */
+.tcg-glow-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tcg-glow {
+  position: absolute;
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  margin: calc(var(--r) * -1) 0 0 calc(var(--r) * -1);
+  mix-blend-mode: screen;
+}
+.tcg-glow::before,
+.tcg-glow::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+.tcg-glow::before {
+  inset: 0;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--glow) 90%, transparent) 0%,
+    color-mix(in srgb, var(--glow) 40%, transparent) 38%,
+    transparent 70%
+  );
+  filter: blur(calc(var(--r) * 0.2));
+}
+.tcg-glow::after {
+  inset: 32%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    color-mix(in srgb, var(--glow) 70%, #fff) 40%,
+    transparent 75%
+  );
+  filter: blur(1px);
+}
+.tcg-glow[data-blink],
+.tcg-line[data-blink] {
+  animation: tcg-glow-blink var(--blink) ease-in-out infinite;
+}
+/* Sans pointeur sur la carte : immobile, au plus faible du clignotement. */
+.tcg-tilt:not([data-active]) .tcg-glow[data-blink],
+.tcg-tilt:not([data-active]) .tcg-line[data-blink] {
+  animation: none;
+  opacity: 0.15;
+}
+/* Étincelles électriques : SVG centré sur le point ; chaque arc crépite par flashs saccadés à
+   son moment du cycle. Pas de halo rond. Au calme (sans pointeur), deux arcs restent allumés
+   faiblement, les autres éteints. */
+.tcg-arcs {
+  position: absolute;
+  overflow: visible;
+  mix-blend-mode: screen;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tcg-arc {
+  opacity: 0;
+  animation: tcg-arc linear infinite;
+}
+.tcg-arc[data-rest] {
+  opacity: 0.45;
+}
+@keyframes tcg-arc {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  6% {
+    opacity: 0.15;
+  }
+  9% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 0.6;
+  }
+  15% {
+    opacity: 0;
+  }
+}
+
+/* Rayons depuis un point : chaque faisceau s'estompe sur ses bords (transparent, couleur,
+   transparent), très flou, estompé vers l'extérieur ; deux couches tournent en sens contraire.
+   Lueur douce au centre. */
+.tcg-rays-pt {
+  position: absolute;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    transparent 0deg,
+    color-mix(in srgb, var(--glow) 45%, transparent) 5deg,
+    transparent 10deg,
+    transparent 24deg
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    rgb(0 0 0 / 0.9) 0%,
+    rgb(0 0 0 / 0.45) 30%,
+    rgb(0 0 0 / 0.12) 55%,
+    transparent 72%
+  );
+  mask-image: radial-gradient(
+    circle,
+    rgb(0 0 0 / 0.9) 0%,
+    rgb(0 0 0 / 0.45) 30%,
+    rgb(0 0 0 / 0.12) 55%,
+    transparent 72%
+  );
+  filter: blur(var(--blur));
+  mix-blend-mode: screen;
+  animation: tcg-rays-turn 20s linear infinite;
+}
+.tcg-rays-pt-2 {
+  opacity: 0.55;
+  animation-direction: reverse;
+}
+.tcg-rays-core {
+  position: absolute;
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  margin: calc(var(--r) * -1) 0 0 calc(var(--r) * -1);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--glow) 55%, #fff) 0%,
+    color-mix(in srgb, var(--glow) 30%, transparent) 35%,
+    transparent 70%
+  );
+  filter: blur(4px);
+  mix-blend-mode: screen;
+}
+@keyframes tcg-rays-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Traits lumineux : SVG à la taille de la fenêtre ; chaque trait clignote en entier comme un
+   point lumineux (règles .tcg-line plus bas). */
+.tcg-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  mix-blend-mode: screen;
+}
+
+/* Lumières à placer : elles ne bougent que sous le pointeur ; sinon, au calme. */
+.tcg-tilt:not([data-active]) .tcg-lt-anim {
+  animation: none;
+}
+.tcg-arc[data-still] {
+  animation: none;
+}
+
+@keyframes tcg-glow-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+/* braises : étincelles orange qui montent en vacillant, lueur chaude au pied de la carte. Figées :
+   posées à mi-hauteur. */
+.tcg-vfx-ember-glow {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -12%;
+  height: 34%;
+  background: radial-gradient(ellipse 60% 70% at 50% 100%, rgb(255 110 30 / 0.4), transparent 70%);
+  filter: blur(8px);
+  mix-blend-mode: screen;
+}
+.tcg-vfx-ember {
+  position: absolute;
+  bottom: 4%;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  transform: translate(calc(var(--dx) / 2), -150px);
+  animation: tcg-vfx-ember ease-out infinite;
+}
+@keyframes tcg-vfx-ember {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), -330px);
+    opacity: 0;
+  }
+}
+
+/* caustiques : deux réseaux d'anneaux clairs, de tailles différentes, glissent en sens contraire ;
+   leurs croisements font les reflets dansants d'un fond de piscine. Bulles qui montent. */
+.tcg-vfx-caustic {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle,
+    transparent 38%,
+    rgb(190 245 255 / 0.55) 46%,
+    transparent 54%
+  );
+  background-size: 54px 46px;
+  filter: blur(1.5px);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  animation: tcg-vfx-caustic 9s linear infinite;
+}
+.tcg-vfx-caustic-2 {
+  background-size: 78px 64px;
+  opacity: 0.45;
+  animation-duration: 13s;
+  animation-direction: reverse;
+}
+@keyframes tcg-vfx-caustic {
+  to {
+    transform: translate(54px, 46px) rotate(4deg);
+  }
+}
+.tcg-vfx-bubble {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 50%;
+  border: 1px solid rgb(220 250 255 / 0.7);
+  background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / 0.6), transparent 60%);
+  opacity: 0.5;
+  transform: translateY(-90px);
+  animation: tcg-vfx-bubble ease-in infinite;
+}
+@keyframes tcg-vfx-bubble {
+  from {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  to {
+    transform: translate(6px, -230px);
+    opacity: 0;
+  }
+}
+
+/* rayons : faisceaux doux depuis le coin haut gauche (dégradé conique estompé), qui oscillent. */
+.tcg-vfx-rays {
+  position: absolute;
+  left: -40%;
+  top: -40%;
+  width: 180%;
+  height: 180%;
+  background: repeating-conic-gradient(
+    from 95deg at 22% 22%,
+    transparent 0deg,
+    rgb(255 248 220 / 0.3) 2.5deg,
+    transparent 5deg,
+    transparent 11deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 22% 22%, #000 0%, transparent 62%);
+  mask-image: radial-gradient(circle at 22% 22%, #000 0%, transparent 62%);
+  transform-origin: 22% 22%;
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: tcg-vfx-rays 14s ease-in-out infinite alternate;
+}
+.tcg-vfx-rays-2 {
+  opacity: 0.6;
+  animation-duration: 19s;
+  animation-direction: alternate-reverse;
+}
+@keyframes tcg-vfx-rays {
+  from {
+    transform: rotate(-5deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+
+/* petales, feuilles : tombent en tournoyant et en dérivant. Figés : posés à mi-hauteur. */
+.tcg-vfx-fall {
+  position: absolute;
+  top: -20px;
+  opacity: 0.85;
+  transform: translate(calc(var(--dx) / 2), 200px) rotate(calc(var(--spin) / 2)) scale(var(--k));
+  animation: tcg-vfx-fall linear infinite;
+}
+.tcg-vfx-petal {
+  width: 11px;
+  height: 8px;
+  border-radius: 80% 0 80% 0;
+  box-shadow: 0 0 2px rgb(255 255 255 / 0.4);
+}
+.tcg-vfx-leaf {
+  width: 13px;
+  height: 9px;
+  border-radius: 0 90% 0 90%;
+  box-shadow: inset -2px -1px 0 rgb(0 0 0 / 0.25);
+}
+@keyframes tcg-vfx-fall {
+  from {
+    transform: translate(0, 0) rotate(0deg) scale(var(--k));
+  }
+  to {
+    transform: translate(var(--dx), 460px) rotate(var(--spin)) scale(var(--k));
+  }
+}
+
+/* ombres : volutes noires depuis les bords, qui rampent et refluent ; sous le pointeur, un trou
+   s'ouvre autour de lui (masque). */
+.tcg-vfx-shadows {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tcg-tilt[data-active] .tcg-vfx-shadows {
+  -webkit-mask-image: radial-gradient(circle at var(--mx) var(--my), transparent 0 18%, #000 42%);
+  mask-image: radial-gradient(circle at var(--mx) var(--my), transparent 0 18%, #000 42%);
+}
+.tcg-vfx-shade {
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(ellipse 40% 30% at 0% 20%, rgb(8 0 16 / 0.9), transparent 70%),
+    radial-gradient(ellipse 35% 40% at 100% 45%, rgb(8 0 16 / 0.85), transparent 70%),
+    radial-gradient(ellipse 45% 30% at 30% 100%, rgb(8 0 16 / 0.9), transparent 70%),
+    radial-gradient(ellipse 30% 25% at 85% 0%, rgb(8 0 16 / 0.8), transparent 70%);
+  filter: blur(7px);
+  opacity: 0.75;
+  animation: tcg-vfx-creep 7s ease-in-out infinite alternate;
+}
+.tcg-vfx-shade-2 {
+  opacity: 0.55;
+  animation-duration: 9.5s;
+  animation-direction: alternate-reverse;
+}
+@keyframes tcg-vfx-creep {
+  from {
+    transform: scale(1) rotate(0deg);
+  }
+  to {
+    transform: scale(1.18) rotate(3deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .tcg-lt-anim,
+  .tcg-vfx-ember,
+  .tcg-vfx-caustic,
+  .tcg-vfx-bubble,
+  .tcg-vfx-rays,
+  .tcg-vfx-fall,
+  .tcg-vfx-shade {
+    animation: none;
+  }
+  .tcg-glow[data-blink],
+  .tcg-line[data-blink] {
+    opacity: 0.15;
+  }
+  .tcg-glow,
+  .tcg-line,
   .tcg-vfx-rain,
   .tcg-vfx-mote,
-  .tcg-vfx-wave,
   .tcg-vfx-frost-c,
-  .tcg-vfx-mist {
+  .tcg-vfx-mist,
+  .tcg-vfx-puff {
     animation: none;
   }
 }

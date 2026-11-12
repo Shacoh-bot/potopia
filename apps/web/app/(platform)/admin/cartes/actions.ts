@@ -4,7 +4,9 @@ import {
   CardInputError,
   createCard,
   createSet,
+  deleteCards,
   listCards,
+  trashCards,
   moveCards,
   createCardImageUpload,
   importCards,
@@ -174,13 +176,54 @@ export async function createSetAction(_prev: FormState, formData: FormData): Pro
   redirect(`/admin/cartes?set=${code}`);
 }
 
-/** Range les cartes cochées (`ids`) dans un set ou dans la réserve (`target` = « reserve »). */
+/**
+ * Range une carte depuis la liste (menu de sa ligne) : un set (id), la réserve (« reserve ») ou la
+ * corbeille (« trash »). Renvoie l'erreur lisible, ou null.
+ */
+export async function placeCardAction(
+  id: string,
+  target: string,
+): Promise<{ error: string } | null> {
+  const admin = await actionAdmin();
+  try {
+    const cardId = z.string().min(1).parse(id);
+    const to = z.string().min(1).parse(target);
+    if (to === "trash") await trashCards(admin, [cardId]);
+    else await moveCards(admin, [cardId], to === "reserve" ? null : to);
+  } catch (error) {
+    const message = inputError(error);
+    if (message === null) throw error;
+    return { error: message };
+  }
+  revalidatePath("/admin/cartes", "layout");
+  return null;
+}
+
+const plural = (n: number, word: string) =>
+  `${n} carte${n > 1 ? "s" : ""} ${word}${n > 1 ? "s" : ""}`;
+
+/**
+ * Range les cartes cochées (`ids`) dans un set ou dans la réserve (`target` = « reserve »), ce qui
+ * les sort de la corbeille ; `target` = « trash » les met à la corbeille, « delete » supprime pour
+ * de bon celles de la corbeille.
+ */
 export async function moveCardsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const admin = await actionAdmin();
   const target = String(formData.get("target") ?? "");
   const ids = formData.getAll("ids").map(String);
   if (ids.length === 0) return { status: "error", message: "Coche au moins une carte." };
   try {
+    if (target === "trash") {
+      const { trashed } = await trashCards(admin, ids);
+      revalidatePath("/admin/cartes", "layout");
+      return { status: "ok", message: `${plural(trashed, "mise")} à la corbeille.` };
+    }
+    if (target === "delete") {
+      const { deleted } = await deleteCards(admin, ids);
+      revalidatePath("/admin/cartes", "layout");
+      if (formData.get("back") === "on") redirect("/admin/cartes?set=corbeille");
+      return { status: "ok", message: `${plural(deleted, "supprimée")} définitivement.` };
+    }
     const { moved } = await moveCards(admin, ids, target === "reserve" ? null : target);
     revalidatePath("/admin/cartes", "layout");
     return {

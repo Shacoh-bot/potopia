@@ -7,17 +7,20 @@ import {
   createCard,
   createSet,
   createCardImageUpload,
+  deleteCards,
   EFFECTS,
   effectText,
   ensureSet,
   frameFor,
   getCard,
+  GLOW_LIMITS,
   importCards,
   listCards,
   listVisualEffects,
   moveCards,
   paramsSchema,
   setCardImage,
+  trashCards,
   updateCard,
   updateCards,
 } from "../src/index";
@@ -155,6 +158,79 @@ describe("createCard", () => {
       layout: "normal",
     });
     expect(shown.layout).toBe("normal");
+  });
+
+  it("garde les lumières (points, étincelles, rayons, traits), bornées, et les laisse quand on ne les envoie pas", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    expect(card.glowPoints).toEqual([]);
+    const eyes = [
+      { x: 40, y: 30, size: 6, color: "#7cff6b", speed: 0 },
+      { x: 60, y: 30, size: 6, color: "#ff2d7a", speed: 4 },
+    ];
+    expect((await updateCard(ADMIN, card.id, { ...BASE, glowPoints: eyes })).glowPoints).toEqual(
+      eyes,
+    );
+    // absents (mise à jour en masse, anciens appels) : ceux enregistrés restent
+    expect((await updateCard(ADMIN, card.id, { ...BASE })).glowPoints).toEqual(eyes);
+    expect((await updateCard(ADMIN, card.id, { ...BASE, glowPoints: [] })).glowPoints).toEqual([]);
+    for (const bad of [
+      { ...eyes[0], x: 120 },
+      { ...eyes[0], size: 50 },
+      { ...eyes[0], color: "vert" },
+      { ...eyes[0], speed: 11 },
+    ]) {
+      await expect(
+        updateCard(ADMIN, card.id, { ...BASE, glowPoints: [bad as (typeof eyes)[0]] }),
+      ).rejects.toThrow(ZodError);
+    }
+    await expect(
+      updateCard(ADMIN, card.id, {
+        ...BASE,
+        glowPoints: Array(GLOW_LIMITS.points + 1).fill(eyes[0]),
+      }),
+    ).rejects.toThrow(ZodError);
+
+    // autres lumières : étincelles, rayons, trait (avec sa seconde extrémité)
+    const lights = [
+      { kind: "sparks" as const, x: 10, y: 10, size: 8, color: "#ffaa00", speed: 5 },
+      { kind: "rays" as const, x: 20, y: 20, size: 10, color: "#ffffff", speed: 2 },
+      {
+        kind: "line" as const,
+        x: 30,
+        y: 30,
+        x2: 60,
+        y2: 35,
+        size: 1.5,
+        color: "#67e8f9",
+        speed: 3,
+      },
+    ];
+    expect((await updateCard(ADMIN, card.id, { ...BASE, glowPoints: lights })).glowPoints).toEqual(
+      lights,
+    );
+    await expect(
+      updateCard(ADMIN, card.id, {
+        ...BASE,
+        glowPoints: [{ kind: "line", x: 30, y: 30, size: 1.5, color: "#67e8f9", speed: 3 }],
+      }),
+    ).rejects.toThrow("Trait lumineux : seconde extrémité attendue.");
+    await expect(
+      updateCard(ADMIN, card.id, {
+        ...BASE,
+        glowPoints: [
+          {
+            kind: "laser" as "line",
+            x: 1,
+            y: 1,
+            x2: 2,
+            y2: 2,
+            size: 2,
+            color: "#ffffff",
+            speed: 0,
+          },
+        ],
+      }),
+    ).rejects.toThrow(ZodError);
   });
 
   it("refuse un effet inconnu ou mal réglé", async () => {
@@ -407,6 +483,58 @@ describe("réserve et sets", () => {
       skipped: 0,
     });
     expect(await listCards(ADMIN, { setId: null })).toHaveLength(1);
+  });
+});
+
+describe("corbeille", () => {
+  it("sort la carte de son set et des listes, puis l'en ressort en la rangeant", async () => {
+    const a = await createCard(ADMIN, { ...BASE, name: "A", setId });
+    await createCard(ADMIN, { ...BASE, name: "B", setId });
+    expect(await trashCards(ADMIN, [a.id])).toEqual({ trashed: 1 });
+    // déjà à la corbeille : laissée telle quelle
+    expect(await trashCards(ADMIN, [a.id])).toEqual({ trashed: 0 });
+    expect((await listCards(ADMIN, { setId })).map((c) => [c.name, c.number])).toEqual([["B", 1]]);
+    expect(await listCards(ADMIN, { setId: null })).toHaveLength(0);
+    const [trashed] = await listCards(ADMIN, { trashed: true });
+    expect(trashed).toMatchObject({ id: a.id, setId: null, number: null });
+    expect(trashed?.deletedAt).toBeInstanceOf(Date);
+
+    // ranger dans la réserve la restaure
+    expect(await moveCards(ADMIN, [a.id], null)).toEqual({ moved: 1 });
+    expect((await getCard(ADMIN, a.id))?.deletedAt).toBeNull();
+    expect(await listCards(ADMIN, { setId: null })).toHaveLength(1);
+    await expect(trashCards(MEMBER, [a.id])).rejects.toThrow("Réservé aux admins.");
+  });
+
+  it("une carte de base n'y va et n'en sort qu'avec ses variantes", async () => {
+    const base = await createCard(ADMIN, { ...BASE, setId });
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: base.id });
+    await expect(trashCards(ADMIN, [base.id])).rejects.toThrow(CardInputError);
+    await trashCards(ADMIN, [base.id, variant.id]);
+    await expect(createCard(ADMIN, { ...BASE, baseCardId: base.id })).rejects.toThrow(
+      "Carte de base à la corbeille.",
+    );
+    await expect(moveCards(ADMIN, [variant.id], setId)).rejects.toThrow(CardInputError);
+    expect(await moveCards(ADMIN, [base.id, variant.id], setId)).toEqual({ moved: 2 });
+  });
+
+  it("une mise à jour en masse ignore les cartes de la corbeille", async () => {
+    const card = await createCard(ADMIN, { ...BASE, ideaId: "idea-t" });
+    await trashCards(ADMIN, [card.id]);
+    await expect(updateCards(ADMIN, { updates: [{ ideaId: "idea-t", cost: 5 }] })).rejects.toThrow(
+      "aucune carte pour cette idée",
+    );
+  });
+
+  it("supprime pour de bon les seules cartes de la corbeille, variantes comprises", async () => {
+    const base = await createCard(ADMIN, { ...BASE, setId });
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: base.id });
+    await expect(deleteCards(ADMIN, [base.id])).rejects.toThrow(CardInputError);
+    await trashCards(ADMIN, [base.id, variant.id]);
+    await expect(deleteCards(ADMIN, [base.id])).rejects.toThrow(CardInputError);
+    expect(await deleteCards(ADMIN, [base.id, variant.id])).toEqual({ deleted: 2, imageKeys: [] });
+    expect(await getCard(ADMIN, base.id)).toBeNull();
+    await expect(deleteCards(MEMBER, [base.id])).rejects.toThrow("Réservé aux admins.");
   });
 });
 

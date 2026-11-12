@@ -196,10 +196,12 @@ passe d'une partie à l'autre sans rechargement.
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power, effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
-  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), layout
+  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
+  l'illustration, voir plus bas ; null, aucun), layout
   (enum `TcgCardLayout` : normal, fullart ; mise en page dans laquelle la carte s'affiche, normale
   par défaut, full art par défaut pour une variante), ideaId? (index simple, `ideas.ideas`
-  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt,
+  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), deletedAt? (mise à la corbeille ; null,
+  carte active), createdAt,
   updatedAt. La base ne contient aucune logique d'effet : seulement la clé
   d'un effet du catalogue et ses réglages.
 - `TcgVisualEffect` (`visual_effects`) : key (clé primaire, `holo`), name (affiché dans la fiche),
@@ -831,11 +833,25 @@ et modifient les cartes.
   lui ; hors set, elle attend dans la réserve, sans numéro. `moveCards` déplace une ou plusieurs
   cartes vers un set (à la suite) ou la réserve, et renumérote de 1 à N le set qu'elles quittent ;
   `createSet` crée un set (code unique).
+- Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
+  (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
+  les rend qu'avec `trashed: true`, la mise à jour en masse les ignore), mais restent en base.
+  Les ranger (`moveCards`, vers la réserve ou un set) les restaure. Une carte de base n'y va et
+  n'en sort qu'avec ses variantes ; on ne crée pas de variante d'une carte à la corbeille.
+  `deleteCards` supprime pour de bon des cartes de la corbeille seulement (variantes avec leur
+  base, sinon refus), puis retire leurs illustrations du stockage après la transaction (sans
+  bloquer si l'une échoue ; dans une transaction appelante, elle renvoie les clés à retirer). Un
+  import ne recrée pas la carte d'une idée dont la carte est à la corbeille.
 - Lien avec une idée (`ideaId`) : seulement pour la gestion (retrouver la description et l'image
   proposées), aucun effet en jeu ; une idée peut donner plusieurs cartes. Depuis la page admin d'une
   idée, « Créer une carte » ouvre `/admin/cartes/nouvelle?idee=<id>` avec le nom, la rareté, la
   famille et la description pré-remplis et l'image de l'idée. Garde-fou : si l'idée a déjà des
   cartes, elles sont listées et il faut cocher « Créer quand même » (vérifié côté serveur).
+  Dans la liste `/admin/ideas`, chaque idée indique si elle a déjà une carte (badge vert « Carte
+  créée » ou « N cartes », hors corbeille) ; sinon, badge « Pas de carte » et bouton « Créer la
+  carte » qui ouvre directement la création. Le module `ideas` ne connaît pas les cartes : l'app
+  lui passe le nombre de cartes de chaque idée (`cards`, calculé par `cardCountsByIdea`) et
+  l'adresse de création (`newCardHref`).
 
 - Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 85 effets) : chaque effet reprend
   une vraie carte de Marvel Snap (`snap`, obligatoire, affichée dans l'éditeur : Heimdall, Magneto,
@@ -850,7 +866,7 @@ et modifient les cartes.
   demanderont au moteur de partie des mécaniques à créer (Rochers, lieu inondé ou détruit,
   cartes cachées, fusion, pioche adverse, fin de partie).
 - `games/tcg/src/cards.ts` : `listSets`, `createSet`, `ensureSet`, `listCards` (par set, réserve
-  ou idée), `getCard`, `createCard` (numéro suivant du set, sous verrou, ou réserve), `moveCards`, `updateCard`, `createCardImageUpload` (PUT présigné,
+  ou idée), `getCard`, `createCard` (numéro suivant du set, sous verrou, ou réserve), `moveCards`, `trashCards`, `deleteCards`, `updateCard`, `createCardImageUpload` (PUT présigné,
   clé `cards/<uuid>.<ext>`, 5 Mo), `setCardImage` (vérifie l'objet), `importCards`. Toutes
   prennent l'admin en premier argument et lèvent `ForbiddenError` sinon. Constantes sans
   dépendance serveur dans `src/card-rules.ts` (importables côté navigateur).
@@ -867,15 +883,25 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   déjà une carte est ignorée (réimporter ne crée pas de doublon et n'écrase pas les
   modifications). Tout ou rien, avec la carte fautive dans le message. Les fichiers de cartes
   générées depuis les idées ne vont jamais dans le dépôt (contenu des membres).
-- Pages : `/admin/cartes` (un onglet par set et la réserve, `?set=<code>` ou `?set=reserve` ; la
-  réserve par défaut ; 24 cartes par page avec `?page=`, pagination « < 1 2 … 5 > » qui garde
+- Pages : `/admin/cartes` (un onglet par set, la réserve et la corbeille, `?set=<code>`,
+  `?set=reserve` ou `?set=corbeille` ; la réserve par défaut ; deux vues, miniatures (les cartes
+  dessinées, 24 par page) ou liste (`?vue=liste` : un tableau édition, nom, rareté, type, mana,
+  puissance, effet, 100 par page ; le menu « Édition » de chaque ligne range la carte tout de
+  suite dans un set, la réserve ou la corbeille, `PlaceSelect` et `placeCardAction`), gardées par la recherche, les onglets et la pagination ;
+  `?page=`, pagination « < 1 2 … 5 > » qui garde
   toujours la première et la dernière page (`Pagination`, `pageList`) ; recherche `?q=` juste
   au-dessus des cartes, sur le nom, le type, la famille, l'effet et la description, dans tous les
   sets et la réserve, sans tenir compte des accents : `CardSearch` met l'adresse à jour pendant
   la frappe (300 ms après la dernière touche, Entrée tout de suite, Échap efface) par une
-  navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup ; création d'un set), `/admin/cartes/[id]` et
-  `/admin/cartes/nouvelle` (`CardEditor` : formulaire et aperçu en direct, choix de l'affichage
-  de la carte, normale ou full art, enregistré avec elle, envoi d'illustration), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
+  navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup vers un set, la réserve ou la corbeille,
+  et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
+  choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
+  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, formulaire sur la place restante, aperçu en direct avec le cadrage et l'envoi
+  d'illustration à sa droite (dès 1536 px) ; les cases des effets visuels forment un L autour de la
+  carte (dès 1280 px) : une colonne à sa gauche (15rem), autant qu'il en tient sur sa hauteur
+  (mesurée avec un `ResizeObserver`), puis, dessous, des colonnes de 12.5rem remplies de haut en bas (4 lignes de plus que si elles occupaient toute la
+  largeur, puis 2 colonnes de plus, dans la limite de la largeur) ; choix de l'affichage
+  de la carte, normale ou full art, enregistré avec elle), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).
   Pied des vraies cartes (`gameFooter` de `FinalCard`, les propositions notées gardent le leur) :
@@ -930,26 +956,27 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
   quand on incline la carte, plus vives autour de lui, d'après `--mx`/`--my` de `Tilt` ; CSS
-  seul, discret et figé sans pointeur) et `eclair` (« Éclair » : seulement quand le pointeur
-  est sur la carte (`data-active` de `Tilt`, suivi par un `MutationObserver`) ; un éclair en
+  seul, seulement quand le pointeur est sur la carte (invisible au repos) ; fusion `color` : la carte prend la teinte des bandes en
+  gardant sa luminosité, l'holo ne l'éclaircit ni ne l'assombrit) et `eclair` (« Éclair » : sur une carte vivante (la fiche, ou la carte
+  survolée d'une planche) ; un éclair en
   zigzag tiré au hasard en JS part d'un bord de la carte (haut, gauche ou droite) tout de suite,
   puis toutes les 1 à 3,5 s, la traverse avec deux ou trois ramifications, scintille et l'illumine
-  d'un flash, sans sortir de la carte ; sans pointeur, carte figée comprise : aucun éclair ;
-  mouvement réduit : un éclair fixe au survol). Repris des anciennes propositions de
+  d'un flash parti de son point de départ ; rendu en couches SVG : grand halo flou violet et
+  cyan (bloom, `feGaussianBlur`), lueur cyan, cœur blanc net et point d'impact qui brille,
+  fusionnés en `screen`, sans sortir de la carte ; carte figée d'une planche (non survolée) : aucun éclair ;
+  mouvement réduit : un éclair fixe). Repris des anciennes propositions de
   design, avec leurs styles de `tcg.css` tels quels (migration
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
   `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
-  qui respire », `tcg-breathe` : lueur cyan intérieure), `holoclassique` (« Holo classique »,
-  `tcg-holo` atténué par `tcg-vfx-holoclassique` : fondu `soft-light`, plus transparent, pour ne
-  pas éclaircir la carte), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
-  `torches` (« Torches », deux lueurs orange qui vacillent en haut, `tcg-torch`), `aurore`
+  qui respire », `tcg-breathe` : lueur cyan intérieure), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
+  `aurore`
   (« Aurore cosmique », `tcg-aurora` et `tcg-stars` dans la carte, place `card`) ; illustration
   redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
   l'illustration aux couleurs inversées quand la carte penche à droite, toute seule sans
   pointeur ; une vraie seconde image demanderait une colonne de plus) et les styles
   d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch`,
-  `or` (« Or massif »), `popart`, `croquis`, `vitrail`, plus `aquarelle` et `cosmos` (« Ciel
+  `or` (« Or massif »), plus `aquarelle` et `cosmos` (« Ciel
   cosmique »), refaits dans `visual-effects.tsx` (`Watercolor`, `Cosmic`) avec des marges et un
   fondu plus petits, réglés selon la mise en page (`full`), pour que l'illustration en garde la
   plus grande part. Effets d'ambiance (migration `tcg_visual_effects_ambiance`, classes
@@ -959,13 +986,31 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   pointeur, pénombre légère au repos), `metal` (« Métal brossé » : stries fines et reflet net
   qui suit le pointeur), `donnees` (« Pluie de données », place `card` : colonnes de caractères
   cyan qui tombent), `particules` (« Particules flottantes », place `card` : lucioles cyan,
-  magenta et blanches qui montent), `onde` (« Onde de choc » : anneau cyan qui part du centre
-  de l'illustration toutes les 3 s), `mirage` (« Distorsion de chaleur », place `image` :
+  magenta et blanches qui montent), `mirage` (« Distorsion de chaleur », place `image` :
   l'illustration ondule par un filtre SVG de turbulence animé en SMIL, figé et plus léger sur
   la planche ou en mouvement réduit), `givre` (« Givre », place `frame` : cristaux tirés une
   fois pour toutes qui poussent depuis les coins et reculent) et `brume` (« Brume », place
   `card` : deux voiles qui dérivent dans le bas de la carte). Positions et rythmes des éléments
   tirés au hasard le sont avec une graine fixe, pour un rendu serveur identique.
+  Fumées (migration `tcg_visual_effects_fumee`, place `card`) : `fumeeverte` (« Fumée verte »)
+  et `fumeeblanche` (« Fumée blanche ») : un fond de fumée au pied de la carte et des bouffées
+  floues (`tcg-vfx-puff`, tirées avec une graine fixe) qui montent, grossissent, dérivent et
+  s'estompent, en fusion `screen` ; la couleur passe par `--smoke` (`smoke(rgb)` dans
+  `visual-effects.tsx`) ; figées à mi-hauteur sur la planche ou en mouvement réduit.
+  Ambiances (migration `tcg_visual_effects_ambiances`, tirages à graine fixe, figées à
+  mi-course sur la planche et en mouvement réduit) : `braises` (« Braises », place `card` :
+  étincelles orange qui montent en vacillant, lueur chaude au pied), `caustiques`
+  (« Caustiques », sur l'illustration : deux réseaux d'anneaux clairs qui glissent en sens
+  contraire, reflets d'un fond de piscine, et des bulles), `rayons` (« Rayons de lumière »,
+  place `card` : faisceaux doux depuis le coin haut gauche, qui oscillent), `petales`
+  (« Pétales ») et `feuilles` (« Feuilles d'automne ») (place `card` : tombent en tournoyant,
+  `falling`), `ombres` (« Ombres possédées », place `card` : volutes noires qui rampent depuis
+  les bords et s'écartent du pointeur, par un masque autour de `--mx`/`--my`).
+  Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
+  portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
+  `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). Leur rendu est
+  retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
+  anciennes propositions de design.
   **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
 (…)`), son composant dans `VISUAL_EFFECTS` sous la même clé, sa place dans `effect-places.ts`
@@ -991,13 +1036,41 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   Titre (`FitTitle`) : en majuscules, police Rajdhani gras et même effet que « POTOMON » au
   dos (italique, dégradé blanc → cyan, halo cyan) ; la
   taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur deux lignes.
-- Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration de la mise
+- Cadrage : à droite de l'aperçu de l'éditeur (dessous sur écran moyen), `ImageFramer` montre la fenêtre d'illustration de la mise
   en page choisie (normale ou full art) ; on y fait glisser l'image et on règle le zoom. Chaque
   mise en page a son cadrage (`imageFrame`, `imageFrameFull`), enregistré avec la carte et
   appliqué partout où elle s'affiche (`frameFor` choisit le bon, `frameStyle` l'applique). Une carte
   sans cadrage full art à elle (cadrée avant la séparation) garde en full art celui de la carte
   normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
+- Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
+  point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), arc électrique
+  (`sparks` : arcs en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
+  taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
+  flous, deux couches qui tournent en sens contraire et une lueur au centre ; taille : longueur,
+  vitesse : rotation) et trait
+  lumineux (entre deux poignées, `x2`/`y2` ; bloom SVG diffus en quatre couches, grand halo, halo
+  moyen, lueur, cœur fin blanc teinté, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
+  flou d'un trait horizontal ne soit pas rogné ; taille : épaisseur, vitesse : clignotement du trait
+  entier, comme un point lumineux). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
+  Le point lumineux a
+  une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
+  couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :
+  6 s / vitesse, `glowPeriod` ; calé sur l'horloge par un délai négatif, les points de même
+  vitesse clignotent ensemble). Accrochés à l'image et pas à la carte : `glowPlacement`
+  (`src/glow.ts`, testé) refait le placement de l'illustration (`object-fit: cover`, cadrage
+  `object-position`, zoom `scale`) pour savoir où tombe le point dans la fenêtre, d'après la
+  taille réelle de l'image (lue une fois par URL, `useNaturalSize`) ; le point suit donc le
+  cadrage, le zoom et la mise en page ; avec l'effet `parallaxe`, ils prennent le même mouvement
+  que l'illustration (`tcg-vfx-plx-back`) et restent à leur place sur elle. Rendu (`GlowPoints`, client) : halo flou de sa couleur et
+  cœur net blanc teinté, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
+  la carte en full art) ; un point clignotant ne clignote que sous le pointeur, sinon (planche,
+  carte non survolée, mouvement réduit) il reste immobile à son niveau le plus faible. Fiche : à droite de la carte, deux onglets, « Image » (cadrage puis envoi)
+  et « Points lumineux » (`GlowPointsEditor`), l'aperçu restant visible ; l'éditeur montre l'image entière,
+  zoomable de 1× à 5× pour viser (curseur, ou molette autour du pointeur), et qu'on parcourt en
+  la glissant ; un clic sans glisser pose un point ; un clic pose un point, un glisser le déplace, le point
+  choisi se règle (couleur, taille, clignotement) ou se supprime. Une mise à jour sans
+  `glowPoints` (fichier `updates`) les laisse tels quels.
 - Mise en page : les boutons « Normale » / « Full art » sous l'aperçu de l'éditeur choisissent
   l'affichage de la carte (`layout`), enregistré avec elle : la planche de l'admin et `GameCard`
   l'appliquent (le prop `layout` de `GameCard` ne sert qu'à forcer une mise en page). Une mise à

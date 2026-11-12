@@ -66,7 +66,7 @@ export function ImageFramer({ imageUrl, frame, onChange, width, height }: Props)
         />
       </div>
       <div className="flex w-full items-center gap-2 text-sm" style={{ maxWidth: width }}>
-        <label className="text-muted flex flex-1 items-center gap-2">
+        <label className="text-muted flex min-w-0 flex-1 items-center gap-2">
           Zoom
           <input
             type="range"
@@ -80,7 +80,7 @@ export function ImageFramer({ imageUrl, frame, onChange, width, height }: Props)
         </label>
         <button
           type="button"
-          className="text-accent underline-offset-4 hover:underline"
+          className="text-accent shrink-0 whitespace-nowrap underline-offset-4 hover:underline"
           onClick={() => onChange(DEFAULT_FRAME)}
         >
           Recentrer

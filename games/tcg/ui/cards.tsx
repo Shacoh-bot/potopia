@@ -1,4 +1,4 @@
-import type { ImageFrame } from "../src/card-rules";
+import type { GlowPoint, ImageFrame } from "../src/card-rules";
 import { Children, type CSSProperties, Fragment, isValidElement, type ReactNode } from "react";
 import { Zoomable } from "./Zoomable";
 
@@ -22,6 +22,8 @@ export type CardData = {
   serial?: string;
   /** Cadrage de l'illustration (cartes du jeu) ; sans lui, l'image est centrée. */
   imageFrame?: ImageFrame | null;
+  /** Points lumineux sur l'illustration (cartes du jeu). */
+  glowPoints?: GlowPoint[];
 };
 
 export const RARITY_LABELS: Record<CardRarity, string> = {

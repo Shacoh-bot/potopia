@@ -1,8 +1,8 @@
 "use client";
 
 import { BRAND } from "@app/config/brand";
-import { AppLink, Badge, Button, EmptyState } from "@app/ui";
-import { ArrowUp, ImageIcon } from "lucide-react";
+import { AppLink, Badge, Button, buttonClasses, EmptyState } from "@app/ui";
+import { ArrowUp, Check, ImageIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RARITY_LABELS, type Rarity } from "../src/validation";
 
@@ -13,6 +13,8 @@ export type IdeaListItem = {
   rarity: Rarity | null;
   hasImage: boolean;
   createdAt: Date;
+  /** Cartes du jeu tirées de l'idée (fourni par l'app ; absent : non affiché). */
+  cards?: number;
 };
 
 export type IdeaPage = { items: IdeaListItem[]; nextCursor: string | null };
@@ -26,6 +28,11 @@ type Props = {
    * avec les mêmes filtres que la première.
    */
   loadMore: (cursor: string) => Promise<IdeaPage>;
+  /**
+   * Création d'une carte à partir d'une idée (fourni par l'app) : l'adresse, à laquelle on ajoute
+   * l'id de l'idée. Absent : pas de bouton.
+   */
+  newCardHref?: string;
 };
 
 const date = new Intl.DateTimeFormat(BRAND.locale, {
@@ -38,7 +45,7 @@ const date = new Intl.DateTimeFormat(BRAND.locale, {
  * Liste des idées qui se charge au défilement : arrivé en bas, la page suivante s'ajoute à la
  * suite. Un bouton permet de remonter en haut d'un coup.
  */
-export function IdeasFeed({ initial, basePath, loadMore }: Props) {
+export function IdeasFeed({ initial, basePath, loadMore, newCardHref }: Props) {
   const [items, setItems] = useState(initial.items);
   const [cursor, setCursor] = useState(initial.nextCursor);
   const [loading, setLoading] = useState(false);
@@ -103,10 +110,10 @@ export function IdeasFeed({ initial, basePath, loadMore }: Props) {
     <>
       <ul className="divide-border divide-y">
         {items.map((idea) => (
-          <li key={idea.id}>
+          <li key={idea.id} className="flex items-center gap-2">
             <AppLink
               href={`${basePath}/${idea.id}`}
-              className="hover:bg-surface-hover -mx-2 flex items-center gap-3 rounded-md px-2 py-3"
+              className="hover:bg-surface-hover -mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-3"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-text truncate text-sm font-medium">{idea.title}</p>
@@ -116,7 +123,24 @@ export function IdeasFeed({ initial, basePath, loadMore }: Props) {
               </div>
               {idea.hasImage && <ImageIcon size={16} className="text-muted" aria-label="Image" />}
               {idea.rarity && <Badge tone="accent">{RARITY_LABELS[idea.rarity]}</Badge>}
+              {/* Carte déjà créée (vert) ; sans carte, le bouton de création le dit. */}
+              {idea.cards !== undefined && idea.cards > 0 && (
+                <Badge tone="success" className="inline-flex items-center gap-1">
+                  <Check size={12} aria-hidden />
+                  {idea.cards > 1 ? `${idea.cards} cartes` : "Carte créée"}
+                </Badge>
+              )}
+              {newCardHref && idea.cards === 0 && <Badge>Pas de carte</Badge>}
             </AppLink>
+            {/* Idée sans carte : création directe, pré-remplie depuis l'idée. */}
+            {newCardHref && idea.cards === 0 && (
+              <AppLink
+                href={`${newCardHref}${encodeURIComponent(idea.id)}`}
+                className={buttonClasses({ size: "sm" })}
+              >
+                Créer la carte
+              </AppLink>
+            )}
           </li>
         ))}
       </ul>

@@ -18,6 +18,8 @@ export type GameCardFields = Pick<
   imageFrameFull?: Card["imageFrameFull"];
   /** Mise en page enregistrée ; absente : normale. */
   layout?: Card["layout"];
+  /** Points lumineux sur l'illustration ; absents : aucun. */
+  glowPoints?: Card["glowPoints"];
   /** Effets visuels (clés du catalogue), le premier en dessous ; absent : aucun. */
   visualEffectKeys?: string[];
 };
@@ -79,6 +81,7 @@ export function GameCard({
     power: card.power,
     imageUrl,
     imageFrame: frameFor(card, layout),
+    glowPoints: card.glowPoints,
     author: author ?? undefined,
     // Hors set, pas de numéro : la carte est dans la réserve.
     serial:

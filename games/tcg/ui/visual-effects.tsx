@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type RefObject,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -37,7 +38,7 @@ import { watchStillHover } from "./still-hover";
  * l'arrêt. La carte survolée les reprend (CSS, et `still` passé à faux aux effets JS).
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
- * (holo classique, éclat, liserés, prisme, halo, néon, torches, aurore : classes `tcg-…` de
+ * (éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
  * tcg.css) et les styles d'illustration « Snap » (`ExtraArt` de snap-styles.tsx).
  */
 
@@ -56,7 +57,7 @@ type EffectDef = {
 
 /**
  * Reflet holographique : des bandes arc-en-ciel qui glissent avec le pointeur quand on incline la
- * carte (CSS seul, d'après les variables posées par `Tilt`).
+ * carte (CSS seul, d'après les variables posées par `Tilt`) ; invisible sans pointeur sur la carte.
  */
 function Holo() {
   return <div className="tcg-vfx-holo" />;
@@ -98,11 +99,14 @@ const pathOf = (pts: Point[]) =>
 const CW = 300;
 const CH = 420;
 
+/** Un éclair tiré : ses tracés (le tronc d'abord), son point de départ et son point d'impact. */
+type Strike = { paths: string[]; start: Point; end: Point };
+
 /**
  * Un éclair : il part d'un bord de la carte (haut, gauche ou droite), la traverse en zigzag vers
  * l'intérieur ou le bord opposé ; deux ou trois ramifications plus fines partent du tronc.
  */
-function strike(rnd: () => number): string[] {
+function strike(rnd: () => number): Strike {
   const side = rnd();
   const start: Point =
     side < 0.5
@@ -120,70 +124,95 @@ function strike(rnd: () => number): string[] {
     const to: Point = [from[0] + (rnd() - 0.5) * 150, from[1] + 30 + rnd() * 80];
     return pathOf(zigzag(rnd, from, to, 45, 4));
   });
-  return [pathOf(trunk), ...branches];
+  return { paths: [pathOf(trunk), ...branches], start, end };
 }
 
 /** Éclair au repos (caché ; montré fixe au survol avec le mouvement réduit) : toujours le même. */
 const REST_BOLT = strike(seeded(11));
 
 /**
- * Éclair : seulement quand le pointeur est sur la carte (`data-active` posé par `Tilt`). Un éclair
- * part d'un bord et frappe la carte tout de suite, puis par intermittence (toutes les 1 à 3,5 s),
- * scintille et l'illumine d'un flash ; chaque coup est tiré au hasard en JS. Sans pointeur sur la
- * carte (et sur les planches figées) : aucun éclair. Mouvement réduit : un éclair fixe au survol.
+ * Éclair : sur une carte vivante (la fiche, ou la carte survolée d'une planche), un éclair part
+ * d'un bord et frappe la carte tout de suite, puis par intermittence (toutes les 1 à 3,5 s),
+ * scintille et l'illumine d'un flash ; chaque coup est tiré au hasard en JS. Sur une planche, une
+ * carte figée (non survolée) n'en a aucun. Mouvement réduit : un éclair fixe.
  */
 function Lightning({ still }: EffectProps) {
-  const ref = useRef<SVGSVGElement>(null);
-  const [bolt, setBolt] = useState<{ id: number; paths: string[] } | null>(null);
+  const [bolt, setBolt] = useState<({ id: number } & Strike) | null>(null);
+  // Ids des filtres SVG, uniques par carte (sans les « : » de useId).
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     if (still || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const tilt = ref.current?.closest<HTMLElement>(".tcg-tilt");
-    if (!tilt) return;
     let id = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timer: ReturnType<typeof setTimeout>;
     const fire = () => {
-      setBolt({ id: ++id, paths: strike(Math.random) });
+      setBolt({ id: ++id, ...strike(Math.random) });
       timer = setTimeout(fire, 1000 + Math.random() * 2500);
     };
-    // Le pointeur arrive : premier coup presque tout de suite ; il part : plus de coups (celui en
-    // cours finit de s'éteindre).
-    const sync = () => {
-      const active = "active" in tilt.dataset;
-      if (active && timer === undefined) timer = setTimeout(fire, 120);
-      if (!active && timer !== undefined) {
-        clearTimeout(timer);
-        timer = undefined;
-      }
-    };
-    const observer = new MutationObserver(sync);
-    observer.observe(tilt, { attributes: true, attributeFilter: ["data-active"] });
-    sync();
-    return () => {
-      observer.disconnect();
-      clearTimeout(timer);
-    };
+    // Carte vivante : premier coup presque tout de suite, puis par intermittence.
+    timer = setTimeout(fire, 120);
+    return () => clearTimeout(timer);
   }, [still]);
 
   // Figée à nouveau (fin du survol d'une carte de planche) : plus d'éclair.
   const shown = still ? null : bolt;
-  const paths = shown?.paths ?? REST_BOLT;
+  const { paths, start, end } = shown ?? REST_BOLT;
+  const bloom = `tcg-bolt-bloom-${uid}`;
+  const glow = `tcg-bolt-glow-${uid}`;
+  const flash = {
+    "--fx": `${(start[0] / CW) * 100}%`,
+    "--fy": `${(start[1] / CH) * 100}%`,
+  } as CSSProperties;
   return (
     <>
-      {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" />}
+      {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" style={flash} />}
       <svg
-        ref={ref}
         // Une nouvelle clé à chaque coup relance l'animation.
         key={shown?.id ?? "rest"}
         // Avant le premier coup : caché (montré fixe au survol avec le mouvement réduit, tcg.css).
         className={shown ? "tcg-vfx-bolt" : "tcg-vfx-bolt tcg-vfx-bolt-rest"}
         viewBox={`0 0 ${CW} ${CH}`}
       >
+        <defs>
+          {/* Bloom : grand flou autour du tronc ; lueur : flou serré autour du cœur. */}
+          <filter id={bloom} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="7" />
+          </filter>
+          <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" />
+          </filter>
+          <radialGradient id={`${bloom}-impact`}>
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="35%" stopColor="#a5f3fc" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        {/* Halo large (violet puis cyan), sous tout le reste. */}
+        <g filter={`url(#${bloom})`} className="tcg-vfx-bolt-bloom">
+          {paths.map((d, i) => (
+            <path key={i} d={d} stroke="#8b5cf6" strokeWidth={i ? 12 : 24} />
+          ))}
+          {paths.map((d, i) => (
+            <path key={`c${i}`} d={d} stroke="#67e8f9" strokeWidth={i ? 5 : 10} />
+          ))}
+        </g>
+        {/* Point d'impact et départ qui brillent. */}
+        <circle
+          cx={end[0]}
+          cy={end[1]}
+          r={30}
+          fill={`url(#${bloom}-impact)`}
+          filter={`url(#${glow})`}
+        />
+        <circle cx={start[0]} cy={start[1]} r={18} fill={`url(#${bloom}-impact)`} opacity={0.7} />
+        {/* Lueur cyan serrée, puis le cœur blanc net. */}
+        <g filter={`url(#${glow})`}>
+          {paths.map((d, i) => (
+            <path key={i} d={d} className="tcg-vfx-bolt-glow" strokeWidth={i ? 3.5 : 6} />
+          ))}
+        </g>
         {paths.map((d, i) => (
-          <g key={i}>
-            <path d={d} className="tcg-vfx-bolt-glow" strokeWidth={i ? 4 : 7} />
-            <path d={d} className="tcg-vfx-bolt-core" strokeWidth={i ? 1 : 2} />
-          </g>
+          <path key={i} d={d} className="tcg-vfx-bolt-core" strokeWidth={i ? 1.1 : 2.2} />
         ))}
       </svg>
     </>
@@ -218,12 +247,6 @@ const Breathe = () => (
   />
 );
 
-/**
- * Holo classique : l'holo des premières propositions, bandes irisées fines et reflet blanc,
- * atténué pour ne pas éclaircir la carte (`tcg-vfx-holoclassique`).
- */
-const HoloClassic = () => <div className="tcg-holo tcg-vfx-holoclassique" />;
-
 /** Néon qui grésille : un tube magenta le long du cadre, qui clignote par moments. */
 const Neon = () => (
   <div
@@ -236,22 +259,6 @@ const Neon = () => (
         "inset 0 0 0 1.5px #ffd1e6, inset 0 0 10px #ff2d7a, 0 0 0 1px #ff2d7a, 0 0 12px #ff2d7a",
     }}
   />
-);
-
-/** Torches : deux lueurs orange qui vacillent de chaque côté, en haut de la carte. */
-const torch: CSSProperties = {
-  position: "absolute",
-  top: 30,
-  width: 90,
-  height: 90,
-  borderRadius: "50%",
-  background: "radial-gradient(circle, rgb(255 170 60 / 0.55), transparent 70%)",
-};
-const Torches = () => (
-  <>
-    <div className="tcg-torch" style={{ ...torch, left: -10 }} />
-    <div className="tcg-torch" style={{ ...torch, right: -10, animationDelay: "0.7s" }} />
-  </>
 );
 
 /** Aurore cosmique : aurore violette et cyan qui ondule, étoiles qui dérivent (dans la carte). */
@@ -477,14 +484,6 @@ const Motes = () => (
   </>
 );
 
-/** Onde de choc : un anneau cyan part du centre de l'illustration toutes les 3 s, suivi d'un écho. */
-const Shockwave = () => (
-  <>
-    <div className="tcg-vfx-wave" />
-    <div className="tcg-vfx-wave" style={{ animationDelay: "0.35s" }} />
-  </>
-);
-
 /**
  * Distorsion de chaleur : l'illustration ondule comme un mirage (filtre SVG de turbulence dont la
  * fréquence varie en boucle). Carte figée ou mouvement réduit : ondulation fixe, plus légère.
@@ -575,6 +574,194 @@ const Mist = () => (
   </>
 );
 
+/* ── Fumée ── */
+
+/**
+ * Bouffées de fumée tirées une fois pour toutes (graine fixe : rendu serveur identique). Délais
+ * négatifs : à l'affichage, elles sont déjà en train de monter, à des hauteurs différentes.
+ */
+const PUFFS = (() => {
+  const rnd = seeded(23);
+  return Array.from({ length: 9 }, (_, i) => ({
+    left: 6 + rnd() * 88,
+    size: 70 + rnd() * 70,
+    dx: (rnd() - 0.5) * 90,
+    duration: 6 + rnd() * 3,
+    delay: -(i / 9) * 8 - rnd(),
+  }));
+})();
+
+/**
+ * Fumée d'une couleur (« r g b ») : un fond de fumée au pied de la carte, et des bouffées floues
+ * qui montent, grossissent, dérivent sur le côté et s'estompent. Figée ou mouvement réduit : les
+ * bouffées restent posées à mi-hauteur.
+ */
+const smoke = (rgb: string) => {
+  const Smoke = () => (
+    <div className="tcg-vfx-smoke" style={{ "--smoke": rgb } as CSSProperties}>
+      <div className="tcg-vfx-smoke-base" />
+      {PUFFS.map((p, i) => (
+        <div
+          key={i}
+          className="tcg-vfx-puff"
+          style={
+            {
+              left: `${p.left}%`,
+              "--s": `${p.size}px`,
+              "--dx": `${p.dx}px`,
+              "--dx-mid": `${p.dx / 2}px`,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+  return Smoke;
+};
+
+/* ── Ambiances : braises, caustiques, rayons, chutes, ombres ── */
+
+/** Braises : position, taille, dérive et rythme, tirés une fois pour toutes. */
+const EMBERS = (() => {
+  const rnd = seeded(41);
+  return Array.from({ length: 18 }, () => ({
+    left: 4 + rnd() * 92,
+    size: 2 + rnd() * 3,
+    dx: (rnd() - 0.5) * 70,
+    duration: 3.5 + rnd() * 3,
+    delay: -rnd() * 6.5,
+    hot: rnd() < 0.4,
+  }));
+})();
+
+/** Braises : des étincelles orange montent en scintillant, lueur chaude au pied de la carte. */
+const Embers = () => (
+  <>
+    <div className="tcg-vfx-ember-glow" />
+    {EMBERS.map((e, i) => (
+      <div
+        key={i}
+        className="tcg-vfx-ember"
+        style={
+          {
+            left: `${e.left}%`,
+            width: e.size,
+            height: e.size,
+            background: e.hot ? "#fff3b0" : "#ff8a2b",
+            boxShadow: `0 0 ${e.size * 2}px ${e.hot ? "#ffd166" : "#ff5e00"}`,
+            "--dx": `${e.dx}px`,
+            animationDuration: `${e.duration}s`,
+            animationDelay: `${e.delay}s`,
+          } as CSSProperties
+        }
+      />
+    ))}
+  </>
+);
+
+/** Bulles des caustiques : tirées une fois pour toutes. */
+const BUBBLES = (() => {
+  const rnd = seeded(53);
+  return Array.from({ length: 7 }, () => ({
+    left: 6 + rnd() * 88,
+    size: 3 + rnd() * 5,
+    duration: 4 + rnd() * 4,
+    delay: -rnd() * 8,
+  }));
+})();
+
+/**
+ * Caustiques : les reflets de lumière d'un fond de piscine, deux réseaux d'anneaux clairs qui
+ * glissent en sens contraire et se croisent, sur l'illustration ; quelques bulles montent.
+ */
+const Caustics = () => (
+  <div style={{ ...fillAbs, overflow: "hidden" }}>
+    <div className="tcg-vfx-caustic" />
+    <div className="tcg-vfx-caustic tcg-vfx-caustic-2" />
+    {BUBBLES.map((b, i) => (
+      <div
+        key={i}
+        className="tcg-vfx-bubble"
+        style={{
+          left: `${b.left}%`,
+          width: b.size,
+          height: b.size,
+          animationDuration: `${b.duration}s`,
+          animationDelay: `${b.delay}s`,
+        }}
+      />
+    ))}
+  </div>
+);
+
+/** Rayons de lumière : de grands rayons doux tombent d'un coin et oscillent lentement. */
+const GodRays = () => (
+  <div style={{ ...fillAbs, overflow: "hidden" }}>
+    <div className="tcg-vfx-rays" />
+    <div className="tcg-vfx-rays tcg-vfx-rays-2" />
+  </div>
+);
+
+/** Chute (pétales, feuilles) : position, taille, dérive, rotation et rythme, tirés une fois. */
+const fallers = (seed: number, count: number) => {
+  const rnd = seeded(seed);
+  return Array.from({ length: count }, () => ({
+    left: rnd() * 100,
+    scale: 0.6 + rnd() * 0.7,
+    dx: (rnd() - 0.3) * 120,
+    spin: (rnd() < 0.5 ? -1 : 1) * (240 + rnd() * 360),
+    duration: 6 + rnd() * 5,
+    delay: -rnd() * 11,
+    tint: rnd(),
+  }));
+};
+const PETALS = fallers(61, 14);
+const LEAVES = fallers(67, 11);
+const LEAF_COLORS = ["#e2702a", "#c2410c", "#d99a1e", "#8a3b12"];
+
+/** Pétales ou feuilles qui tombent en tournoyant (dans la carte). */
+const falling = (kind: "petal" | "leaf") => {
+  const items = kind === "petal" ? PETALS : LEAVES;
+  const Falling = () => (
+    <div style={{ ...fillAbs, overflow: "hidden" }}>
+      {items.map((f, i) => (
+        <div
+          key={i}
+          className={`tcg-vfx-fall tcg-vfx-${kind}`}
+          style={
+            {
+              left: `${f.left}%`,
+              "--k": f.scale,
+              "--dx": `${f.dx}px`,
+              "--spin": `${f.spin}deg`,
+              background:
+                kind === "petal"
+                  ? `linear-gradient(135deg, #ffe4ef, ${f.tint < 0.5 ? "#f9a8d4" : "#fbcfe8"})`
+                  : LEAF_COLORS[Math.floor(f.tint * LEAF_COLORS.length)],
+              animationDuration: `${f.duration}s`,
+              animationDelay: `${f.delay}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+  return Falling;
+};
+
+/**
+ * Ombres possédées : des volutes noires rampent depuis les bords et refluent, en boucle ; sous le
+ * pointeur, elles s'écartent de lui.
+ */
+const Shadows = () => (
+  <div className="tcg-vfx-shadows">
+    <div className="tcg-vfx-shade" />
+    <div className="tcg-vfx-shade tcg-vfx-shade-2" />
+  </div>
+);
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
@@ -584,27 +771,29 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   prisme: { render: Prism },
   flux: { render: Flow },
   halo: { render: Breathe },
-  holoclassique: { render: HoloClassic },
   neon: { render: Neon },
-  torches: { render: Torches },
   aurore: { render: Aurora },
   lenticulaire: { render: Lenticular },
   glitch: { render: snapStyle("glitch") },
   or: { render: snapStyle("gold") },
-  popart: { render: snapStyle("popart") },
   aquarelle: { render: Watercolor },
-  croquis: { render: snapStyle("sketch") },
   cosmos: { render: Cosmic },
-  vitrail: { render: snapStyle("stained") },
   parallaxe: { render: Parallax },
   lampe: { render: Flashlight },
   metal: { render: BrushedMetal },
   donnees: { render: DataRain },
   particules: { render: Motes },
-  onde: { render: Shockwave },
   mirage: { render: HeatHaze },
   givre: { render: Frost },
   brume: { render: Mist },
+  fumeeverte: { render: smoke("110 255 130") },
+  fumeeblanche: { render: smoke("235 240 245") },
+  braises: { render: Embers },
+  caustiques: { render: Caustics },
+  rayons: { render: GodRays },
+  petales: { render: falling("petal") },
+  feuilles: { render: falling("leaf") },
+  ombres: { render: Shadows },
 };
 
 /**
