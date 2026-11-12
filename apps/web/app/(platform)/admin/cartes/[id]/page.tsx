@@ -54,17 +54,20 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
         { id: "trash", label: "Corbeille" },
       ];
 
-  // Place, idée et variantes : en haut de la colonne du formulaire, pour que l'aperçu de la carte
+  // Déplacement, place, idée et variantes : en haut de la colonne du formulaire, pour que l'aperçu de la carte
   // commence juste sous le titre.
   const header = (
     <div className="flex flex-col gap-1.5">
-      <p className={trashed ? "text-danger text-sm" : "text-muted text-sm"}>
-        {trashed
-          ? "À la corbeille : hors des sets et des listes. Range-la pour la restaurer."
-          : card.setCode
-            ? `Dans le set ${card.setCode} : ira en prod avec lui.`
-            : "Dans la réserve : n'ira pas en prod tant qu'elle n'est pas dans un set."}
-      </p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {targets.length > 0 && <MoveCardForm cardId={card.id} targets={targets} />}
+        <p className={trashed ? "text-danger text-sm" : "text-muted text-sm"}>
+          {trashed
+            ? "À la corbeille : hors des sets et des listes. Range-la pour la restaurer."
+            : card.setCode
+              ? `Dans le set ${card.setCode} : ira en prod avec lui.`
+              : "Dans la réserve : n'ira pas en prod tant qu'elle n'est pas dans un set."}
+        </p>
+      </div>
       {card.ideaId && (
         <p className="text-muted text-sm">
           Tirée d&apos;une{" "}
@@ -117,10 +120,7 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
   );
 
   return (
-    <Card
-      title={`${place} · ${card.name}`}
-      action={targets.length > 0 && <MoveCardForm cardId={card.id} targets={targets} />}
-    >
+    <Card title={`${place} · ${card.name}`}>
       <div className={`${designFonts} flex flex-col gap-4`}>
         <CardEditor
           card={card}
