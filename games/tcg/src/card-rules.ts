@@ -103,6 +103,8 @@ export type Card = {
   baseCardId: string | null;
   /** Effets visuels (clés du catalogue `visual_effects`), dans l'ordre des calques. */
   visualEffectKeys: string[];
+  /** Mise à la corbeille (hors set, hors des listes) ; null : carte active. */
+  deletedAt: Date | null;
   updatedAt: Date;
 };
 

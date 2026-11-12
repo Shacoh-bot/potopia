@@ -11,9 +11,18 @@ type Props = {
   basePath: string;
   /** Server action passée par l'app : page suivante après un curseur, mêmes filtres. */
   loadMore: (cursor: string) => Promise<IdeaPage>;
+  /** Adresse de création d'une carte, suivie de l'id de l'idée (voir `IdeasFeed`). */
+  newCardHref?: string;
 };
 
-export function IdeasAdminList({ initial, authors, filters, basePath, loadMore }: Props) {
+export function IdeasAdminList({
+  initial,
+  authors,
+  filters,
+  basePath,
+  loadMore,
+  newCardHref,
+}: Props) {
   return (
     <div className="flex flex-col gap-4">
       <form method="get" action={basePath} className="flex flex-wrap items-end gap-2">
@@ -38,7 +47,12 @@ export function IdeasAdminList({ initial, authors, filters, basePath, loadMore }
         </Button>
       </form>
 
-      <IdeasFeed initial={initial} basePath={basePath} loadMore={loadMore} />
+      <IdeasFeed
+        initial={initial}
+        basePath={basePath}
+        loadMore={loadMore}
+        newCardHref={newCardHref}
+      />
     </div>
   );
 }

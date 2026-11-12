@@ -199,7 +199,8 @@ passe d'une partie à l'autre sans rechargement.
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), layout
   (enum `TcgCardLayout` : normal, fullart ; mise en page dans laquelle la carte s'affiche, normale
   par défaut, full art par défaut pour une variante), ideaId? (index simple, `ideas.ideas`
-  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), createdAt,
+  sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), deletedAt? (mise à la corbeille ; null,
+  carte active), createdAt,
   updatedAt. La base ne contient aucune logique d'effet : seulement la clé
   d'un effet du catalogue et ses réglages.
 - `TcgVisualEffect` (`visual_effects`) : key (clé primaire, `holo`), name (affiché dans la fiche),
@@ -831,11 +832,25 @@ et modifient les cartes.
   lui ; hors set, elle attend dans la réserve, sans numéro. `moveCards` déplace une ou plusieurs
   cartes vers un set (à la suite) ou la réserve, et renumérote de 1 à N le set qu'elles quittent ;
   `createSet` crée un set (code unique).
+- Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
+  (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
+  les rend qu'avec `trashed: true`, la mise à jour en masse les ignore), mais restent en base.
+  Les ranger (`moveCards`, vers la réserve ou un set) les restaure. Une carte de base n'y va et
+  n'en sort qu'avec ses variantes ; on ne crée pas de variante d'une carte à la corbeille.
+  `deleteCards` supprime pour de bon des cartes de la corbeille seulement (variantes avec leur
+  base, sinon refus), puis retire leurs illustrations du stockage après la transaction (sans
+  bloquer si l'une échoue ; dans une transaction appelante, elle renvoie les clés à retirer). Un
+  import ne recrée pas la carte d'une idée dont la carte est à la corbeille.
 - Lien avec une idée (`ideaId`) : seulement pour la gestion (retrouver la description et l'image
   proposées), aucun effet en jeu ; une idée peut donner plusieurs cartes. Depuis la page admin d'une
   idée, « Créer une carte » ouvre `/admin/cartes/nouvelle?idee=<id>` avec le nom, la rareté, la
   famille et la description pré-remplis et l'image de l'idée. Garde-fou : si l'idée a déjà des
   cartes, elles sont listées et il faut cocher « Créer quand même » (vérifié côté serveur).
+  Dans la liste `/admin/ideas`, chaque idée indique si elle a déjà une carte (badge vert « Carte
+  créée » ou « N cartes », hors corbeille) ; sinon, badge « Pas de carte » et bouton « Créer la
+  carte » qui ouvre directement la création. Le module `ideas` ne connaît pas les cartes : l'app
+  lui passe le nombre de cartes de chaque idée (`cards`, calculé par `cardCountsByIdea`) et
+  l'adresse de création (`newCardHref`).
 
 - Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 85 effets) : chaque effet reprend
   une vraie carte de Marvel Snap (`snap`, obligatoire, affichée dans l'éditeur : Heimdall, Magneto,
@@ -850,7 +865,7 @@ et modifient les cartes.
   demanderont au moteur de partie des mécaniques à créer (Rochers, lieu inondé ou détruit,
   cartes cachées, fusion, pioche adverse, fin de partie).
 - `games/tcg/src/cards.ts` : `listSets`, `createSet`, `ensureSet`, `listCards` (par set, réserve
-  ou idée), `getCard`, `createCard` (numéro suivant du set, sous verrou, ou réserve), `moveCards`, `updateCard`, `createCardImageUpload` (PUT présigné,
+  ou idée), `getCard`, `createCard` (numéro suivant du set, sous verrou, ou réserve), `moveCards`, `trashCards`, `deleteCards`, `updateCard`, `createCardImageUpload` (PUT présigné,
   clé `cards/<uuid>.<ext>`, 5 Mo), `setCardImage` (vérifie l'objet), `importCards`. Toutes
   prennent l'admin en premier argument et lèvent `ForbiddenError` sinon. Constantes sans
   dépendance serveur dans `src/card-rules.ts` (importables côté navigateur).
@@ -867,13 +882,18 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   déjà une carte est ignorée (réimporter ne crée pas de doublon et n'écrase pas les
   modifications). Tout ou rien, avec la carte fautive dans le message. Les fichiers de cartes
   générées depuis les idées ne vont jamais dans le dépôt (contenu des membres).
-- Pages : `/admin/cartes` (un onglet par set et la réserve, `?set=<code>` ou `?set=reserve` ; la
-  réserve par défaut ; 24 cartes par page avec `?page=`, pagination « < 1 2 … 5 > » qui garde
+- Pages : `/admin/cartes` (un onglet par set, la réserve et la corbeille, `?set=<code>`,
+  `?set=reserve` ou `?set=corbeille` ; la réserve par défaut ; deux vues, miniatures (les cartes
+  dessinées, 24 par page) ou liste (`?vue=liste` : un tableau place, nom, rareté, type, mana,
+  puissance, effet, 100 par page), gardées par la recherche, les onglets et la pagination ;
+  `?page=`, pagination « < 1 2 … 5 > » qui garde
   toujours la première et la dernière page (`Pagination`, `pageList`) ; recherche `?q=` juste
   au-dessus des cartes, sur le nom, le type, la famille, l'effet et la description, dans tous les
   sets et la réserve, sans tenir compte des accents : `CardSearch` met l'adresse à jour pendant
   la frappe (300 ms après la dernière touche, Entrée tout de suite, Échap efface) par une
-  navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup ; création d'un set), `/admin/cartes/[id]` et
+  navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup vers un set, la réserve ou la corbeille,
+  et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
+  choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
   `/admin/cartes/nouvelle` (`CardEditor` : formulaire et aperçu en direct, choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle, envoi d'illustration), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu

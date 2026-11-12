@@ -32,22 +32,38 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
   const siblings = card.ideaId
     ? allCards.filter((c) => c.ideaId === card.ideaId && c.id !== card.id)
     : [];
-  const place = card.setCode ? `${card.setCode} · n°${card.number}` : "Réserve";
-  const targets = [
-    ...(card.setId ? [{ id: "", label: "Réserve (hors set)" }] : []),
-    ...sets
-      .filter((s) => s.id !== card.setId)
-      .map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` })),
-  ];
+  const trashed = card.deletedAt !== null;
+  const place = trashed
+    ? "Corbeille"
+    : card.setCode
+      ? `${card.setCode} · n°${card.number}`
+      : "Réserve";
+  const setTargets = sets
+    .filter((s) => trashed || s.id !== card.setId)
+    .map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` }));
+  // À la corbeille : la ranger la restaure, ou la supprimer pour de bon.
+  const targets = trashed
+    ? [
+        { id: "", label: "Réserve (restaurer)" },
+        ...setTargets,
+        { id: "delete", label: "Supprimer définitivement" },
+      ]
+    : [
+        ...(card.setId ? [{ id: "", label: "Réserve (hors set)" }] : []),
+        ...setTargets,
+        { id: "trash", label: "Corbeille" },
+      ];
 
   return (
     <Card title={`${place} · ${card.name}`}>
       <div className={`${designFonts} flex flex-col gap-4`}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <span className="text-muted">
-            {card.setCode
-              ? `Dans le set ${card.setCode} : ira en prod avec lui.`
-              : "Dans la réserve : n'ira pas en prod tant qu'elle n'est pas dans un set."}
+          <span className={trashed ? "text-danger" : "text-muted"}>
+            {trashed
+              ? "À la corbeille : hors des sets et des listes. Range-la pour la restaurer."
+              : card.setCode
+                ? `Dans le set ${card.setCode} : ira en prod avec lui.`
+                : "Dans la réserve : n'ira pas en prod tant qu'elle n'est pas dans un set."}
           </span>
           {targets.length > 0 && <MoveCardForm cardId={card.id} targets={targets} />}
         </div>

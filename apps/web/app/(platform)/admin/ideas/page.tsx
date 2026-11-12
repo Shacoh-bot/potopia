@@ -5,6 +5,7 @@ import { buttonClasses, Card } from "@app/ui";
 import type { Metadata } from "next";
 import { getCurrentAdmin } from "@/lib/session";
 import { loadMoreIdeas } from "./actions";
+import { cardCountsByIdea, NEW_CARD_HREF } from "./card-counts";
 
 export const metadata: Metadata = { title: "Boîte à idées" };
 
@@ -21,9 +22,10 @@ export default async function AdminIdeasPage({
   const params = await searchParams;
   const filters = { authorId: params.author || undefined, rarity: asRarity(params.rarity) };
 
-  const [{ items, nextCursor }, authorIds] = await Promise.all([
+  const [{ items, nextCursor }, authorIds, cardCounts] = await Promise.all([
     listIdeas(admin, filters),
     listIdeaAuthorIds(admin),
+    cardCountsByIdea(admin),
   ]);
   const authors = await getUsersByIds([...authorIds, ...items.map((i) => i.authorId)]);
   const names = new Map(authors.map((u) => [u.id, u.name]));
@@ -46,6 +48,7 @@ export default async function AdminIdeasPage({
         basePath="/admin/ideas"
         filters={filters}
         loadMore={loadMoreIdeas.bind(null, filters)}
+        newCardHref={NEW_CARD_HREF}
         authors={authors
           .filter((u) => authorIds.includes(u.id))
           .map((u) => ({ id: u.id, name: u.name }))
@@ -59,6 +62,7 @@ export default async function AdminIdeasPage({
             rarity: idea.suggestedRarity,
             hasImage: Boolean(idea.imageKey),
             createdAt: idea.createdAt,
+            cards: cardCounts.get(idea.id) ?? 0,
           })),
         }}
       />

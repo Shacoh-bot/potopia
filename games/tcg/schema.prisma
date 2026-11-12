@@ -80,7 +80,9 @@ model TcgCard {
   layout         TcgCardLayout @default(normal)
   ideaId        String?   @map("idea_id")
   baseCardId     String?   @map("base_card_id")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  // Mise à la corbeille : hors set et hors des listes ; null, carte active.
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   set      TcgSet?   @relation(fields: [setId], references: [id])

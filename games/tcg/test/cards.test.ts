@@ -7,6 +7,7 @@ import {
   createCard,
   createSet,
   createCardImageUpload,
+  deleteCards,
   EFFECTS,
   effectText,
   ensureSet,
@@ -18,6 +19,7 @@ import {
   moveCards,
   paramsSchema,
   setCardImage,
+  trashCards,
   updateCard,
   updateCards,
 } from "../src/index";
@@ -407,6 +409,58 @@ describe("réserve et sets", () => {
       skipped: 0,
     });
     expect(await listCards(ADMIN, { setId: null })).toHaveLength(1);
+  });
+});
+
+describe("corbeille", () => {
+  it("sort la carte de son set et des listes, puis l'en ressort en la rangeant", async () => {
+    const a = await createCard(ADMIN, { ...BASE, name: "A", setId });
+    await createCard(ADMIN, { ...BASE, name: "B", setId });
+    expect(await trashCards(ADMIN, [a.id])).toEqual({ trashed: 1 });
+    // déjà à la corbeille : laissée telle quelle
+    expect(await trashCards(ADMIN, [a.id])).toEqual({ trashed: 0 });
+    expect((await listCards(ADMIN, { setId })).map((c) => [c.name, c.number])).toEqual([["B", 1]]);
+    expect(await listCards(ADMIN, { setId: null })).toHaveLength(0);
+    const [trashed] = await listCards(ADMIN, { trashed: true });
+    expect(trashed).toMatchObject({ id: a.id, setId: null, number: null });
+    expect(trashed?.deletedAt).toBeInstanceOf(Date);
+
+    // ranger dans la réserve la restaure
+    expect(await moveCards(ADMIN, [a.id], null)).toEqual({ moved: 1 });
+    expect((await getCard(ADMIN, a.id))?.deletedAt).toBeNull();
+    expect(await listCards(ADMIN, { setId: null })).toHaveLength(1);
+    await expect(trashCards(MEMBER, [a.id])).rejects.toThrow("Réservé aux admins.");
+  });
+
+  it("une carte de base n'y va et n'en sort qu'avec ses variantes", async () => {
+    const base = await createCard(ADMIN, { ...BASE, setId });
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: base.id });
+    await expect(trashCards(ADMIN, [base.id])).rejects.toThrow(CardInputError);
+    await trashCards(ADMIN, [base.id, variant.id]);
+    await expect(createCard(ADMIN, { ...BASE, baseCardId: base.id })).rejects.toThrow(
+      "Carte de base à la corbeille.",
+    );
+    await expect(moveCards(ADMIN, [variant.id], setId)).rejects.toThrow(CardInputError);
+    expect(await moveCards(ADMIN, [base.id, variant.id], setId)).toEqual({ moved: 2 });
+  });
+
+  it("une mise à jour en masse ignore les cartes de la corbeille", async () => {
+    const card = await createCard(ADMIN, { ...BASE, ideaId: "idea-t" });
+    await trashCards(ADMIN, [card.id]);
+    await expect(updateCards(ADMIN, { updates: [{ ideaId: "idea-t", cost: 5 }] })).rejects.toThrow(
+      "aucune carte pour cette idée",
+    );
+  });
+
+  it("supprime pour de bon les seules cartes de la corbeille, variantes comprises", async () => {
+    const base = await createCard(ADMIN, { ...BASE, setId });
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: base.id });
+    await expect(deleteCards(ADMIN, [base.id])).rejects.toThrow(CardInputError);
+    await trashCards(ADMIN, [base.id, variant.id]);
+    await expect(deleteCards(ADMIN, [base.id])).rejects.toThrow(CardInputError);
+    expect(await deleteCards(ADMIN, [base.id, variant.id])).toEqual({ deleted: 2, imageKeys: [] });
+    expect(await getCard(ADMIN, base.id)).toBeNull();
+    await expect(deleteCards(MEMBER, [base.id])).rejects.toThrow("Réservé aux admins.");
   });
 });
 

@@ -5,6 +5,7 @@ import { listIdeas, RARITIES } from "@app/ideas";
 import type { IdeaPage } from "@app/ideas/ui";
 import { z } from "zod";
 import { actionAdmin } from "@/lib/session";
+import { cardCountsByIdea } from "./card-counts";
 
 const filtersInput = z.object({
   authorId: z.string().min(1).optional(),
@@ -22,7 +23,10 @@ export async function loadMoreIdeas(
   const admin = await actionAdmin();
   const { authorId, rarity } = filtersInput.parse(filters);
   z.string().min(1).parse(cursor);
-  const { items, nextCursor } = await listIdeas(admin, { authorId, rarity, cursor });
+  const [{ items, nextCursor }, cardCounts] = await Promise.all([
+    listIdeas(admin, { authorId, rarity, cursor }),
+    cardCountsByIdea(admin),
+  ]);
   const authors = await getUsersByIds([...new Set(items.map((i) => i.authorId))]);
   const names = new Map(authors.map((u) => [u.id, u.name]));
   return {
@@ -33,6 +37,7 @@ export async function loadMoreIdeas(
       rarity: idea.suggestedRarity,
       hasImage: Boolean(idea.imageKey),
       createdAt: idea.createdAt,
+      cards: cardCounts.get(idea.id) ?? 0,
     })),
     nextCursor,
   };

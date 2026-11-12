@@ -579,6 +579,10 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       (migration `tcg_visual_effects`, ajout seul).
 - [x] Éclair seulement au survol de la carte (aucun sans pointeur), holo classique atténué (ne
       plus éclaircir la carte).
+- [x] Corbeille des cartes (doublons, essais) : mise à la corbeille, restauration en la rangeant,
+      suppression définitive ; migration `tcg_card_trash` (ajout d'une colonne). Planche en
+      miniatures ou en liste. Liste des idées : badge « Carte créée » ou « Pas de carte » et bouton
+      « Créer la carte ».
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.

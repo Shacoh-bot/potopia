@@ -1,6 +1,6 @@
 import { ForbiddenError, isAdmin } from "@app/core";
 import { db, type DbTx, Prisma, withTx } from "@app/db";
-import { headObject, presignPut } from "@app/storage";
+import { deleteObject, headObject, presignPut } from "@app/storage";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
@@ -288,15 +288,20 @@ export async function ensureSet(
 
 /**
  * Les cartes d'un set (`setId`), de la réserve (`setId: null`) ou de tous, par set puis par numéro
- * (la réserve par ordre de création). `ideaId` : les cartes tirées d'une idée.
+ * (la réserve par ordre de création). `ideaId` : les cartes tirées d'une idée. Les cartes à la
+ * corbeille n'y sont jamais, sauf avec `trashed: true` qui ne liste qu'elles.
  */
 export async function listCards(
   admin: Admin,
-  filters: { setId?: string | null; ideaId?: string } = {},
+  filters: { setId?: string | null; ideaId?: string; trashed?: boolean } = {},
 ): Promise<Card[]> {
   assertAdmin(admin);
   const rows = await db.tcgCard.findMany({
-    where: { setId: filters.setId, ideaId: filters.ideaId },
+    where: {
+      setId: filters.setId,
+      ideaId: filters.ideaId,
+      deletedAt: filters.trashed ? { not: null } : null,
+    },
     orderBy: [{ set: { createdAt: "asc" } }, { number: "asc" }, { createdAt: "asc" }],
     include: withSet,
   });
@@ -342,6 +347,7 @@ export async function createCard(
     const base = baseCardId ? await tx.tcgCard.findUnique({ where: { id: baseCardId } }) : null;
     if (baseCardId && !base) throw new CardInputError("Carte de base introuvable.");
     if (base?.baseCardId) throw new CardInputError("Une variante ne peut pas avoir de variante.");
+    if (base?.deletedAt) throw new CardInputError("Carte de base à la corbeille.");
     await checkVisualEffects(tx, visualEffectKeys);
     const number = setId ? await nextNumber(tx, setId) : null;
     const row = await tx.tcgCard.create({
@@ -414,10 +420,41 @@ export async function updateCard(
   }, opts);
 }
 
+/** Ids de cartes choisies, sans doublon. */
+const idsInput = z.array(z.string().min(1)).min(1, "Aucune carte choisie.");
+
+/** Les cartes choisies, toutes trouvées. */
+async function findCards(tx: DbTx, ids: string[]) {
+  const cards = await tx.tcgCard.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, setId: true, baseCardId: true, deletedAt: true },
+  });
+  if (cards.length !== ids.length) throw new CardInputError("Carte introuvable.");
+  return cards;
+}
+
+/**
+ * Sort des cartes de leur set (elles passent hors set, sans numéro) et renumérote les sets
+ * quittés de 1 à N.
+ */
+async function leaveSets(tx: DbTx, cards: { id: string; setId: string | null }[]): Promise<void> {
+  const leaving = cards.filter((c) => c.setId);
+  const leftSets = [...new Set(leaving.map((c) => c.setId as string))];
+  for (const left of leftSets)
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tcg-set-${left}`}))`;
+  await tx.tcgCard.updateMany({
+    where: { id: { in: leaving.map((c) => c.id) } },
+    data: { setId: null, number: null },
+  });
+  for (const left of leftSets) await renumber(tx, left);
+}
+
 /**
  * Range des cartes dans un set (à la suite, dans l'ordre donné) ou dans la réserve (`setId: null`).
  * Les cartes qui quittent un set laissent un trou : les suivantes sont renumérotées pour que le set
- * reste numéroté de 1 à N. Une carte déjà au bon endroit est laissée telle quelle.
+ * reste numéroté de 1 à N. Une carte déjà au bon endroit est laissée telle quelle. Une carte de la
+ * corbeille qu'on range en sort (restaurée) ; une variante seulement si sa carte de base n'y est
+ * plus, ou en sort avec elle.
  */
 export async function moveCards(
   admin: Admin,
@@ -426,40 +463,119 @@ export async function moveCards(
   opts?: { tx?: DbTx },
 ): Promise<{ moved: number }> {
   assertAdmin(admin);
-  const unique = [
-    ...new Set(z.array(z.string().min(1)).min(1, "Aucune carte choisie.").parse(ids)),
-  ];
+  const unique = [...new Set(idsInput.parse(ids))];
   return withTx(async (tx) => {
     if (setId && !(await tx.tcgSet.findUnique({ where: { id: setId } }))) {
       throw new CardInputError("Set introuvable.");
     }
-    const cards = await tx.tcgCard.findMany({
-      where: { id: { in: unique } },
-      select: { id: true, setId: true },
-    });
-    if (cards.length !== unique.length) throw new CardInputError("Carte introuvable.");
-    const moving = unique.filter((id) => cards.find((c) => c.id === id)?.setId !== setId);
-    const leftSets = new Set(
-      cards.flatMap((c) =>
-        c.setId && c.setId !== setId && moving.includes(c.id) ? [c.setId] : [],
-      ),
+    const cards = await findCards(tx, unique);
+    const baseIds = cards.flatMap((c) =>
+      c.deletedAt && c.baseCardId && !unique.includes(c.baseCardId) ? [c.baseCardId] : [],
     );
-    for (const left of leftSets)
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tcg-set-${left}`}))`;
-    // Sortie : la carte passe en réserve, puis son ancien set est renuméroté.
-    await tx.tcgCard.updateMany({
-      where: { id: { in: moving }, setId: { not: null } },
-      data: { setId: null, number: null },
+    const trashedBase = await tx.tcgCard.findFirst({
+      where: { id: { in: baseIds }, deletedAt: { not: null } },
+      select: { name: true },
     });
-    for (const left of leftSets) await renumber(tx, left);
+    if (trashedBase) {
+      throw new CardInputError(
+        `${trashedBase.name} est à la corbeille : restaure-la avec ses variantes.`,
+      );
+    }
+    // Ordre demandé ; une carte de la corbeille bouge toujours (elle en sort).
+    const moving = unique.flatMap((id) => {
+      const card = cards.find((c) => c.id === id);
+      return card && (card.deletedAt || card.setId !== setId) ? [card] : [];
+    });
+    await leaveSets(tx, moving);
+    await tx.tcgCard.updateMany({
+      where: { id: { in: moving.map((c) => c.id) }, deletedAt: { not: null } },
+      data: { deletedAt: null },
+    });
     if (setId) {
       let number = await nextNumber(tx, setId);
-      for (const id of moving) {
+      for (const { id } of moving) {
         await tx.tcgCard.update({ where: { id }, data: { setId, number: number++ } });
       }
     }
     return { moved: moving.length };
   }, opts);
+}
+
+/**
+ * Met des cartes à la corbeille (doublons, essais…) : elles sortent de leur set (renuméroté) et
+ * des listes, mais restent en base ; `moveCards` les en sort. Une carte de base n'y va qu'avec
+ * ses variantes. Une carte déjà à la corbeille est laissée telle quelle.
+ */
+export async function trashCards(
+  admin: Admin,
+  ids: string[],
+  opts?: { tx?: DbTx },
+): Promise<{ trashed: number }> {
+  assertAdmin(admin);
+  const unique = [...new Set(idsInput.parse(ids))];
+  return withTx(async (tx) => {
+    const fresh = (await findCards(tx, unique)).filter((c) => !c.deletedAt);
+    const left = await tx.tcgCard.findFirst({
+      where: {
+        baseCardId: { in: fresh.map((c) => c.id) },
+        id: { notIn: unique },
+        deletedAt: null,
+      },
+      select: { name: true },
+    });
+    if (left) {
+      throw new CardInputError(
+        `${left.name} est une variante d'une carte choisie : mets-la aussi à la corbeille.`,
+      );
+    }
+    await leaveSets(tx, fresh);
+    await tx.tcgCard.updateMany({
+      where: { id: { in: fresh.map((c) => c.id) } },
+      data: { deletedAt: new Date() },
+    });
+    return { trashed: fresh.length };
+  }, opts);
+}
+
+/**
+ * Supprime pour de bon des cartes de la corbeille (et leurs effets visuels). Une carte de base ne
+ * part qu'avec ses variantes. Les illustrations sont retirées du stockage après la transaction,
+ * sans bloquer si l'une échoue (dans une transaction appelante : c'est à elle de le faire, avec les
+ * clés renvoyées).
+ */
+export async function deleteCards(
+  admin: Admin,
+  ids: string[],
+  opts?: { tx?: DbTx },
+): Promise<{ deleted: number; imageKeys: string[] }> {
+  assertAdmin(admin);
+  const unique = [...new Set(idsInput.parse(ids))];
+  const result = await withTx(async (tx) => {
+    const cards = await findCards(tx, unique);
+    const active = cards.find((c) => !c.deletedAt);
+    if (active) {
+      throw new CardInputError(
+        `${active.name} n'est pas à la corbeille : seules ses cartes se suppriment.`,
+      );
+    }
+    const left = await tx.tcgCard.findFirst({
+      where: { baseCardId: { in: unique }, id: { notIn: unique } },
+      select: { name: true },
+    });
+    if (left) {
+      throw new CardInputError(
+        `${left.name} est une variante d'une carte choisie : supprime-la avec elle.`,
+      );
+    }
+    const keys = await tx.tcgCard.findMany({
+      where: { id: { in: unique }, imageKey: { not: null } },
+      select: { imageKey: true },
+    });
+    const { count } = await tx.tcgCard.deleteMany({ where: { id: { in: unique } } });
+    return { deleted: count, imageKeys: keys.map((k) => k.imageKey as string) };
+  }, opts);
+  if (!opts?.tx) await Promise.allSettled(result.imageKeys.map((key) => deleteObject(key)));
+  return result;
 }
 
 /** Renumérote un set de 1 à N, dans l'ordre actuel (en deux temps, pour l'unicité set + numéro). */
@@ -623,7 +739,7 @@ export async function updateCards(
   const updates = updatesInput.parse(input).updates as CardUpdate[];
   return withTx(async (tx) => {
     const rows = await tx.tcgCard.findMany({
-      where: { ideaId: { in: updates.map((u) => u.ideaId) }, baseCardId: null },
+      where: { ideaId: { in: updates.map((u) => u.ideaId) }, baseCardId: null, deletedAt: null },
       include: withSet,
     });
     for (const [i, update] of updates.entries()) {
