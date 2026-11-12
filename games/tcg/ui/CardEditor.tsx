@@ -41,6 +41,10 @@ import { pastedImage, toCardWebp } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
+/** Colonnes d'effets visuels : largeur (11rem) et écart (gap-x-3), en px. */
+const EFFECT_COLUMN = 176;
+const EFFECT_GAP = 12;
+
 /** Mise en page de la carte (enregistrée), de l'aperçu et du cadrage qu'on règle. */
 type Layout = Card["layout"];
 
@@ -180,12 +184,16 @@ export function CardEditor({
   const cardArea = useRef<HTMLDivElement>(null);
   const effectsHead = useRef<HTMLDivElement>(null);
   const [beside, setBeside] = useState(0);
+  // Colonnes qui tiendraient sur la largeur, sous la carte (pour le nombre de lignes du bas).
+  const [fitColumns, setFitColumns] = useState(1);
   useEffect(() => {
     const area = cardArea.current;
     const head = effectsHead.current;
     if (!area || !head) return;
     const wide = window.matchMedia("(min-width: 1280px)");
     const measure = () => {
+      const width = area.parentElement?.clientWidth ?? 0;
+      setFitColumns(Math.max(1, Math.floor((width + EFFECT_GAP) / (EFFECT_COLUMN + EFFECT_GAP))));
       if (!wide.matches) return setBeside(0);
       const row = area.parentElement?.querySelector<HTMLElement>("[data-effect-row]");
       // hauteur d'une ligne, plus l'écart entre deux lignes (gap-1.5 = 6 px)
@@ -195,6 +203,7 @@ export function CardEditor({
     const observer = new ResizeObserver(measure);
     observer.observe(area);
     observer.observe(head);
+    if (area.parentElement) observer.observe(area.parentElement);
     wide.addEventListener("change", measure);
     measure();
     return () => {
@@ -288,6 +297,11 @@ export function CardEditor({
       setUploadState("Lecture du presse-papiers impossible : fais Ctrl+V sur l'éditeur.");
     }
   }
+
+  // Effets sous la carte : en colonnes de la largeur de celle de gauche, remplies de haut en bas,
+  // avec 4 lignes de plus que s'ils occupaient toute la largeur (moins de colonnes, plus serrées).
+  const below = visualEffects.slice(beside);
+  const belowRows = Math.min(below.length, Math.ceil(below.length / fitColumns) + 4);
 
   /** Une case d'effet visuel (son rang de calque s'il y en a plusieurs). */
   const effectRow = (v: VisualEffect) => {
@@ -553,9 +567,9 @@ export function CardEditor({
 
       {/* Effets visuels en L autour de la carte (dès xl) : une colonne à gauche de la carte et de
           ses réglages (cadrage et envoi à sa droite dès 2xl), puis plusieurs colonnes dessous,
-          sur toute la largeur. La colonne de gauche a une largeur fixe, collée à la carte ; la
-          place libre reste à droite. Avant xl : la carte, puis les effets en grille dessous. */}
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[14rem_auto_minmax(0,1fr)] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
+          sur toute la largeur. Toutes les colonnes font 11rem ; celle de gauche est collée à la
+          carte, la place libre reste à droite. Avant xl : la carte, puis les effets en grille dessous. */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[11rem_auto_minmax(0,1fr)] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
         <div
           ref={cardArea}
           className="flex flex-col items-center gap-6 xl:col-start-2 xl:row-start-1 2xl:flex-row 2xl:items-start"
@@ -683,9 +697,12 @@ export function CardEditor({
           </div>
           {visualEffects.slice(0, beside).map(effectRow)}
         </div>
-        {beside < visualEffects.length && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-x-3 gap-y-1.5 lg:w-0 lg:min-w-full xl:col-span-3 xl:w-auto xl:min-w-0">
-            {visualEffects.slice(beside).map(effectRow)}
+        {below.length > 0 && (
+          <div
+            className="grid auto-cols-[11rem] grid-flow-col gap-x-3 gap-y-1.5 overflow-x-auto lg:w-0 lg:min-w-full xl:col-span-3 xl:w-auto xl:min-w-0"
+            style={{ gridTemplateRows: `repeat(${belowRows}, auto)` }}
+          >
+            {below.map(effectRow)}
           </div>
         )}
       </div>
