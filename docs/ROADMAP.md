@@ -577,6 +577,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       métal brossé, pluie de données, particules, onde de choc, distorsion de chaleur, givre,
       brume ; migration `tcg_visual_effects_ambiance`)
       (migration `tcg_visual_effects`, ajout seul).
+- [x] Éclair seulement au survol de la carte (aucun sans pointeur), holo classique atténué (ne
+      plus éclaircir la carte).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.

@@ -123,51 +123,60 @@ function strike(rnd: () => number): string[] {
   return [pathOf(trunk), ...branches];
 }
 
-/** Éclair de la carte figée (et du premier rendu) : toujours le même. */
-const STILL_BOLT = strike(seeded(11));
+/** Éclair au repos (caché ; montré fixe au survol avec le mouvement réduit) : toujours le même. */
+const REST_BOLT = strike(seeded(11));
 
 /**
- * Éclair : un éclair part d'un bord et frappe la carte par intermittence (toutes les 1 à 3,5 s),
- * scintille et l'illumine d'un flash ; chaque coup est tiré au hasard en JS.
- * Carte figée ou mouvement réduit : un seul éclair, immobile.
+ * Éclair : seulement quand le pointeur est sur la carte (`data-active` posé par `Tilt`). Un éclair
+ * part d'un bord et frappe la carte tout de suite, puis par intermittence (toutes les 1 à 3,5 s),
+ * scintille et l'illumine d'un flash ; chaque coup est tiré au hasard en JS. Sans pointeur sur la
+ * carte (et sur les planches figées) : aucun éclair. Mouvement réduit : un éclair fixe au survol.
  */
 function Lightning({ still }: EffectProps) {
+  const ref = useRef<SVGSVGElement>(null);
   const [bolt, setBolt] = useState<{ id: number; paths: string[] } | null>(null);
 
   useEffect(() => {
     if (still || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const tilt = ref.current?.closest<HTMLElement>(".tcg-tilt");
+    if (!tilt) return;
     let id = 0;
-    let timer: ReturnType<typeof setTimeout>;
-    const next = () => {
-      timer = setTimeout(
-        () => {
-          setBolt({ id: ++id, paths: strike(Math.random) });
-          next();
-        },
-        1000 + Math.random() * 2500,
-      );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const fire = () => {
+      setBolt({ id: ++id, paths: strike(Math.random) });
+      timer = setTimeout(fire, 1000 + Math.random() * 2500);
     };
-    next();
-    return () => clearTimeout(timer);
+    // Le pointeur arrive : premier coup presque tout de suite ; il part : plus de coups (celui en
+    // cours finit de s'éteindre).
+    const sync = () => {
+      const active = "active" in tilt.dataset;
+      if (active && timer === undefined) timer = setTimeout(fire, 120);
+      if (!active && timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+    };
+    const observer = new MutationObserver(sync);
+    observer.observe(tilt, { attributes: true, attributeFilter: ["data-active"] });
+    sync();
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, [still]);
 
-  // Figée à nouveau (fin du survol d'une carte de planche) : retour à l'éclair fixe.
+  // Figée à nouveau (fin du survol d'une carte de planche) : plus d'éclair.
   const shown = still ? null : bolt;
-  const paths = shown?.paths ?? STILL_BOLT;
+  const paths = shown?.paths ?? REST_BOLT;
   return (
     <>
       {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" />}
       <svg
+        ref={ref}
         // Une nouvelle clé à chaque coup relance l'animation.
-        key={shown?.id ?? "still"}
-        // Avant le premier coup : caché (montré seulement avec le mouvement réduit, voir tcg.css).
-        className={
-          shown
-            ? "tcg-vfx-bolt"
-            : still
-              ? "tcg-vfx-bolt tcg-vfx-bolt-still"
-              : "tcg-vfx-bolt tcg-vfx-bolt-rest"
-        }
+        key={shown?.id ?? "rest"}
+        // Avant le premier coup : caché (montré fixe au survol avec le mouvement réduit, tcg.css).
+        className={shown ? "tcg-vfx-bolt" : "tcg-vfx-bolt tcg-vfx-bolt-rest"}
         viewBox={`0 0 ${CW} ${CH}`}
       >
         {paths.map((d, i) => (
@@ -209,8 +218,11 @@ const Breathe = () => (
   />
 );
 
-/** Holo classique : l'holo des premières propositions, bandes irisées fines et reflet blanc. */
-const HoloClassic = () => <div className="tcg-holo" />;
+/**
+ * Holo classique : l'holo des premières propositions, bandes irisées fines et reflet blanc,
+ * atténué pour ne pas éclaircir la carte (`tcg-vfx-holoclassique`).
+ */
+const HoloClassic = () => <div className="tcg-holo tcg-vfx-holoclassique" />;
 
 /** Néon qui grésille : un tube magenta le long du cadre, qui clignote par moments. */
 const Neon = () => (
