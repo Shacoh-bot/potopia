@@ -1045,7 +1045,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   cadrage, le zoom et la mise en page ; avec l'effet `parallaxe`, ils prennent le même mouvement
   que l'illustration (`tcg-vfx-plx-back`) et restent à leur place sur elle. Rendu (`GlowPoints`, client) : halo flou de sa couleur et
   cœur net blanc teinté, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
-  la carte en full art) ; figé sur la planche et en mouvement réduit. Fiche : `GlowPointsEditor`,
+  la carte en full art) ; fixe en mouvement réduit ; caché sur la planche, sauf sur la carte
+  survolée. Fiche : `GlowPointsEditor`,
   sous le cadrage, montre l'image entière ; un clic pose un point, un glisser le déplace, le point
   choisi se règle (couleur, taille, clignotement) ou se supprime. Une mise à jour sans
   `glowPoints` (fichier `updates`) les laisse tels quels.
