@@ -1037,7 +1037,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
 - Points lumineux (`glowPoints`, 8 au plus par carte ; des yeux qui brillent…) : chaque point a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
   couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :
-  6 s / vitesse, `glowPeriod`). Accrochés à l'image et pas à la carte : `glowPlacement`
+  6 s / vitesse, `glowPeriod` ; calé sur l'horloge par un délai négatif, les points de même
+  vitesse clignotent ensemble). Accrochés à l'image et pas à la carte : `glowPlacement`
   (`src/glow.ts`, testé) refait le placement de l'illustration (`object-fit: cover`, cadrage
   `object-position`, zoom `scale`) pour savoir où tombe le point dans la fenêtre, d'après la
   taille réelle de l'image (lue une fois par URL, `useNaturalSize`) ; le point suit donc le

@@ -28,8 +28,44 @@ export function useNaturalSize(url: string | null): Size | null {
 }
 
 /**
+ * Un point lumineux. Clignotement calé sur l'horloge : le délai (négatif) part du moment où son
+ * animation a démarré (mémorisé une fois), si bien que sa phase vaut toujours « heure % durée » ;
+ * les points de même vitesse clignotent ensemble, même apparus à des moments différents, et un
+ * nouveau rendu ne les décale pas (changer le délai ne redémarre pas l'animation).
+ */
+function GlowDot({
+  place,
+  color,
+  period,
+}: {
+  place: { left: number; top: number; radius: number };
+  color: string;
+  period: number | null;
+}) {
+  // Rendu côté client seulement (taille de l'image connue) : l'heure est celle du navigateur.
+  const [started] = useState(() => performance.now());
+  return (
+    <div
+      className="tcg-glow"
+      data-blink={period ? "" : undefined}
+      style={
+        {
+          left: `${place.left}%`,
+          top: `${place.top}%`,
+          "--glow": color,
+          "--r": `${place.radius}px`,
+          "--blink": period ? `${period}s` : undefined,
+          animationDelay: period ? `${-((started / 1000) % period)}s` : undefined,
+        } as CSSProperties
+      }
+    />
+  );
+}
+
+/**
  * Points lumineux d'une carte, sur son illustration : chacun est un bloom (cœur blanc-coloré net,
- * halo flou de sa couleur) ajouté comme de la lumière, qui clignote à sa vitesse. Posé sur la
+ * halo flou de sa couleur) ajouté comme de la lumière, qui clignote à sa vitesse, en phase avec
+ * les autres points de même vitesse. Posé sur la
  * fenêtre d'illustration (`box` : sa taille en px de la carte), accroché à l'image : il suit le
  * cadrage et le zoom.
  */
@@ -49,22 +85,14 @@ export function GlowPoints({
   return (
     <div aria-hidden className="tcg-glow-layer">
       {points.map((p, i) => {
-        const { left, top, radius } = glowPlacement(p, frame, box, natural);
         const period = glowPeriod(p.speed);
         return (
-          <div
-            key={i}
-            className="tcg-glow"
-            data-blink={period ? "" : undefined}
-            style={
-              {
-                left: `${left}%`,
-                top: `${top}%`,
-                "--glow": p.color,
-                "--r": `${radius}px`,
-                "--blink": period ? `${period}s` : undefined,
-              } as CSSProperties
-            }
+          <GlowDot
+            // Passer de fixe à clignotant recrée le point : son animation démarre à ce moment.
+            key={`${i}-${period ? "b" : "f"}`}
+            place={glowPlacement(p, frame, box, natural)}
+            color={p.color}
+            period={period}
           />
         );
       })}
