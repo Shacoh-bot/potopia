@@ -581,8 +581,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       plus éclaircir la carte).
 - [x] Corbeille des cartes (doublons, essais) : mise à la corbeille, restauration en la rangeant,
       suppression définitive ; migration `tcg_card_trash` (ajout d'une colonne). Planche en
-      miniatures ou en liste (menu « Édition » par ligne). Fiche : effets visuels à droite de
-      la carte. Liste des idées : badge « Carte créée » ou « Pas de carte » et bouton
+      miniatures ou en liste (menu « Édition » par ligne). Fiche : envoi d'illustration à
+      droite de la carte, effets visuels dessous ; déplacement dès le choix dans le menu. Liste des idées : badge « Carte créée » ou « Pas de carte » et bouton
       « Créer la carte ».
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.

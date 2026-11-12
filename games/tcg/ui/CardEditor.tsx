@@ -481,76 +481,79 @@ export function CardEditor({
         </form>
       </div>
 
-      {/* La carte et ses réglages, puis les effets visuels (deux colonnes) : à sa droite sur grand
-          écran, en dessous sinon. */}
-      <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-start">
-        <div className="flex flex-col items-center gap-3">
-          <GameCardDefs />
-          <CardFlip button>
-            <GameCard
-              card={preview}
-              imageUrl={image}
-              layout={layout}
-              setSize={setSize}
-              author={author}
-            />
-          </CardFlip>
-          {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}
-          <div
-            role="group"
-            aria-label="Affichage de la carte"
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="flex gap-2 text-sm">
-              {CARD_LAYOUTS.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  aria-pressed={layout === l}
-                  onClick={() => setLayout(l)}
-                  className={
-                    layout === l
-                      ? "border-accent text-text rounded-full border px-3 py-1"
-                      : "border-border text-muted rounded-full border px-3 py-1"
-                  }
-                >
-                  {CARD_LAYOUT_LABELS[l]}
-                </button>
-              ))}
-            </div>
-            <p className="text-muted text-xs">
-              Affichage de la carte{layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
-            </p>
-          </div>
-          {image && (
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-muted text-sm">
-                Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} : glisse
-                l&apos;image, zoome, puis enregistre la carte.
-              </p>
-              <ImageFramer
-                // un cadrage par mise en page : changer de mise en page change de réglage
-                key={layout}
+      {/* La carte et ses réglages, l'envoi de l'illustration à sa droite (en dessous sur écran
+          moyen), puis les effets visuels sur deux colonnes, sous le tout. */}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-6 2xl:flex-row 2xl:items-start">
+          <div className="flex flex-col items-center gap-3">
+            <GameCardDefs />
+            <CardFlip button>
+              <GameCard
+                card={preview}
                 imageUrl={image}
-                frame={frames[layout]}
-                onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-                // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
-                width={layout === "normal" ? FINAL_ART.width : 200}
-                height={layout === "normal" ? FINAL_ART.height : 280}
+                layout={layout}
+                setSize={setSize}
+                author={author}
               />
-              {layout === "fullart" && (
-                <button
-                  type="button"
-                  className="text-accent text-sm underline-offset-4 hover:underline"
-                  onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
-                >
-                  Reprendre le cadrage de la carte normale
-                </button>
-              )}
+            </CardFlip>
+            {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}
+            <div
+              role="group"
+              aria-label="Affichage de la carte"
+              className="flex flex-col items-center gap-1"
+            >
+              <div className="flex gap-2 text-sm">
+                {CARD_LAYOUTS.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    aria-pressed={layout === l}
+                    onClick={() => setLayout(l)}
+                    className={
+                      layout === l
+                        ? "border-accent text-text rounded-full border px-3 py-1"
+                        : "border-border text-muted rounded-full border px-3 py-1"
+                    }
+                  >
+                    {CARD_LAYOUT_LABELS[l]}
+                  </button>
+                ))}
+              </div>
+              <p className="text-muted text-xs">
+                Affichage de la carte
+                {layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
+              </p>
             </div>
-          )}
+            {image && (
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-muted text-sm">
+                  Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} : glisse
+                  l&apos;image, zoome, puis enregistre la carte.
+                </p>
+                <ImageFramer
+                  // un cadrage par mise en page : changer de mise en page change de réglage
+                  key={layout}
+                  imageUrl={image}
+                  frame={frames[layout]}
+                  onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
+                  // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
+                  width={layout === "normal" ? FINAL_ART.width : 200}
+                  height={layout === "normal" ? FINAL_ART.height : 280}
+                />
+                {layout === "fullart" && (
+                  <button
+                    type="button"
+                    className="text-accent text-sm underline-offset-4 hover:underline"
+                    onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+                  >
+                    Reprendre le cadrage de la carte normale
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           {upload && card && (
-            <div className="flex w-full max-w-[300px] flex-col gap-2">
+            <div className="flex w-full max-w-[300px] flex-col gap-2 2xl:w-60">
               <Label
                 className="w-full"
                 hint={
@@ -580,7 +583,8 @@ export function CardEditor({
             </div>
           )}
         </div>
-        <fieldset className="flex w-full flex-col gap-1.5 lg:w-[300px] 2xl:w-80">
+        {/* w-0 min-w-full : prend la largeur de la colonne sans l'élargir. */}
+        <fieldset className="flex w-0 min-w-full flex-col gap-1.5">
           <legend className="text-text mb-1 text-sm font-medium">Effets visuels</legend>
           <p className="text-muted text-xs">
             Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
