@@ -670,8 +670,8 @@
 }
 
 /* holo : bandes arc-en-ciel qui glissent avec le pointeur (--mx/--my posées par <Tilt>), plus
-   vives autour de lui et quand la carte est survolée. Sans pointeur (planche, mobile au repos) :
-   reflet discret, figé au centre. Fusion « color » : la carte prend la teinte des bandes mais garde
+   vives autour de lui. Seulement quand le pointeur bouge sur la carte : invisible au repos, la
+   carte garde ses couleurs. Fusion « color » : la carte prend la teinte des bandes mais garde
    sa luminosité, point par point ; l'holo ne l'éclaircit ni ne l'assombrit. */
 .tcg-vfx-holo {
   position: absolute;
@@ -698,7 +698,7 @@
     #000 0%,
     rgb(0 0 0 / 0.3) 65%
   );
-  opacity: 0.25;
+  opacity: 0;
   transition: opacity 0.3s;
 }
 .tcg-tilt[data-active] .tcg-vfx-holo {

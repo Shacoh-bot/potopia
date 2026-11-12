@@ -955,7 +955,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
   quand on incline la carte, plus vives autour de lui, d'après `--mx`/`--my` de `Tilt` ; CSS
-  seul, discret et figé sans pointeur ; fusion `color` : la carte prend la teinte des bandes en
+  seul, seulement quand le pointeur est sur la carte (invisible au repos) ; fusion `color` : la carte prend la teinte des bandes en
   gardant sa luminosité, l'holo ne l'éclaircit ni ne l'assombrit) et `eclair` (« Éclair » : sur une carte vivante (la fiche, ou la carte
   survolée d'une planche) ; un éclair en
   zigzag tiré au hasard en JS part d'un bord de la carte (haut, gauche ou droite) tout de suite,

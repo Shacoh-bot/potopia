@@ -57,7 +57,7 @@ type EffectDef = {
 
 /**
  * Reflet holographique : des bandes arc-en-ciel qui glissent avec le pointeur quand on incline la
- * carte (CSS seul, d'après les variables posées par `Tilt`).
+ * carte (CSS seul, d'après les variables posées par `Tilt`) ; invisible sans pointeur sur la carte.
  */
 function Holo() {
   return <div className="tcg-vfx-holo" />;
