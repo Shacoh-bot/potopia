@@ -795,9 +795,12 @@
   .tcg-vfx-flash {
     animation: none;
   }
-  /* Pas de coups : un éclair fixe, seulement quand le pointeur est sur la carte. */
-  .tcg-tilt[data-active] .tcg-vfx-bolt-rest {
+  /* Pas de coups : un éclair fixe, sauf sur une carte figée de planche (non survolée). */
+  .tcg-vfx-bolt-rest {
     opacity: 0.85;
+  }
+  .tcg-still:not([data-live]) .tcg-vfx-bolt-rest {
+    opacity: 0;
   }
 }
 

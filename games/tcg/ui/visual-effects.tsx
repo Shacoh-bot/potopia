@@ -131,44 +131,27 @@ function strike(rnd: () => number): Strike {
 const REST_BOLT = strike(seeded(11));
 
 /**
- * Éclair : seulement quand le pointeur est sur la carte (`data-active` posé par `Tilt`). Un éclair
- * part d'un bord et frappe la carte tout de suite, puis par intermittence (toutes les 1 à 3,5 s),
- * scintille et l'illumine d'un flash ; chaque coup est tiré au hasard en JS. Sans pointeur sur la
- * carte (et sur les planches figées) : aucun éclair. Mouvement réduit : un éclair fixe au survol.
+ * Éclair : sur une carte vivante (la fiche, ou la carte survolée d'une planche), un éclair part
+ * d'un bord et frappe la carte tout de suite, puis par intermittence (toutes les 1 à 3,5 s),
+ * scintille et l'illumine d'un flash ; chaque coup est tiré au hasard en JS. Sur une planche, une
+ * carte figée (non survolée) n'en a aucun. Mouvement réduit : un éclair fixe.
  */
 function Lightning({ still }: EffectProps) {
-  const ref = useRef<SVGSVGElement>(null);
   const [bolt, setBolt] = useState<({ id: number } & Strike) | null>(null);
   // Ids des filtres SVG, uniques par carte (sans les « : » de useId).
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     if (still || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const tilt = ref.current?.closest<HTMLElement>(".tcg-tilt");
-    if (!tilt) return;
     let id = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timer: ReturnType<typeof setTimeout>;
     const fire = () => {
       setBolt({ id: ++id, ...strike(Math.random) });
       timer = setTimeout(fire, 1000 + Math.random() * 2500);
     };
-    // Le pointeur arrive : premier coup presque tout de suite ; il part : plus de coups (celui en
-    // cours finit de s'éteindre).
-    const sync = () => {
-      const active = "active" in tilt.dataset;
-      if (active && timer === undefined) timer = setTimeout(fire, 120);
-      if (!active && timer !== undefined) {
-        clearTimeout(timer);
-        timer = undefined;
-      }
-    };
-    const observer = new MutationObserver(sync);
-    observer.observe(tilt, { attributes: true, attributeFilter: ["data-active"] });
-    sync();
-    return () => {
-      observer.disconnect();
-      clearTimeout(timer);
-    };
+    // Carte vivante : premier coup presque tout de suite, puis par intermittence.
+    timer = setTimeout(fire, 120);
+    return () => clearTimeout(timer);
   }, [still]);
 
   // Figée à nouveau (fin du survol d'une carte de planche) : plus d'éclair.
@@ -184,7 +167,6 @@ function Lightning({ still }: EffectProps) {
     <>
       {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" style={flash} />}
       <svg
-        ref={ref}
         // Une nouvelle clé à chaque coup relance l'animation.
         key={shown?.id ?? "rest"}
         // Avant le premier coup : caché (montré fixe au survol avec le mouvement réduit, tcg.css).
