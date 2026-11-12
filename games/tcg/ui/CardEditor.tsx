@@ -553,8 +553,9 @@ export function CardEditor({
 
       {/* Effets visuels en L autour de la carte (dès xl) : une colonne à gauche de la carte et de
           ses réglages (cadrage et envoi à sa droite dès 2xl), puis plusieurs colonnes dessous,
-          sur toute la largeur. Avant xl : la carte, puis les effets en grille dessous. */}
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start xl:gap-x-6 xl:gap-y-1.5">
+          sur toute la largeur. La colonne de gauche a une largeur fixe, collée à la carte ; la
+          place libre reste à droite. Avant xl : la carte, puis les effets en grille dessous. */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[14rem_auto_minmax(0,1fr)] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
         <div
           ref={cardArea}
           className="flex flex-col items-center gap-6 xl:col-start-2 xl:row-start-1 2xl:flex-row 2xl:items-start"
@@ -683,7 +684,7 @@ export function CardEditor({
           {visualEffects.slice(0, beside).map(effectRow)}
         </div>
         {beside < visualEffects.length && (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-4 gap-y-1.5 lg:w-0 lg:min-w-full xl:col-span-2 xl:w-auto xl:min-w-0">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-x-3 gap-y-1.5 lg:w-0 lg:min-w-full xl:col-span-3 xl:w-auto xl:min-w-0">
             {visualEffects.slice(beside).map(effectRow)}
           </div>
         )}
