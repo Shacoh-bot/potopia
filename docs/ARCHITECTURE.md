@@ -895,8 +895,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup vers un set, la réserve ou la corbeille,
   et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
   choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
-  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, aperçu en direct avec le cadrage et l'envoi d'illustration à sa droite et les
-  cases des effets visuels dessous, sur deux colonnes ; choix de l'affichage
+  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, formulaire étroit (24rem au plus dès 1280 px), aperçu en direct avec le cadrage et l'envoi
+  d'illustration à sa droite (dès 1536 px) ; la carte flotte à droite et les cases des effets
+  visuels, sur une colonne, se rangent autour, à sa gauche puis dessous ; choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).

@@ -256,9 +256,9 @@ export function CardEditor({
 
   return (
     <div
-      // minmax(0, 1fr) : les champs du formulaire rétrécissent, la carte et ses réglages gardent leur
-      // largeur.
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]"
+      // Formulaire étroit (24rem au plus dès xl) ; le reste va à la carte, ses réglages et les
+      // effets visuels. Avant xl, la carte garde sa largeur et le formulaire prend ce qui reste.
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]"
       // Ctrl+V n'importe où dans l'éditeur : une image collée devient l'illustration (du texte se
       // colle normalement dans son champ)
       onPaste={(e) => {
@@ -483,10 +483,11 @@ export function CardEditor({
         </form>
       </div>
 
-      {/* La carte et ses réglages, l'envoi de l'illustration à sa droite (en dessous sur écran
-          moyen), puis les effets visuels sur deux colonnes, sous le tout. */}
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col items-center gap-6 2xl:flex-row 2xl:items-start">
+      {/* Disposition « autour » : la carte et ses réglages (cadrage et envoi de l'illustration à
+          sa droite dès 2xl) flottent à droite ; les effets visuels, sur une colonne, se rangent à
+          leur gauche puis continuent dessous (dès xl). Avant, l'un sous l'autre. */}
+      <div className="flow-root">
+        <div className="mb-6 flex flex-col items-center gap-6 xl:float-right xl:ml-6 2xl:flex-row 2xl:items-start">
           <div className="flex shrink-0 flex-col items-center gap-3">
             <GameCardDefs />
             <CardFlip button>
@@ -590,23 +591,32 @@ export function CardEditor({
             </div>
           )}
         </div>
-        {/* w-0 min-w-full : prend la largeur de la colonne sans l'élargir. */}
-        <fieldset className="flex w-0 min-w-full flex-col gap-1.5">
-          <legend className="text-text mb-1 text-sm font-medium">Effets visuels</legend>
-          <p className="text-muted text-xs">
+        {/* Un bloc simple (pas de fieldset ni de flex/grid, qui s'écarteraient en entier du
+            flottant) : chaque ligne (flex, donc son propre contexte) se range à côté de la carte
+            tant qu'il y a la place, puis sous elle. */}
+        <div
+          role="group"
+          aria-labelledby="tcg-visual-effects"
+          // lg : la colonne s'ajuste à la carte, les effets en prennent la largeur sans l'élargir.
+          className="lg:w-0 lg:min-w-full xl:w-auto xl:min-w-0"
+        >
+          <p id="tcg-visual-effects" className="text-text mb-1 text-sm font-medium">
+            Effets visuels
+          </p>
+          <p className="text-muted mb-1.5 text-xs">
             Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
             Nouveaux effets : ajoutés par migration.
           </p>
           {visualEffects.length === 0 && (
             <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
           )}
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          <div>
             {visualEffects.map((v) => {
               const rank = fields.visualEffectKeys.indexOf(v.key);
               return (
                 <label
                   key={v.key}
-                  className="text-text flex items-start gap-2 text-sm leading-tight"
+                  className="text-text mb-1.5 flex items-start gap-2 text-sm leading-tight"
                 >
                   <input
                     type="checkbox"
@@ -632,7 +642,7 @@ export function CardEditor({
               );
             })}
           </div>
-        </fieldset>
+        </div>
       </div>
     </div>
   );
