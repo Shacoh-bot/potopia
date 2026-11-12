@@ -955,7 +955,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
   quand on incline la carte, plus vives autour de lui, d'après `--mx`/`--my` de `Tilt` ; CSS
-  seul, discret et figé sans pointeur) et `eclair` (« Éclair » : seulement quand le pointeur
+  seul, discret et figé sans pointeur ; fusion `color` : la carte prend la teinte des bandes en
+  gardant sa luminosité, l'holo ne l'éclaircit ni ne l'assombrit) et `eclair` (« Éclair » : seulement quand le pointeur
   est sur la carte (`data-active` de `Tilt`, suivi par un `MutationObserver`) ; un éclair en
   zigzag tiré au hasard en JS part d'un bord de la carte (haut, gauche ou droite) tout de suite,
   puis toutes les 1 à 3,5 s, la traverse avec deux ou trois ramifications, scintille et l'illumine
@@ -967,9 +968,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
   `flux` (« Liseré d'énergie », `tcg-flow` cyan, blanc, magenta et violet) et `halo` (« Halo
-  qui respire », `tcg-breathe` : lueur cyan intérieure), `holoclassique` (« Holo classique »,
-  `tcg-holo` atténué par `tcg-vfx-holoclassique` : fondu `soft-light`, plus transparent, pour ne
-  pas éclaircir la carte), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
+  qui respire », `tcg-breathe` : lueur cyan intérieure), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
   `aurore`
   (« Aurore cosmique », `tcg-aurora` et `tcg-stars` dans la carte, place `card`) ; illustration
   redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
@@ -993,7 +992,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   `card` : deux voiles qui dérivent dans le bas de la carte). Positions et rythmes des éléments
   tirés au hasard le sont avec une graine fixe, pour un rendu serveur identique.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
-  portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde`. Leur rendu est
+  portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
+  `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). Leur rendu est
   retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
   anciennes propositions de design.
   **Ajouter un effet** : une

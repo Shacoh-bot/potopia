@@ -38,7 +38,7 @@ import { watchStillHover } from "./still-hover";
  * l'arrêt. La carte survolée les reprend (CSS, et `still` passé à faux aux effets JS).
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
- * (holo classique, éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
+ * (éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
  * tcg.css) et les styles d'illustration « Snap » (`ExtraArt` de snap-styles.tsx).
  */
 
@@ -264,12 +264,6 @@ const Breathe = () => (
     }}
   />
 );
-
-/**
- * Holo classique : l'holo des premières propositions, bandes irisées fines et reflet blanc,
- * atténué pour ne pas éclaircir la carte (`tcg-vfx-holoclassique`).
- */
-const HoloClassic = () => <div className="tcg-holo tcg-vfx-holoclassique" />;
 
 /** Néon qui grésille : un tube magenta le long du cadre, qui clignote par moments. */
 const Neon = () => (
@@ -607,7 +601,6 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   prisme: { render: Prism },
   flux: { render: Flow },
   halo: { render: Breathe },
-  holoclassique: { render: HoloClassic },
   neon: { render: Neon },
   aurore: { render: Aurora },
   lenticulaire: { render: Lenticular },

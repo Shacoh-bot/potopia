@@ -586,6 +586,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       « Créer la carte ».
 - [x] Retrait de cinq effets visuels (croquis, onde de choc, pop art, torches, vitrail), migration
       `tcg_visual_effects_retires` (modifie des données : les cartes qui les portaient les perdent).
+- [x] Holo classique retiré (doublon), migration `tcg_visual_effects_holoclassique` (modifie des
+      données) ; le reflet holographique garde la luminosité de la carte (fusion `color`).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
