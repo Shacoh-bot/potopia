@@ -2,7 +2,7 @@
 
 import { Button, Input, Label, Select, Textarea } from "@app/ui";
 import { ClipboardPaste } from "lucide-react";
-import { useActionState, useMemo, useState, useTransition } from "react";
+import { type ReactNode, useActionState, useMemo, useState, useTransition } from "react";
 import {
   CARD_LAYOUT_LABELS,
   CARD_LAYOUTS,
@@ -91,6 +91,8 @@ type Props = {
    * Envoi de l'illustration (carte existante seulement) : `request` donne une URL d'envoi
    * présignée, le navigateur y envoie le fichier, puis `confirm` pose l'image sur la carte.
    */
+  /** Infos posées au-dessus du formulaire (place, idée, variantes), à gauche de l'aperçu. */
+  header?: ReactNode;
   upload?: {
     request: (
       contentType: string,
@@ -145,6 +147,7 @@ export function CardEditor({
   fromIdea,
   save,
   upload,
+  header,
 }: Props) {
   const [state, dispatch, pending] = useActionState(save, { status: "idle" });
   const [, startTransition] = useTransition();
@@ -263,220 +266,224 @@ export function CardEditor({
         void sendImage(pasted, pasted.name);
       }}
     >
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        {variant && (
-          <p className="text-muted text-sm">
-            Variante full art : le mana, la puissance, le type et l&apos;effet viennent de sa carte
-            de base et se modifient sur elle.
-          </p>
-        )}
-        {!card && (
-          <Label>
-            Set
-            <Select value={setId} onChange={(e) => setSetId(e.target.value)}>
-              <option value="">Réserve (hors set)</option>
-              {sets.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.code} · {s.name}
-                </option>
-              ))}
-            </Select>
-          </Label>
-        )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Label>
-            Nom
-            <Input
-              value={fields.name}
-              maxLength={CARD_LIMITS.name}
-              onChange={(e) => set("name", e.target.value)}
-              required
-            />
-          </Label>
-          <Label>
-            Rareté
-            <Select
-              value={fields.rarity}
-              onChange={(e) => set("rarity", e.target.value as Fields["rarity"])}
-            >
-              {CARD_RARITIES.map((r) => (
-                <option key={r} value={r}>
-                  {CARD_RARITY_LABELS[r]}
-                </option>
-              ))}
-            </Select>
-          </Label>
-          <Label hint="Créature, Objet, Instrument, Lieu…">
-            Type
-            <Input
-              value={fields.type}
-              maxLength={CARD_LIMITS.type}
-              onChange={(e) => set("type", e.target.value)}
-              disabled={variant}
-              required
-            />
-          </Label>
-          <Label hint="Après le tiret (« Grenouilles ») ; ciblée par certains effets.">
-            Famille
-            <Input
-              value={fields.family}
-              maxLength={CARD_LIMITS.family}
-              list="tcg-families"
-              onChange={(e) => set("family", e.target.value)}
-              disabled={variant}
-            />
-          </Label>
-          <Label>
-            Mana
-            <Input
-              type="number"
-              min={CARD_LIMITS.cost.min}
-              max={CARD_LIMITS.cost.max}
-              value={fields.cost}
-              onChange={(e) => set("cost", Number(e.target.value))}
-              disabled={variant}
-            />
-          </Label>
-          <Label>
-            Puissance
-            <Input
-              type="number"
-              min={CARD_LIMITS.power.min}
-              max={CARD_LIMITS.power.max}
-              value={fields.power}
-              onChange={(e) => set("power", Number(e.target.value))}
-              disabled={variant}
-            />
-          </Label>
-        </div>
-        <datalist id="tcg-families">
-          {families.map((f) => (
-            <option key={f} value={f} />
-          ))}
-        </datalist>
-
-        <Label hint={effect?.snap ? `Repris de ${effect.snap} (Marvel Snap).` : undefined}>
-          Effet
-          <Select
-            value={fields.effectKey}
-            onChange={(e) => pickEffect(e.target.value)}
-            disabled={variant}
-          >
-            <option value="">Aucun effet</option>
-            {EFFECT_GROUPS.map((g) => (
-              <optgroup key={g.trigger} label={TRIGGER_LABELS[g.trigger]}>
-                {g.effects.map((e) => (
-                  <option key={e.key} value={e.key}>
-                    {e.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </Select>
-        </Label>
-        {effect && effect.params.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {effect.params.map((p) => (
-              <Label key={p.name}>
-                {p.label}
-                {p.kind === "int" ? (
-                  <Input
-                    type="number"
-                    min={p.min}
-                    max={p.max}
-                    value={Number(fields.effectParams[p.name] ?? p.default)}
-                    onChange={(e) =>
-                      set("effectParams", {
-                        ...fields.effectParams,
-                        [p.name]: Number(e.target.value),
-                      })
-                    }
-                    disabled={variant}
-                  />
-                ) : (
-                  <Input
-                    value={String(fields.effectParams[p.name] ?? "")}
-                    list={p.kind === "family" ? "tcg-families" : undefined}
-                    onChange={(e) =>
-                      set("effectParams", { ...fields.effectParams, [p.name]: e.target.value })
-                    }
-                    disabled={variant}
-                    required
-                  />
-                )}
-              </Label>
-            ))}
-          </div>
-        )}
-        <Label
-          hint={
-            customText
-              ? "Texte réécrit à la main : il ne suit plus l'effet."
-              : "Proposé à partir de l'effet ; tu peux le réécrire."
-          }
+      <div className="flex flex-col gap-4">
+        {header}
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
         >
-          Texte de l&apos;effet
-          <Textarea
-            value={shownText}
-            maxLength={CARD_LIMITS.effectText}
-            onChange={(e) => {
-              setCustomText(true);
-              set("effectText", e.target.value);
-            }}
-            disabled={variant}
-          />
-        </Label>
-        {customText && !variant && (
-          <button
-            type="button"
-            className="text-accent self-start text-sm underline-offset-4 hover:underline"
-            onClick={() => setCustomText(false)}
-          >
-            Reprendre le texte proposé
-          </button>
-        )}
-        <Label hint="En italique sous l'effet.">
-          Description
-          <Textarea
-            value={fields.flavor}
-            maxLength={CARD_LIMITS.flavor}
-            onChange={(e) => set("flavor", e.target.value)}
-          />
-        </Label>
-
-        {fromIdea?.hasCards && (
-          <label className="text-text flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={confirmDuplicate}
-              onChange={(e) => setConfirmDuplicate(e.target.checked)}
-            />
-            Créer quand même une autre carte pour cette idée
-          </label>
-        )}
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={pending}>
-            {card ? "Enregistrer" : "Créer la carte"}
-          </Button>
-          {state.status !== "idle" && (
-            <p
-              role="status"
-              className={state.status === "error" ? "text-danger text-sm" : "text-muted text-sm"}
-            >
-              {state.message}
+          {variant && (
+            <p className="text-muted text-sm">
+              Variante full art : le mana, la puissance, le type et l&apos;effet viennent de sa
+              carte de base et se modifient sur elle.
             </p>
           )}
-        </div>
-      </form>
+          {!card && (
+            <Label>
+              Set
+              <Select value={setId} onChange={(e) => setSetId(e.target.value)}>
+                <option value="">Réserve (hors set)</option>
+                {sets.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name}
+                  </option>
+                ))}
+              </Select>
+            </Label>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Label>
+              Nom
+              <Input
+                value={fields.name}
+                maxLength={CARD_LIMITS.name}
+                onChange={(e) => set("name", e.target.value)}
+                required
+              />
+            </Label>
+            <Label>
+              Rareté
+              <Select
+                value={fields.rarity}
+                onChange={(e) => set("rarity", e.target.value as Fields["rarity"])}
+              >
+                {CARD_RARITIES.map((r) => (
+                  <option key={r} value={r}>
+                    {CARD_RARITY_LABELS[r]}
+                  </option>
+                ))}
+              </Select>
+            </Label>
+            <Label hint="Créature, Objet, Instrument, Lieu…">
+              Type
+              <Input
+                value={fields.type}
+                maxLength={CARD_LIMITS.type}
+                onChange={(e) => set("type", e.target.value)}
+                disabled={variant}
+                required
+              />
+            </Label>
+            <Label hint="Après le tiret (« Grenouilles ») ; ciblée par certains effets.">
+              Famille
+              <Input
+                value={fields.family}
+                maxLength={CARD_LIMITS.family}
+                list="tcg-families"
+                onChange={(e) => set("family", e.target.value)}
+                disabled={variant}
+              />
+            </Label>
+            <Label>
+              Mana
+              <Input
+                type="number"
+                min={CARD_LIMITS.cost.min}
+                max={CARD_LIMITS.cost.max}
+                value={fields.cost}
+                onChange={(e) => set("cost", Number(e.target.value))}
+                disabled={variant}
+              />
+            </Label>
+            <Label>
+              Puissance
+              <Input
+                type="number"
+                min={CARD_LIMITS.power.min}
+                max={CARD_LIMITS.power.max}
+                value={fields.power}
+                onChange={(e) => set("power", Number(e.target.value))}
+                disabled={variant}
+              />
+            </Label>
+          </div>
+          <datalist id="tcg-families">
+            {families.map((f) => (
+              <option key={f} value={f} />
+            ))}
+          </datalist>
 
-      {/* La carte et ses réglages, puis les effets visuels à sa droite (en dessous sur mobile). */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <Label hint={effect?.snap ? `Repris de ${effect.snap} (Marvel Snap).` : undefined}>
+            Effet
+            <Select
+              value={fields.effectKey}
+              onChange={(e) => pickEffect(e.target.value)}
+              disabled={variant}
+            >
+              <option value="">Aucun effet</option>
+              {EFFECT_GROUPS.map((g) => (
+                <optgroup key={g.trigger} label={TRIGGER_LABELS[g.trigger]}>
+                  {g.effects.map((e) => (
+                    <option key={e.key} value={e.key}>
+                      {e.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </Select>
+          </Label>
+          {effect && effect.params.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {effect.params.map((p) => (
+                <Label key={p.name}>
+                  {p.label}
+                  {p.kind === "int" ? (
+                    <Input
+                      type="number"
+                      min={p.min}
+                      max={p.max}
+                      value={Number(fields.effectParams[p.name] ?? p.default)}
+                      onChange={(e) =>
+                        set("effectParams", {
+                          ...fields.effectParams,
+                          [p.name]: Number(e.target.value),
+                        })
+                      }
+                      disabled={variant}
+                    />
+                  ) : (
+                    <Input
+                      value={String(fields.effectParams[p.name] ?? "")}
+                      list={p.kind === "family" ? "tcg-families" : undefined}
+                      onChange={(e) =>
+                        set("effectParams", { ...fields.effectParams, [p.name]: e.target.value })
+                      }
+                      disabled={variant}
+                      required
+                    />
+                  )}
+                </Label>
+              ))}
+            </div>
+          )}
+          <Label
+            hint={
+              customText
+                ? "Texte réécrit à la main : il ne suit plus l'effet."
+                : "Proposé à partir de l'effet ; tu peux le réécrire."
+            }
+          >
+            Texte de l&apos;effet
+            <Textarea
+              value={shownText}
+              maxLength={CARD_LIMITS.effectText}
+              onChange={(e) => {
+                setCustomText(true);
+                set("effectText", e.target.value);
+              }}
+              disabled={variant}
+            />
+          </Label>
+          {customText && !variant && (
+            <button
+              type="button"
+              className="text-accent self-start text-sm underline-offset-4 hover:underline"
+              onClick={() => setCustomText(false)}
+            >
+              Reprendre le texte proposé
+            </button>
+          )}
+          <Label hint="En italique sous l'effet.">
+            Description
+            <Textarea
+              value={fields.flavor}
+              maxLength={CARD_LIMITS.flavor}
+              onChange={(e) => set("flavor", e.target.value)}
+            />
+          </Label>
+
+          {fromIdea?.hasCards && (
+            <label className="text-text flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={confirmDuplicate}
+                onChange={(e) => setConfirmDuplicate(e.target.checked)}
+              />
+              Créer quand même une autre carte pour cette idée
+            </label>
+          )}
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={pending}>
+              {card ? "Enregistrer" : "Créer la carte"}
+            </Button>
+            {state.status !== "idle" && (
+              <p
+                role="status"
+                className={state.status === "error" ? "text-danger text-sm" : "text-muted text-sm"}
+              >
+                {state.message}
+              </p>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* La carte et ses réglages, puis les effets visuels (deux colonnes) : à sa droite sur grand
+          écran, en dessous sinon. */}
+      <div className="flex flex-col gap-6 2xl:flex-row 2xl:items-start">
         <div className="flex flex-col items-center gap-3">
           <GameCardDefs />
           <CardFlip button>
@@ -573,7 +580,7 @@ export function CardEditor({
             </div>
           )}
         </div>
-        <fieldset className="flex w-full flex-col gap-1.5 sm:w-52">
+        <fieldset className="flex w-full flex-col gap-1.5 lg:w-[300px] 2xl:w-80">
           <legend className="text-text mb-1 text-sm font-medium">Effets visuels</legend>
           <p className="text-muted text-xs">
             Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
@@ -582,13 +589,17 @@ export function CardEditor({
           {visualEffects.length === 0 && (
             <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
           )}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-1">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
             {visualEffects.map((v) => {
               const rank = fields.visualEffectKeys.indexOf(v.key);
               return (
-                <label key={v.key} className="text-text flex items-center gap-2 text-sm">
+                <label
+                  key={v.key}
+                  className="text-text flex items-start gap-2 text-sm leading-tight"
+                >
                   <input
                     type="checkbox"
+                    className="mt-0.5 shrink-0"
                     checked={rank >= 0}
                     onChange={(e) =>
                       set(
