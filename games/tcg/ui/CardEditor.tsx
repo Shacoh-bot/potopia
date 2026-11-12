@@ -2,7 +2,15 @@
 
 import { Button, Input, Label, Select, Textarea } from "@app/ui";
 import { ClipboardPaste } from "lucide-react";
-import { type ReactNode, useActionState, useMemo, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   CARD_LAYOUT_LABELS,
   CARD_LAYOUTS,
@@ -167,6 +175,33 @@ export function CardEditor({
     fullart: frameFor(card ?? {}, "fullart") ?? DEFAULT_FRAME,
   }));
   const [uploadState, setUploadState] = useState<string | null>(null);
+  // Effets visuels en L (dès xl) : autant qu'il en tient à gauche de la carte, sur une colonne,
+  // le reste dessous sur plusieurs colonnes. Le nombre se mesure sur la hauteur de la carte.
+  const cardArea = useRef<HTMLDivElement>(null);
+  const effectsHead = useRef<HTMLDivElement>(null);
+  const [beside, setBeside] = useState(0);
+  useEffect(() => {
+    const area = cardArea.current;
+    const head = effectsHead.current;
+    if (!area || !head) return;
+    const wide = window.matchMedia("(min-width: 1280px)");
+    const measure = () => {
+      if (!wide.matches) return setBeside(0);
+      const row = area.parentElement?.querySelector<HTMLElement>("[data-effect-row]");
+      // hauteur d'une ligne, plus l'écart entre deux lignes (gap-1.5 = 6 px)
+      const rowHeight = (row?.offsetHeight ?? 18) + 6;
+      setBeside(Math.max(0, Math.floor((area.offsetHeight - head.offsetHeight + 6) / rowHeight)));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(area);
+    observer.observe(head);
+    wide.addEventListener("change", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      wide.removeEventListener("change", measure);
+    };
+  }, []);
 
   const variant = !!card?.baseCardId;
   const effect = fields.effectKey ? getEffect(fields.effectKey) : null;
@@ -253,6 +288,39 @@ export function CardEditor({
       setUploadState("Lecture du presse-papiers impossible : fais Ctrl+V sur l'éditeur.");
     }
   }
+
+  /** Une case d'effet visuel (son rang de calque s'il y en a plusieurs). */
+  const effectRow = (v: VisualEffect) => {
+    const rank = fields.visualEffectKeys.indexOf(v.key);
+    return (
+      <label
+        key={v.key}
+        data-effect-row
+        className="text-text flex items-start gap-2 text-sm leading-tight"
+      >
+        <input
+          type="checkbox"
+          className="mt-0.5 shrink-0"
+          checked={rank >= 0}
+          onChange={(e) =>
+            set(
+              "visualEffectKeys",
+              e.target.checked
+                ? [...fields.visualEffectKeys, v.key]
+                : fields.visualEffectKeys.filter((k) => k !== v.key),
+            )
+          }
+        />
+        {v.name}
+        {!VISUAL_EFFECTS[v.key] && (
+          <span className="text-muted text-xs">(rendu pas encore codé)</span>
+        )}
+        {rank >= 0 && fields.visualEffectKeys.length > 1 && (
+          <span className="text-muted text-xs">calque {rank + 1}</span>
+        )}
+      </label>
+    );
+  };
 
   return (
     <div
@@ -483,11 +551,14 @@ export function CardEditor({
         </form>
       </div>
 
-      {/* Disposition « autour » : la carte et ses réglages (cadrage et envoi de l'illustration à
-          sa droite dès 2xl) flottent à droite ; les effets visuels, sur une colonne, se rangent à
-          leur gauche puis continuent dessous (dès xl). Avant, l'un sous l'autre. */}
-      <div className="flow-root">
-        <div className="mb-6 flex flex-col items-center gap-6 xl:float-right xl:ml-6 2xl:flex-row 2xl:items-start">
+      {/* Effets visuels en L autour de la carte (dès xl) : une colonne à gauche de la carte et de
+          ses réglages (cadrage et envoi à sa droite dès 2xl), puis plusieurs colonnes dessous,
+          sur toute la largeur. Avant xl : la carte, puis les effets en grille dessous. */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start xl:gap-x-6 xl:gap-y-1.5">
+        <div
+          ref={cardArea}
+          className="flex flex-col items-center gap-6 xl:col-start-2 xl:row-start-1 2xl:flex-row 2xl:items-start"
+        >
           <div className="flex shrink-0 flex-col items-center gap-3">
             <GameCardDefs />
             <CardFlip button>
@@ -591,58 +662,31 @@ export function CardEditor({
             </div>
           )}
         </div>
-        {/* Un bloc simple (pas de fieldset ni de flex/grid, qui s'écarteraient en entier du
-            flottant) : chaque ligne (flex, donc son propre contexte) se range à côté de la carte
-            tant qu'il y a la place, puis sous elle. */}
         <div
           role="group"
           aria-labelledby="tcg-visual-effects"
           // lg : la colonne s'ajuste à la carte, les effets en prennent la largeur sans l'élargir.
-          className="lg:w-0 lg:min-w-full xl:w-auto xl:min-w-0"
+          className="flex flex-col gap-1.5 lg:w-0 lg:min-w-full xl:col-start-1 xl:row-start-1 xl:w-auto xl:min-w-0"
         >
-          <p id="tcg-visual-effects" className="text-text mb-1 text-sm font-medium">
-            Effets visuels
-          </p>
-          <p className="text-muted mb-1.5 text-xs">
-            Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
-            Nouveaux effets : ajoutés par migration.
-          </p>
-          {visualEffects.length === 0 && (
-            <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
-          )}
-          <div>
-            {visualEffects.map((v) => {
-              const rank = fields.visualEffectKeys.indexOf(v.key);
-              return (
-                <label
-                  key={v.key}
-                  className="text-text mb-1.5 flex items-start gap-2 text-sm leading-tight"
-                >
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 shrink-0"
-                    checked={rank >= 0}
-                    onChange={(e) =>
-                      set(
-                        "visualEffectKeys",
-                        e.target.checked
-                          ? [...fields.visualEffectKeys, v.key]
-                          : fields.visualEffectKeys.filter((k) => k !== v.key),
-                      )
-                    }
-                  />
-                  {v.name}
-                  {!VISUAL_EFFECTS[v.key] && (
-                    <span className="text-muted text-xs">(rendu pas encore codé)</span>
-                  )}
-                  {rank >= 0 && fields.visualEffectKeys.length > 1 && (
-                    <span className="text-muted text-xs">calque {rank + 1}</span>
-                  )}
-                </label>
-              );
-            })}
+          <div ref={effectsHead}>
+            <p id="tcg-visual-effects" className="text-text mb-1 text-sm font-medium">
+              Effets visuels
+            </p>
+            <p className="text-muted text-xs">
+              Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en
+              dessous). Nouveaux effets : ajoutés par migration.
+            </p>
+            {visualEffects.length === 0 && (
+              <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
+            )}
           </div>
+          {visualEffects.slice(0, beside).map(effectRow)}
         </div>
+        {beside < visualEffects.length && (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-4 gap-y-1.5 lg:w-0 lg:min-w-full xl:col-span-2 xl:w-auto xl:min-w-0">
+            {visualEffects.slice(beside).map(effectRow)}
+          </div>
+        )}
       </div>
     </div>
   );

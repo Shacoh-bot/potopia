@@ -896,8 +896,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
   choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
   `/admin/cartes/nouvelle` (`CardEditor` : formulaire, formulaire étroit (24rem au plus dès 1280 px), aperçu en direct avec le cadrage et l'envoi
-  d'illustration à sa droite (dès 1536 px) ; la carte flotte à droite et les cases des effets
-  visuels, sur une colonne, se rangent autour, à sa gauche puis dessous ; choix de l'affichage
+  d'illustration à sa droite (dès 1536 px) ; les cases des effets visuels forment un L autour de la
+  carte (dès 1280 px) : une colonne à sa gauche, autant qu'il en tient sur sa hauteur (mesurée
+  avec un `ResizeObserver`), puis plusieurs colonnes dessous ; choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).
