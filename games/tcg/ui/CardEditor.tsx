@@ -41,8 +41,8 @@ import { pastedImage, toCardWebp } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
-/** Colonnes d'effets visuels : largeur (11rem) et écart (gap-x-3), en px. */
-const EFFECT_COLUMN = 176;
+/** Colonnes d'effets visuels : largeur (12.5rem) et écart (gap-x-3), en px. */
+const EFFECT_COLUMN = 200;
 const EFFECT_GAP = 12;
 
 /** Mise en page de la carte (enregistrée), de l'aperçu et du cadrage qu'on règle. */
@@ -298,7 +298,7 @@ export function CardEditor({
     }
   }
 
-  // Effets sous la carte : en colonnes de la largeur de celle de gauche, remplies de haut en bas.
+  // Effets sous la carte : en colonnes de 12.5rem, remplies de haut en bas.
   // Base : 4 lignes de plus que s'ils occupaient toute la largeur ; puis 2 colonnes de plus, sans
   // dépasser ce qui tient sur la largeur.
   const below = visualEffects.slice(beside);
@@ -570,9 +570,9 @@ export function CardEditor({
 
       {/* Effets visuels en L autour de la carte (dès xl) : une colonne à gauche de la carte et de
           ses réglages (cadrage et envoi à sa droite dès 2xl), puis plusieurs colonnes dessous,
-          sur toute la largeur. La colonne de gauche fait 13rem, collée à la carte ; celles du bas,
-          11rem. Les effets du bas prennent la largeur de la zone sans l'élargir. Avant xl : la carte, puis les effets en grille dessous. */}
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[13rem_auto] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
+          sur toute la largeur. La colonne de gauche fait 15rem, collée à la carte ; celles du bas,
+          12.5rem. Les effets du bas prennent la largeur de la zone sans l'élargir. Avant xl : la carte, puis les effets en grille dessous. */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[15rem_auto] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
         <div
           ref={cardArea}
           className="flex flex-col items-center gap-6 xl:col-start-2 xl:row-start-1 2xl:flex-row 2xl:items-start"
@@ -702,7 +702,7 @@ export function CardEditor({
         </div>
         {below.length > 0 && (
           <div
-            className="grid auto-cols-[11rem] grid-flow-col gap-x-3 gap-y-1.5 overflow-x-auto lg:w-0 lg:min-w-full xl:col-span-2"
+            className="grid auto-cols-[12.5rem] grid-flow-col gap-x-3 gap-y-1.5 overflow-x-auto lg:w-0 lg:min-w-full xl:col-span-2"
             style={{ gridTemplateRows: `repeat(${belowRows}, auto)` }}
           >
             {below.map(effectRow)}
