@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type RefObject,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -98,11 +99,14 @@ const pathOf = (pts: Point[]) =>
 const CW = 300;
 const CH = 420;
 
+/** Un éclair tiré : ses tracés (le tronc d'abord), son point de départ et son point d'impact. */
+type Strike = { paths: string[]; start: Point; end: Point };
+
 /**
  * Un éclair : il part d'un bord de la carte (haut, gauche ou droite), la traverse en zigzag vers
  * l'intérieur ou le bord opposé ; deux ou trois ramifications plus fines partent du tronc.
  */
-function strike(rnd: () => number): string[] {
+function strike(rnd: () => number): Strike {
   const side = rnd();
   const start: Point =
     side < 0.5
@@ -120,7 +124,7 @@ function strike(rnd: () => number): string[] {
     const to: Point = [from[0] + (rnd() - 0.5) * 150, from[1] + 30 + rnd() * 80];
     return pathOf(zigzag(rnd, from, to, 45, 4));
   });
-  return [pathOf(trunk), ...branches];
+  return { paths: [pathOf(trunk), ...branches], start, end };
 }
 
 /** Éclair au repos (caché ; montré fixe au survol avec le mouvement réduit) : toujours le même. */
@@ -134,7 +138,9 @@ const REST_BOLT = strike(seeded(11));
  */
 function Lightning({ still }: EffectProps) {
   const ref = useRef<SVGSVGElement>(null);
-  const [bolt, setBolt] = useState<{ id: number; paths: string[] } | null>(null);
+  const [bolt, setBolt] = useState<({ id: number } & Strike) | null>(null);
+  // Ids des filtres SVG, uniques par carte (sans les « : » de useId).
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     if (still || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -143,7 +149,7 @@ function Lightning({ still }: EffectProps) {
     let id = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const fire = () => {
-      setBolt({ id: ++id, paths: strike(Math.random) });
+      setBolt({ id: ++id, ...strike(Math.random) });
       timer = setTimeout(fire, 1000 + Math.random() * 2500);
     };
     // Le pointeur arrive : premier coup presque tout de suite ; il part : plus de coups (celui en
@@ -167,10 +173,16 @@ function Lightning({ still }: EffectProps) {
 
   // Figée à nouveau (fin du survol d'une carte de planche) : plus d'éclair.
   const shown = still ? null : bolt;
-  const paths = shown?.paths ?? REST_BOLT;
+  const { paths, start, end } = shown ?? REST_BOLT;
+  const bloom = `tcg-bolt-bloom-${uid}`;
+  const glow = `tcg-bolt-glow-${uid}`;
+  const flash = {
+    "--fx": `${(start[0] / CW) * 100}%`,
+    "--fy": `${(start[1] / CH) * 100}%`,
+  } as CSSProperties;
   return (
     <>
-      {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" />}
+      {shown && <div key={`flash-${shown.id}`} className="tcg-vfx-flash" style={flash} />}
       <svg
         ref={ref}
         // Une nouvelle clé à chaque coup relance l'animation.
@@ -179,11 +191,46 @@ function Lightning({ still }: EffectProps) {
         className={shown ? "tcg-vfx-bolt" : "tcg-vfx-bolt tcg-vfx-bolt-rest"}
         viewBox={`0 0 ${CW} ${CH}`}
       >
+        <defs>
+          {/* Bloom : grand flou autour du tronc ; lueur : flou serré autour du cœur. */}
+          <filter id={bloom} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="7" />
+          </filter>
+          <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" />
+          </filter>
+          <radialGradient id={`${bloom}-impact`}>
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="35%" stopColor="#a5f3fc" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        {/* Halo large (violet puis cyan), sous tout le reste. */}
+        <g filter={`url(#${bloom})`} className="tcg-vfx-bolt-bloom">
+          {paths.map((d, i) => (
+            <path key={i} d={d} stroke="#8b5cf6" strokeWidth={i ? 12 : 24} />
+          ))}
+          {paths.map((d, i) => (
+            <path key={`c${i}`} d={d} stroke="#67e8f9" strokeWidth={i ? 5 : 10} />
+          ))}
+        </g>
+        {/* Point d'impact et départ qui brillent. */}
+        <circle
+          cx={end[0]}
+          cy={end[1]}
+          r={30}
+          fill={`url(#${bloom}-impact)`}
+          filter={`url(#${glow})`}
+        />
+        <circle cx={start[0]} cy={start[1]} r={18} fill={`url(#${bloom}-impact)`} opacity={0.7} />
+        {/* Lueur cyan serrée, puis le cœur blanc net. */}
+        <g filter={`url(#${glow})`}>
+          {paths.map((d, i) => (
+            <path key={i} d={d} className="tcg-vfx-bolt-glow" strokeWidth={i ? 3.5 : 6} />
+          ))}
+        </g>
         {paths.map((d, i) => (
-          <g key={i}>
-            <path d={d} className="tcg-vfx-bolt-glow" strokeWidth={i ? 4 : 7} />
-            <path d={d} className="tcg-vfx-bolt-core" strokeWidth={i ? 1 : 2} />
-          </g>
+          <path key={i} d={d} className="tcg-vfx-bolt-core" strokeWidth={i ? 1.1 : 2.2} />
         ))}
       </svg>
     </>

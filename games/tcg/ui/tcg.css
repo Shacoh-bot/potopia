@@ -704,15 +704,24 @@
   opacity: 0.7;
 }
 
-/* eclair : part d'un bord ; tronc et ramifications blancs, halo cyan et violet ; flash sur la carte à chaque coup. */
+/* eclair : part d'un bord ; cœur blanc, lueur cyan, grand halo flou violet et cyan (bloom), point
+   d'impact qui brille ; le tout ajouté à l'image comme de la lumière (screen). Flash sur la carte
+   à chaque coup, depuis le départ de l'éclair. */
 .tcg-vfx-bolt {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  filter: drop-shadow(0 0 4px #67e8f9) drop-shadow(0 0 12px #a855f7);
+  overflow: visible;
+  mix-blend-mode: screen;
   animation: tcg-vfx-bolt 0.55s ease-out both;
+}
+.tcg-vfx-bolt-bloom {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
 }
 .tcg-vfx-bolt-rest {
   opacity: 0;
@@ -725,7 +734,7 @@
   stroke-linejoin: round;
 }
 .tcg-vfx-bolt-glow {
-  stroke: rgb(103 232 249 / 0.55);
+  stroke: rgb(165 243 252 / 0.9);
 }
 .tcg-vfx-bolt-core {
   stroke: #fff;
@@ -755,9 +764,10 @@
   inset: 0;
   border-radius: 22px;
   background: radial-gradient(
-    circle at 50% 30%,
-    rgb(220 245 255 / 0.55),
-    rgb(168 85 247 / 0.15) 70%
+    circle at var(--fx, 50%) var(--fy, 30%),
+    rgb(230 250 255 / 0.6),
+    rgb(103 232 249 / 0.25) 35%,
+    rgb(168 85 247 / 0.12) 75%
   );
   mix-blend-mode: screen;
   pointer-events: none;

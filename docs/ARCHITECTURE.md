@@ -959,7 +959,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   est sur la carte (`data-active` de `Tilt`, suivi par un `MutationObserver`) ; un éclair en
   zigzag tiré au hasard en JS part d'un bord de la carte (haut, gauche ou droite) tout de suite,
   puis toutes les 1 à 3,5 s, la traverse avec deux ou trois ramifications, scintille et l'illumine
-  d'un flash, sans sortir de la carte ; sans pointeur, carte figée comprise : aucun éclair ;
+  d'un flash parti de son point de départ ; rendu en couches SVG : grand halo flou violet et
+  cyan (bloom, `feGaussianBlur`), lueur cyan, cœur blanc net et point d'impact qui brille,
+  fusionnés en `screen`, sans sortir de la carte ; sans pointeur, carte figée comprise : aucun éclair ;
   mouvement réduit : un éclair fixe au survol). Repris des anciennes propositions de
   design, avec leurs styles de `tcg.css` tels quels (migration
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
