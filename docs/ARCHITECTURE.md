@@ -899,8 +899,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   d'illustration à sa droite (dès 1536 px) ; les cases des effets visuels forment un L autour de la
   carte (dès 1280 px) : une colonne à sa gauche, autant qu'il en tient sur sa hauteur (mesurée
   avec un `ResizeObserver`), puis, dessous, des colonnes de
-  même largeur remplies de haut en bas, avec 4 lignes de plus que si elles occupaient toute la
-  largeur ; choix de l'affichage
+  même largeur remplies de haut en bas (4 lignes de plus que si elles occupaient toute la
+  largeur, puis 2 colonnes de plus, dans la limite de la largeur) ; choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).

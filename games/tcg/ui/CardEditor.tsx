@@ -298,10 +298,13 @@ export function CardEditor({
     }
   }
 
-  // Effets sous la carte : en colonnes de la largeur de celle de gauche, remplies de haut en bas,
-  // avec 4 lignes de plus que s'ils occupaient toute la largeur (moins de colonnes, plus serrées).
+  // Effets sous la carte : en colonnes de la largeur de celle de gauche, remplies de haut en bas.
+  // Base : 4 lignes de plus que s'ils occupaient toute la largeur ; puis 2 colonnes de plus, sans
+  // dépasser ce qui tient sur la largeur.
   const below = visualEffects.slice(beside);
-  const belowRows = Math.min(below.length, Math.ceil(below.length / fitColumns) + 4);
+  const baseRows = Math.min(below.length, Math.ceil(below.length / fitColumns) + 4);
+  const belowColumns = Math.min(fitColumns, Math.ceil(below.length / Math.max(1, baseRows)) + 2);
+  const belowRows = Math.ceil(below.length / belowColumns);
 
   /** Une case d'effet visuel (son rang de calque s'il y en a plusieurs). */
   const effectRow = (v: VisualEffect) => {
