@@ -415,7 +415,7 @@ export function CardEditor({
                 required
               />
             </Label>
-            <Label hint="Après le tiret (« Grenouilles ») ; ciblée par certains effets.">
+            <Label>
               Famille
               <Input
                 value={fields.family}
