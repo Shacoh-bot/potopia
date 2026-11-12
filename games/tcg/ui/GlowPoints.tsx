@@ -131,7 +131,7 @@ function Sparks({ place, color, period }: { place: Place; color: string; period:
       }}
     >
       <defs>
-        <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
+        <filter id={glow} filterUnits="userSpaceOnUse" x={-1.2} y={-1.2} width={2.4} height={2.4}>
           <feGaussianBlur stdDeviation="0.05" />
         </filter>
       </defs>
@@ -203,8 +203,11 @@ function Rays({ place, color, speed }: { place: Place; color: string; speed: num
 }
 
 /**
- * Traits lumineux : un même SVG à la taille de la fenêtre ; chaque trait a un grand halo flou
- * (bloom), une lueur de sa couleur et un cœur blanc, plus une impulsion qui le parcourt.
+ * Traits lumineux : un même SVG à la taille de la fenêtre. Chaque trait est un bloom en quatre
+ * couches, proportionnées à son épaisseur : grand halo très flou, halo moyen, lueur serrée de sa
+ * couleur, cœur blanc ; plus une impulsion qui le parcourt. Les filtres couvrent toute la fenêtre
+ * (`userSpaceOnUse`) : calés sur le trait, ils seraient rognés à sa hauteur (nulle s'il est
+ * horizontal) et le flou disparaîtrait.
  */
 function Lines({
   lines,
@@ -215,44 +218,61 @@ function Lines({
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   if (lines.length === 0) return null;
-  const bloom = `tcg-line-bloom-${uid}`;
-  const glow = `tcg-line-glow-${uid}`;
+  const region = {
+    filterUnits: "userSpaceOnUse" as const,
+    x: -box.width,
+    y: -box.height,
+    width: box.width * 3,
+    height: box.height * 3,
+  };
   return (
     <svg className="tcg-lines" viewBox={`0 0 ${box.width} ${box.height}`}>
-      <defs>
-        <filter id={bloom} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="5" />
-        </filter>
-        <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.5" />
-        </filter>
-      </defs>
       {lines.map(({ a, b, color, period }, i) => {
         const x1 = (a.left / 100) * box.width;
         const y1 = (a.top / 100) * box.height;
         const x2 = (b.left / 100) * box.width;
         const y2 = (b.top / 100) * box.height;
-        const t = Math.max(1, a.radius * 0.6);
+        // Épaisseur du cœur lumineux, d'après la taille réglée (en % de la largeur de l'image).
+        const t = Math.max(1, a.radius * 0.5);
         const len = Math.hypot(x2 - x1, y2 - y1) || 1;
         const line = { x1, y1, x2, y2, strokeLinecap: "round" as const };
+        const id = (name: string) => `tcg-line-${name}-${uid}-${i}`;
         return (
           <g key={i}>
+            <defs>
+              <filter id={id("wide")} {...region}>
+                <feGaussianBlur stdDeviation={t * 3.5} />
+              </filter>
+              <filter id={id("mid")} {...region}>
+                <feGaussianBlur stdDeviation={t * 1.3} />
+              </filter>
+              <filter id={id("glow")} {...region}>
+                <feGaussianBlur stdDeviation={t * 0.45} />
+              </filter>
+            </defs>
             <line
               {...line}
               stroke={color}
-              strokeWidth={t * 4}
-              opacity={0.6}
-              filter={`url(#${bloom})`}
+              strokeWidth={t * 7}
+              opacity={0.55}
+              filter={`url(#${id("wide")})`}
             />
-            <line {...line} stroke={color} strokeWidth={t * 1.6} filter={`url(#${glow})`} />
-            <line {...line} stroke="#fff" strokeWidth={Math.max(0.6, t * 0.5)} />
+            <line
+              {...line}
+              stroke={color}
+              strokeWidth={t * 3.5}
+              opacity={0.85}
+              filter={`url(#${id("mid")})`}
+            />
+            <line {...line} stroke={color} strokeWidth={t * 1.8} filter={`url(#${id("glow")})`} />
+            <line {...line} stroke="#fff" strokeWidth={t * 0.7} />
             {period && (
               <line
                 {...line}
                 className="tcg-line-pulse tcg-lt-anim"
                 stroke="#fff"
-                strokeWidth={t * 1.4}
-                filter={`url(#${glow})`}
+                strokeWidth={t * 2}
+                filter={`url(#${id("glow")})`}
                 strokeDasharray={`${len * 0.14} ${len * 2}`}
                 style={
                   {
@@ -272,7 +292,7 @@ function Lines({
 /**
  * Lumières d'une carte, sur son illustration (`box` : taille de la fenêtre en px de la carte),
  * accrochées à l'image : elles suivent le cadrage et le zoom. Points lumineux (bloom qui
- * clignote), étincelles, rayons et traits ; ajoutés comme de la lumière (screen). Ils ne bougent
+ * clignote), arcs électriques, rayons et traits ; ajoutés comme de la lumière (screen). Ils ne bougent
  * que sous le pointeur (tcg.css) ; sinon ils restent visibles, au calme.
  */
 export function GlowPoints({

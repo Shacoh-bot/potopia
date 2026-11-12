@@ -1044,13 +1044,15 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
 - Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
-  point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), étincelles
-  (arcs électriques en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
+  point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), arc électrique
+  (`sparks` : arcs en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
   taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
   flous, deux couches qui tournent en sens contraire et une lueur au centre ; taille : longueur,
   vitesse : rotation) et trait
-  lumineux (entre deux poignées, `x2`/`y2` ; bloom en SVG, taille : épaisseur, vitesse : une
-  impulsion qui le parcourt). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
+  lumineux (entre deux poignées, `x2`/`y2` ; bloom SVG en quatre couches, grand halo, halo
+  moyen, lueur, cœur blanc, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
+  flou d'un trait horizontal ne soit pas rogné ; taille : épaisseur, vitesse : une impulsion
+  qui le parcourt). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
   Le point lumineux a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
   couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :

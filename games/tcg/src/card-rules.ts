@@ -84,13 +84,13 @@ export type GlowKind = (typeof GLOW_KINDS)[number];
 /** Noms affichés : le type, puis ce que règlent sa taille et sa vitesse. */
 export const GLOW_KIND_LABELS: Record<GlowKind, { name: string; size: string; speed: string }> = {
   glow: { name: "Point lumineux", size: "Taille", speed: "Clignotement" },
-  sparks: { name: "Étincelles", size: "Portée", speed: "Débit" },
+  sparks: { name: "Arc électrique", size: "Portée", speed: "Débit" },
   rays: { name: "Rayons", size: "Longueur", speed: "Rotation" },
   line: { name: "Trait lumineux", size: "Épaisseur", speed: "Pulsation" },
 };
 
 /**
- * Lumière posée sur l'illustration (des yeux qui brillent, une lame qui étincelle…) : son type
+ * Lumière posée sur l'illustration (des yeux qui brillent, une lame électrifiée…) : son type
  * (absent : point lumineux), sa position en % de l'image (accrochée à elle, elle suit le cadrage
  * et le zoom), pour un trait sa seconde extrémité (`x2`, `y2`), sa taille en % de la largeur de
  * l'image, sa couleur (#rrggbb) et sa vitesse (0 : immobile, 10 : le plus rapide).

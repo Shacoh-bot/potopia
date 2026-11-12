@@ -594,7 +594,7 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       l'image, posés dans la fiche ; migration `tcg_card_glow_points` (ajout d'une colonne).
 - [x] Effets d'ambiance : braises, caustiques, rayons de lumière, pétales, feuilles d'automne,
       ombres possédées ; migration `tcg_visual_effects_ambiances` (ajout seul).
-- [x] Lumières à placer : étincelles, rayons depuis un point et trait lumineux, en plus des
+- [x] Lumières à placer : arc électrique, rayons depuis un point et trait lumineux, en plus des
       points lumineux (même colonne `glow_points`, champ `kind`).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
