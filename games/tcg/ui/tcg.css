@@ -922,38 +922,6 @@
   }
 }
 
-/* onde : anneau qui grandit depuis le centre et s'efface ; figé, un anneau à mi-course. */
-.tcg-vfx-wave {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 60px;
-  height: 60px;
-  margin: -30px 0 0 -30px;
-  border-radius: 50%;
-  border: 2px solid rgb(165 243 252 / 0.9);
-  box-shadow:
-    0 0 12px #67e8f9,
-    inset 0 0 12px #67e8f9;
-  transform: scale(2.4);
-  opacity: 0.35;
-  animation: tcg-vfx-wave 3s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
-}
-@keyframes tcg-vfx-wave {
-  0% {
-    transform: scale(0.2);
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  60%,
-  100% {
-    transform: scale(6);
-    opacity: 0;
-  }
-}
-
 /* mirage : voile chaud léger par-dessus l'illustration qui ondule. */
 .tcg-vfx-haze {
   position: absolute;
@@ -1033,7 +1001,6 @@
 @media (prefers-reduced-motion: reduce) {
   .tcg-vfx-rain,
   .tcg-vfx-mote,
-  .tcg-vfx-wave,
   .tcg-vfx-frost-c,
   .tcg-vfx-mist {
     animation: none;

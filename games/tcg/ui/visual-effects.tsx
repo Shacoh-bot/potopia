@@ -37,7 +37,7 @@ import { watchStillHover } from "./still-hover";
  * l'arrêt. La carte survolée les reprend (CSS, et `still` passé à faux aux effets JS).
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
- * (holo classique, éclat, liserés, prisme, halo, néon, torches, aurore : classes `tcg-…` de
+ * (holo classique, éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
  * tcg.css) et les styles d'illustration « Snap » (`ExtraArt` de snap-styles.tsx).
  */
 
@@ -236,22 +236,6 @@ const Neon = () => (
         "inset 0 0 0 1.5px #ffd1e6, inset 0 0 10px #ff2d7a, 0 0 0 1px #ff2d7a, 0 0 12px #ff2d7a",
     }}
   />
-);
-
-/** Torches : deux lueurs orange qui vacillent de chaque côté, en haut de la carte. */
-const torch: CSSProperties = {
-  position: "absolute",
-  top: 30,
-  width: 90,
-  height: 90,
-  borderRadius: "50%",
-  background: "radial-gradient(circle, rgb(255 170 60 / 0.55), transparent 70%)",
-};
-const Torches = () => (
-  <>
-    <div className="tcg-torch" style={{ ...torch, left: -10 }} />
-    <div className="tcg-torch" style={{ ...torch, right: -10, animationDelay: "0.7s" }} />
-  </>
 );
 
 /** Aurore cosmique : aurore violette et cyan qui ondule, étoiles qui dérivent (dans la carte). */
@@ -477,14 +461,6 @@ const Motes = () => (
   </>
 );
 
-/** Onde de choc : un anneau cyan part du centre de l'illustration toutes les 3 s, suivi d'un écho. */
-const Shockwave = () => (
-  <>
-    <div className="tcg-vfx-wave" />
-    <div className="tcg-vfx-wave" style={{ animationDelay: "0.35s" }} />
-  </>
-);
-
 /**
  * Distorsion de chaleur : l'illustration ondule comme un mirage (filtre SVG de turbulence dont la
  * fréquence varie en boucle). Carte figée ou mouvement réduit : ondulation fixe, plus légère.
@@ -586,22 +562,17 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   halo: { render: Breathe },
   holoclassique: { render: HoloClassic },
   neon: { render: Neon },
-  torches: { render: Torches },
   aurore: { render: Aurora },
   lenticulaire: { render: Lenticular },
   glitch: { render: snapStyle("glitch") },
   or: { render: snapStyle("gold") },
-  popart: { render: snapStyle("popart") },
   aquarelle: { render: Watercolor },
-  croquis: { render: snapStyle("sketch") },
   cosmos: { render: Cosmic },
-  vitrail: { render: snapStyle("stained") },
   parallaxe: { render: Parallax },
   lampe: { render: Flashlight },
   metal: { render: BrushedMetal },
   donnees: { render: DataRain },
   particules: { render: Motes },
-  onde: { render: Shockwave },
   mirage: { render: HeatHaze },
   givre: { render: Frost },
   brume: { render: Mist },

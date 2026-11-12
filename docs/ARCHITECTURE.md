@@ -968,13 +968,13 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   qui respire », `tcg-breathe` : lueur cyan intérieure), `holoclassique` (« Holo classique »,
   `tcg-holo` atténué par `tcg-vfx-holoclassique` : fondu `soft-light`, plus transparent, pour ne
   pas éclaircir la carte), `neon` (« Néon qui grésille », tube magenta le long du cadre, `tcg-flicker`),
-  `torches` (« Torches », deux lueurs orange qui vacillent en haut, `tcg-torch`), `aurore`
+  `aurore`
   (« Aurore cosmique », `tcg-aurora` et `tcg-stars` dans la carte, place `card`) ; illustration
   redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
   l'illustration aux couleurs inversées quand la carte penche à droite, toute seule sans
   pointeur ; une vraie seconde image demanderait une colonne de plus) et les styles
   d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch`,
-  `or` (« Or massif »), `popart`, `croquis`, `vitrail`, plus `aquarelle` et `cosmos` (« Ciel
+  `or` (« Or massif »), plus `aquarelle` et `cosmos` (« Ciel
   cosmique »), refaits dans `visual-effects.tsx` (`Watercolor`, `Cosmic`) avec des marges et un
   fondu plus petits, réglés selon la mise en page (`full`), pour que l'illustration en garde la
   plus grande part. Effets d'ambiance (migration `tcg_visual_effects_ambiance`, classes
@@ -984,13 +984,16 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   pointeur, pénombre légère au repos), `metal` (« Métal brossé » : stries fines et reflet net
   qui suit le pointeur), `donnees` (« Pluie de données », place `card` : colonnes de caractères
   cyan qui tombent), `particules` (« Particules flottantes », place `card` : lucioles cyan,
-  magenta et blanches qui montent), `onde` (« Onde de choc » : anneau cyan qui part du centre
-  de l'illustration toutes les 3 s), `mirage` (« Distorsion de chaleur », place `image` :
+  magenta et blanches qui montent), `mirage` (« Distorsion de chaleur », place `image` :
   l'illustration ondule par un filtre SVG de turbulence animé en SMIL, figé et plus léger sur
   la planche ou en mouvement réduit), `givre` (« Givre », place `frame` : cristaux tirés une
   fois pour toutes qui poussent depuis les coins et reculent) et `brume` (« Brume », place
   `card` : deux voiles qui dérivent dans le bas de la carte). Positions et rythmes des éléments
   tirés au hasard le sont avec une graine fixe, pour un rendu serveur identique.
+  Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
+  portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde`. Leur rendu est
+  retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
+  anciennes propositions de design.
   **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
 (…)`), son composant dans `VISUAL_EFFECTS` sous la même clé, sa place dans `effect-places.ts`

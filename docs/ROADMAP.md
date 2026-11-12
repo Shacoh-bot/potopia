@@ -584,6 +584,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       miniatures ou en liste (menu « Édition » par ligne). Fiche : cadrage et envoi
       d'illustration à droite de la carte, effets visuels en L autour de la carte (une colonne à gauche, plusieurs dessous) ; déplacement dès le choix dans le menu. Liste des idées : badge « Carte créée » ou « Pas de carte » et bouton
       « Créer la carte ».
+- [x] Retrait de cinq effets visuels (croquis, onde de choc, pop art, torches, vitrail), migration
+      `tcg_visual_effects_retires` (modifie des données : les cartes qui les portaient les perdent).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
