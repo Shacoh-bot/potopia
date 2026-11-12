@@ -4,6 +4,7 @@ import { Button, Input, Label, Select } from "@app/ui";
 import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
+  type ChangeEvent,
   type FormEvent,
   type ReactNode,
   useActionState,
@@ -146,9 +147,24 @@ export function NewSetForm() {
 /** Destination d'un déplacement : la réserve (`id` vide), un set, « trash » ou « delete ». */
 export type MoveTarget = { id: string; label: string };
 
-function TargetSelect({ targets }: { targets: MoveTarget[] }) {
+function TargetSelect({
+  targets,
+  onChange,
+  disabled,
+}: {
+  targets: MoveTarget[];
+  onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+}) {
   return (
-    <Select name="target" required defaultValue="" style={{ width: "auto" }}>
+    <Select
+      name="target"
+      required
+      defaultValue=""
+      style={{ width: "auto" }}
+      onChange={onChange}
+      disabled={disabled}
+    >
       <option value="" disabled>
         Déplacer vers…
       </option>
@@ -252,25 +268,34 @@ export function MoveCardsForm({
 }
 
 /**
- * Déplacement d'une seule carte (page de la carte) vers un set, la réserve ou la corbeille ; à la
- * corbeille, suppression définitive (retour ensuite à la corbeille).
+ * Déplacement d'une seule carte (page de la carte) vers un set, la réserve ou la corbeille, dès
+ * le choix dans le menu ; à la corbeille, suppression définitive (confirmée, puis retour à la
+ * corbeille).
  */
 export function MoveCardForm({ cardId, targets }: { cardId: string; targets: MoveTarget[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(moveCardsAction, {
     status: "idle",
   });
   return (
-    <form
-      action={action}
-      onSubmit={confirmDelete}
-      className="flex flex-wrap items-center gap-2 text-sm"
-    >
+    <form action={action} className="flex flex-wrap items-center gap-2 text-sm">
       <input type="hidden" name="ids" value={cardId} />
       <input type="hidden" name="back" value="on" />
-      <TargetSelect targets={targets} />
-      <Button type="submit" size="sm" variant="secondary" disabled={pending}>
-        Valider
-      </Button>
+      <TargetSelect
+        targets={targets}
+        disabled={pending}
+        // Enregistré dès le choix ; la suppression définitive se confirme d'abord.
+        onChange={(e) => {
+          const select = e.currentTarget;
+          if (
+            select.value === "delete" &&
+            !window.confirm("Supprimer définitivement ? Impossible à annuler.")
+          ) {
+            select.value = "";
+            return;
+          }
+          select.form?.requestSubmit();
+        }}
+      />
       <Status state={state} />
     </form>
   );
