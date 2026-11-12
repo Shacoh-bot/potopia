@@ -570,9 +570,9 @@ export function CardEditor({
 
       {/* Effets visuels en L autour de la carte (dès xl) : une colonne à gauche de la carte et de
           ses réglages (cadrage et envoi à sa droite dès 2xl), puis plusieurs colonnes dessous,
-          sur toute la largeur. Toutes les colonnes font 11rem ; celle de gauche est collée à la
-          carte. Les effets du bas prennent la largeur de la zone sans l'élargir. Avant xl : la carte, puis les effets en grille dessous. */}
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[11rem_auto] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
+          sur toute la largeur. La colonne de gauche fait 13rem, collée à la carte ; celles du bas,
+          11rem. Les effets du bas prennent la largeur de la zone sans l'élargir. Avant xl : la carte, puis les effets en grille dessous. */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[13rem_auto] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
         <div
           ref={cardArea}
           className="flex flex-col items-center gap-6 xl:col-start-2 xl:row-start-1 2xl:flex-row 2xl:items-start"
