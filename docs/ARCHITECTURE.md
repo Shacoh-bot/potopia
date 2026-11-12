@@ -1047,7 +1047,8 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   cœur net blanc teinté, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
   la carte en full art) ; fixe en mouvement réduit ; caché sur la planche, sauf sur la carte
   survolée. Fiche : à droite de la carte, deux onglets, « Image » (cadrage puis envoi)
-  et « Points lumineux » (`GlowPointsEditor`), l'aperçu restant visible ; l'éditeur montre l'image entière ; un clic pose un point, un glisser le déplace, le point
+  et « Points lumineux » (`GlowPointsEditor`), l'aperçu restant visible ; l'éditeur montre l'image entière,
+  zoomable de 1× à 5× (curseur, défilement, centre de la vue gardé) pour viser ; un clic pose un point, un glisser le déplace, le point
   choisi se règle (couleur, taille, clignotement) ou se supprime. Une mise à jour sans
   `glowPoints` (fichier `updates`) les laisse tels quels.
 - Mise en page : les boutons « Normale » / « Full art » sous l'aperçu de l'éditeur choisissent

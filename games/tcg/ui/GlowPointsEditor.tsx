@@ -1,11 +1,14 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { type PointerEvent, useRef, useState } from "react";
+import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
 import { GLOW_LIMITS, type GlowPoint } from "../src/card-rules";
 
 /** Couleur d'un nouveau point : un vert lumineux. */
 const DEFAULT_COLOR = "#7cff6b";
+
+/** Zoom de l'image pour viser : de 1 (image entière) à 5. */
+const ZOOM = { min: 1, max: 5 } as const;
 
 /** Arrondi au dixième de % : assez fin pour viser un œil. */
 const round = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10;
@@ -15,7 +18,9 @@ const round = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10
  * (jusqu'à `GLOW_LIMITS.points`), un glisser le déplace, un clic sur un point le choisit. Le point
  * choisi se règle : couleur, taille du halo (en % de la largeur de l'image), vitesse de
  * clignotement (0 : fixe). Les positions sont en % de l'image : accrochées à elle, elles suivent
- * le cadrage, le zoom et la mise en page sur la carte.
+ * le cadrage, le zoom et la mise en page sur la carte. Pour viser, l'image se zoome (curseur) et se
+ * parcourt aux barres de défilement ; le zoom garde le centre de la vue, les repères gardent leur
+ * taille.
  */
 export function GlowPointsEditor({
   imageUrl,
@@ -29,6 +34,30 @@ export function GlowPointsEditor({
   const [selected, setSelected] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const dragging = useRef<number | null>(null);
+  const view = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState<number>(ZOOM.min);
+  // Centre de la vue (en fraction de l'image) avant un changement de zoom, pour le garder après.
+  const center = useRef<{ x: number; y: number } | null>(null);
+
+  function zoomTo(next: number) {
+    const v = view.current;
+    if (v) {
+      center.current = {
+        x: (v.scrollLeft + v.clientWidth / 2) / v.scrollWidth,
+        y: (v.scrollTop + v.clientHeight / 2) / v.scrollHeight,
+      };
+    }
+    setZoom(next);
+  }
+
+  useLayoutEffect(() => {
+    const v = view.current;
+    const c = center.current;
+    if (!v || !c) return;
+    v.scrollLeft = c.x * v.scrollWidth - v.clientWidth / 2;
+    v.scrollTop = c.y * v.scrollHeight - v.clientHeight / 2;
+    center.current = null;
+  }, [zoom]);
   const current = selected !== null ? points[selected] : undefined;
 
   /** Position du pointeur en % de l'image. */
@@ -50,59 +79,75 @@ export function GlowPointsEditor({
       <p className="text-muted text-sm">
         Points lumineux : clique sur l&apos;image pour en poser un, glisse-le pour le déplacer.
       </p>
-      <div
-        ref={box}
-        className="relative w-full cursor-crosshair touch-none overflow-hidden rounded-md select-none"
-        onPointerDown={(e) => {
-          // Clic sur l'image (pas sur un point) : nouveau point.
-          if (e.target !== e.currentTarget && !(e.target instanceof HTMLImageElement)) return;
-          if (points.length >= GLOW_LIMITS.points) return;
-          const pos = at(e);
-          const next = [
-            ...points,
-            {
-              ...pos,
-              size: GLOW_LIMITS.size.default,
-              color: current?.color ?? DEFAULT_COLOR,
-              speed: 0,
-            },
-          ];
-          onChange(next);
-          setSelected(next.length - 1);
-        }}
-        onPointerMove={(e) => {
-          if (dragging.current !== null) update(dragging.current, at(e));
-        }}
-        onPointerUp={() => {
-          dragging.current = null;
-        }}
-        onPointerCancel={() => {
-          dragging.current = null;
-        }}
-      >
-        <img src={imageUrl} alt="" draggable={false} className="block h-auto w-full" />
-        {points.map((p, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={`Point lumineux ${i + 1}`}
-            aria-pressed={selected === i}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              setSelected(i);
-              dragging.current = i;
-              box.current?.setPointerCapture(e.pointerId);
-            }}
-            className="absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2"
-            style={{
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-              borderColor: selected === i ? "#fff" : p.color,
-              background: `${p.color}88`,
-              boxShadow: `0 0 8px ${p.color}`,
-            }}
-          />
-        ))}
+      <label className="text-muted flex items-center gap-2 text-sm">
+        <span className="w-24 shrink-0">Zoom ×{zoom.toFixed(1)}</span>
+        <input
+          type="range"
+          min={ZOOM.min}
+          max={ZOOM.max}
+          step={0.1}
+          value={zoom}
+          onChange={(e) => zoomTo(Number(e.target.value))}
+          className="min-w-0 flex-1"
+        />
+      </label>
+      {/* Vue de l'image : défile quand elle est zoomée. */}
+      <div ref={view} className="max-h-[360px] w-full overflow-auto rounded-md">
+        <div
+          ref={box}
+          className="relative cursor-crosshair touch-none select-none"
+          style={{ width: `${zoom * 100}%` }}
+          onPointerDown={(e) => {
+            // Clic sur l'image (pas sur un point) : nouveau point.
+            if (e.target !== e.currentTarget && !(e.target instanceof HTMLImageElement)) return;
+            if (points.length >= GLOW_LIMITS.points) return;
+            const pos = at(e);
+            const next = [
+              ...points,
+              {
+                ...pos,
+                size: GLOW_LIMITS.size.default,
+                color: current?.color ?? DEFAULT_COLOR,
+                speed: 0,
+              },
+            ];
+            onChange(next);
+            setSelected(next.length - 1);
+          }}
+          onPointerMove={(e) => {
+            if (dragging.current !== null) update(dragging.current, at(e));
+          }}
+          onPointerUp={() => {
+            dragging.current = null;
+          }}
+          onPointerCancel={() => {
+            dragging.current = null;
+          }}
+        >
+          <img src={imageUrl} alt="" draggable={false} className="block h-auto w-full" />
+          {points.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Point lumineux ${i + 1}`}
+              aria-pressed={selected === i}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setSelected(i);
+                dragging.current = i;
+                box.current?.setPointerCapture(e.pointerId);
+              }}
+              className="absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2"
+              style={{
+                left: `${p.x}%`,
+                top: `${p.y}%`,
+                borderColor: selected === i ? "#fff" : p.color,
+                background: `${p.color}88`,
+                boxShadow: `0 0 8px ${p.color}`,
+              }}
+            />
+          ))}
+        </div>
       </div>
       {points.length >= GLOW_LIMITS.points && (
         <p className="text-muted text-xs">{GLOW_LIMITS.points} points au plus.</p>
