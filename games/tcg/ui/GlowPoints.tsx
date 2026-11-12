@@ -62,83 +62,143 @@ function GlowDot({
   );
 }
 
-/** Étincelles d'une source : direction, portée et rythme, tirés une fois pour toutes. */
-const SPARKS = (() => {
-  let seed = 71;
-  const rnd = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
+/** Tirage pseudo-aléatoire à graine fixe : même rendu au serveur et au navigateur. */
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
   };
-  return Array.from({ length: 14 }, (_, i) => {
-    // Plutôt vers le haut : un éventail de -165° à -15°, quelques-unes partout.
-    const angle = i < 11 ? -165 + rnd() * 150 : rnd() * 360;
-    return { angle, reach: 0.55 + rnd() * 0.45, delay: rnd(), size: 1.5 + rnd() * 2 };
+}
+
+/**
+ * Arcs électriques d'une source d'étincelles, tirés une fois pour toutes : de courts éclairs en
+ * zigzag (coordonnées sur un rayon de 1), chacun avec son moment de flash dans le cycle.
+ */
+const ARCS = (() => {
+  const rnd = seededRandom(71);
+  return Array.from({ length: 9 }, (_, i) => {
+    const angle = (i / 9) * Math.PI * 2 + (rnd() - 0.5) * 0.6;
+    const reach = 0.55 + rnd() * 0.45;
+    const steps = 5;
+    const pts: string[] = ["0 0"];
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
+      // Écart de côté qui diminue vers le bout : l'arc part net du point et se tord.
+      const side = k === steps ? 0 : (rnd() - 0.5) * 0.35 * (1 - t * 0.5);
+      const x = Math.cos(angle) * reach * t - Math.sin(angle) * side;
+      const y = Math.sin(angle) * reach * t + Math.cos(angle) * side;
+      pts.push(`${x.toFixed(3)} ${y.toFixed(3)}`);
+    }
+    // Une petite ramification sur certains arcs.
+    const fork =
+      rnd() < 0.5
+        ? (() => {
+            const from = pts[2] ?? "0 0";
+            const [fx, fy] = from.split(" ").map(Number) as [number, number];
+            const fa = angle + (rnd() < 0.5 ? -0.7 : 0.7);
+            const fl = 0.25 + rnd() * 0.2;
+            return `M${from} L${(fx + Math.cos(fa) * fl * 0.5).toFixed(3)} ${(fy + Math.sin(fa) * fl * 0.5 + 0.05).toFixed(3)} L${(fx + Math.cos(fa) * fl).toFixed(3)} ${(fy + Math.sin(fa) * fl).toFixed(3)}`;
+          })()
+        : "";
+    return { d: `M${pts.join(" L")}${fork ? ` ${fork}` : ""}`, delay: rnd() };
   });
 })();
 
 type Place = { left: number; top: number; radius: number };
 
 /**
- * Source d'étincelles : de petites étincelles jaillissent du point en éventail, filent et
- * s'éteignent. Portée : `radius` ; débit : `period` (durée de vie d'une étincelle).
+ * Étincelles électriques : de courts arcs en zigzag partent du point et crépitent, chacun par
+ * flashs saccadés à son moment (pas de halo rond : seulement les arcs, avec leur lueur). Portée :
+ * `radius` ; débit : `period` (durée d'un cycle de crépitement). Au calme, deux arcs restent
+ * allumés faiblement.
  */
 function Sparks({ place, color, period }: { place: Place; color: string; period: number | null }) {
-  const life = period ?? 1;
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const r = place.radius * 1.6;
+  const cycle = (period ?? 1) * 2;
+  const glow = `tcg-arc-glow-${uid}`;
   return (
-    <div
-      className="tcg-sparks"
-      style={{ left: `${place.left}%`, top: `${place.top}%`, "--glow": color } as CSSProperties}
+    <svg
+      className="tcg-arcs"
+      viewBox="-1.2 -1.2 2.4 2.4"
+      style={{
+        left: `${place.left}%`,
+        top: `${place.top}%`,
+        width: r * 2.4,
+        height: r * 2.4,
+        margin: `${-r * 1.2}px 0 0 ${-r * 1.2}px`,
+      }}
     >
-      <div
-        className="tcg-sparks-core"
-        style={{ "--r": `${place.radius * 0.35}px` } as CSSProperties}
-      />
-      {SPARKS.map((k, i) => {
-        const rad = (k.angle * Math.PI) / 180;
-        const d = place.radius * 1.6 * k.reach;
-        return (
-          <div
-            key={i}
-            className="tcg-spark tcg-lt-anim"
-            data-still={period ? undefined : ""}
-            style={
-              {
-                width: k.size,
-                height: k.size,
-                "--tx": `${Math.cos(rad) * d}px`,
-                // Retombée : les étincelles finissent un peu plus bas que leur élan.
-                "--ty": `${Math.sin(rad) * d + d * 0.35}px`,
-                animationDuration: `${life}s`,
-                animationDelay: `${-k.delay * life}s`,
-              } as CSSProperties
-            }
+      <defs>
+        <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="0.05" />
+        </filter>
+      </defs>
+      {ARCS.map((arc, i) => (
+        <g
+          key={i}
+          className="tcg-arc tcg-lt-anim"
+          data-rest={i < 2 ? "" : undefined}
+          data-still={period ? undefined : ""}
+          style={{ animationDuration: `${cycle}s`, animationDelay: `${-arc.delay * cycle}s` }}
+        >
+          <path
+            d={arc.d}
+            stroke={color}
+            strokeWidth={0.14}
+            filter={`url(#${glow})`}
+            opacity={0.8}
           />
-        );
-      })}
-    </div>
+          <path d={arc.d} stroke="#fff" strokeWidth={0.035} />
+        </g>
+      ))}
+    </svg>
   );
 }
 
-/** Rayons depuis un point : faisceaux doux de sa couleur, qui tournent lentement. */
+/**
+ * Rayons depuis un point : faisceaux de sa couleur au fondu doux (chacun s'estompe sur ses bords),
+ * en deux couches qui tournent en sens contraire, et une lueur douce au centre.
+ */
 function Rays({ place, color, speed }: { place: Place; color: string; speed: number }) {
-  const r = place.radius * 2;
-  return (
+  const r = place.radius * 2.2;
+  // Vitesse 10 : un tour en 6 s ; 1 : en 60 s ; 0 : immobile.
+  const turn = speed > 0 ? `${60 / speed}s` : undefined;
+  const layer = (reverse: boolean, scale: number) => (
     <div
-      className="tcg-rays-pt tcg-lt-anim"
+      className={`tcg-rays-pt tcg-lt-anim${reverse ? "tcg-rays-pt-2" : ""}`}
       style={
         {
           left: `${place.left}%`,
           top: `${place.top}%`,
-          width: r * 2,
-          height: r * 2,
-          margin: `${-r}px 0 0 ${-r}px`,
+          width: r * 2 * scale,
+          height: r * 2 * scale,
+          margin: `${-r * scale}px 0 0 ${-r * scale}px`,
           "--glow": color,
-          // Vitesse 10 : un tour en 6 s ; 1 : en 60 s ; 0 : immobile.
-          animationDuration: speed > 0 ? `${60 / speed}s` : undefined,
-          animationName: speed > 0 ? undefined : "none",
+          "--blur": `${Math.max(3, r * 0.08)}px`,
+          animationDuration: turn,
+          animationName: turn ? undefined : "none",
         } as CSSProperties
       }
     />
+  );
+  return (
+    <>
+      {layer(false, 1)}
+      {layer(true, 1.25)}
+      <div
+        className="tcg-rays-core"
+        style={
+          {
+            left: `${place.left}%`,
+            top: `${place.top}%`,
+            "--glow": color,
+            "--r": `${r * 0.35}px`,
+          } as CSSProperties
+        }
+      />
+    </>
   );
 }
 

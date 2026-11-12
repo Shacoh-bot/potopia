@@ -1045,8 +1045,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
 - Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
   point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), étincelles
-  (jaillissent en éventail d'un point ; taille : portée, vitesse : débit), rayons (faisceaux
-  coniques de sa couleur autour d'un point ; taille : longueur, vitesse : rotation) et trait
+  (arcs électriques en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
+  taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
+  flous, deux couches qui tournent en sens contraire et une lueur au centre ; taille : longueur,
+  vitesse : rotation) et trait
   lumineux (entre deux poignées, `x2`/`y2` ; bloom en SVG, taille : épaisseur, vitesse : une
   impulsion qui le parcourt). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
   Le point lumineux a
