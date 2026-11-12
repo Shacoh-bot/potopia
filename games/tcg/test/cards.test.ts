@@ -13,6 +13,7 @@ import {
   ensureSet,
   frameFor,
   getCard,
+  GLOW_LIMITS,
   importCards,
   listCards,
   listVisualEffects,
@@ -159,7 +160,7 @@ describe("createCard", () => {
     expect(shown.layout).toBe("normal");
   });
 
-  it("garde les points lumineux, bornés, et les laisse quand on ne les envoie pas", async () => {
+  it("garde les lumières (points, étincelles, rayons, traits), bornées, et les laisse quand on ne les envoie pas", async () => {
     const card = await createCard(ADMIN, { ...BASE, setId });
     expect(card.glowPoints).toEqual([]);
     const eyes = [
@@ -183,7 +184,52 @@ describe("createCard", () => {
       ).rejects.toThrow(ZodError);
     }
     await expect(
-      updateCard(ADMIN, card.id, { ...BASE, glowPoints: Array(9).fill(eyes[0]) }),
+      updateCard(ADMIN, card.id, {
+        ...BASE,
+        glowPoints: Array(GLOW_LIMITS.points + 1).fill(eyes[0]),
+      }),
+    ).rejects.toThrow(ZodError);
+
+    // autres lumières : étincelles, rayons, trait (avec sa seconde extrémité)
+    const lights = [
+      { kind: "sparks" as const, x: 10, y: 10, size: 8, color: "#ffaa00", speed: 5 },
+      { kind: "rays" as const, x: 20, y: 20, size: 10, color: "#ffffff", speed: 2 },
+      {
+        kind: "line" as const,
+        x: 30,
+        y: 30,
+        x2: 60,
+        y2: 35,
+        size: 1.5,
+        color: "#67e8f9",
+        speed: 3,
+      },
+    ];
+    expect((await updateCard(ADMIN, card.id, { ...BASE, glowPoints: lights })).glowPoints).toEqual(
+      lights,
+    );
+    await expect(
+      updateCard(ADMIN, card.id, {
+        ...BASE,
+        glowPoints: [{ kind: "line", x: 30, y: 30, size: 1.5, color: "#67e8f9", speed: 3 }],
+      }),
+    ).rejects.toThrow("Trait lumineux : seconde extrémité attendue.");
+    await expect(
+      updateCard(ADMIN, card.id, {
+        ...BASE,
+        glowPoints: [
+          {
+            kind: "laser" as "line",
+            x: 1,
+            y: 1,
+            x2: 2,
+            y2: 2,
+            size: 2,
+            color: "#ffffff",
+            speed: 0,
+          },
+        ],
+      }),
     ).rejects.toThrow(ZodError);
   });
 

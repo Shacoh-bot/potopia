@@ -77,15 +77,40 @@ export function frameFor(
   return layout === "fullart" ? (card.imageFrameFull ?? normal) : normal;
 }
 
+/** Types de lumière à placer sur l'illustration. */
+export const GLOW_KINDS = ["glow", "sparks", "rays", "line"] as const;
+export type GlowKind = (typeof GLOW_KINDS)[number];
+
+/** Noms affichés : le type, puis ce que règlent sa taille et sa vitesse. */
+export const GLOW_KIND_LABELS: Record<GlowKind, { name: string; size: string; speed: string }> = {
+  glow: { name: "Point lumineux", size: "Taille", speed: "Clignotement" },
+  sparks: { name: "Étincelles", size: "Portée", speed: "Débit" },
+  rays: { name: "Rayons", size: "Longueur", speed: "Rotation" },
+  line: { name: "Trait lumineux", size: "Épaisseur", speed: "Pulsation" },
+};
+
 /**
- * Point lumineux posé sur l'illustration (des yeux qui brillent…) : position en % de l'image
- * (accroché à elle, il suit le cadrage et le zoom), taille du halo en % de la largeur de l'image,
- * couleur (#rrggbb) et vitesse de clignotement (0 : fixe, 10 : le plus rapide).
+ * Lumière posée sur l'illustration (des yeux qui brillent, une lame qui étincelle…) : son type
+ * (absent : point lumineux), sa position en % de l'image (accrochée à elle, elle suit le cadrage
+ * et le zoom), pour un trait sa seconde extrémité (`x2`, `y2`), sa taille en % de la largeur de
+ * l'image, sa couleur (#rrggbb) et sa vitesse (0 : immobile, 10 : le plus rapide).
  */
-export type GlowPoint = { x: number; y: number; size: number; color: string; speed: number };
+export type GlowPoint = {
+  kind?: GlowKind;
+  x: number;
+  y: number;
+  x2?: number;
+  y2?: number;
+  size: number;
+  color: string;
+  speed: number;
+};
+
+/** Type d'une lumière (les premiers points n'en ont pas : points lumineux). */
+export const glowKind = (p: Pick<GlowPoint, "kind">): GlowKind => p.kind ?? "glow";
 
 export const GLOW_LIMITS = {
-  points: 8,
+  points: 12,
   size: { min: 1, max: 30, default: 6 },
   speed: { min: 0, max: 10 },
 } as const;

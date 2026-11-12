@@ -9,6 +9,7 @@ import {
   CARD_LIMITS,
   CARD_RARITIES,
   FRAME_ZOOM,
+  GLOW_KINDS,
   GLOW_LIMITS,
   type Card,
   type CardImageType,
@@ -43,8 +44,12 @@ export {
   DEFAULT_FRAME,
   FRAME_ZOOM,
   frameFor,
+  GLOW_KIND_LABELS,
+  GLOW_KINDS,
   GLOW_LIMITS,
+  glowKind,
   glowPeriod,
+  type GlowKind,
   type GlowPoint,
   type ImageFrame,
   type VisualEffect,
@@ -92,16 +97,26 @@ const frameSchema = z.object({
 });
 
 /** Point lumineux (`GlowPoint`). */
-const glowPointSchema = z.object({
-  x: z.coerce.number().min(0).max(100),
-  y: z.coerce.number().min(0).max(100),
-  size: z.coerce
-    .number()
-    .min(GLOW_LIMITS.size.min, "Point lumineux : trop petit.")
-    .max(GLOW_LIMITS.size.max, "Point lumineux : trop grand."),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Point lumineux : couleur #rrggbb attendue."),
-  speed: z.coerce.number().min(GLOW_LIMITS.speed.min).max(GLOW_LIMITS.speed.max),
-});
+const percent = z.coerce.number().min(0).max(100);
+const glowPointSchema = z
+  .object({
+    kind: z.enum(GLOW_KINDS, "Lumière : type inconnu.").optional(),
+    x: percent,
+    y: percent,
+    // Seconde extrémité d'un trait lumineux.
+    x2: percent.optional(),
+    y2: percent.optional(),
+    size: z.coerce
+      .number()
+      .min(GLOW_LIMITS.size.min, "Lumière : trop petite.")
+      .max(GLOW_LIMITS.size.max, "Lumière : trop grande."),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Lumière : couleur #rrggbb attendue."),
+    speed: z.coerce.number().min(GLOW_LIMITS.speed.min).max(GLOW_LIMITS.speed.max),
+  })
+  .refine(
+    (p) => p.kind !== "line" || (p.x2 !== undefined && p.y2 !== undefined),
+    "Trait lumineux : seconde extrémité attendue.",
+  );
 
 const cardFields = z.object({
   name: z
@@ -132,8 +147,8 @@ const cardFields = z.object({
   imageFrameFull: frameSchema.nullish(),
   // Points lumineux. Absent : ceux enregistrés ne changent pas ; liste vide : aucun.
   glowPoints: z
-    .array(glowPointSchema, "Points lumineux : liste attendue.")
-    .max(GLOW_LIMITS.points, `Points lumineux : ${GLOW_LIMITS.points} au plus.`)
+    .array(glowPointSchema, "Lumières : liste attendue.")
+    .max(GLOW_LIMITS.points, `Lumières : ${GLOW_LIMITS.points} au plus.`)
     .optional(),
   // Mise en page affichée. Absent : celle enregistrée ne change pas ; à la création, normale (full
   // art pour une variante).

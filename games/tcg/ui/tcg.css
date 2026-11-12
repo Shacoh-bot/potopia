@@ -1112,6 +1112,96 @@
   animation: none;
   opacity: 0.15;
 }
+/* Étincelles : un petit cœur lumineux et des étincelles qui jaillissent en éventail (--tx, --ty),
+   filent et s'éteignent. Au calme (sans pointeur) : figées à mi-course, à demi éteintes. */
+.tcg-sparks {
+  position: absolute;
+  width: 0;
+  height: 0;
+  mix-blend-mode: screen;
+}
+.tcg-sparks-core {
+  position: absolute;
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  margin: calc(var(--r) * -1) 0 0 calc(var(--r) * -1);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--glow) 35%, transparent 72%);
+  filter: blur(1px);
+}
+.tcg-spark {
+  position: absolute;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--glow) 55%, #fff);
+  box-shadow: 0 0 4px 1px var(--glow);
+  opacity: 0.5;
+  transform: translate(calc(var(--tx) / 2), calc(var(--ty) / 2));
+  animation: tcg-spark ease-out infinite;
+}
+@keyframes tcg-spark {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Rayons depuis un point : faisceaux coniques de sa couleur, estompés vers l'extérieur, qui
+   tournent. */
+.tcg-rays-pt {
+  position: absolute;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    color-mix(in srgb, var(--glow) 55%, transparent) 0deg 5deg,
+    transparent 5deg 22deg
+  );
+  -webkit-mask-image: radial-gradient(circle, #000 0%, rgb(0 0 0 / 0.6) 25%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 0%, rgb(0 0 0 / 0.6) 25%, transparent 70%);
+  filter: blur(2px);
+  mix-blend-mode: screen;
+  animation: tcg-rays-turn 20s linear infinite;
+}
+@keyframes tcg-rays-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Traits lumineux : SVG à la taille de la fenêtre ; une impulsion blanche parcourt le trait. */
+.tcg-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  mix-blend-mode: screen;
+}
+.tcg-line-pulse {
+  animation: tcg-line-pulse linear infinite;
+}
+@keyframes tcg-line-pulse {
+  from {
+    stroke-dashoffset: calc(var(--len) * 1);
+  }
+  to {
+    stroke-dashoffset: calc(var(--len) * -1.14);
+  }
+}
+
+/* Lumières à placer : elles ne bougent que sous le pointeur ; sinon, au calme. */
+.tcg-tilt:not([data-active]) .tcg-lt-anim {
+  animation: none;
+}
+.tcg-tilt:not([data-active]) .tcg-line-pulse {
+  opacity: 0;
+}
+.tcg-spark[data-still] {
+  animation: none;
+}
+
 @keyframes tcg-glow-blink {
   0%,
   100% {
@@ -1316,6 +1406,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tcg-lt-anim,
   .tcg-vfx-ember,
   .tcg-vfx-caustic,
   .tcg-vfx-bubble,

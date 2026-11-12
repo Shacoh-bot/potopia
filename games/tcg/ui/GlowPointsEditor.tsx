@@ -2,10 +2,25 @@
 
 import { Trash2 } from "lucide-react";
 import { type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { GLOW_LIMITS, type GlowPoint } from "../src/card-rules";
+import {
+  GLOW_KIND_LABELS,
+  GLOW_KINDS,
+  GLOW_LIMITS,
+  type GlowKind,
+  glowKind,
+  type GlowPoint,
+} from "../src/card-rules";
 
 /** Couleur d'un nouveau point : un vert lumineux. */
 const DEFAULT_COLOR = "#7cff6b";
+
+/** Réglages d'une nouvelle lumière, selon son type. */
+const NEW_LIGHT: Record<GlowKind, { size: number; speed: number }> = {
+  glow: { size: GLOW_LIMITS.size.default, speed: 0 },
+  sparks: { size: 8, speed: 5 },
+  rays: { size: 10, speed: 2 },
+  line: { size: 1.5, speed: 3 },
+};
 
 /** Zoom de l'image pour viser : de 1 (image entière) à 5. */
 const ZOOM = { min: 1, max: 5 } as const;
@@ -14,10 +29,11 @@ const ZOOM = { min: 1, max: 5 } as const;
 const round = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10;
 
 /**
- * Pose des points lumineux sur l'image entière (non rognée) : un clic sur l'image ajoute un point
- * (jusqu'à `GLOW_LIMITS.points`), un glisser le déplace, un clic sur un point le choisit. Le point
- * choisi se règle : couleur, taille du halo (en % de la largeur de l'image), vitesse de
- * clignotement (0 : fixe). Les positions sont en % de l'image : accrochées à elle, elles suivent
+ * Pose des lumières sur l'image entière (non rognée) : on choisit le type (point lumineux,
+ * étincelles, rayons, trait), un clic sur l'image en pose une (jusqu'à `GLOW_LIMITS.points`), un
+ * glisser déplace sa poignée (un trait en a deux, une par extrémité), un clic la choisit. La
+ * lumière choisie se règle : couleur, taille (en % de la largeur de l'image), vitesse (0 :
+ * immobile). Les positions sont en % de l'image : accrochées à elle, elles suivent
  * le cadrage, le zoom et la mise en page sur la carte. Pour viser, l'image se zoome (curseur, ou
  * molette autour du pointeur) et se parcourt en la glissant (ou aux barres de défilement) ; un clic
  * sans glisser pose un point. Les repères gardent leur taille.
@@ -33,7 +49,9 @@ export function GlowPointsEditor({
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
-  const dragging = useRef<number | null>(null);
+  // Poignée qu'on glisse : la lumière et l'extrémité (2 : la seconde d'un trait).
+  const dragging = useRef<{ i: number; end: 1 | 2 } | null>(null);
+  const [kind, setKind] = useState<GlowKind>("glow");
   const view = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<number>(ZOOM.min);
   const zoomNow = useRef(zoom);
@@ -106,9 +124,31 @@ export function GlowPointsEditor({
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="text-muted text-sm">
-        Points lumineux : clique sur l&apos;image pour en poser un, glisse un point pour le
-        déplacer. Molette : zoom ; glisser l&apos;image : se déplacer.
+        Choisis un type, puis clique sur l&apos;image pour poser une lumière ; glisse une poignée
+        pour la déplacer. Molette : zoom ; glisser l&apos;image : se déplacer.
       </p>
+      <div
+        role="radiogroup"
+        aria-label="Type de lumière à poser"
+        className="flex flex-wrap gap-1.5"
+      >
+        {GLOW_KINDS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={kind === k}
+            onClick={() => setKind(k)}
+            className={
+              kind === k
+                ? "border-accent text-text rounded-full border px-2.5 py-0.5 text-xs"
+                : "border-border text-muted hover:text-text rounded-full border px-2.5 py-0.5 text-xs"
+            }
+          >
+            {GLOW_KIND_LABELS[k].name}
+          </button>
+        ))}
+      </div>
       <label className="text-muted flex items-center gap-2 text-sm">
         <span className="w-24 shrink-0">Zoom ×{zoom.toFixed(1)}</span>
         <input
@@ -142,7 +182,11 @@ export function GlowPointsEditor({
             box.current?.setPointerCapture(e.pointerId);
           }}
           onPointerMove={(e) => {
-            if (dragging.current !== null) return update(dragging.current, at(e));
+            const d = dragging.current;
+            if (d) {
+              const pos = at(e);
+              return update(d.i, d.end === 1 ? pos : { x2: pos.x, y2: pos.y });
+            }
             const p = pan.current;
             const v = view.current;
             if (!p || !v) return;
@@ -160,17 +204,18 @@ export function GlowPointsEditor({
             const p = pan.current;
             pan.current = null;
             setPanning(false);
-            // Clic sans glisser : nouveau point à cet endroit.
+            // Clic sans glisser : nouvelle lumière du type choisi à cet endroit (un trait part
+            // de là, vers la droite).
             if (!p || p.moved || points.length >= GLOW_LIMITS.points) return;
-            const next = [
-              ...points,
-              {
-                ...at(e),
-                size: GLOW_LIMITS.size.default,
-                color: current?.color ?? DEFAULT_COLOR,
-                speed: 0,
-              },
-            ];
+            const pos = at(e);
+            const light: GlowPoint = {
+              ...(kind === "glow" ? {} : { kind }),
+              ...pos,
+              ...(kind === "line" ? { x2: Math.min(100, pos.x + 15), y2: pos.y } : {}),
+              ...NEW_LIGHT[kind],
+              color: current?.color ?? DEFAULT_COLOR,
+            };
+            const next = [...points, light];
             onChange(next);
             setSelected(next.length - 1);
           }}
@@ -181,35 +226,61 @@ export function GlowPointsEditor({
           }}
         >
           <img src={imageUrl} alt="" draggable={false} className="block h-auto w-full" />
-          {points.map((p, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Point lumineux ${i + 1}`}
-              aria-pressed={selected === i}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setSelected(i);
-                dragging.current = i;
-                box.current?.setPointerCapture(e.pointerId);
-              }}
-              className="absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2"
-              style={{
-                left: `${p.x}%`,
-                top: `${p.y}%`,
-                borderColor: selected === i ? "#fff" : p.color,
-                background: `${p.color}88`,
-                boxShadow: `0 0 8px ${p.color}`,
-              }}
-            />
-          ))}
+          {/* Trait entre les deux poignées d'un trait lumineux. */}
+          <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden>
+            {points.map((p, i) =>
+              glowKind(p) === "line" ? (
+                <line
+                  key={i}
+                  x1={`${p.x}%`}
+                  y1={`${p.y}%`}
+                  x2={`${p.x2 ?? p.x}%`}
+                  y2={`${p.y2 ?? p.y}%`}
+                  stroke={p.color}
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                />
+              ) : null,
+            )}
+          </svg>
+          {points.flatMap((p, i) => {
+            const k = glowKind(p);
+            const ends: (1 | 2)[] = k === "line" ? [1, 2] : [1];
+            return ends.map((end) => (
+              <button
+                key={`${i}-${end}`}
+                type="button"
+                aria-label={`${GLOW_KIND_LABELS[k].name} ${i + 1}${k === "line" ? `, extrémité ${end}` : ""}`}
+                aria-pressed={selected === i}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setSelected(i);
+                  dragging.current = { i, end };
+                  box.current?.setPointerCapture(e.pointerId);
+                }}
+                className={`absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-grab border-2 ${
+                  k === "sparks" ? "rotate-45" : k === "line" ? "rounded-sm" : "rounded-full"
+                } ${k === "rays" ? "border-dashed" : ""}`}
+                style={{
+                  left: `${end === 1 ? p.x : (p.x2 ?? p.x)}%`,
+                  top: `${end === 1 ? p.y : (p.y2 ?? p.y)}%`,
+                  borderColor: selected === i ? "#fff" : p.color,
+                  background: `${p.color}88`,
+                  boxShadow: `0 0 8px ${p.color}`,
+                }}
+              />
+            ));
+          })}
         </div>
       </div>
       {points.length >= GLOW_LIMITS.points && (
-        <p className="text-muted text-xs">{GLOW_LIMITS.points} points au plus.</p>
+        <p className="text-muted text-xs">{GLOW_LIMITS.points} lumières au plus.</p>
       )}
       {current && selected !== null && (
         <div className="flex flex-col gap-2 text-sm">
+          <p className="text-text text-xs font-medium">
+            {GLOW_KIND_LABELS[glowKind(current)].name} {selected + 1}
+          </p>
           <div className="flex items-center gap-3">
             <label className="text-muted flex items-center gap-2">
               Couleur
@@ -233,7 +304,7 @@ export function GlowPointsEditor({
             </button>
           </div>
           <label className="text-muted flex items-center gap-2">
-            <span className="w-24 shrink-0">Taille</span>
+            <span className="w-24 shrink-0">{GLOW_KIND_LABELS[glowKind(current)].size}</span>
             <input
               type="range"
               min={GLOW_LIMITS.size.min}
@@ -246,7 +317,8 @@ export function GlowPointsEditor({
           </label>
           <label className="text-muted flex items-center gap-2">
             <span className="w-24 shrink-0">
-              Clignotement {current.speed === 0 ? "(fixe)" : `(${current.speed})`}
+              {GLOW_KIND_LABELS[glowKind(current)].speed}{" "}
+              {current.speed === 0 ? "(arrêt)" : `(${current.speed})`}
             </span>
             <input
               type="range"

@@ -1043,7 +1043,13 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   sans cadrage full art à elle (cadrée avant la séparation) garde en full art celui de la carte
   normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
-- Points lumineux (`glowPoints`, 8 au plus par carte ; des yeux qui brillent…) : chaque point a
+- Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
+  point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), étincelles
+  (jaillissent en éventail d'un point ; taille : portée, vitesse : débit), rayons (faisceaux
+  coniques de sa couleur autour d'un point ; taille : longueur, vitesse : rotation) et trait
+  lumineux (entre deux poignées, `x2`/`y2` ; bloom en SVG, taille : épaisseur, vitesse : une
+  impulsion qui le parcourt). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
+  Le point lumineux a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
   couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :
   6 s / vitesse, `glowPeriod` ; calé sur l'horloge par un délai négatif, les points de même
