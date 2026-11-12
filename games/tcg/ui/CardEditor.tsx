@@ -515,6 +515,8 @@ export function CardEditor({
           >
             Texte de l&apos;effet
             <Textarea
+              // Hauteur selon le texte (deux lignes au moins) : compact, sans barre de défilement.
+              className="[field-sizing:content] min-h-14"
               value={shownText}
               maxLength={CARD_LIMITS.effectText}
               onChange={(e) => {
@@ -536,6 +538,7 @@ export function CardEditor({
           <Label hint="En italique sous l'effet.">
             Description
             <Textarea
+              className="[field-sizing:content] min-h-14"
               value={fields.flavor}
               maxLength={CARD_LIMITS.flavor}
               onChange={(e) => set("flavor", e.target.value)}
