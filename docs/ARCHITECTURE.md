@@ -1049,10 +1049,10 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
   flous, deux couches qui tournent en sens contraire et une lueur au centre ; taille : longueur,
   vitesse : rotation) et trait
-  lumineux (entre deux poignées, `x2`/`y2` ; bloom SVG en quatre couches, grand halo, halo
-  moyen, lueur, cœur blanc, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
+  lumineux (entre deux poignées, `x2`/`y2` ; bloom SVG diffus en quatre couches, grand halo, halo
+  moyen, lueur, cœur fin blanc teinté, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
   flou d'un trait horizontal ne soit pas rogné ; taille : épaisseur, vitesse : une impulsion
-  qui le parcourt). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
+  qui le parcourt, animation SVG `<animate>` de `stroke-dashoffset`). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
   Le point lumineux a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
   couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :

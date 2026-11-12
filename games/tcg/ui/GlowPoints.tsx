@@ -203,9 +203,9 @@ function Rays({ place, color, speed }: { place: Place; color: string; speed: num
 }
 
 /**
- * Traits lumineux : un même SVG à la taille de la fenêtre. Chaque trait est un bloom en quatre
- * couches, proportionnées à son épaisseur : grand halo très flou, halo moyen, lueur serrée de sa
- * couleur, cœur blanc ; plus une impulsion qui le parcourt. Les filtres couvrent toute la fenêtre
+ * Traits lumineux : un même SVG à la taille de la fenêtre. Chaque trait est un bloom diffus en
+ * quatre couches, proportionnées à son épaisseur : grand halo très flou, halo moyen, lueur de sa
+ * couleur, cœur fin blanc teinté ; plus une impulsion qui le parcourt (SMIL). Les filtres couvrent toute la fenêtre
  * (`userSpaceOnUse`) : calés sur le trait, ils seraient rognés à sa hauteur (nulle s'il est
  * horizontal) et le flou disparaîtrait.
  */
@@ -241,46 +241,67 @@ function Lines({
           <g key={i}>
             <defs>
               <filter id={id("wide")} {...region}>
-                <feGaussianBlur stdDeviation={t * 3.5} />
+                <feGaussianBlur stdDeviation={t * 4.5} />
               </filter>
               <filter id={id("mid")} {...region}>
-                <feGaussianBlur stdDeviation={t * 1.3} />
+                <feGaussianBlur stdDeviation={t * 2} />
               </filter>
               <filter id={id("glow")} {...region}>
-                <feGaussianBlur stdDeviation={t * 0.45} />
+                <feGaussianBlur stdDeviation={t * 0.7} />
+              </filter>
+              <filter id={id("core")} {...region}>
+                <feGaussianBlur stdDeviation={t * 0.15} />
               </filter>
             </defs>
+            {/* Bloom diffus : halos larges et doux, cœur fin teinté. */}
             <line
               {...line}
               stroke={color}
-              strokeWidth={t * 7}
-              opacity={0.55}
+              strokeWidth={t * 8}
+              opacity={0.3}
               filter={`url(#${id("wide")})`}
             />
             <line
               {...line}
               stroke={color}
-              strokeWidth={t * 3.5}
-              opacity={0.85}
+              strokeWidth={t * 4}
+              opacity={0.4}
               filter={`url(#${id("mid")})`}
             />
-            <line {...line} stroke={color} strokeWidth={t * 1.8} filter={`url(#${id("glow")})`} />
-            <line {...line} stroke="#fff" strokeWidth={t * 0.7} />
+            <line
+              {...line}
+              stroke={color}
+              strokeWidth={t * 1.8}
+              opacity={0.55}
+              filter={`url(#${id("glow")})`}
+            />
+            <line
+              {...line}
+              style={{ stroke: `color-mix(in srgb, ${color} 35%, #fff)` }}
+              strokeWidth={t * 0.5}
+              opacity={0.75}
+              filter={`url(#${id("core")})`}
+            />
             {period && (
+              // Impulsion qui parcourt le trait : animation SVG (SMIL) de stroke-dashoffset, cachée
+              // sans pointeur sur la carte (tcg.css).
               <line
                 {...line}
-                className="tcg-line-pulse tcg-lt-anim"
-                stroke="#fff"
-                strokeWidth={t * 2}
+                className="tcg-line-pulse"
+                style={{ stroke: `color-mix(in srgb, ${color} 25%, #fff)` }}
+                strokeWidth={t * 2.2}
+                opacity={0.8}
                 filter={`url(#${id("glow")})`}
-                strokeDasharray={`${len * 0.14} ${len * 2}`}
-                style={
-                  {
-                    "--len": `${len}`,
-                    animationDuration: `${period}s`,
-                  } as CSSProperties
-                }
-              />
+                strokeDasharray={`${len * 0.16} ${len * 2}`}
+              >
+                <animate
+                  attributeName="stroke-dashoffset"
+                  from={len * 0.16}
+                  to={-len}
+                  dur={`${period}s`}
+                  repeatCount="indefinite"
+                />
+              </line>
             )}
           </g>
         );
