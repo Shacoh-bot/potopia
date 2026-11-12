@@ -306,7 +306,7 @@ export function CardEditor({
   const belowColumns = Math.min(fitColumns, Math.ceil(below.length / Math.max(1, baseRows)) + 2);
   const belowRows = Math.ceil(below.length / belowColumns);
 
-  /** Une case d'effet visuel (son rang de calque s'il y en a plusieurs). */
+  /** Une case d'effet visuel. */
   const effectRow = (v: VisualEffect) => {
     const rank = fields.visualEffectKeys.indexOf(v.key);
     return (
@@ -331,9 +331,6 @@ export function CardEditor({
         {v.name}
         {!VISUAL_EFFECTS[v.key] && (
           <span className="text-muted text-xs">(rendu pas encore codé)</span>
-        )}
-        {rank >= 0 && fields.visualEffectKeys.length > 1 && (
-          <span className="text-muted text-xs">calque {rank + 1}</span>
         )}
       </label>
     );
