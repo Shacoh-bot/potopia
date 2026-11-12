@@ -566,8 +566,7 @@
   animation: none !important;
   transition: none !important;
 }
-.tcg-still:not([data-live]) .tcg-glare,
-.tcg-still:not([data-live]) .tcg-glow-layer {
+.tcg-still:not([data-live]) .tcg-glare {
   display: none;
 }
 
@@ -1064,8 +1063,8 @@
 
 /* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo flou
    de leur couleur (::before) et cœur net, blanc teinté (::after), ajoutés comme de la lumière
-   (screen). Clignotement à leur vitesse (--blink) ; fixes en mouvement réduit. Sur la planche,
-   cachés sauf sur la carte survolée (comme les autres effets). */
+   (screen). Clignotement à leur vitesse (--blink), seulement quand le pointeur est sur la carte ;
+   sinon (et en mouvement réduit), un point clignotant reste à son niveau le plus faible. */
 .tcg-glow-layer {
   position: absolute;
   inset: 0;
@@ -1108,6 +1107,11 @@
 .tcg-glow[data-blink] {
   animation: tcg-glow-blink var(--blink) ease-in-out infinite;
 }
+/* Sans pointeur sur la carte : immobile, au plus faible du clignotement. */
+.tcg-tilt:not([data-active]) .tcg-glow[data-blink] {
+  animation: none;
+  opacity: 0.15;
+}
 @keyframes tcg-glow-blink {
   0%,
   100% {
@@ -1119,6 +1123,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tcg-glow[data-blink] {
+    opacity: 0.15;
+  }
   .tcg-glow,
   .tcg-vfx-rain,
   .tcg-vfx-mote,
