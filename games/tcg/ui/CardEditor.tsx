@@ -353,10 +353,10 @@ export function CardEditor({
         void sendImage(pasted, pasted.name);
       }}
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {header}
         <form
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
             submit();
@@ -381,7 +381,8 @@ export function CardEditor({
               </Select>
             </Label>
           )}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Champs courts : 3 par ligne dès que la colonne est assez large, pour gagner en hauteur. */}
+          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
             <Label>
               Nom
               <Input
@@ -473,7 +474,7 @@ export function CardEditor({
             </Select>
           </Label>
           {effect && effect.params.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               {effect.params.map((p) => (
                 <Label key={p.name}>
                   {p.label}
