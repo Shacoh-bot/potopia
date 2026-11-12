@@ -34,6 +34,8 @@ const EFFECT_PLACES: Record<string, EffectPlace> = {
   mirage: "image",
   givre: "frame",
   brume: "card",
+  fumeeverte: "card",
+  fumeeblanche: "card",
 };
 
 /** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */

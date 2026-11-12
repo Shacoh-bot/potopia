@@ -991,6 +991,11 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   fois pour toutes qui poussent depuis les coins et reculent) et `brume` (« Brume », place
   `card` : deux voiles qui dérivent dans le bas de la carte). Positions et rythmes des éléments
   tirés au hasard le sont avec une graine fixe, pour un rendu serveur identique.
+  Fumées (migration `tcg_visual_effects_fumee`, place `card`) : `fumeeverte` (« Fumée verte »)
+  et `fumeeblanche` (« Fumée blanche ») : un fond de fumée au pied de la carte et des bouffées
+  floues (`tcg-vfx-puff`, tirées avec une graine fixe) qui montent, grossissent, dérivent et
+  s'estompent, en fusion `screen` ; la couleur passe par `--smoke` (`smoke(rgb)` dans
+  `visual-effects.tsx`) ; figées à mi-hauteur sur la planche ou en mouvement réduit.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). Leur rendu est

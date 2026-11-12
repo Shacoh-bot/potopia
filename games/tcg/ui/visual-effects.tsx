@@ -574,6 +574,53 @@ const Mist = () => (
   </>
 );
 
+/* ── Fumée ── */
+
+/**
+ * Bouffées de fumée tirées une fois pour toutes (graine fixe : rendu serveur identique). Délais
+ * négatifs : à l'affichage, elles sont déjà en train de monter, à des hauteurs différentes.
+ */
+const PUFFS = (() => {
+  const rnd = seeded(23);
+  return Array.from({ length: 9 }, (_, i) => ({
+    left: 6 + rnd() * 88,
+    size: 70 + rnd() * 70,
+    dx: (rnd() - 0.5) * 90,
+    duration: 6 + rnd() * 3,
+    delay: -(i / 9) * 8 - rnd(),
+  }));
+})();
+
+/**
+ * Fumée d'une couleur (« r g b ») : un fond de fumée au pied de la carte, et des bouffées floues
+ * qui montent, grossissent, dérivent sur le côté et s'estompent. Figée ou mouvement réduit : les
+ * bouffées restent posées à mi-hauteur.
+ */
+const smoke = (rgb: string) => {
+  const Smoke = () => (
+    <div className="tcg-vfx-smoke" style={{ "--smoke": rgb } as CSSProperties}>
+      <div className="tcg-vfx-smoke-base" />
+      {PUFFS.map((p, i) => (
+        <div
+          key={i}
+          className="tcg-vfx-puff"
+          style={
+            {
+              left: `${p.left}%`,
+              "--s": `${p.size}px`,
+              "--dx": `${p.dx}px`,
+              "--dx-mid": `${p.dx / 2}px`,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+  return Smoke;
+};
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
@@ -598,6 +645,8 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   mirage: { render: HeatHaze },
   givre: { render: Frost },
   brume: { render: Mist },
+  fumeeverte: { render: smoke("110 255 130") },
+  fumeeblanche: { render: smoke("235 240 245") },
 };
 
 /**

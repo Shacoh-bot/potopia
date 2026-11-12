@@ -588,6 +588,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       `tcg_visual_effects_retires` (modifie des données : les cartes qui les portaient les perdent).
 - [x] Holo classique retiré (doublon), migration `tcg_visual_effects_holoclassique` (modifie des
       données) ; le reflet holographique garde la luminosité de la carte (fusion `color`).
+- [x] Effets « Fumée verte » et « Fumée blanche », migration `tcg_visual_effects_fumee` (ajout
+      seul).
 - [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
       Potodex, revente des doublons.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
