@@ -895,7 +895,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup vers un set, la réserve ou la corbeille,
   et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
   choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
-  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, formulaire étroit (24rem au plus dès 1280 px), aperçu en direct avec le cadrage et l'envoi
+  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, formulaire sur la place restante, aperçu en direct avec le cadrage et l'envoi
   d'illustration à sa droite (dès 1536 px) ; les cases des effets visuels forment un L autour de la
   carte (dès 1280 px) : une colonne à sa gauche, autant qu'il en tient sur sa hauteur (mesurée
   avec un `ResizeObserver`), puis, dessous, des colonnes de

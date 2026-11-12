@@ -341,9 +341,9 @@ export function CardEditor({
 
   return (
     <div
-      // Formulaire étroit (24rem au plus dès xl) ; le reste va à la carte, ses réglages et les
-      // effets visuels. Avant xl, la carte garde sa largeur et le formulaire prend ce qui reste.
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]"
+      // La carte, ses réglages et les effets visuels prennent juste leur largeur, à droite ; le
+      // formulaire prend ce qui reste (ses champs rétrécissent au besoin).
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]"
       // Ctrl+V n'importe où dans l'éditeur : une image collée devient l'illustration (du texte se
       // colle normalement dans son champ)
       onPaste={(e) => {
@@ -571,8 +571,8 @@ export function CardEditor({
       {/* Effets visuels en L autour de la carte (dès xl) : une colonne à gauche de la carte et de
           ses réglages (cadrage et envoi à sa droite dès 2xl), puis plusieurs colonnes dessous,
           sur toute la largeur. Toutes les colonnes font 11rem ; celle de gauche est collée à la
-          carte, la place libre reste à droite. Avant xl : la carte, puis les effets en grille dessous. */}
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[11rem_auto_minmax(0,1fr)] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
+          carte. Les effets du bas prennent la largeur de la zone sans l'élargir. Avant xl : la carte, puis les effets en grille dessous. */}
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[11rem_auto] xl:items-start xl:gap-x-3 xl:gap-y-1.5">
         <div
           ref={cardArea}
           className="flex flex-col items-center gap-6 xl:col-start-2 xl:row-start-1 2xl:flex-row 2xl:items-start"
@@ -702,7 +702,7 @@ export function CardEditor({
         </div>
         {below.length > 0 && (
           <div
-            className="grid auto-cols-[11rem] grid-flow-col gap-x-3 gap-y-1.5 overflow-x-auto lg:w-0 lg:min-w-full xl:col-span-3 xl:w-auto xl:min-w-0"
+            className="grid auto-cols-[11rem] grid-flow-col gap-x-3 gap-y-1.5 overflow-x-auto lg:w-0 lg:min-w-full xl:col-span-2"
             style={{ gridTemplateRows: `repeat(${belowRows}, auto)` }}
           >
             {below.map(effectRow)}
