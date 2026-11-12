@@ -86,7 +86,7 @@ export const GLOW_KIND_LABELS: Record<GlowKind, { name: string; size: string; sp
   glow: { name: "Point lumineux", size: "Taille", speed: "Clignotement" },
   sparks: { name: "Arc électrique", size: "Portée", speed: "Débit" },
   rays: { name: "Rayons", size: "Longueur", speed: "Rotation" },
-  line: { name: "Trait lumineux", size: "Épaisseur", speed: "Pulsation" },
+  line: { name: "Trait lumineux", size: "Épaisseur", speed: "Clignotement" },
 };
 
 /**

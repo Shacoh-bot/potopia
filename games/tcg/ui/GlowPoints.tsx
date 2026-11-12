@@ -205,7 +205,8 @@ function Rays({ place, color, speed }: { place: Place; color: string; speed: num
 /**
  * Traits lumineux : un même SVG à la taille de la fenêtre. Chaque trait est un bloom diffus en
  * quatre couches, proportionnées à son épaisseur : grand halo très flou, halo moyen, lueur de sa
- * couleur, cœur fin blanc teinté ; plus une impulsion qui le parcourt (SMIL). Les filtres couvrent toute la fenêtre
+ * couleur, cœur fin blanc teinté. Il clignote en entier, comme un point lumineux (même
+ * animation, calée sur l'horloge). Les filtres couvrent toute la fenêtre
  * (`userSpaceOnUse`) : calés sur le trait, ils seraient rognés à sa hauteur (nulle s'il est
  * horizontal) et le flou disparaîtrait.
  */
@@ -217,6 +218,8 @@ function Lines({
   box: Size;
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  // Rendu côté client seulement (taille de l'image connue) : l'heure est celle du navigateur.
+  const [started] = useState(() => performance.now());
   if (lines.length === 0) return null;
   const region = {
     filterUnits: "userSpaceOnUse" as const,
@@ -234,11 +237,23 @@ function Lines({
         const y2 = (b.top / 100) * box.height;
         // Épaisseur du cœur lumineux, d'après la taille réglée (en % de la largeur de l'image).
         const t = Math.max(1, a.radius * 0.5);
-        const len = Math.hypot(x2 - x1, y2 - y1) || 1;
         const line = { x1, y1, x2, y2, strokeLinecap: "round" as const };
         const id = (name: string) => `tcg-line-${name}-${uid}-${i}`;
         return (
-          <g key={i}>
+          <g
+            key={i}
+            className="tcg-line"
+            data-blink={period ? "" : undefined}
+            style={
+              period
+                ? ({
+                    "--blink": `${period}s`,
+                    // Calé sur l'horloge, comme les points lumineux : même vitesse, même phase.
+                    animationDelay: `${-((started / 1000) % period)}s`,
+                  } as CSSProperties)
+                : undefined
+            }
+          >
             <defs>
               <filter id={id("wide")} {...region}>
                 <feGaussianBlur stdDeviation={t * 4.5} />
@@ -282,27 +297,6 @@ function Lines({
               opacity={0.75}
               filter={`url(#${id("core")})`}
             />
-            {period && (
-              // Impulsion qui parcourt le trait : animation SVG (SMIL) de stroke-dashoffset, cachée
-              // sans pointeur sur la carte (tcg.css).
-              <line
-                {...line}
-                className="tcg-line-pulse"
-                style={{ stroke: `color-mix(in srgb, ${color} 25%, #fff)` }}
-                strokeWidth={t * 2.2}
-                opacity={0.8}
-                filter={`url(#${id("glow")})`}
-                strokeDasharray={`${len * 0.16} ${len * 2}`}
-              >
-                <animate
-                  attributeName="stroke-dashoffset"
-                  from={len * 0.16}
-                  to={-len}
-                  dur={`${period}s`}
-                  repeatCount="indefinite"
-                />
-              </line>
-            )}
           </g>
         );
       })}
