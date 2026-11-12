@@ -884,8 +884,9 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   générées depuis les idées ne vont jamais dans le dépôt (contenu des membres).
 - Pages : `/admin/cartes` (un onglet par set, la réserve et la corbeille, `?set=<code>`,
   `?set=reserve` ou `?set=corbeille` ; la réserve par défaut ; deux vues, miniatures (les cartes
-  dessinées, 24 par page) ou liste (`?vue=liste` : un tableau place, nom, rareté, type, mana,
-  puissance, effet, 100 par page), gardées par la recherche, les onglets et la pagination ;
+  dessinées, 24 par page) ou liste (`?vue=liste` : un tableau édition, nom, rareté, type, mana,
+  puissance, effet, 100 par page ; le menu « Édition » de chaque ligne range la carte tout de
+  suite dans un set, la réserve ou la corbeille, `PlaceSelect` et `placeCardAction`), gardées par la recherche, les onglets et la pagination ;
   `?page=`, pagination « < 1 2 … 5 > » qui garde
   toujours la première et la dernière page (`Pagination`, `pageList`) ; recherche `?q=` juste
   au-dessus des cartes, sur le nom, le type, la famille, l'effet et la description, dans tous les
@@ -894,7 +895,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup vers un set, la réserve ou la corbeille,
   et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
   choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
-  `/admin/cartes/nouvelle` (`CardEditor` : formulaire et aperçu en direct, choix de l'affichage
+  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, aperçu en direct et, à sa droite, les cases des effets visuels, choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle, envoi d'illustration), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).

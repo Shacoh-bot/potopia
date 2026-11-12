@@ -449,7 +449,131 @@ export function CardEditor({
             onChange={(e) => set("flavor", e.target.value)}
           />
         </Label>
-        <fieldset className="flex flex-col gap-1.5">
+
+        {fromIdea?.hasCards && (
+          <label className="text-text flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={confirmDuplicate}
+              onChange={(e) => setConfirmDuplicate(e.target.checked)}
+            />
+            Créer quand même une autre carte pour cette idée
+          </label>
+        )}
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={pending}>
+            {card ? "Enregistrer" : "Créer la carte"}
+          </Button>
+          {state.status !== "idle" && (
+            <p
+              role="status"
+              className={state.status === "error" ? "text-danger text-sm" : "text-muted text-sm"}
+            >
+              {state.message}
+            </p>
+          )}
+        </div>
+      </form>
+
+      {/* La carte et ses réglages, puis les effets visuels à sa droite (en dessous sur mobile). */}
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+        <div className="flex flex-col items-center gap-3">
+          <GameCardDefs />
+          <CardFlip button>
+            <GameCard
+              card={preview}
+              imageUrl={image}
+              layout={layout}
+              setSize={setSize}
+              author={author}
+            />
+          </CardFlip>
+          {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}
+          <div
+            role="group"
+            aria-label="Affichage de la carte"
+            className="flex flex-col items-center gap-1"
+          >
+            <div className="flex gap-2 text-sm">
+              {CARD_LAYOUTS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  aria-pressed={layout === l}
+                  onClick={() => setLayout(l)}
+                  className={
+                    layout === l
+                      ? "border-accent text-text rounded-full border px-3 py-1"
+                      : "border-border text-muted rounded-full border px-3 py-1"
+                  }
+                >
+                  {CARD_LAYOUT_LABELS[l]}
+                </button>
+              ))}
+            </div>
+            <p className="text-muted text-xs">
+              Affichage de la carte{layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
+            </p>
+          </div>
+          {image && (
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-muted text-sm">
+                Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} : glisse
+                l&apos;image, zoome, puis enregistre la carte.
+              </p>
+              <ImageFramer
+                // un cadrage par mise en page : changer de mise en page change de réglage
+                key={layout}
+                imageUrl={image}
+                frame={frames[layout]}
+                onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
+                // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
+                width={layout === "normal" ? FINAL_ART.width : 200}
+                height={layout === "normal" ? FINAL_ART.height : 280}
+              />
+              {layout === "fullart" && (
+                <button
+                  type="button"
+                  className="text-accent text-sm underline-offset-4 hover:underline"
+                  onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+                >
+                  Reprendre le cadrage de la carte normale
+                </button>
+              )}
+            </div>
+          )}
+          {upload && card && (
+            <div className="flex w-full max-w-[300px] flex-col gap-2">
+              <Label
+                className="w-full"
+                hint={
+                  uploadState ??
+                  "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
+                }
+              >
+                Illustration
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="py-1.5"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void sendImage(file, file.name);
+                  }}
+                />
+              </Label>
+              <button
+                type="button"
+                onClick={() => void pasteFromClipboard()}
+                className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
+              >
+                <ClipboardPaste size={16} aria-hidden />
+                Coller une image
+              </button>
+            </div>
+          )}
+        </div>
+        <fieldset className="flex w-full flex-col gap-1.5 sm:w-52">
           <legend className="text-text mb-1 text-sm font-medium">Effets visuels</legend>
           <p className="text-muted text-xs">
             Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en dessous).
@@ -458,7 +582,7 @@ export function CardEditor({
           {visualEffects.length === 0 && (
             <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
           )}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-1">
             {visualEffects.map((v) => {
               const rank = fields.visualEffectKeys.indexOf(v.key);
               return (
@@ -487,127 +611,6 @@ export function CardEditor({
             })}
           </div>
         </fieldset>
-
-        {fromIdea?.hasCards && (
-          <label className="text-text flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={confirmDuplicate}
-              onChange={(e) => setConfirmDuplicate(e.target.checked)}
-            />
-            Créer quand même une autre carte pour cette idée
-          </label>
-        )}
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={pending}>
-            {card ? "Enregistrer" : "Créer la carte"}
-          </Button>
-          {state.status !== "idle" && (
-            <p
-              role="status"
-              className={state.status === "error" ? "text-danger text-sm" : "text-muted text-sm"}
-            >
-              {state.message}
-            </p>
-          )}
-        </div>
-      </form>
-
-      <div className="flex flex-col items-center gap-3">
-        <GameCardDefs />
-        <CardFlip button>
-          <GameCard
-            card={preview}
-            imageUrl={image}
-            layout={layout}
-            setSize={setSize}
-            author={author}
-          />
-        </CardFlip>
-        {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}
-        <div
-          role="group"
-          aria-label="Affichage de la carte"
-          className="flex flex-col items-center gap-1"
-        >
-          <div className="flex gap-2 text-sm">
-            {CARD_LAYOUTS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                aria-pressed={layout === l}
-                onClick={() => setLayout(l)}
-                className={
-                  layout === l
-                    ? "border-accent text-text rounded-full border px-3 py-1"
-                    : "border-border text-muted rounded-full border px-3 py-1"
-                }
-              >
-                {CARD_LAYOUT_LABELS[l]}
-              </button>
-            ))}
-          </div>
-          <p className="text-muted text-xs">
-            Affichage de la carte{layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
-          </p>
-        </div>
-        {image && (
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-muted text-sm">
-              Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} : glisse
-              l&apos;image, zoome, puis enregistre la carte.
-            </p>
-            <ImageFramer
-              // un cadrage par mise en page : changer de mise en page change de réglage
-              key={layout}
-              imageUrl={image}
-              frame={frames[layout]}
-              onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-              // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
-              width={layout === "normal" ? FINAL_ART.width : 200}
-              height={layout === "normal" ? FINAL_ART.height : 280}
-            />
-            {layout === "fullart" && (
-              <button
-                type="button"
-                className="text-accent text-sm underline-offset-4 hover:underline"
-                onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
-              >
-                Reprendre le cadrage de la carte normale
-              </button>
-            )}
-          </div>
-        )}
-        {upload && card && (
-          <div className="flex w-full max-w-[300px] flex-col gap-2">
-            <Label
-              className="w-full"
-              hint={
-                uploadState ??
-                "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
-              }
-            >
-              Illustration
-              <Input
-                type="file"
-                accept="image/*"
-                className="py-1.5"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void sendImage(file, file.name);
-                }}
-              />
-            </Label>
-            <button
-              type="button"
-              onClick={() => void pasteFromClipboard()}
-              className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
-            >
-              <ClipboardPaste size={16} aria-hidden />
-              Coller une image
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

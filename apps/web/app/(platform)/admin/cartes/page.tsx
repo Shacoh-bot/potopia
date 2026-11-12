@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
-import { CardSearch, type MoveTarget, MoveCardsForm, NewSetForm } from "./forms";
+import { CardSearch, type MoveTarget, MoveCardsForm, NewSetForm, PlaceSelect } from "./forms";
 import { cardAuthors, cardImageUrls } from "./images";
 import { Pagination } from "./Pagination";
 
@@ -158,8 +158,13 @@ export default async function AdminCardsPage({
   const hint = trashView
     ? "Ranger une carte la restaure. La suppression définitive retire aussi son illustration."
     : "Une carte qui quitte un set perd son numéro ; les suivantes sont renumérotées. La corbeille se vide à la main.";
-  const place = (c: (typeof cards)[number]) =>
-    c.setCode ? `${c.setCode} n°${c.number}` : trashView ? "Corbeille" : "Réserve";
+  // Menu « Édition » de chaque ligne de la liste : tous les sets, la réserve et la corbeille.
+  const placeTargets: MoveTarget[] = [
+    ...sets.map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` })),
+    { id: "reserve", label: "Réserve" },
+    { id: "trash", label: "Corbeille" },
+  ];
+  const placeOf = (c: (typeof cards)[number]) => (c.deletedAt ? "trash" : (c.setId ?? "reserve"));
 
   return (
     <div className={`${designFonts} flex flex-col gap-4`}>
@@ -273,7 +278,7 @@ export default async function AdminCardsPage({
                     <th className="w-8 px-3 py-2">
                       <span className="sr-only">Cocher</span>
                     </th>
-                    <th className="px-3 py-2 font-medium">Place</th>
+                    <th className="px-3 py-2 font-medium">Édition</th>
                     <th className="px-3 py-2 font-medium">Nom</th>
                     <th className="px-3 py-2 font-medium">Rareté</th>
                     <th className="px-3 py-2 font-medium">Type</th>
@@ -293,8 +298,20 @@ export default async function AdminCardsPage({
                           aria-label={`Cocher ${card.name}`}
                         />
                       </td>
-                      <td className="text-muted px-3 py-1.5 whitespace-nowrap tabular-nums">
-                        {place(card)}
+                      <td className="px-3 py-1.5">
+                        <span className="flex items-center gap-2">
+                          <PlaceSelect
+                            cardId={card.id}
+                            cardName={card.name}
+                            value={placeOf(card)}
+                            targets={placeTargets}
+                          />
+                          {card.number !== null && (
+                            <span className="text-muted text-xs whitespace-nowrap tabular-nums">
+                              n°{card.number}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="px-3 py-1.5">
                         <Link

@@ -12,7 +12,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import { createSetAction, type FormState, moveCardsAction } from "./actions";
+import { createSetAction, type FormState, moveCardsAction, placeCardAction } from "./actions";
 
 function Status({ state }: { state: FormState }) {
   if (state.status === "idle") return null;
@@ -158,6 +158,54 @@ function TargetSelect({ targets }: { targets: MoveTarget[] }) {
         </option>
       ))}
     </Select>
+  );
+}
+
+/**
+ * Édition d'une carte dans la vue liste : changer le choix range la carte tout de suite (set,
+ * réserve ou corbeille). Le menu n'a pas de `name` : il ne part pas avec les cases cochées.
+ */
+export function PlaceSelect({
+  cardId,
+  cardName,
+  value,
+  targets,
+}: {
+  cardId: string;
+  cardName: string;
+  /** Place actuelle : id du set, « reserve » ou « trash ». */
+  value: string;
+  /** Choix : les sets (id), la réserve (« reserve ») et la corbeille (« trash »). */
+  targets: MoveTarget[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <span className="flex flex-col gap-0.5">
+      <Select
+        // Nouvelle place renvoyée par le serveur : le menu repart de celle-ci.
+        key={value}
+        defaultValue={value}
+        disabled={pending}
+        aria-label={`Édition de ${cardName}`}
+        aria-busy={pending}
+        style={{ width: "auto" }}
+        className="h-8 py-0 text-xs"
+        onChange={(e) => {
+          const target = e.target.value;
+          startTransition(async () => {
+            setError((await placeCardAction(cardId, target))?.error ?? null);
+          });
+        }}
+      >
+        {targets.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+      </Select>
+      {error && <span className="text-danger text-xs">{error}</span>}
+    </span>
   );
 }
 

@@ -176,6 +176,29 @@ export async function createSetAction(_prev: FormState, formData: FormData): Pro
   redirect(`/admin/cartes?set=${code}`);
 }
 
+/**
+ * Range une carte depuis la liste (menu de sa ligne) : un set (id), la réserve (« reserve ») ou la
+ * corbeille (« trash »). Renvoie l'erreur lisible, ou null.
+ */
+export async function placeCardAction(
+  id: string,
+  target: string,
+): Promise<{ error: string } | null> {
+  const admin = await actionAdmin();
+  try {
+    const cardId = z.string().min(1).parse(id);
+    const to = z.string().min(1).parse(target);
+    if (to === "trash") await trashCards(admin, [cardId]);
+    else await moveCards(admin, [cardId], to === "reserve" ? null : to);
+  } catch (error) {
+    const message = inputError(error);
+    if (message === null) throw error;
+    return { error: message };
+  }
+  revalidatePath("/admin/cartes", "layout");
+  return null;
+}
+
 const plural = (n: number, word: string) =>
   `${n} carte${n > 1 ? "s" : ""} ${word}${n > 1 ? "s" : ""}`;
 
