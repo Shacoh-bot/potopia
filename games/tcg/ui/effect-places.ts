@@ -36,6 +36,11 @@ const EFFECT_PLACES: Record<string, EffectPlace> = {
   brume: "card",
   fumeeverte: "card",
   fumeeblanche: "card",
+  braises: "card",
+  rayons: "card",
+  petales: "card",
+  feuilles: "card",
+  ombres: "card",
 };
 
 /** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */

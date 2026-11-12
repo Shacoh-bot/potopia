@@ -997,6 +997,15 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   floues (`tcg-vfx-puff`, tirées avec une graine fixe) qui montent, grossissent, dérivent et
   s'estompent, en fusion `screen` ; la couleur passe par `--smoke` (`smoke(rgb)` dans
   `visual-effects.tsx`) ; figées à mi-hauteur sur la planche ou en mouvement réduit.
+  Ambiances (migration `tcg_visual_effects_ambiances`, tirages à graine fixe, figées à
+  mi-course sur la planche et en mouvement réduit) : `braises` (« Braises », place `card` :
+  étincelles orange qui montent en vacillant, lueur chaude au pied), `caustiques`
+  (« Caustiques », sur l'illustration : deux réseaux d'anneaux clairs qui glissent en sens
+  contraire, reflets d'un fond de piscine, et des bulles), `rayons` (« Rayons de lumière »,
+  place `card` : faisceaux doux depuis le coin haut gauche, qui oscillent), `petales`
+  (« Pétales ») et `feuilles` (« Feuilles d'automne ») (place `card` : tombent en tournoyant,
+  `falling`), `ombres` (« Ombres possédées », place `card` : volutes noires qui rampent depuis
+  les bords et s'écartent du pointeur, par un masque autour de `--mx`/`--my`).
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). Leur rendu est

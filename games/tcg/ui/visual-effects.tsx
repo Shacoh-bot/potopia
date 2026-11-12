@@ -621,6 +621,147 @@ const smoke = (rgb: string) => {
   return Smoke;
 };
 
+/* ── Ambiances : braises, caustiques, rayons, chutes, ombres ── */
+
+/** Braises : position, taille, dérive et rythme, tirés une fois pour toutes. */
+const EMBERS = (() => {
+  const rnd = seeded(41);
+  return Array.from({ length: 18 }, () => ({
+    left: 4 + rnd() * 92,
+    size: 2 + rnd() * 3,
+    dx: (rnd() - 0.5) * 70,
+    duration: 3.5 + rnd() * 3,
+    delay: -rnd() * 6.5,
+    hot: rnd() < 0.4,
+  }));
+})();
+
+/** Braises : des étincelles orange montent en scintillant, lueur chaude au pied de la carte. */
+const Embers = () => (
+  <>
+    <div className="tcg-vfx-ember-glow" />
+    {EMBERS.map((e, i) => (
+      <div
+        key={i}
+        className="tcg-vfx-ember"
+        style={
+          {
+            left: `${e.left}%`,
+            width: e.size,
+            height: e.size,
+            background: e.hot ? "#fff3b0" : "#ff8a2b",
+            boxShadow: `0 0 ${e.size * 2}px ${e.hot ? "#ffd166" : "#ff5e00"}`,
+            "--dx": `${e.dx}px`,
+            animationDuration: `${e.duration}s`,
+            animationDelay: `${e.delay}s`,
+          } as CSSProperties
+        }
+      />
+    ))}
+  </>
+);
+
+/** Bulles des caustiques : tirées une fois pour toutes. */
+const BUBBLES = (() => {
+  const rnd = seeded(53);
+  return Array.from({ length: 7 }, () => ({
+    left: 6 + rnd() * 88,
+    size: 3 + rnd() * 5,
+    duration: 4 + rnd() * 4,
+    delay: -rnd() * 8,
+  }));
+})();
+
+/**
+ * Caustiques : les reflets de lumière d'un fond de piscine, deux réseaux d'anneaux clairs qui
+ * glissent en sens contraire et se croisent, sur l'illustration ; quelques bulles montent.
+ */
+const Caustics = () => (
+  <div style={{ ...fillAbs, overflow: "hidden" }}>
+    <div className="tcg-vfx-caustic" />
+    <div className="tcg-vfx-caustic tcg-vfx-caustic-2" />
+    {BUBBLES.map((b, i) => (
+      <div
+        key={i}
+        className="tcg-vfx-bubble"
+        style={{
+          left: `${b.left}%`,
+          width: b.size,
+          height: b.size,
+          animationDuration: `${b.duration}s`,
+          animationDelay: `${b.delay}s`,
+        }}
+      />
+    ))}
+  </div>
+);
+
+/** Rayons de lumière : de grands rayons doux tombent d'un coin et oscillent lentement. */
+const GodRays = () => (
+  <div style={{ ...fillAbs, overflow: "hidden" }}>
+    <div className="tcg-vfx-rays" />
+    <div className="tcg-vfx-rays tcg-vfx-rays-2" />
+  </div>
+);
+
+/** Chute (pétales, feuilles) : position, taille, dérive, rotation et rythme, tirés une fois. */
+const fallers = (seed: number, count: number) => {
+  const rnd = seeded(seed);
+  return Array.from({ length: count }, () => ({
+    left: rnd() * 100,
+    scale: 0.6 + rnd() * 0.7,
+    dx: (rnd() - 0.3) * 120,
+    spin: (rnd() < 0.5 ? -1 : 1) * (240 + rnd() * 360),
+    duration: 6 + rnd() * 5,
+    delay: -rnd() * 11,
+    tint: rnd(),
+  }));
+};
+const PETALS = fallers(61, 14);
+const LEAVES = fallers(67, 11);
+const LEAF_COLORS = ["#e2702a", "#c2410c", "#d99a1e", "#8a3b12"];
+
+/** Pétales ou feuilles qui tombent en tournoyant (dans la carte). */
+const falling = (kind: "petal" | "leaf") => {
+  const items = kind === "petal" ? PETALS : LEAVES;
+  const Falling = () => (
+    <div style={{ ...fillAbs, overflow: "hidden" }}>
+      {items.map((f, i) => (
+        <div
+          key={i}
+          className={`tcg-vfx-fall tcg-vfx-${kind}`}
+          style={
+            {
+              left: `${f.left}%`,
+              "--k": f.scale,
+              "--dx": `${f.dx}px`,
+              "--spin": `${f.spin}deg`,
+              background:
+                kind === "petal"
+                  ? `linear-gradient(135deg, #ffe4ef, ${f.tint < 0.5 ? "#f9a8d4" : "#fbcfe8"})`
+                  : LEAF_COLORS[Math.floor(f.tint * LEAF_COLORS.length)],
+              animationDuration: `${f.duration}s`,
+              animationDelay: `${f.delay}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+  return Falling;
+};
+
+/**
+ * Ombres possédées : des volutes noires rampent depuis les bords et refluent, en boucle ; sous le
+ * pointeur, elles s'écartent de lui.
+ */
+const Shadows = () => (
+  <div className="tcg-vfx-shadows">
+    <div className="tcg-vfx-shade" />
+    <div className="tcg-vfx-shade tcg-vfx-shade-2" />
+  </div>
+);
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
@@ -647,6 +788,12 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   brume: { render: Mist },
   fumeeverte: { render: smoke("110 255 130") },
   fumeeblanche: { render: smoke("235 240 245") },
+  braises: { render: Embers },
+  caustiques: { render: Caustics },
+  rayons: { render: GodRays },
+  petales: { render: falling("petal") },
+  feuilles: { render: falling("leaf") },
+  ombres: { render: Shadows },
 };
 
 /**

@@ -1122,7 +1122,208 @@
   }
 }
 
+/* braises : étincelles orange qui montent en vacillant, lueur chaude au pied de la carte. Figées :
+   posées à mi-hauteur. */
+.tcg-vfx-ember-glow {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -12%;
+  height: 34%;
+  background: radial-gradient(ellipse 60% 70% at 50% 100%, rgb(255 110 30 / 0.4), transparent 70%);
+  filter: blur(8px);
+  mix-blend-mode: screen;
+}
+.tcg-vfx-ember {
+  position: absolute;
+  bottom: 4%;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  transform: translate(calc(var(--dx) / 2), -150px);
+  animation: tcg-vfx-ember ease-out infinite;
+}
+@keyframes tcg-vfx-ember {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), -330px);
+    opacity: 0;
+  }
+}
+
+/* caustiques : deux réseaux d'anneaux clairs, de tailles différentes, glissent en sens contraire ;
+   leurs croisements font les reflets dansants d'un fond de piscine. Bulles qui montent. */
+.tcg-vfx-caustic {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle,
+    transparent 38%,
+    rgb(190 245 255 / 0.55) 46%,
+    transparent 54%
+  );
+  background-size: 54px 46px;
+  filter: blur(1.5px);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  animation: tcg-vfx-caustic 9s linear infinite;
+}
+.tcg-vfx-caustic-2 {
+  background-size: 78px 64px;
+  opacity: 0.45;
+  animation-duration: 13s;
+  animation-direction: reverse;
+}
+@keyframes tcg-vfx-caustic {
+  to {
+    transform: translate(54px, 46px) rotate(4deg);
+  }
+}
+.tcg-vfx-bubble {
+  position: absolute;
+  bottom: -10px;
+  border-radius: 50%;
+  border: 1px solid rgb(220 250 255 / 0.7);
+  background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / 0.6), transparent 60%);
+  opacity: 0.5;
+  transform: translateY(-90px);
+  animation: tcg-vfx-bubble ease-in infinite;
+}
+@keyframes tcg-vfx-bubble {
+  from {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  to {
+    transform: translate(6px, -230px);
+    opacity: 0;
+  }
+}
+
+/* rayons : faisceaux doux depuis le coin haut gauche (dégradé conique estompé), qui oscillent. */
+.tcg-vfx-rays {
+  position: absolute;
+  left: -40%;
+  top: -40%;
+  width: 180%;
+  height: 180%;
+  background: repeating-conic-gradient(
+    from 95deg at 22% 22%,
+    rgb(255 248 220 / 0.32) 0deg 3deg,
+    transparent 3deg 11deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 22% 22%, #000 0%, transparent 62%);
+  mask-image: radial-gradient(circle at 22% 22%, #000 0%, transparent 62%);
+  transform-origin: 22% 22%;
+  filter: blur(3px);
+  mix-blend-mode: screen;
+  animation: tcg-vfx-rays 14s ease-in-out infinite alternate;
+}
+.tcg-vfx-rays-2 {
+  opacity: 0.6;
+  animation-duration: 19s;
+  animation-direction: alternate-reverse;
+}
+@keyframes tcg-vfx-rays {
+  from {
+    transform: rotate(-5deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+
+/* petales, feuilles : tombent en tournoyant et en dérivant. Figés : posés à mi-hauteur. */
+.tcg-vfx-fall {
+  position: absolute;
+  top: -20px;
+  opacity: 0.85;
+  transform: translate(calc(var(--dx) / 2), 200px) rotate(calc(var(--spin) / 2)) scale(var(--k));
+  animation: tcg-vfx-fall linear infinite;
+}
+.tcg-vfx-petal {
+  width: 11px;
+  height: 8px;
+  border-radius: 80% 0 80% 0;
+  box-shadow: 0 0 2px rgb(255 255 255 / 0.4);
+}
+.tcg-vfx-leaf {
+  width: 13px;
+  height: 9px;
+  border-radius: 0 90% 0 90%;
+  box-shadow: inset -2px -1px 0 rgb(0 0 0 / 0.25);
+}
+@keyframes tcg-vfx-fall {
+  from {
+    transform: translate(0, 0) rotate(0deg) scale(var(--k));
+  }
+  to {
+    transform: translate(var(--dx), 460px) rotate(var(--spin)) scale(var(--k));
+  }
+}
+
+/* ombres : volutes noires depuis les bords, qui rampent et refluent ; sous le pointeur, un trou
+   s'ouvre autour de lui (masque). */
+.tcg-vfx-shadows {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tcg-tilt[data-active] .tcg-vfx-shadows {
+  -webkit-mask-image: radial-gradient(circle at var(--mx) var(--my), transparent 0 18%, #000 42%);
+  mask-image: radial-gradient(circle at var(--mx) var(--my), transparent 0 18%, #000 42%);
+}
+.tcg-vfx-shade {
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(ellipse 40% 30% at 0% 20%, rgb(8 0 16 / 0.9), transparent 70%),
+    radial-gradient(ellipse 35% 40% at 100% 45%, rgb(8 0 16 / 0.85), transparent 70%),
+    radial-gradient(ellipse 45% 30% at 30% 100%, rgb(8 0 16 / 0.9), transparent 70%),
+    radial-gradient(ellipse 30% 25% at 85% 0%, rgb(8 0 16 / 0.8), transparent 70%);
+  filter: blur(7px);
+  opacity: 0.75;
+  animation: tcg-vfx-creep 7s ease-in-out infinite alternate;
+}
+.tcg-vfx-shade-2 {
+  opacity: 0.55;
+  animation-duration: 9.5s;
+  animation-direction: alternate-reverse;
+}
+@keyframes tcg-vfx-creep {
+  from {
+    transform: scale(1) rotate(0deg);
+  }
+  to {
+    transform: scale(1.18) rotate(3deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-ember,
+  .tcg-vfx-caustic,
+  .tcg-vfx-bubble,
+  .tcg-vfx-rays,
+  .tcg-vfx-fall,
+  .tcg-vfx-shade {
+    animation: none;
+  }
   .tcg-glow[data-blink] {
     opacity: 0.15;
   }
