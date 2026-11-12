@@ -524,62 +524,67 @@ export function CardEditor({
                 {layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
               </p>
             </div>
-            {image && (
-              <div className="flex flex-col items-center gap-1">
-                <p className="text-muted text-sm">
-                  Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} : glisse
-                  l&apos;image, zoome, puis enregistre la carte.
-                </p>
-                <ImageFramer
-                  // un cadrage par mise en page : changer de mise en page change de réglage
-                  key={layout}
-                  imageUrl={image}
-                  frame={frames[layout]}
-                  onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-                  // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
-                  width={layout === "normal" ? FINAL_ART.width : 200}
-                  height={layout === "normal" ? FINAL_ART.height : 280}
-                />
-                {layout === "fullart" && (
+          </div>
+          {/* À droite de la carte : le cadrage de l'illustration, puis son envoi. */}
+          {(image || (upload && card)) && (
+            <div className="flex w-full max-w-[300px] flex-col items-center gap-4 2xl:w-[300px]">
+              {image && (
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-muted text-sm">
+                    Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} :
+                    glisse l&apos;image, zoome, puis enregistre la carte.
+                  </p>
+                  <ImageFramer
+                    // un cadrage par mise en page : changer de mise en page change de réglage
+                    key={layout}
+                    imageUrl={image}
+                    frame={frames[layout]}
+                    onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
+                    // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
+                    width={layout === "normal" ? FINAL_ART.width : 200}
+                    height={layout === "normal" ? FINAL_ART.height : 280}
+                  />
+                  {layout === "fullart" && (
+                    <button
+                      type="button"
+                      className="text-accent text-sm underline-offset-4 hover:underline"
+                      onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+                    >
+                      Reprendre le cadrage de la carte normale
+                    </button>
+                  )}
+                </div>
+              )}
+              {upload && card && (
+                <div className="flex w-full flex-col gap-2">
+                  <Label
+                    className="w-full"
+                    hint={
+                      uploadState ??
+                      "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
+                    }
+                  >
+                    Illustration
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="py-1.5"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void sendImage(file, file.name);
+                      }}
+                    />
+                  </Label>
                   <button
                     type="button"
-                    className="text-accent text-sm underline-offset-4 hover:underline"
-                    onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+                    onClick={() => void pasteFromClipboard()}
+                    className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
                   >
-                    Reprendre le cadrage de la carte normale
+                    <ClipboardPaste size={16} aria-hidden />
+                    Coller une image
                   </button>
-                )}
-              </div>
-            )}
-          </div>
-          {upload && card && (
-            <div className="flex w-full max-w-[300px] flex-col gap-2 2xl:w-60">
-              <Label
-                className="w-full"
-                hint={
-                  uploadState ??
-                  "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
-                }
-              >
-                Illustration
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="py-1.5"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void sendImage(file, file.name);
-                  }}
-                />
-              </Label>
-              <button
-                type="button"
-                onClick={() => void pasteFromClipboard()}
-                className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
-              >
-                <ClipboardPaste size={16} aria-hidden />
-                Coller une image
-              </button>
+                </div>
+              )}
             </div>
           )}
         </div>

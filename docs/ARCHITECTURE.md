@@ -895,7 +895,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   navigation côté client, sans recharger la page ; cases à cocher pour déplacer des cartes d'un coup vers un set, la réserve ou la corbeille,
   et, dans la corbeille, pour les restaurer ou les supprimer définitivement (confirmation) ; même
   choix sur la fiche d'une carte ; création d'un set), `/admin/cartes/[id]` et
-  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, aperçu en direct avec l'envoi d'illustration à sa droite et les
+  `/admin/cartes/nouvelle` (`CardEditor` : formulaire, aperçu en direct avec le cadrage et l'envoi d'illustration à sa droite et les
   cases des effets visuels dessous, sur deux colonnes ; choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
@@ -1013,7 +1013,7 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   Titre (`FitTitle`) : en majuscules, police Rajdhani gras et même effet que « POTOMON » au
   dos (italique, dégradé blanc → cyan, halo cyan) ; la
   taille baisse avec la longueur jusqu'à 13 px, puis le titre passe sur deux lignes.
-- Cadrage : sous l'aperçu de l'éditeur, `ImageFramer` montre la fenêtre d'illustration de la mise
+- Cadrage : à droite de l'aperçu de l'éditeur (dessous sur écran moyen), `ImageFramer` montre la fenêtre d'illustration de la mise
   en page choisie (normale ou full art) ; on y fait glisser l'image et on règle le zoom. Chaque
   mise en page a son cadrage (`imageFrame`, `imageFrameFull`), enregistré avec la carte et
   appliqué partout où elle s'affiche (`frameFor` choisit le bon, `frameStyle` l'applique). Une carte
