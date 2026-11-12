@@ -1,7 +1,7 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { type PointerEvent, useLayoutEffect, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GLOW_LIMITS, type GlowPoint } from "../src/card-rules";
 
 /** Couleur d'un nouveau point : un vert lumineux. */
@@ -18,9 +18,9 @@ const round = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10
  * (jusqu'à `GLOW_LIMITS.points`), un glisser le déplace, un clic sur un point le choisit. Le point
  * choisi se règle : couleur, taille du halo (en % de la largeur de l'image), vitesse de
  * clignotement (0 : fixe). Les positions sont en % de l'image : accrochées à elle, elles suivent
- * le cadrage, le zoom et la mise en page sur la carte. Pour viser, l'image se zoome (curseur) et se
- * parcourt aux barres de défilement ; le zoom garde le centre de la vue, les repères gardent leur
- * taille.
+ * le cadrage, le zoom et la mise en page sur la carte. Pour viser, l'image se zoome (curseur, ou
+ * molette autour du pointeur) et se parcourt en la glissant (ou aux barres de défilement) ; un clic
+ * sans glisser pose un point. Les repères gardent leur taille.
  */
 export function GlowPointsEditor({
   imageUrl,
@@ -36,28 +36,57 @@ export function GlowPointsEditor({
   const dragging = useRef<number | null>(null);
   const view = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<number>(ZOOM.min);
-  // Centre de la vue (en fraction de l'image) avant un changement de zoom, pour le garder après.
-  const center = useRef<{ x: number; y: number } | null>(null);
+  const zoomNow = useRef(zoom);
+  zoomNow.current = zoom;
+  // Point de l'image à garder sous un même endroit de la vue pendant un zoom : sa place dans
+  // l'image (fraction) et dans la vue (px). Par défaut, le centre de la vue.
+  const anchor = useRef<{ fx: number; fy: number; vx: number; vy: number } | null>(null);
+  // Glisser sur l'image : déplacement de la vue (un clic sans bouger pose un point).
+  const pan = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(
+    null,
+  );
+  const [panning, setPanning] = useState(false);
 
-  function zoomTo(next: number) {
+  /** Zoome en gardant fixe le point de la vue `at` (px dans la vue ; par défaut, son centre). */
+  function zoomTo(next: number, at?: { vx: number; vy: number }) {
     const v = view.current;
+    const clamped = Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(next * 100) / 100));
     if (v) {
-      center.current = {
-        x: (v.scrollLeft + v.clientWidth / 2) / v.scrollWidth,
-        y: (v.scrollTop + v.clientHeight / 2) / v.scrollHeight,
+      const vx = at?.vx ?? v.clientWidth / 2;
+      const vy = at?.vy ?? v.clientHeight / 2;
+      anchor.current = {
+        fx: (v.scrollLeft + vx) / v.scrollWidth,
+        fy: (v.scrollTop + vy) / v.scrollHeight,
+        vx,
+        vy,
       };
     }
-    setZoom(next);
+    setZoom(clamped);
   }
 
   useLayoutEffect(() => {
     const v = view.current;
-    const c = center.current;
-    if (!v || !c) return;
-    v.scrollLeft = c.x * v.scrollWidth - v.clientWidth / 2;
-    v.scrollTop = c.y * v.scrollHeight - v.clientHeight / 2;
-    center.current = null;
+    const a = anchor.current;
+    if (!v || !a) return;
+    v.scrollLeft = a.fx * v.scrollWidth - a.vx;
+    v.scrollTop = a.fy * v.scrollHeight - a.vy;
+    anchor.current = null;
   }, [zoom]);
+
+  // Molette : zoom et dézoom autour du pointeur (écouteur non passif pour bloquer le défilement
+  // de la page).
+  useEffect(() => {
+    const v = view.current;
+    if (!v) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const r = v.getBoundingClientRect();
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      zoomTo(zoomNow.current * factor, { vx: e.clientX - r.left, vy: e.clientY - r.top });
+    };
+    v.addEventListener("wheel", onWheel, { passive: false });
+    return () => v.removeEventListener("wheel", onWheel);
+  }, []);
   const current = selected !== null ? points[selected] : undefined;
 
   /** Position du pointeur en % de l'image. */
@@ -77,7 +106,8 @@ export function GlowPointsEditor({
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="text-muted text-sm">
-        Points lumineux : clique sur l&apos;image pour en poser un, glisse-le pour le déplacer.
+        Points lumineux : clique sur l&apos;image pour en poser un, glisse un point pour le
+        déplacer. Molette : zoom ; glisser l&apos;image : se déplacer.
       </p>
       <label className="text-muted flex items-center gap-2 text-sm">
         <span className="w-24 shrink-0">Zoom ×{zoom.toFixed(1)}</span>
@@ -95,17 +125,47 @@ export function GlowPointsEditor({
       <div ref={view} className="max-h-[360px] w-full overflow-auto rounded-md">
         <div
           ref={box}
-          className="relative cursor-crosshair touch-none select-none"
+          className={`relative touch-none select-none ${panning ? "cursor-grabbing" : "cursor-crosshair"}`}
           style={{ width: `${zoom * 100}%` }}
           onPointerDown={(e) => {
-            // Clic sur l'image (pas sur un point) : nouveau point.
+            // Sur l'image (pas sur un point) : glisser déplace la vue, un clic pose un point.
             if (e.target !== e.currentTarget && !(e.target instanceof HTMLImageElement)) return;
-            if (points.length >= GLOW_LIMITS.points) return;
-            const pos = at(e);
+            const v = view.current;
+            if (!v) return;
+            pan.current = {
+              x: e.clientX,
+              y: e.clientY,
+              left: v.scrollLeft,
+              top: v.scrollTop,
+              moved: false,
+            };
+            box.current?.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (dragging.current !== null) return update(dragging.current, at(e));
+            const p = pan.current;
+            const v = view.current;
+            if (!p || !v) return;
+            const dx = e.clientX - p.x;
+            const dy = e.clientY - p.y;
+            // Quelques px de tolérance : un clic qui tremble reste un clic.
+            if (!p.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+            if (!p.moved) setPanning(true);
+            p.moved = true;
+            v.scrollLeft = p.left - dx;
+            v.scrollTop = p.top - dy;
+          }}
+          onPointerUp={(e) => {
+            dragging.current = null;
+            const p = pan.current;
+            pan.current = null;
+            setPanning(false);
+            // Clic sans glisser : nouveau point à cet endroit.
+            if (!p || p.moved || points.length >= GLOW_LIMITS.points) return;
             const next = [
               ...points,
               {
-                ...pos,
+                ...at(e),
                 size: GLOW_LIMITS.size.default,
                 color: current?.color ?? DEFAULT_COLOR,
                 speed: 0,
@@ -114,14 +174,10 @@ export function GlowPointsEditor({
             onChange(next);
             setSelected(next.length - 1);
           }}
-          onPointerMove={(e) => {
-            if (dragging.current !== null) update(dragging.current, at(e));
-          }}
-          onPointerUp={() => {
-            dragging.current = null;
-          }}
           onPointerCancel={() => {
             dragging.current = null;
+            pan.current = null;
+            setPanning(false);
           }}
         >
           <img src={imageUrl} alt="" draggable={false} className="block h-auto w-full" />
