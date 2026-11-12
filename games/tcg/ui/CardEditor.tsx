@@ -256,7 +256,9 @@ export function CardEditor({
 
   return (
     <div
-      className="grid gap-6 lg:grid-cols-[1fr_auto]"
+      // minmax(0, 1fr) : les champs du formulaire rétrécissent, la carte et ses réglages gardent leur
+      // largeur.
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]"
       // Ctrl+V n'importe où dans l'éditeur : une image collée devient l'illustration (du texte se
       // colle normalement dans son champ)
       onPaste={(e) => {
@@ -485,7 +487,7 @@ export function CardEditor({
           moyen), puis les effets visuels sur deux colonnes, sous le tout. */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-6 2xl:flex-row 2xl:items-start">
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex shrink-0 flex-col items-center gap-3">
             <GameCardDefs />
             <CardFlip button>
               <GameCard
@@ -527,7 +529,7 @@ export function CardEditor({
           </div>
           {/* À droite de la carte : le cadrage de l'illustration, puis son envoi. */}
           {(image || (upload && card)) && (
-            <div className="flex w-full max-w-[300px] flex-col items-center gap-4 2xl:w-[300px]">
+            <div className="flex w-full max-w-[300px] shrink-0 flex-col items-center gap-4 2xl:w-[300px]">
               {image && (
                 <div className="flex flex-col items-center gap-1">
                   <p className="text-muted text-sm">
