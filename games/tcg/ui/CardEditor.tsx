@@ -43,6 +43,13 @@ import { pastedImage, toCardWebp } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
+/** Onglets de la colonne à droite de la carte. */
+const SIDE_TABS = [
+  { id: "image", label: "Image" },
+  { id: "glow", label: "Points lumineux" },
+] as const;
+type SideTab = (typeof SIDE_TABS)[number]["id"];
+
 /** Colonnes d'effets visuels : largeur (12.5rem) et écart (gap-x-3), en px. */
 const EFFECT_COLUMN = 200;
 const EFFECT_GAP = 12;
@@ -188,6 +195,7 @@ export function CardEditor({
   const cardArea = useRef<HTMLDivElement>(null);
   const effectsHead = useRef<HTMLDivElement>(null);
   const [beside, setBeside] = useState(0);
+  const [sideTab, setSideTab] = useState<SideTab>("image");
   // Colonnes qui tiendraient sur la largeur, sous la carte (pour le nombre de lignes du bas).
   const [fitColumns, setFitColumns] = useState(1);
   useEffect(() => {
@@ -624,68 +632,92 @@ export function CardEditor({
               </p>
             </div>
           </div>
-          {/* À droite de la carte : le cadrage de l'illustration, puis son envoi. */}
+          {/* À droite de la carte, en deux onglets : l'image (cadrage puis envoi) ou la pose des
+              points lumineux. L'aperçu de la carte reste visible. */}
           {(image || (upload && card)) && (
             <div className="flex w-full max-w-[300px] shrink-0 flex-col items-center gap-4 2xl:w-[300px]">
               {image && (
-                <div className="flex flex-col items-center gap-1">
-                  <p className="text-muted text-sm">
-                    Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} :
-                    glisse l&apos;image, zoome, puis enregistre la carte.
-                  </p>
-                  <ImageFramer
-                    // un cadrage par mise en page : changer de mise en page change de réglage
-                    key={layout}
-                    imageUrl={image}
-                    frame={frames[layout]}
-                    onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
-                    // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
-                    width={layout === "normal" ? FINAL_ART.width : 200}
-                    height={layout === "normal" ? FINAL_ART.height : 280}
-                  />
-                  {layout === "fullart" && (
+                <div role="tablist" aria-label="Réglages de l'image" className="flex gap-2 text-sm">
+                  {SIDE_TABS.map((t) => (
                     <button
+                      key={t.id}
                       type="button"
-                      className="text-accent text-sm underline-offset-4 hover:underline"
-                      onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+                      role="tab"
+                      aria-selected={sideTab === t.id}
+                      onClick={() => setSideTab(t.id)}
+                      className={
+                        sideTab === t.id
+                          ? "border-accent text-text rounded-full border px-3 py-1"
+                          : "border-border text-muted hover:text-text rounded-full border px-3 py-1"
+                      }
                     >
-                      Reprendre le cadrage de la carte normale
+                      {t.label}
                     </button>
-                  )}
+                  ))}
                 </div>
               )}
-              {image && (
+              {image && sideTab === "glow" ? (
                 <GlowPointsEditor imageUrl={image} points={glowPoints} onChange={setGlowPoints} />
-              )}
-              {upload && card && (
-                <div className="flex w-full flex-col gap-2">
-                  <Label
-                    className="w-full"
-                    hint={
-                      uploadState ??
-                      "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
-                    }
-                  >
-                    Illustration
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      className="py-1.5"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void sendImage(file, file.name);
-                      }}
-                    />
-                  </Label>
-                  <button
-                    type="button"
-                    onClick={() => void pasteFromClipboard()}
-                    className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
-                  >
-                    <ClipboardPaste size={16} aria-hidden />
-                    Coller une image
-                  </button>
-                </div>
+              ) : (
+                <>
+                  {image && (
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-muted text-sm">
+                        Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} :
+                        glisse l&apos;image, zoome, puis enregistre la carte.
+                      </p>
+                      <ImageFramer
+                        // un cadrage par mise en page : changer de mise en page change de réglage
+                        key={layout}
+                        imageUrl={image}
+                        frame={frames[layout]}
+                        onChange={(next) => setFrames((f) => ({ ...f, [layout]: next }))}
+                        // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
+                        width={layout === "normal" ? FINAL_ART.width : 200}
+                        height={layout === "normal" ? FINAL_ART.height : 280}
+                      />
+                      {layout === "fullart" && (
+                        <button
+                          type="button"
+                          className="text-accent text-sm underline-offset-4 hover:underline"
+                          onClick={() => setFrames((f) => ({ ...f, fullart: f.normal }))}
+                        >
+                          Reprendre le cadrage de la carte normale
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {upload && card && (
+                    <div className="flex w-full flex-col gap-2">
+                      <Label
+                        className="w-full"
+                        hint={
+                          uploadState ??
+                          "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
+                        }
+                      >
+                        Illustration
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="py-1.5"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) void sendImage(file, file.name);
+                          }}
+                        />
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => void pasteFromClipboard()}
+                        className="border-border text-muted hover:text-text hover:bg-surface-hover flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm"
+                      >
+                        <ClipboardPaste size={16} aria-hidden />
+                        Coller une image
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
