@@ -29,6 +29,10 @@ Les ressources utilisées sont copiées du projet d'origine dans `apps/web/publi
 | got     | Game of Thrones  | Stark       | Lannister    |
 | ghibli  | Ghibli           | Épouvantail | Nekobasu     |
 
+Exception : dans le thème Simpson, la victoire de M. Burns (« Excellent ») et l'égalité (Homer,
+« C'est nul ! ») ont été remplacées par les mêmes répliques en VF, en meilleure qualité (sources
+hors dépôt : `Morpion assets/sons/simpson/sources.csv`).
+
 Chaque dossier contient le décor, la case vide, deux pions, la musique principale et les sons de pose,
 de victoire des deux joueurs et d'égalité. Les versions alternatives inutilisées de l'ancien projet,
 Bootstrap, jQuery et l'ancien code IA ne sont pas importés.
