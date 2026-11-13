@@ -1,7 +1,7 @@
 import { publishEvent } from "@app/core";
 import { db, Prisma, withTx, type DbTx } from "@app/db";
 import { z, ZodError } from "zod";
-import { dayKey, dayNumber, isOpen, OPENS_AT } from "./daily";
+import { dayKey, dayNumber } from "./daily";
 import { DouzeError } from "./errors";
 import {
   dailyTrials,
@@ -19,9 +19,6 @@ export type Round = { slot: number; kind: TrialKind; points: number };
 export type DayView = {
   date: string;
   number: number;
-  /** Les parties comptent-elles déjà ? (ouverture le 12/12 à 12 h 12) */
-  open: boolean;
-  opensAt: string;
   trials: TrialView[];
   rounds: Round[];
 };
@@ -35,8 +32,8 @@ async function loadRounds(userId: string, date: string): Promise<Round[]> {
   return rows.map((r) => ({ ...r, kind: r.kind as TrialKind }));
 }
 
-/** Options de lecture : `early` ouvre le jeu avant l'heure (en local seulement, pour le tester). */
-type Options = { now?: Date; early?: boolean };
+/** Options : `now` fixe l'heure (tests). */
+type Options = { now?: Date };
 
 /** La journée du joueur : les 12 épreuves du jour et celles qu'il a déjà jouées. */
 export async function getDay(userId: string, opts?: Options): Promise<DayView> {
@@ -45,8 +42,6 @@ export async function getDay(userId: string, opts?: Options): Promise<DayView> {
   return {
     date,
     number: dayNumber(date),
-    open: !!opts?.early || isOpen(now),
-    opensAt: OPENS_AT.toISOString(),
     trials: dailyTrials(date).map(trialView),
     rounds: await loadRounds(userId, date),
   };
@@ -77,8 +72,6 @@ export async function playRound(
   const { date, slot } = parsed.data;
   const { userId } = input;
   const now = opts?.now ?? new Date();
-  if (!opts?.early && !isOpen(now))
-    throw new DouzeError(409, "DOUZE ouvre le 12/12 à 12 h 12. Patience.");
   if (date !== dayKey(now))
     throw new DouzeError(409, "Minuit est passé : voici les nouvelles épreuves !");
 
@@ -125,5 +118,5 @@ export async function playRound(
     }
     throw error;
   }
-  return { round, score, day: await getDay(userId, { now, early: opts?.early }) };
+  return { round, score, day: await getDay(userId, { now }) };
 }

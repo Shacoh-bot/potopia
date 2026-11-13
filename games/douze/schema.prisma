@@ -1,4 +1,4 @@
-// Domaine douze : DOUZE, douze épreuves absurdes par jour. `userId` référence core.users sans
+// Domaine douze : DOUZE, douze épreuves par jour. `userId` référence core.users sans
 // relation. Modèles préfixés Douze : les noms de modèles Prisma sont uniques entre tous les modules.
 
 /// Une épreuve jouée : une des 12 épreuves du jour d'un joueur, avec ses points (calculés par le

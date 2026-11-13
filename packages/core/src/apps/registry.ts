@@ -58,7 +58,7 @@ export const apps: readonly AppEntry[] = [
     icon: "clock",
     route: "/douze",
     requiredRole: "member",
-    art: "/apps/douze.webp",
+    art: "/apps/douze-2.webp",
   },
   {
     id: "morpion",

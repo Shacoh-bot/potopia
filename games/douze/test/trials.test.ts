@@ -120,6 +120,58 @@ describe("épreuves du jour", () => {
     expect(text).not.toContain('"value"');
     const count = views.find((v) => v.kind === "count");
     expect(count && "count" in count).toBe(false);
+    // les 5 réponses proposées se suivent : la bonne n'y est pas repérable
+    expect(count && "choices" in count && count.choices).toHaveLength(5);
+  });
+});
+
+describe("aléatoire du jour", () => {
+  const MONTH = Array.from({ length: 30 }, (_, i) => shiftDate("2026-11-13", i));
+  const of = <K extends Trial["kind"]>(date: string, kind: K) =>
+    dailyTrials(date).find((t) => t.kind === kind) as Extract<Trial, { kind: K }>;
+
+  it("même date : exactement le même contenu, pour tout le monde", () => {
+    for (const date of MONTH) expect(dailyTrials(date)).toEqual(dailyTrials(date));
+  });
+
+  it("d'un jour à l'autre, chaque épreuve change (sauf, rarement, le temps du chrono)", () => {
+    for (const [i, date] of MONTH.entries()) {
+      if (i === 0) continue;
+      const before = dailyTrials(MONTH[i - 1] as string);
+      for (const trial of dailyTrials(date)) {
+        if (trial.kind === "chrono") continue;
+        const yesterday = before.find((t) => t.kind === trial.kind);
+        expect(trial, `${date} ${trial.kind}`).not.toEqual(yesterday);
+      }
+    }
+  });
+
+  it("le vrai 12 : jamais à la même case que la veille, et partout sur le mois", () => {
+    const year = Array.from({ length: 366 }, (_, i) => of(shiftDate("2026-11-13", i), "real"));
+    for (const [i, t] of year.entries()) {
+      expect(t.cells[t.answer]).toBe("12");
+      expect(t.cells.filter((c) => c === "12")).toHaveLength(1);
+      if (i > 0) expect(t.answer, `jour ${i}`).not.toBe(year[i - 1]?.answer);
+    }
+    expect(new Set(year.slice(0, 30).map((t) => t.answer)).size).toBeGreaterThanOrEqual(15);
+    expect(new Set(year.map((t) => t.cells.length))).toEqual(new Set([18, 24, 30]));
+  });
+
+  it("grilles, leurres et réponses proposées varient", () => {
+    const shapes = new Set(MONTH.map((d) => of(d, "polygon").shapes.length));
+    expect(shapes).toEqual(new Set([9, 12, 16]));
+    expect(new Set(MONTH.map((d) => of(d, "clock").clocks.length)).size).toBeGreaterThan(1);
+    expect(new Set(MONTH.map((d) => of(d, "letters").words.length)).size).toBeGreaterThan(1);
+    expect(new Set(MONTH.map((d) => of(d, "count").count)).size).toBeGreaterThan(3);
+    for (const d of MONTH) {
+      const count = of(d, "count");
+      expect(count.choices).toContain(count.count);
+      expect(count.choices).toHaveLength(5);
+    }
+    // la bonne réponse n'est pas toujours au même rang parmi les 5 proposées
+    expect(
+      new Set(MONTH.map((d) => of(d, "count").choices.indexOf(of(d, "count").count))).size,
+    ).toBe(5);
   });
 });
 

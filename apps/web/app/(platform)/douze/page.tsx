@@ -9,8 +9,8 @@ export const metadata: Metadata = { title: DOUZE_NAME };
 
 export default async function DouzePage() {
   const user = await getCurrentMember();
-  // en local et pour les admins : la journée rejouable pour de faux (et l'entraînement avant
-  // l'ouverture), sans rien enregistrer
+  // en local et pour les admins : une fois la journée finie, en rejouer une autre pour de faux
+  // (un jour passé tiré au hasard), sans rien enregistrer
   const practice = process.env.NODE_ENV !== "production" || isAdmin(user.discordId);
   return (
     <div className="flex flex-col gap-4">

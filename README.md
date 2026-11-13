@@ -5,7 +5,7 @@ Un portail web réservé aux membres d'un serveur Discord : connexion avec Disco
 commune (et y disent la phrase choisie par leur membre), boîte à idées, vote du design des futures cartes, et des jeux : **TROIS** (un Wordle
 français à 3 mots par jour), **Agents Doubles** (jeu d'espions coopératif à deux), **Pose JoJo**
 (mettre un pantin articulé dans une pose célèbre de JoJo), **Morpion** (duels entre membres) et
-**DOUZE** (douze épreuves absurdes par jour autour du nombre 12). Le nom affiché
+**DOUZE** (douze épreuves par jour autour du nombre 12). Le nom affiché
 et celui de la monnaie viennent de `packages/config/brand.ts`.
 
 - Choix techniques et règles d'architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -128,8 +128,7 @@ La migration additive `20261104230000_morpion` crée le schéma du jeu (`pnpm db
 
 La tuile **DOUZE** ouvre `/douze` : douze épreuves express par jour (chrono à l'aveugle, compter
 des canards, trouver le dodécagone…), les mêmes pour tout le monde, chacune notée sur 12 (144 au
-plus), classement du jour, de la semaine et du mois. Ouverture le 12/12/2026 à 12 h 12 (compte à
-rebours d'ici là) ; en local, le jeu est ouvert tout de suite pour le tester. Voir
+plus), classement du jour, de la semaine et du mois. Voir
 [le module](games/douze/README.md). La migration additive `20261113190000_douze` crée le schéma
 du jeu (`pnpm db:deploy` en local).
 
@@ -177,7 +176,7 @@ packages/
   ui/            thèmes et composants de base
 games/
   agents/        Agents Doubles, le jeu d'espions coopératif à deux
-  douze/         DOUZE, douze épreuves absurdes par jour autour du 12 (ouverture le 12/12 à 12 h 12)
+  douze/         DOUZE, douze épreuves par jour autour du 12
   goty/          GOTY Party : préparation, pronostics, cérémonie, archives et interface React/TV
   pose/          Pose JoJo, le pantin à mettre dans une pose célèbre, 3 poses par jour
   tcg/           jeu de cartes : vote du design (/cartes), cartes et effets (admin /admin/cartes),
