@@ -194,7 +194,8 @@ function Pack({
       const old = o.material as THREE.MeshStandardMaterial;
       const m = new THREE.MeshPhysicalMaterial({
         map: old.map,
-        metalness: 0.35,
+        // Peu métallique : le métal reflète le fond sombre et délavait les couleurs du paquet.
+        metalness: 0.2,
         roughness: 0.24,
         iridescence: 1,
         iridescenceIOR: 1.5,

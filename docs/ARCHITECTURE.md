@@ -1119,18 +1119,35 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
 - `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». L'écran d'ouverture
   (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur tire les
   cartes (`openBoosterAction`) : 1) le paquet en 3D (`PackScene`, three.js et React Three Fiber,
-  chargés à la demande) qu'on fait tourner en glissant, reflets irisés ; 2) glisser la souris le
-  long de la ligne pointillée (85 % de la largeur) le découpe : la caméra s'approche du haut du
+  chargés à la demande), reflets irisés : clic gauche ou un doigt pour le tourner, clic droit ou
+  deux doigts pour le déplacer, molette ou pincement pour zoomer (bornés, la page ne défile pas) ;
+  petites icônes d'aide sous le paquet (version tactile sur écran tactile) ; 2) glisser le long de
+  la ligne pointillée (85 % de la largeur) le découpe — la position sur la ligne vient d'un rayon
+  de la caméra jusqu'au plan du paquet, donc quel que soit le zoom ; lâchée avant la fin, la
+  découpe est abandonnée et sa trace recule. Une fois découpé, la caméra repart de la vue du
+  joueur (zoom et déplacement ramenés à zéro dans le même mouvement) et s'approche du haut du
   paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
-  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25) ; 3) quand
-  les cartes de la vidéo sont posées, les 5 vraies cartes, de dos, se rangent côte à côte ; un clic
-  retourne chacune (demi-tour, halo selon la rareté). Le paquet 3D repasse aux couleurs du rendu
-  Blender pendant l'approche, pour un relais sans saut. Safari joue la vidéo MP4 (le WebM
-  transparent n'y marche pas) ; animations réduites : directement les cartes.
+  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25). Avant la
+  découpe, la vidéo, calée sur ce plan serré, reste cachée (`data-waiting`) : sinon on la voyait
+  « zoomée » tant que le paquet 3D n'était pas dessiné ; elle est calée au moment où elle apparaît
+  dans la page (pas seulement quand `src` change). 3) quand les cartes de la vidéo sont posées,
+  les 5 vraies cartes, de dos, se rangent côte à côte ; chacune est une vraie carte recto-verso
+  (dos et `GameCard` montés dos à dos, `backface-visibility`), qu'un clic fait pivoter d'un seul
+  demi-tour (`tcg-flip-over`) ; le halo de rareté s'allume à mi-parcours, l'inclinaison et les
+  reflets reviennent une fois la carte posée. Chaque nouveau paquet repart de la vue d'origine
+  (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
+  un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
+  réduites : directement les cartes.
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
-  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
-  illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
-  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
+  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; le
+  modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
+  paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
+  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`), tous
+  trois produits par la version v2 du script Blender (hors dépôt, dossier
+  `Animation paquet de cartes/v2/`) : couleurs plus vives (textures plus saturées, illustration
+  peu métallique) et bords soudés du haut et du bas légèrement ondulés ; la ligne pointillée reste
+  droite et la caméra du raccord est inchangée. Modèle et vidéo doivent toujours venir du même
+  rendu, sinon le relais saute.
 - Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
