@@ -134,7 +134,8 @@ d'articulation à articulation, comme le pantin les juge : le bras de l'épaule 
 l'avant-bras du coude au poignet, la cuisse de la hanche au genou, la jambe du genou à la
 cheville. La largeur des épaules et du bassin ne compte pas (le pantin ne peut pas la changer).
 Chaque articulation se pointe dans l'axe du membre, là où il plie, sous les vêtements : pas au
-bout d'une manche bouffante, d'une épaulette ou d'un pli de pantalon. Vérification : le squelette
+bout d'une manche bouffante, d'une épaulette ou d'un pli de pantalon. Jambes croisées : la jambe gauche de l'image peut finir à droite (Kira, Speedwagon,
+Rohan), on suit chaque jambe de la hanche à son pied. Vérification : le squelette
 pointé est tracé sur l'image, puis comparé au pantin cible. Repointage complet le 8 novembre 2026
 (plusieurs poses étaient fausses : bras, jambes inversées, têtes) ; trois poses à bras croisés
 illisibles en 2D ont été retirées (Kars « La lame », Kakyoin « Le doigt levé », Straizo « Bras
