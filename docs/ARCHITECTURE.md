@@ -1122,11 +1122,12 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   chargés à la demande), reflets irisés : clic gauche ou un doigt pour le tourner, clic droit ou
   deux doigts pour le déplacer, molette ou pincement pour zoomer (bornés, la page ne défile pas) ;
   petites icônes d'aide sous le paquet (version tactile sur écran tactile) ; 2) glisser le long de
-  la ligne pointillée (85 % de la largeur) le découpe — la position sur la ligne vient d'un rayon
-  de la caméra jusqu'au plan du paquet, donc quel que soit le zoom ; lâchée avant la fin, la
-  découpe est abandonnée et sa trace recule. Une fois découpé, la caméra repart de la vue du
-  joueur (zoom et déplacement ramenés à zéro dans le même mouvement) et s'approche du haut du
-  paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
+  la ligne pointillée (85 % de la largeur) le découpe : un clic sur le ciseau fige le paquet tel
+  qu'il est (rotation, zoom, déplacement, face visible devant ou au dos), et la position sur la
+  ligne vient d'un rayon de la caméra jusqu'au plan de cette face ; lâchée avant la fin, la
+  découpe est abandonnée, sa trace recule et le paquet se déverrouille. Une fois découpé, le
+  paquet rejoint en douceur la pose de départ de l'animation (0,45 s), puis la caméra s'approche
+  du haut du paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
   `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25). Avant la
   découpe, la vidéo, calée sur ce plan serré, reste cachée (`data-waiting`) : sinon on la voyait
   « zoomée » tant que le paquet 3D n'était pas dessiné ; elle est calée au moment où elle apparaît
@@ -1143,10 +1144,11 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
   paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
   (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`), tous
-  trois produits par la version v2 du script Blender (hors dépôt, dossier
-  `Animation paquet de cartes/v2/`) : couleurs plus vives (textures plus saturées, illustration
-  peu métallique) et bords soudés du haut et du bas légèrement ondulés ; la ligne pointillée reste
-  droite et la caméra du raccord est inchangée. Modèle et vidéo doivent toujours venir du même
+  trois produits par la version v3 du script Blender (hors dépôt, dossier
+  `Animation paquet de cartes/v3/`) : couleurs plus vives (textures plus saturées, illustration
+  peu métallique), paquet plus plat et plus long (2 × 3,8 m, bombé 0,12), soudures du haut et du
+  bas légèrement ondulées d'avant en arrière seulement (vue de face, la silhouette reste droite) ;
+  la ligne pointillée et la caméra du raccord sont inchangées. Modèle et vidéo doivent toujours venir du même
   rendu, sinon le relais saute : leurs URL portent `?v=` (`ASSETS_VERSION` de `BoosterOpening`),
   à augmenter à chaque nouveau rendu pour que le cache d'un jour ne garde pas l'ancien modèle.
 - Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :

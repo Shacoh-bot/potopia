@@ -121,7 +121,7 @@ function videoSource(base: string): string {
  * fichiers restent un jour en cache dans le navigateur ; sans elle, un joueur garderait l'ancien
  * modèle avec la nouvelle vidéo, et le relais sauterait.
  */
-const ASSETS_VERSION = 2;
+const ASSETS_VERSION = 3;
 
 /** Modèle 3D du paquet. */
 const packUrl = (base: string) => `${base}/paquet.glb?v=${ASSETS_VERSION}`;

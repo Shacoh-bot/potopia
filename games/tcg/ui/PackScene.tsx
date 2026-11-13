@@ -42,11 +42,10 @@ const CUT_ABOVE = 0.3;
 /** Longueur (m) à découper en glissant pour ouvrir : presque toute la largeur (2 m), avec une
  * petite marge aux bords ; la trace finit alors seule jusqu'aux deux bords. */
 const CUT_LENGTH = 1.7;
-/** Durées (s) : remise de face pour découper, approche de la caméra ; retour à la vue d'origine
- * ajouté à l'approche quand le joueur a zoomé ou déplacé le paquet. */
-const ALIGN_TIME = 0.18;
+/** Durées (s) : retour du paquet à la pose de départ de l'animation (s'il a été tourné, zoomé ou
+ * déplacé), puis approche de la caméra jusqu'au plan de la vidéo. */
+const RESET_TIME = 0.45;
 const ZOOM_TIME = 0.5;
-const RESET_TIME = 0.3;
 /** Distance de la caméra (m) : au départ, et bornes du zoom à la molette ou au pincement. */
 const START_DIST = VIEW_START.position.z;
 const MIN_DIST = 4.5;
@@ -69,10 +68,14 @@ const LOOK = {
 };
 
 type Motion = { rotX: number; rotY: number; velX: number; velY: number; dragging: boolean };
-/** Découpe en cours ; `retract` : abandonnée, la trace recule vers son point de départ. */
+/**
+ * Découpe en cours ; `retract` : abandonnée, la trace recule vers son point de départ. `side` :
+ * face découpée (1 devant, -1 au dos), celle qu'on voyait au clic sur le ciseau.
+ */
 type Cut = {
   active: boolean;
   retract: boolean;
+  side: 1 | -1;
   start: number;
   x: number;
   min: number;
@@ -84,7 +87,18 @@ type View = { dist: number; distTo: number; panX: number; panY: number };
 /** Point de l'écran → position (m) sur la ligne de découpe, le long du paquet. */
 type Project = (clientX: number, clientY: number) => number | null;
 
-const NEW_CUT: Cut = { active: false, retract: false, start: 0, x: 0, min: 0, max: 0, last: 0 };
+const NEW_CUT: Cut = {
+  active: false,
+  retract: false,
+  side: 1,
+  start: 0,
+  x: 0,
+  min: 0,
+  max: 0,
+  last: 0,
+};
+
+const IDENTITY = new THREE.Quaternion();
 
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -177,14 +191,17 @@ function Pack({
   const group = useRef<THREE.Group>(null);
   const glow = useRef<THREE.Mesh[]>([]);
   const streak = useRef<THREE.Mesh>(null);
-  // Approche : point de départ (vue choisie par le joueur) et durée.
+  // Après la découpe : pose du paquet et de la caméra au départ du retour, durée du retour.
   const zoom = useRef({
     start: -1,
     done: false,
-    time: ZOOM_TIME,
+    reset: RESET_TIME,
     camera: new THREE.Vector3(),
     pack: new THREE.Vector3(),
+    turn: new THREE.Quaternion(),
   });
+  // Temps du flottement : il s'arrête quand le paquet est figé (pas de saut au déverrouillage).
+  const floatTime = useRef(0);
 
   // Film holographique : le matériau exporté, avec des reflets irisés et un vernis.
   const materials = useMemo(() => {
@@ -227,8 +244,8 @@ function Pack({
     onReady();
   }, [camera, onReady]);
 
-  // Position sur la ligne de découpe sous le pointeur : rayon de la caméra jusqu'au plan du
-  // paquet (de face pendant la découpe), quels que soient le zoom et le déplacement.
+  // Position sur la ligne de découpe sous le pointeur : rayon de la caméra jusqu'au plan de la
+  // face découpée, le paquet étant figé tel quel (tourné, zoomé, déplacé).
   useEffect(() => {
     const ray = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
@@ -246,7 +263,9 @@ function Pack({
       g.updateMatrixWorld();
       plane.setFromNormalAndCoplanarPoint(
         new THREE.Vector3(0, 0, 1).transformDirection(g.matrixWorld),
-        g.localToWorld(new THREE.Vector3(0, CUT_Y, surface.front)),
+        g.localToWorld(
+          new THREE.Vector3(0, CUT_Y, cut.current.side > 0 ? surface.front : surface.back),
+        ),
       );
       if (!ray.ray.intersectPlane(plane, hit)) return null;
       return g.worldToLocal(hit).x;
@@ -254,7 +273,7 @@ function Pack({
     return () => {
       project.current = null;
     };
-  }, [camera, gl, project, surface]);
+  }, [camera, cut, gl, project, surface]);
 
   const target = useMemo(() => new THREE.Vector3(), []);
 
@@ -267,29 +286,36 @@ function Pack({
     const t = state.clock.elapsedTime;
 
     if (zooming) {
-      // Approche de la caméra jusqu'au plan de la vidéo, paquet immobile de face. Elle part de
-      // la vue du joueur : zoom et déplacement reviennent à zéro dans le même mouvement.
+      // Découpe finie : le paquet quitte en douceur la pose où le joueur l'a figé (rotation,
+      // zoom, déplacement) pour la pose de départ de l'animation, puis la caméra s'approche
+      // jusqu'au plan de la vidéo, qui prend le relais.
       const z = zoom.current;
       if (z.done) return;
       if (z.start < 0) {
         z.start = t;
         z.camera.copy(camera.position);
         z.pack.copy(g.position);
+        z.turn.copy(g.quaternion);
         const moved =
-          Math.abs(camera.position.z - START_DIST) > 0.2 || g.position.lengthSq() > 0.01;
-        z.time = ZOOM_TIME + (moved ? RESET_TIME : 0);
+          Math.abs(camera.position.z - START_DIST) > 0.05 ||
+          g.position.lengthSq() > 0.0004 ||
+          g.quaternion.angleTo(IDENTITY) > 0.05;
+        z.reset = moved ? RESET_TIME : 0;
       }
-      const k = ease(Math.min(1, (t - z.start) / z.time));
-      g.rotation.set(0, 0, 0);
-      g.position.lerpVectors(z.pack, VIEW_START.target, k);
-      camera.position.lerpVectors(z.camera, VIEW_CUT.position, k);
+      const elapsed = t - z.start;
+      const r = z.reset > 0 ? ease(Math.min(1, elapsed / z.reset)) : 1;
+      const k = ease(Math.min(1, Math.max(0, elapsed - z.reset) / ZOOM_TIME));
+      g.quaternion.slerpQuaternions(z.turn, IDENTITY, r);
+      g.position.lerpVectors(z.pack, VIEW_START.target, r);
+      camera.position.lerpVectors(z.camera, VIEW_START.position, r);
+      if (r >= 1) camera.position.lerpVectors(VIEW_START.position, VIEW_CUT.position, k);
       target.lerpVectors(VIEW_START.target, VIEW_CUT.target, k);
       camera.lookAt(target);
       look.current = 1 - k;
       // La trace finit la coupe jusqu'aux deux bords, puis s'efface avant le relais vidéo.
       const s = streak.current;
       if (s) {
-        const f = ease(Math.min(1, (t - z.start) / (z.time * 0.35)));
+        const f = ease(Math.min(1, elapsed / 0.25));
         const min = mix(c.min, -1.02, f);
         const max = mix(c.max, 1.02, f);
         s.scale.x = max - min;
@@ -301,7 +327,7 @@ function Pack({
         // Une image de plus au plan exact avant de passer la main à la vidéo.
         requestAnimationFrame(() => requestAnimationFrame(onZoomed));
       }
-    } else {
+    } else if (!c.active) {
       // Vue du joueur : zoom (molette, pincement) adouci, déplacement suivi tel quel.
       v.dist = mix(v.dist, v.distTo, 1 - Math.pow(0.0005, dt));
       clampPan(v);
@@ -313,15 +339,11 @@ function Pack({
     if (zooming) {
       // Approche en cours (ci-dessus) : le paquet ne bouge plus.
     } else if (c.active) {
-      // Découpe : le paquet se remet de face et ne bouge plus.
-      const k = Math.min(1, dt / ALIGN_TIME);
-      const turns = Math.round(g.rotation.y / (Math.PI * 2)) * Math.PI * 2;
-      g.rotation.set(mix(g.rotation.x, 0, k), mix(g.rotation.y, turns, k), mix(g.rotation.z, 0, k));
-      g.position.y = mix(g.position.y, v.panY, k);
-      m.rotX = g.rotation.x;
-      m.rotY = g.rotation.y;
+      // Ciseau : le paquet est figé tel quel (ni redressé, ni flottant) pendant la découpe.
       m.velX = m.velY = 0;
     } else {
+      floatTime.current += dt;
+      const ft = floatTime.current;
       // Inertie après le lâcher, indépendante de la fréquence d'affichage.
       if (!m.dragging) {
         const damp = Math.pow(0.9, dt * 60);
@@ -332,8 +354,8 @@ function Pack({
         m.rotX *= Math.pow(0.97, dt * 60);
       }
       m.rotX = Math.max(-0.6, Math.min(0.6, m.rotX));
-      g.position.y = v.panY + Math.sin(t * 1.3) * 0.05;
-      g.rotation.set(m.rotX, m.rotY, Math.sin(t * 0.9) * 0.02);
+      g.position.y = v.panY + Math.sin(ft * 1.3) * 0.05;
+      g.rotation.set(m.rotX, m.rotY, Math.sin(ft * 0.9) * 0.02);
     }
 
     const holo = look.current;
@@ -379,10 +401,18 @@ function Pack({
           // Clic gauche ou doigt seulement : le clic droit déplace le paquet.
           if (zooming || !g || e.nativeEvent.button !== 0 || !onLine(e)) return;
           const local = g.worldToLocal(e.point.clone());
+          // Face découpée : celle tournée vers la caméra (le paquet reste tel quel).
+          const side = g.worldToLocal(camera.position.clone()).z >= 0 ? 1 : -1;
+          const s = streak.current;
+          if (s) {
+            s.position.z = side > 0 ? surface.front + 0.006 : surface.back - 0.006;
+            s.rotation.y = side > 0 ? 0 : Math.PI;
+          }
           // Lu par les gestes du canevas (qui reçoivent l'événement juste après) : pas de rotation.
           cut.current = {
             active: true,
             retract: false,
+            side,
             start: local.x,
             x: local.x,
             min: local.x,
@@ -495,7 +525,8 @@ export default function PackScene({
     if (!el) return;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (zoomingRef.current) return;
+      // Pendant la découpe, le paquet est figé : pas de zoom non plus.
+      if (zoomingRef.current || cut.current.active) return;
       // Firefox compte parfois en lignes, pas en pixels.
       const delta = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
       const v = view.current;
