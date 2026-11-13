@@ -516,7 +516,8 @@ décors.
   en grille 11 × 4, `dio-road-roller-grid.webp`, une bande de 44 images dépassant la taille de
   texture des cartes graphiques), voix et musiques (`public/audio/jojo-*.mp3`, tirés de vidéos du
   jeu et de l'anime) ; sprites et bruitages sont préchargés et décodés dès que le thème est
-  affiché, le thème de Jotaro (1,4 Mo) se lit en flux à la première rafale. Star Platinum suit la
+  affiché, le thème de Jotaro (1,4 Mo) se lit en flux à la première rafale ; pendant une rafale,
+  ORA, MUDA et le thème suivent le bouton volume du header en direct (`onVolumeChange`). Star Platinum suit la
   souris dans une boucle `requestAnimationFrame` qui ne tourne que pendant qu'il la rattrape (rien
   sans Stand ni hors du thème), déplacé par `translate`. Sécurités : une rafale
   s'arrête si l'onglet passe en arrière-plan ou si le clic est relâché hors de la fenêtre (pas de limite de durée) ; le thème de Jotaro reprend là où la rafale précédente l'a laissé ; rien pendant l'arrêt du temps,
