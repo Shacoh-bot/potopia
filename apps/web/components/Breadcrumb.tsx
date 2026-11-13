@@ -6,11 +6,13 @@ import { BreadcrumbNav } from "./BreadcrumbNav";
  * quand le segment seul est ambigu). Ajouter ici les nouvelles sections.
  */
 const SECTION_LABELS: Record<string, string> = {
+  "admin/boosters": "Boosters",
   "admin/cartes": "Cartes",
   "admin/cartes/illustrations": "Illustrations",
   "admin/cartes/import": "Import",
   "admin/cartes/nouvelle": "Nouvelle carte",
   "admin/mascotte": "Mascotte",
+  "admin/potodex": "Potodex",
   avatar: "Mon avatar",
   credits: "Crédits",
   economy: "Monnaie",

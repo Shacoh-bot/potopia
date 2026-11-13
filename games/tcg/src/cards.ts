@@ -56,9 +56,9 @@ export {
 } from "./card-rules";
 
 /** Utilisateur qui lit ou modifie : seuls les admins (ADMIN_DISCORD_IDS) y ont droit. */
-type Admin = { discordId: string | null };
+export type Admin = { discordId: string | null };
 
-function assertAdmin(admin: Admin): void {
+export function assertAdmin(admin: Admin): void {
   if (!isAdmin(admin.discordId)) throw new ForbiddenError("Réservé aux admins.");
 }
 
@@ -202,7 +202,7 @@ type CardRow = Omit<
   set: { code: string } | null;
 };
 
-function toCard(row: CardRow): Card {
+export function toCard(row: CardRow): Card {
   const { set, visualEffects, ...rest } = row;
   return {
     ...rest,
@@ -218,7 +218,7 @@ function toCard(row: CardRow): Card {
 }
 
 /** Ce qu'il faut lire avec une carte : le code de son set et ses effets visuels, dans l'ordre. */
-const withSet = {
+export const withSet = {
   set: { select: { code: true } },
   visualEffects: { select: { effectKey: true }, orderBy: { position: "asc" } },
 } as const;

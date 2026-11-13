@@ -4,5 +4,6 @@ export { DesignRating, type RateState } from "./DesignRating";
 export { CardEditor, type CardEditorState, type CardFields } from "./CardEditor";
 export { GameCard, GameCardDefs, type GameCardFields, typeLine } from "./GameCard";
 export { CardBack } from "./CardBack";
+export { BoosterOpening, type OpenedCard, preloadBoosterOpening } from "./BoosterOpening";
 export { CardFlip } from "./CardFlip";
 export { CardImagesUpload } from "./CardImagesUpload";

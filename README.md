@@ -162,7 +162,8 @@ games/
   agents/        Agents Doubles, le jeu d'espions coopératif à deux
   goty/          GOTY Party : préparation, pronostics, cérémonie, archives et interface React/TV
   pose/          Pose JoJo, le pantin à mettre dans une pose célèbre, 3 poses par jour
-  tcg/           jeu de cartes : vote du design (/cartes), cartes et effets (admin /admin/cartes)
+  tcg/           jeu de cartes : vote du design (/cartes), cartes et effets (admin /admin/cartes),
+                 boosters et Potodex en test (/admin/boosters, /admin/potodex)
   trois/         TROIS, le Wordle à 3 mots par jour
 ```
 
@@ -277,6 +278,10 @@ coup (chaque fichier porte le numéro de sa carte : `12.jpg` ; converties en Web
 idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Un effet nouveau s'ajoute dans
 `effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise) et devient disponible pour
 toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
+
+Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
+set choisi, **Administration › Potodex** montre les cartes trouvées et remet la collection de test
+à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
 
 ### Mettre à jour la mascotte
 
