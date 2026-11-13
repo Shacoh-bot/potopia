@@ -690,7 +690,7 @@ position. Détails du jeu : [games/pose/README.md](../games/pose/README.md).
 
 ## Étape 16 : DOUZE (en cours)
 
-Jeu du portail : douze épreuves absurdes par jour autour du nombre 12, notées chacune sur 12.
+Jeu du portail : douze épreuves par jour autour du nombre 12, notées chacune sur 12.
 Détails du jeu : [games/douze/README.md](../games/douze/README.md).
 
 **Tâches**
@@ -699,12 +699,15 @@ Détails du jeu : [games/douze/README.md](../games/douze/README.md).
       fais 12, dodécagone, horloge, douze lettres, compteur fou, calculs, le vrai 12, l'Oracle),
       tirées chaque jour à partir de la date, l'Oracle toujours en 12e ; points calculés par le
       serveur ; recharger en pleine épreuve compte 0.
-- [x] Page `/douze`, tuile illustrée « DOUZE », compte à rebours jusqu'à l'ouverture (12/12 à
-      12 h 12), entraînement pour de faux en local et pour les admins, jeu ouvert en local.
+- [x] Page `/douze`, tuile illustrée « DOUZE » ; journée rejouable pour de faux (un jour passé
+      tiré au hasard) en local et pour les admins.
 - [x] Base `douze` (table `rounds`, migration `20261113190000_douze`, ajout seul) ; classement
       jour, semaine et mois avec l'historique et le podium ; journée finie dans le fil d'activité
       et sur la place.
-- [ ] Ouverture le 12/12/2026 à 12 h 12, retours des membres, nouvelles épreuves.
+- [x] Sortie immédiate (plus d'attente du 12/12), intro courte, plus d'aléatoire chaque jour
+      (grilles, leurres, positions ; le vrai 12 jamais à la case de la veille), sous-titre de
+      la tuile raccourci.
+- [ ] Retours des membres, nouvelles épreuves.
 
 **Fini quand**
 

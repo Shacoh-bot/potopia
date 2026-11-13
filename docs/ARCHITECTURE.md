@@ -39,7 +39,7 @@ Pourquoi Better Auth plutôt qu'Auth.js :
 apps/web/            app Next mince : routes, layouts, server actions, route handlers
 games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
-  douze/             DOUZE : douze épreuves absurdes par jour autour du 12, notées sur 12 chacune
+  douze/             DOUZE : douze épreuves par jour autour du 12, notées sur 12 chacune
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
   pose/              Pose JoJo : un pantin à mettre dans une pose célèbre, 3 poses par jour
   morpion/           duels entre membres, cinq univers du DM original, revanches aléatoires (perdant au premier tour)
@@ -1305,8 +1305,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
       import), puis boosters, collection, decks et parties.
 - [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre, 3 poses par jour,
       classement (base `pose`) ; la récompense en monnaie reste à faire.
-- [ ] 16. `games/douze` : DOUZE, douze épreuves absurdes par jour (base `douze`), classement ;
-      ouverture le 12/12/2026 à 12 h 12.
+- [ ] 16. `games/douze` : DOUZE, douze épreuves par jour (base `douze`), classement ; ouvert
+      dès sa mise en ligne.
 
 ## Hors périmètre (pour l'instant)
 

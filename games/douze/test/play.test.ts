@@ -16,11 +16,11 @@ import { EMPTY_ANSWERS, type Answer } from "../src/trials";
 
 const ME = "user-me";
 const OTHER = "user-other";
-// midi à Paris le mercredi 16 décembre 2026 : après l'ouverture, loin de minuit
+// midi à Paris le mercredi 16 décembre 2026, loin de minuit : journée n° 34 (n° 1 le 13/11)
 const NOW = new Date("2026-12-16T11:00:00Z");
 const TODAY = dayKey(NOW);
-// la veille de l'ouverture
-const BEFORE = new Date("2026-12-11T11:00:00Z");
+// le jour de la mise en ligne
+const LAUNCH = new Date("2026-11-13T19:00:00Z");
 
 /** Réponse parfaite aux épreuves faciles à réussir, vide pour les autres. */
 function answerFor(slot: number, date = TODAY): Answer {
@@ -56,20 +56,15 @@ beforeEach(async () => {
 describe("partie du jour", () => {
   it("donne les 12 épreuves du jour, sans leurs réponses", async () => {
     const day = await getDay(ME, { now: NOW });
-    expect(day).toMatchObject({ date: TODAY, number: 5, open: true, rounds: [] });
+    expect(day).toMatchObject({ date: TODAY, number: 34, rounds: [] });
     expect(day.trials.map((t) => t.kind)).toEqual(dailyTrials(TODAY).map((t) => t.kind));
     expect(JSON.stringify(day.trials)).not.toContain('"answer"');
   });
 
-  it("fermé avant le 12/12 à 12 h 12, sauf en avance (en local)", async () => {
-    expect((await getDay(ME, { now: BEFORE })).open).toBe(false);
-    await expectDouzeError(play(ME, 0, answerFor(0, dayKey(BEFORE)), BEFORE), 409);
-    const early = await playRound(
-      { userId: ME, date: dayKey(BEFORE), slot: 0, answer: answerFor(0, dayKey(BEFORE)) },
-      { now: BEFORE, early: true },
-    );
-    expect(early.day.open).toBe(true);
-    expect(early.day.rounds).toHaveLength(1);
+  it("ouvert dès la mise en ligne : journée n° 1, la partie compte", async () => {
+    const { day } = await play(ME, 0, answerFor(0, dayKey(LAUNCH)), LAUNCH);
+    expect(day).toMatchObject({ date: "2026-11-13", number: 1 });
+    expect(day.rounds).toHaveLength(1);
   });
 
   it("calcule les points côté serveur", async () => {
@@ -107,7 +102,7 @@ describe("partie du jour", () => {
     expect(event).toMatchObject({
       app: "douze",
       type: "day_completed",
-      payload: { number: 5, points: 36, perfect: 3 },
+      payload: { number: 34, points: 36, perfect: 3 },
     });
   });
 });

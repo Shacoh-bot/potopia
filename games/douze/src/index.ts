@@ -1,5 +1,5 @@
 export { NAME as DOUZE_NAME } from "./game";
-export { dayKey, dayNumber, FIRST_DAY, isOpen, OPENS_AT } from "./daily";
+export { dayKey, dayNumber, FIRST_DAY } from "./daily";
 export { DouzeError } from "./errors";
 export {
   dayLeaderboard,

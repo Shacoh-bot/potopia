@@ -1,4 +1,4 @@
-# DOUZE — douze épreuves absurdes par jour
+# DOUZE — douze épreuves par jour
 
 _Douze._
 
@@ -7,41 +7,45 @@ chacune **sur 12** : une journée parfaite vaut **144 points** (12 × 12, une gr
 s'enchaînent façon jeu télé : annonce en grand, quelques secondes pour jouer, points, suivante.
 
 Jeu intégré au portail : page `/douze`, routes `/api/douze/*`, tuile « DOUZE » dans le registre
-des apps (illustration `apps/web/public/apps/douze.webp`). Pas de récompense en monnaie.
+des apps (illustration `apps/web/public/apps/douze-2.webp`). Pas de récompense en monnaie.
 
 ## Ouverture
 
-Le jeu ouvre le **12/12/2026 à 12 h 12**, heure de Paris (`OPENS_AT`, `src/daily.ts`). Avant,
-la page affiche un compte à rebours et le serveur refuse les parties (409). Journée n° 1 : le
-12 décembre 2026 (`FIRST_DAY`), pour le fil d'activité.
+Le jeu est ouvert dès sa mise en ligne : les parties comptent tout de suite, partout. Journée
+n° 1 : le jour de la mise en ligne (`FIRST_DAY`, `src/daily.ts`), pour le numéro « DOUZE #n » du
+fil d'activité.
 
-- **En local** (`NODE_ENV` autre que `production`) : le jeu est ouvert tout de suite (option
-  `early` des routes), pour le tester avec de vraies parties et le classement.
-- **En local et pour les admins** : « S'entraîner pour de faux » avant l'ouverture et « Rejouer
-  pour de faux » après la journée (`allowPractice`) : points calculés dans le navigateur, rien
-  d'enregistré.
+- **En local et pour les admins** : une fois la journée finie, « Rejouer pour de faux »
+  (`allowPractice`) joue une autre journée, un jour passé tiré au hasard : points calculés dans
+  le navigateur, rien d'enregistré. Rejouer la journée du jour n'apprendrait rien (mêmes
+  épreuves, même case pour le vrai 12).
 
 ## Les douze épreuves
 
 `src/trials.ts` (génération, temps, notation), `src/content.ts` (questions, mots, calculs,
 horloges), `ui/Trials.tsx` (affichage). Chaque jour, les onze premières sont tirées dans un ordre
 mélangé ; **l'Oracle est toujours la 12e**. Le contenu de chaque épreuve dépend de la date (graine
-tirée de la date et du type d'épreuve) : même journée pour tout le monde.
+tirée de la date et du type d'épreuve, aucune graine liée au joueur) : même journée pour tout le
+monde, autre journée le lendemain. Tout ce qui peut varier varie : taille des grilles (9, 12 ou
+16 formes ; 18, 24 ou 30 cases), nombre de leurres et de sosies, positions, vitesses, temps
+d'affichage du chrono, réponses proposées. **Le vrai 12 n'est jamais à la même case que la
+veille** (`realPlacement` : en cas d'égalité, la case est décalée, toujours selon la graine du
+jour).
 
-| Épreuve            | Temps | Ce qu'on fait                                                                   | Points                                     |
-| ------------------ | ----- | ------------------------------------------------------------------------------- | ------------------------------------------ |
-| Chrono à l'aveugle | 20 s  | arrêter le chrono à 12,00 s ; il disparaît au bout de 2 à 5 s                   | 12, moins 1 par dixième de seconde d'écart |
-| Douze clics        | 6 s   | cliquer exactement 12 fois, sans compteur (le bouton saute un jour sur deux)    | 12, moins 4 par clic d'écart               |
-| Compter            | 10 s  | 4 s pour compter des objets qui flottent (sans leurs sosies), puis répondre     | 12 juste, 4 à un près                      |
-| Douze ou pas douze | 16 s  | quatre questions : la réponse est-elle 12 ?                                     | 3 par bonne réponse                        |
-| Fais 12            | 20 s  | toucher des nombres qui font 12 ensemble, quatre paquets                        | 3 par paquet                               |
-| Le dodécagone      | 9 s   | trouver la forme à 12 côtés parmi des formes à 10, 11, 13 et 14 côtés           | 12 ou 0                                    |
-| L'horloge          | 9 s   | trouver l'horloge qui indique « 12 h 12 », « midi pile »…                       | 12 ou 0                                    |
-| Douze lettres      | 9 s   | trouver le mot de 12 lettres (les tirets et accents ne comptent pas)            | 12 ou 0                                    |
-| Le compteur fou    | 12 s  | des sosies de 12 défilent (21, 112, 1,2…) : cliquer quand c'est 12              | 12 ou 0 (80 ms de marge)                   |
-| Calculs            | 12 s  | cocher tout ce qui fait 12 (√144, XII, 0xC…)                                    | 12 × (bons − intrus) / nombre de bons      |
-| Le vrai 12         | 9 s   | trouver le seul « 12 » parmi I2, l2, 1Z…                                        | 12 ou 0                                    |
-| L'Oracle           | 9 s   | une question (« Combien de pattes a une araignée ? ») : la bonne réponse est 12 | 12 ou 0. C'est toujours 12.                |
+| Épreuve            | Temps | Ce qu'on fait                                                                                                 | Points                                     |
+| ------------------ | ----- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Chrono à l'aveugle | 20 s  | arrêter le chrono à 12,00 s ; il disparaît au bout de 1,5 à 5,5 s                                             | 12, moins 1 par dixième de seconde d'écart |
+| Douze clics        | 6 s   | cliquer exactement 12 fois, sans compteur (bouton placé au hasard, qui saute ou non)                          | 12, moins 4 par clic d'écart               |
+| Compter            | 10 s  | 4 s pour compter 9 à 15 objets qui flottent (sans leurs sosies), puis répondre parmi 5 nombres qui se suivent | 12 juste, 4 à un près                      |
+| Douze ou pas douze | 16 s  | quatre questions : la réponse est-elle 12 ?                                                                   | 3 par bonne réponse                        |
+| Fais 12            | 20 s  | toucher des nombres qui font 12 ensemble, quatre paquets                                                      | 3 par paquet                               |
+| Le dodécagone      | 9 s   | trouver la forme à 12 côtés parmi 8, 11 ou 15 formes à 10, 11, 13 ou 14 côtés                                 | 12 ou 0                                    |
+| L'horloge          | 9 s   | trouver l'horloge qui indique « 12 h 12 », « midi pile »…                                                     | 12 ou 0                                    |
+| Douze lettres      | 9 s   | trouver le mot de 12 lettres (les tirets et accents ne comptent pas)                                          | 12 ou 0                                    |
+| Le compteur fou    | 12 s  | des sosies de 12 défilent (21, 112, 1,2…) : cliquer quand c'est 12                                            | 12 ou 0 (80 ms de marge)                   |
+| Calculs            | 12 s  | cocher tout ce qui fait 12 (√144, XII, 0xC…)                                                                  | 12 × (bons − intrus) / nombre de bons      |
+| Le vrai 12         | 9 s   | trouver le seul « 12 » parmi 17, 23 ou 29 sosies (I2, l2, 1Z…)                                                | 12 ou 0                                    |
+| L'Oracle           | 9 s   | une question (« Combien de pattes a une araignée ? ») : la bonne réponse est 12                               | 12 ou 0. C'est toujours 12.                |
 
 - La réponse de chaque épreuve part au serveur, qui recalcule l'épreuve du jour et compte les
   points lui-même (`scoreTrial`). Le joueur reçoit les épreuves sans leurs réponses quand elles
@@ -106,7 +110,7 @@ Schéma Postgres `douze`, une table `rounds` (modèle `DouzeRound`) : une ligne 
 
 ## Routes
 
-- `GET /api/douze/day` : la journée du membre (`open`, `opensAt`, épreuves, épreuves jouées).
+- `GET /api/douze/day` : la journée du membre (date, numéro, épreuves, épreuves jouées).
 - `POST /api/douze/play` : `{ date, slot, answer }` → l'épreuve enregistrée, ses points, une
   phrase (« Arrêté à 12,08 s ») et la journée.
 - `GET /api/douze/leaderboard` : `?period=week|month`, `?date=AAAA-MM-JJ`.
@@ -114,10 +118,12 @@ Schéma Postgres `douze`, une table `rounds` (modèle `DouzeRound`) : une ligne 
 ## Tests
 
 `test/trials.test.ts` : 12 épreuves par jour, l'Oracle en dernier, mêmes épreuves pour tous ;
+même date = même contenu, chaque épreuve change d'un jour à l'autre, le vrai 12 jamais à la case
+de la veille (sur un an), tailles de grilles et réponses proposées qui varient ;
 sur 90 jours, chaque épreuve peut rapporter 12 et rien sans réponse ; 31 jours de suite sans
 répétition (questions, Oracle, horloge, mot, calculs qui font 12), taille des réserves ; barèmes ;
 réponses mal formées refusées ; contenu (questions, Oracle, mots, calculs, horloges sans
 doublon) ; titres.
-`test/play.test.ts` (base de test) : journée sans les réponses, fermeture avant l'ouverture (et
-ouverture en avance), points calculés par le serveur, refus (ordre, double envoi, veille, mal
+`test/play.test.ts` (base de test) : journée sans les réponses, ouvert dès la mise en ligne
+(journée n° 1), points calculés par le serveur, refus (ordre, double envoi, veille, mal
 formé), fil d'activité, classements du jour et de la semaine.

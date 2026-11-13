@@ -17,7 +17,7 @@ import {
   type OracleQuestion,
   type QuizQuestion,
 } from "./content";
-import { random, seedOf } from "./daily";
+import { random, seedOf, shiftDate } from "./daily";
 
 /** Nombre d'épreuves par jour. Évidemment. */
 export const TRIAL_COUNT = 12;
@@ -49,8 +49,17 @@ export type Shape = { sides: number; rotation: number; scale: number };
 /** Une épreuve du jour, complète (avec ses réponses) : le serveur la recalcule pour noter. */
 export type Trial =
   | { kind: "chrono"; visibleMs: number }
-  | { kind: "clicks"; moving: boolean }
-  | { kind: "count"; item: string; decoy: string; label: string; things: Thing[]; count: number }
+  | { kind: "clicks"; moving: boolean; start: { x: number; y: number } }
+  | {
+      kind: "count";
+      item: string;
+      decoy: string;
+      label: string;
+      things: Thing[];
+      /** Les 5 réponses proposées (nombres qui se suivent, la bonne à une place tirée au sort). */
+      choices: number[];
+      count: number;
+    }
   | { kind: "quiz"; questions: QuizQuestion[] }
   | { kind: "sum"; tiles: number[] }
   | { kind: "polygon"; shapes: Shape[] }
@@ -89,6 +98,9 @@ export const TIME_LIMITS: Record<TrialKind, number> = {
   real: 9_000,
   oracle: 9_000,
 };
+/** Tailles de grille possibles : formes du dodécagone, cases du vrai 12. */
+export const POLYGON_COUNTS = [9, 12, 16] as const;
+export const REAL_COUNTS = [18, 24, 30] as const;
 /** Compter : temps pendant lequel les objets restent à l'écran. */
 export const COUNT_WATCH_MS = 4_000;
 /** Chrono : la cible, 12 s pile. */
@@ -155,29 +167,62 @@ const otherCalcs = CALCS.filter((c) => !isTwelve(c.value));
 const twelveWords = WORDS.filter((w) => letterCount(w) === 12);
 const otherWords = WORDS.filter((w) => letterCount(w) !== 12);
 
+/**
+ * Le vrai 12 du jour : taille de la grille et case, tirées de la graine du jour. La case n'est
+ * jamais celle de la veille : en cas d'égalité, elle est décalée (au hasard, toujours selon la
+ * graine du jour). La veille dépend de son propre jour d'avant ; la chaîne s'arrête dès qu'un jour
+ * n'a pas eu à se décaler (presque toujours tout de suite), et au plus loin 31 jours en arrière.
+ * Renvoie aussi le générateur, prêt pour la suite du tirage.
+ */
+function realPlacement(date: string, depth = 0): { rand: Rand; size: number; answer: number } {
+  const rand = random(seedOf(`${date}:real`));
+  const size = pick(rand, REAL_COUNTS);
+  const answer = int(rand, 0, size - 1);
+  if (depth >= 31) return { rand, size, answer };
+  const yesterday = realPlacement(shiftDate(date, -1), depth + 1).answer;
+  if (answer !== yesterday) return { rand, size, answer };
+  return { rand, size, answer: (answer + int(rand, 1, size - 1)) % size };
+}
+
 const GENERATORS: Record<TrialKind, (rand: Rand, date: string) => Trial> = {
-  chrono: (rand) => ({ kind: "chrono", visibleMs: pick(rand, [2000, 3000, 4000, 5000]) }),
-  clicks: (rand) => ({ kind: "clicks", moving: rand() < 0.5 }),
+  // Tout ce qui suit est tiré de la graine du jour : le même pour tout le monde, différent chaque
+  // jour (taille des grilles, nombre de leurres, positions, vitesses…), pour ne rien jouer par cœur.
+  chrono: (rand) => ({ kind: "chrono", visibleMs: int(rand, 15, 55) * 100 }),
+  clicks: (rand) => ({
+    kind: "clicks",
+    moving: rand() < 0.5,
+    start: { x: int(rand, 20, 80), y: int(rand, 25, 75) },
+  }),
   count: (rand, date) => {
     const [what = COUNTABLES[0] as (typeof COUNTABLES)[number]] = rotation(
       COUNTABLES,
       "objets",
       date,
     );
-    const count = pick(rand, [10, 11, 12, 12, 13, 14]);
-    const decoys = int(rand, 3, 6);
+    const count = pick(rand, [9, 10, 11, 12, 12, 13, 14, 15]);
+    const decoys = int(rand, 2, 7);
+    const speed = pick(rand, [0.18, 0.24, 0.3]);
     const thing = (decoy: boolean): Thing => ({
       x: round3(0.06 + rand() * 0.88),
       y: round3(0.08 + rand() * 0.84),
-      vx: round3((rand() - 0.5) * 0.24),
-      vy: round3((rand() - 0.5) * 0.24),
+      vx: round3((rand() - 0.5) * speed),
+      vy: round3((rand() - 0.5) * speed),
       decoy,
     });
+    const first = count - int(rand, 0, 4);
     const things = shuffle(rand, [
       ...Array.from({ length: count }, () => thing(false)),
       ...Array.from({ length: decoys }, () => thing(true)),
     ]);
-    return { kind: "count", item: what.item, decoy: what.decoy, label: what.label, things, count };
+    return {
+      kind: "count",
+      item: what.item,
+      decoy: what.decoy,
+      label: what.label,
+      things,
+      choices: Array.from({ length: 5 }, (_, i) => first + i),
+      count,
+    };
   },
   quiz: (rand, date) => ({
     kind: "quiz",
@@ -196,13 +241,20 @@ const GENERATORS: Record<TrialKind, (rand: Rand, date: string) => Trial> = {
       const b = int(rand, 1, 11 - a);
       return [a, b, 12 - a - b];
     });
-    const decoys = [int(rand, 1, 11), int(rand, 1, 11)];
+    const decoys = Array.from({ length: int(rand, 1, 3) }, () => int(rand, 1, 11));
     return { kind: "sum", tiles: shuffle(rand, [...groups.flat(), ...decoys]) };
   },
   polygon: (rand) => {
-    const target = int(rand, 0, 11);
-    const shapes = Array.from({ length: 12 }, (_, i) => ({
-      sides: i === target ? 12 : pick(rand, [10, 11, 11, 13, 13, 14]),
+    const size = pick(rand, POLYGON_COUNTS);
+    const target = int(rand, 0, size - 1);
+    // leurres du jour : surtout 11 et 13, parfois 10 et 14
+    const lookalikes = pick(rand, [
+      [11, 13],
+      [11, 11, 13, 13, 10, 14],
+      [10, 11, 13, 14],
+    ]);
+    const shapes = Array.from({ length: size }, (_, i) => ({
+      sides: i === target ? 12 : pick(rand, lookalikes),
       rotation: int(rand, 0, 359),
       scale: round3(0.75 + rand() * 0.25),
     }));
@@ -210,24 +262,25 @@ const GENERATORS: Record<TrialKind, (rand: Rand, date: string) => Trial> = {
   },
   clock: (rand, date) => {
     const [riddle = CLOCKS[0] as ClockRiddle] = rotation(CLOCKS, "horloges", date);
-    const decoys = shuffle(rand, clockDecoys(riddle.target)).slice(0, 5);
+    const decoys = shuffle(rand, clockDecoys(riddle.target)).slice(0, int(rand, 3, 5));
     const clocks = shuffle(rand, [riddle.target, ...decoys]);
     return { kind: "clock", label: riddle.label, clocks, answer: clocks.indexOf(riddle.target) };
   },
   letters: (rand, date) => {
     const [twelve = twelveWords[0] as string] = rotation(twelveWords, "mots", date);
-    const others = shuffle(rand, otherWords).slice(0, 3);
+    const others = shuffle(rand, otherWords).slice(0, int(rand, 2, 4));
     const words = shuffle(rand, [twelve, ...others]);
     return { kind: "letters", words, answer: words.indexOf(twelve) };
   },
   counter: (rand) => {
-    const stepMs = pick(rand, [300, 340, 380, 420]);
+    const stepMs = int(rand, 7, 11) * 40;
+    const often = 0.08 + rand() * 0.06;
     const length = Math.ceil(TIME_LIMITS.counter / stepMs) + 2;
     const sequence: string[] = [];
     for (let i = 0; i < length; i++) {
       const prev = sequence[i - 1];
       // le vrai 12 : jamais au tout début ni après la fin du temps, jamais deux fois de suite
-      if (i >= 4 && i < length - 2 && prev !== "12" && rand() < 0.11) {
+      if (i >= 4 && i < length - 2 && prev !== "12" && rand() < often) {
         sequence.push("12");
         continue;
       }
@@ -245,11 +298,11 @@ const GENERATORS: Record<TrialKind, (rand: Rand, date: string) => Trial> = {
       ...rotation(otherCalcs, "calculs-autres", date, complement(CALC_TWELVES_PATTERN, 6)),
     ]),
   }),
-  real: (rand) => {
-    const answer = int(rand, 0, 23);
-    const cells = Array.from({ length: 24 }, (_, i) =>
-      i === answer ? "12" : pick(rand, FAKE_TWELVES),
-    );
+  real: (_rand, date) => {
+    const { rand, size, answer } = realPlacement(date);
+    // sosies du jour : une partie seulement de la réserve, pas toujours les mêmes
+    const fakes = shuffle(rand, FAKE_TWELVES).slice(0, int(rand, 4, FAKE_TWELVES.length));
+    const cells = Array.from({ length: size }, (_, i) => (i === answer ? "12" : pick(rand, fakes)));
     return { kind: "real", cells, answer };
   },
   oracle: (rand, date) => {
