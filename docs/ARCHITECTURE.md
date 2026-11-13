@@ -1147,7 +1147,8 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   `Animation paquet de cartes/v2/`) : couleurs plus vives (textures plus saturées, illustration
   peu métallique) et bords soudés du haut et du bas légèrement ondulés ; la ligne pointillée reste
   droite et la caméra du raccord est inchangée. Modèle et vidéo doivent toujours venir du même
-  rendu, sinon le relais saute.
+  rendu, sinon le relais saute : leurs URL portent `?v=` (`ASSETS_VERSION` de `BoosterOpening`),
+  à augmenter à chaque nouveau rendu pour que le cache d'un jour ne garde pas l'ancien modèle.
 - Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.

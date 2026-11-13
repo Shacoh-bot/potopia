@@ -113,15 +113,25 @@ function cardSlots(view: Size): Rect[] {
 function videoSource(base: string): string {
   const ua = navigator.userAgent;
   const safari = /Safari\//.test(ua) && !/Chrome\/|Chromium\/|Edg\/|Firefox\/|OPR\//.test(ua);
-  return `${base}/ouverture.${safari ? "mp4" : "webm"}`;
+  return `${base}/ouverture.${safari ? "mp4" : "webm"}?v=${ASSETS_VERSION}`;
 }
+
+/**
+ * Version du modèle et des vidéos (même rendu Blender) : à changer à chaque nouveau rendu. Les
+ * fichiers restent un jour en cache dans le navigateur ; sans elle, un joueur garderait l'ancien
+ * modèle avec la nouvelle vidéo, et le relais sauterait.
+ */
+const ASSETS_VERSION = 2;
+
+/** Modèle 3D du paquet. */
+const packUrl = (base: string) => `${base}/paquet.glb?v=${ASSETS_VERSION}`;
 
 /**
  * Précharge l'écran d'ouverture (code 3D, modèle, vidéo) : à appeler dès que le joueur peut
  * ouvrir un paquet, pour que tout s'affiche aussitôt au clic.
  */
 export function preloadBoosterOpening(assetsBase = "/tcg/ouverture") {
-  void loadScene().then((m) => m.preloadPack(`${assetsBase}/paquet.glb`));
+  void loadScene().then((m) => m.preloadPack(packUrl(assetsBase)));
   void fetch(videoSource(assetsBase)).catch(() => {});
 }
 
@@ -346,7 +356,7 @@ export function BoosterOpening({
   useEffect(() => {
     if (phase !== "cards") return;
     video.current?.pause();
-    void loadScene().then((m) => m.preloadPack(`${assetsBase}/paquet.glb`));
+    void loadScene().then((m) => m.preloadPack(packUrl(assetsBase)));
   }, [phase, assetsBase]);
 
   const onZoomed = useCallback(() => {
@@ -420,7 +430,7 @@ export function BoosterOpening({
         >
           <Suspense fallback={null}>
             <PackScene
-              url={`${assetsBase}/paquet.glb`}
+              url={packUrl(assetsBase)}
               zooming={phase === "zoom"}
               onReady={onReady}
               onCut={onCut}
