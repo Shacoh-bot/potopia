@@ -24,6 +24,11 @@ function numberField(payload: unknown, key: string): number | undefined {
 }
 
 export const REACTIONS: Record<string, ReactionRule> = {
+  // DOUZE : l'avatar dit « Douze. », quoi qu'il arrive (confettis pour une grosse : 144)
+  "douze/day_completed": (event) =>
+    numberField(event.payload, "points") === 144
+      ? [{ kind: "confetti" }, { kind: "bubble", text: "144 ! Une grosse !" }]
+      : [{ kind: "jump" }, { kind: "bubble", text: "Douze." }],
   "avatar/updated": () => [{ kind: "emote" }, { kind: "bubble", text: "Nouveau look !" }],
   "ideas/idea_submitted": () => [{ kind: "jump" }, { kind: "bubble", text: "💡" }],
   "trois/day_completed": (event) =>

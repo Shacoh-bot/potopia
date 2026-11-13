@@ -1,0 +1,24 @@
+// Domaine douze : DOUZE, douze épreuves absurdes par jour. `userId` référence core.users sans
+// relation. Modèles préfixés Douze : les noms de modèles Prisma sont uniques entre tous les modules.
+
+/// Une épreuve jouée : une des 12 épreuves du jour d'un joueur, avec ses points (calculés par le
+/// serveur à partir de la réponse envoyée).
+model DouzeRound {
+  id        String   @id @default(uuid(7))
+  userId    String   @map("user_id")
+  /// Date à Paris, AAAA-MM-JJ
+  date      String
+  /// 0 à 11
+  slot      Int
+  /// Type d'épreuve (chrono, clicks… voir games/douze/src/trials.ts)
+  kind      String
+  /// Points, de 0 à 12
+  points    Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// Une seule fois chaque épreuve du jour : deux envois simultanés ne passent pas tous les deux.
+  @@unique([userId, date, slot])
+  @@index([date])
+  @@map("rounds")
+  @@schema("douze")
+}

@@ -19,6 +19,7 @@
     "@app/config": "workspace:*",
     "@app/core": "workspace:*",
     "@app/db": "workspace:*",
+    "@app/douze": "workspace:*",
     "@app/economy": "workspace:*",
     "@app/goty": "workspace:*",
     "@app/ideas": "workspace:*",

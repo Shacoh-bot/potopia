@@ -24,6 +24,7 @@ export function avatarSheetUrl(userId: string, hash: string): string {
  */
 const PLACE_PAYLOAD_FIELDS: Record<string, readonly string[]> = {
   "trois/day_completed": ["found"],
+  "douze/day_completed": ["points"],
 };
 
 function placePayload(app: string, type: string, payload: unknown): Record<string, unknown> {

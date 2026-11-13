@@ -3,7 +3,7 @@ import { isGotyEnabled } from "@app/config/features";
 
 /** Icônes lucide disponibles pour les tuiles (la correspondance est dans ui/AppGrid). */
 export type AppIconName =
-  "grid" | "lightbulb" | "mask" | "palette" | "person" | "shield" | "trophy";
+  "clock" | "grid" | "lightbulb" | "mask" | "palette" | "person" | "shield" | "trophy";
 
 export type AppEntry = {
   id: string;
@@ -51,6 +51,14 @@ export const apps: readonly AppEntry[] = [
     route: "/pose",
     requiredRole: "member",
     art: "/apps/pose.webp",
+  },
+  {
+    id: "douze",
+    name: "DOUZE",
+    icon: "clock",
+    route: "/douze",
+    requiredRole: "member",
+    art: "/apps/douze.webp",
   },
   {
     id: "morpion",
