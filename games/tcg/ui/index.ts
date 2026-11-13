@@ -5,5 +5,6 @@ export { CardEditor, type CardEditorState, type CardFields } from "./CardEditor"
 export { GameCard, GameCardDefs, type GameCardFields, typeLine } from "./GameCard";
 export { CardBack } from "./CardBack";
 export { BoosterOpening, type OpenedCard, preloadBoosterOpening } from "./BoosterOpening";
+export { preloadBoosterSounds } from "./booster-sounds";
 export { CardFlip } from "./CardFlip";
 export { CardImagesUpload } from "./CardImagesUpload";

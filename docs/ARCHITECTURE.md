@@ -1131,10 +1131,14 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
   (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
-- Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
-  froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
-  l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
-  Chaque son varie un peu à chaque fois ; volume du site respecté.
+- Bruitages : vrais sons de Pokémon TCG Pocket (`public/audio/tcg/`, liste dans
+  `ui/booster-sound-files.ts`, sources dans `TCG assets/sons/sources.csv` hors dépôt), joués par
+  `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains
+  du vrai son tant que la découpe avance (plus fort si plus vite), ouverture, cartes qui se posent,
+  retournement puis révélation selon la rareté, de plus en plus forte (1, 2, 4 losanges ; 1 et 3
+  étoiles ; couronne pour la SR ; révélation « immersive » pour la SSR). Téléchargés et décodés
+  dès l'arrivée sur la page (`preloadBoosterSounds`, à côté de `preloadBoosterOpening`) ; volume
+  du site appliqué en fin de chaîne, même pendant un son long.
 - `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
   les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
   bouton « Remettre à zéro ». Le Potodex passera dans le menu de gauche, sous l'inventaire,
