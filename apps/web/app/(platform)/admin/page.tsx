@@ -3,7 +3,7 @@ import { BRAND } from "@app/config/brand";
 import { isGotyEnabled } from "@app/config/features";
 import { Card } from "@app/ui";
 import { countIdeas } from "@app/ideas";
-import { Coins, Layers, Lightbulb, Smile, Trophy } from "lucide-react";
+import { BookOpen, Coins, Layers, Lightbulb, Package, Smile, Trophy } from "lucide-react";
 import type { Metadata } from "next";
 import { getCurrentAdmin } from "@/lib/session";
 
@@ -33,6 +33,18 @@ const SECTIONS = (ideasCount: number) => [
     title: "Cartes",
     description: "Cartes du jeu : créer, modifier, importer.",
     icon: Layers,
+  },
+  {
+    href: "/admin/boosters",
+    title: "Boosters (test)",
+    description: "Ouvrir des paquets de cartes, gratuits et illimités.",
+    icon: Package,
+  },
+  {
+    href: "/admin/potodex",
+    title: "Potodex (test)",
+    description: "Les cartes trouvées dans tes paquets, set par set.",
+    icon: BookOpen,
   },
   {
     href: "/admin/mascotte",

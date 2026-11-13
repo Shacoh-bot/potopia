@@ -596,8 +596,14 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       ombres possédées ; migration `tcg_visual_effects_ambiances` (ajout seul).
 - [x] Lumières à placer : arc électrique, rayons depuis un point et trait lumineux, en plus des
       points lumineux (même colonne `glow_points`, champ `kind`).
-- [ ] Lieux, boosters (stock par set, journal en ajout seul, achat et gains), collection et
-      Potodex, revente des doublons.
+- [x] Boosters et Potodex en test (admins, `/admin/boosters`, `/admin/potodex`) : tirage par
+      rareté avec SSR garantie au 30e paquet, collection (`tcg.owned_cards`) et journal des
+      paquets (`tcg.booster_openings`), migration `tcg_boosters_potodex` (ajout seul) ; ouverture
+      dans la page : paquet 3D à faire tourner, découpe à la souris le long de la ligne
+      pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; bruitages
+      synthétisés ; tout est préchargé.
+- [ ] Boosters pour les membres : stock par set, achat et gains, revente des doublons, Potodex
+      dans le menu de gauche (sous l'inventaire), tirages SR et SSR dans l'activité ; lieux.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
 - [ ] Crédits des illustrations libres (CC BY, CC BY-SA : auteur et licence) sur la page
       Crédits, dès que les cartes seront visibles des membres.

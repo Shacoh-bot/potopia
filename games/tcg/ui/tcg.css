@@ -1457,3 +1457,134 @@
     animation: none;
   }
 }
+
+/* ── Ouverture d'un booster (BoosterOpening) ── */
+/* L'écran s'ouvre dans la page, au format de la vidéo (16:9), sans dépasser la fenêtre. */
+.tcg-opening {
+  aspect-ratio: 16 / 9;
+  max-height: calc(100dvh - 9rem);
+  min-height: 340px;
+}
+/* La vidéo s'efface quand les vraies cartes prennent le relais. */
+.tcg-opening-video {
+  transition: opacity 0.45s ease;
+}
+.tcg-opening-video[data-hidden] {
+  opacity: 0;
+}
+/* Les cartes quittent la vidéo pour se ranger côte à côte. */
+.tcg-opening-slot {
+  transform-origin: 0 0;
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tcg-opening-card {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+/* De dos : la carte se soulève et s'éclaire au survol, sans pivoter (rien ne passe au travers). */
+.tcg-opening-card[data-side="back"]:hover,
+.tcg-opening-card[data-side="back"]:focus-visible {
+  transform: translateY(-8px);
+  filter: drop-shadow(0 0 18px rgb(255 122 246 / 0.55));
+}
+.tcg-opening-card[data-side="face"] {
+  cursor: default;
+  animation: tcg-turn-in 0.22s ease-out both;
+}
+.tcg-opening-card[data-side="turning"] {
+  animation: tcg-turn-out 0.16s ease-in both;
+}
+.tcg-opening-face {
+  display: block;
+}
+@keyframes tcg-turn-out {
+  to {
+    transform: perspective(900px) rotateY(90deg);
+  }
+}
+@keyframes tcg-turn-in {
+  from {
+    transform: perspective(900px) rotateY(-90deg);
+  }
+}
+/* Halo de la carte révélée, selon la rareté. */
+.tcg-opening-card[data-side="face"][data-rarity="rare"] {
+  filter: drop-shadow(0 0 14px rgb(96 165 250 / 0.6));
+}
+.tcg-opening-card[data-side="face"][data-rarity="epic"] {
+  filter: drop-shadow(0 0 18px rgb(192 132 252 / 0.7));
+}
+.tcg-opening-card[data-side="face"][data-rarity="legendary"] {
+  animation:
+    tcg-turn-in 0.22s ease-out both,
+    tcg-halo-gold 2.4s ease-in-out 0.22s infinite;
+}
+.tcg-opening-card[data-side="face"]:is([data-rarity="sr"], [data-rarity="ssr"]) {
+  animation:
+    tcg-turn-in 0.22s ease-out both,
+    tcg-halo-rainbow 3s linear 0.22s infinite;
+}
+@keyframes tcg-halo-gold {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 14px rgb(251 191 36 / 0.55));
+  }
+  50% {
+    filter: drop-shadow(0 0 28px rgb(251 191 36 / 0.9));
+  }
+}
+@keyframes tcg-halo-rainbow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 22px rgb(255 61 242 / 0.8));
+  }
+  33% {
+    filter: drop-shadow(0 0 22px rgb(47 230 255 / 0.8));
+  }
+  66% {
+    filter: drop-shadow(0 0 22px rgb(255 214 102 / 0.85));
+  }
+}
+.tcg-opening-button {
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.1);
+  padding: 0.35rem 0.9rem;
+  font-size: 0.875rem;
+  color: rgb(255 255 255 / 0.85);
+  transition: background 0.2s ease;
+}
+.tcg-opening-button:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+.tcg-opening-button[data-primary] {
+  background: #fff;
+  color: #0b0b2a;
+  font-weight: 600;
+  padding: 0.55rem 1.2rem;
+}
+.tcg-opening-hint {
+  animation: tcg-opening-hint 2.4s ease-in-out infinite;
+}
+@keyframes tcg-opening-hint {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcg-opening-slot,
+  .tcg-opening-video {
+    transition: none;
+  }
+  .tcg-opening-card,
+  .tcg-opening-hint {
+    animation: none !important;
+  }
+}

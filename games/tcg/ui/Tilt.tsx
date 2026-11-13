@@ -24,8 +24,10 @@ export function Tilt({
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
+    // Bornés : une carte vue de profil (en plein retournement) est très étroite à l'écran, et
+    // l'angle calculé deviendrait énorme.
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / (r.width || 1)));
+    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / (r.height || 1)));
     el.style.setProperty("--mx", `${x * 100}%`);
     el.style.setProperty("--x", x.toFixed(3));
     el.style.setProperty("--my", `${y * 100}%`);

@@ -1,5 +1,5 @@
 // Domaine tcg : jeu de cartes, en préparation. Seul le vote des designs est ouvert aux membres ;
-// les cartes ne sont lues et modifiées que par les admins pour l'instant.
+// les cartes, les boosters et le Potodex ne servent qu'aux admins pour l'instant (test).
 // `userId` référence core.users sans relation.
 
 // Note d'un membre sur une proposition de design de carte (une par membre et par design).
@@ -45,7 +45,8 @@ model TcgSet {
   name      String
   createdAt DateTime @default(now()) @map("created_at")
 
-  cards TcgCard[]
+  cards    TcgCard[]
+  openings TcgBoosterOpening[]
 
   @@map("sets")
   @@schema("tcg")
@@ -93,6 +94,7 @@ model TcgCard {
   // Effets visuels de la carte, dans l'ordre des calques.
   visualEffects TcgCardVisualEffect[]
   variants TcgCard[] @relation("TcgCardVariant")
+  owners   TcgOwnedCard[]
 
   @@unique([setId, number])
   @@index([ideaId])
@@ -127,5 +129,39 @@ model TcgCardVisualEffect {
   @@id([cardId, effectKey])
   @@index([effectKey])
   @@map("card_visual_effects")
+  @@schema("tcg")
+}
+
+// Carte trouvée par un membre (Potodex) : une ligne par carte, `count` exemplaires tirés.
+// Supprimer la carte la retire des collections.
+model TcgOwnedCard {
+  userId    String   @map("user_id")
+  cardId    String   @map("card_id")
+  count     Int
+  firstAt   DateTime @default(now()) @map("first_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  card TcgCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@id([userId, cardId])
+  @@index([cardId])
+  @@map("owned_cards")
+  @@schema("tcg")
+}
+
+// Paquet ouvert : les 5 cartes tirées, dans l'ordre. `hasSsr` sert à la garantie de SSR (au plus
+// tard au 30e paquet d'un set). `cardIds` sont des ids de cartes de ce domaine, sans relation.
+model TcgBoosterOpening {
+  id        String   @id @default(uuid(7))
+  userId    String   @map("user_id")
+  setId     String   @map("set_id")
+  cardIds   String[] @map("card_ids")
+  hasSsr    Boolean  @map("has_ssr")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  set TcgSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+
+  @@index([userId, setId, createdAt])
+  @@map("booster_openings")
   @@schema("tcg")
 }

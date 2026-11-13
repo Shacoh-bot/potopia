@@ -47,6 +47,17 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Ouverture d'un booster (modèle 3D et vidéos, ~10 Mo) : préchargée avant le clic, elle
+        // doit venir du cache du navigateur.
+        source: "/tcg/ouverture/:file*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
     ];
   },
   experimental: {

@@ -142,6 +142,7 @@ passe d'une partie à l'autre sans rechargement.
   (redirection vers `/login`, ou 401 JSON pour `/api/*`). Il ne s'exécute pas pour les fichiers
   de Next ni pour les médias décoratifs de `public/` (`brand/`, `avatar-assets/`, et les images,
   sons et sprites des thèmes, du header et des tuiles : `apothicaire/`, `apps/`, `audio/`, `emeralds/`, `jojo/`,
+  `tcg/ouverture/` (paquet 3D et vidéos de l'ouverture d'un booster),
   `luffy/`, `onepiece/`, `orb/`, `sonic/`), qui n'ont rien de privé. Ces derniers sont gardés un
   jour par le navigateur puis revalidés en fond (`headers()` de `next.config.ts`) : un fichier
   remplacé sous le même nom peut rester un jour à l'ancienne version.
@@ -210,6 +211,12 @@ passe d'une partie à l'autre sans rechargement.
   0 en dessous). Clé primaire `(card_id, effect_key)`, index sur `effect_key`, suppression en
   cascade des deux côtés. Les effets visuels d'une carte, plusieurs à la fois, propres à chaque
   carte (variantes comprises).
+- `TcgOwnedCard` (`owned_cards`) : userId, cardId, count, firstAt, updatedAt. Clé primaire
+  `(user_id, card_id)`, index sur `card_id`, supprimée avec la carte. Les cartes trouvées d'un
+  joueur (Potodex) et leur nombre d'exemplaires.
+- `TcgBoosterOpening` (`booster_openings`) : userId, setId, cardIds (les 5 ids, dans l'ordre du
+  paquet), hasSsr, createdAt. Index `(user_id, set_id, created_at)`, supprimé avec le set. Journal
+  des paquets ouverts, qui sert aussi à la garantie de SSR.
 
 ### goty
 
@@ -1083,6 +1090,44 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   clé, donc une nouvelle URL. Sur les planches, les images se chargent à l'approche de l'écran
   (`loading="lazy"`) et les cartes hors de l'écran ne sont pas dessinées
   (`content-visibility: auto`).
+
+**Boosters et Potodex** (en test : admins seulement, `/admin/boosters` et `/admin/potodex`,
+module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
+
+- Un paquet donne 5 cartes d'un set (`BOOSTER_SLOTS`) : 3 cartes de base (commune 75 %, peu
+  commune 25 %), 1 peu commune ou mieux (peu commune 70 %, rare 25 %, épique 5 %) et 1 carte
+  chance (rare 55 %, épique 25 %, légendaire 12 %, SR 6 %, SSR 2 %). Au plus tard au 30e paquet
+  d'un set sans SSR (`SSR_PITY`), la carte chance est une SSR. Une rareté sans carte dans le set
+  prend la rareté juste en dessous (puis la plus proche au-dessus). Doublons possibles. Seules les
+  cartes du set tiré comptent (ni la réserve, ni la corbeille).
+- `drawBooster` (tirage pur, testable), `openBooster` (tire, ajoute les cartes à la collection,
+  note le paquet ; un paquet à la fois par joueur, sous verrou), `getPotodex` (cartes du set dans
+  l'ordre des numéros ; une carte pas encore trouvée ne renvoie que son numéro), `resetCollection`
+  (vide la collection de test et le journal, garantie comprise). Toutes vérifient l'admin tant que
+  c'est un test ; les paquets sont gratuits et illimités.
+- `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». L'écran d'ouverture
+  (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur tire les
+  cartes (`openBoosterAction`) : 1) le paquet en 3D (`PackScene`, three.js et React Three Fiber,
+  chargés à la demande) qu'on fait tourner en glissant, reflets irisés ; 2) glisser la souris le
+  long de la ligne pointillée (85 % de la largeur) le découpe : la caméra s'approche du haut du
+  paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
+  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25) ; 3) quand
+  les cartes de la vidéo sont posées, les 5 vraies cartes, de dos, se rangent côte à côte ; un clic
+  retourne chacune (demi-tour, halo selon la rareté). Le paquet 3D repasse aux couleurs du rendu
+  Blender pendant l'approche, pour un relais sans saut. Safari joue la vidéo MP4 (le WebM
+  transparent n'y marche pas) ; animations réduites : directement les cartes.
+- Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
+  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
+  illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
+  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
+- Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
+  froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
+  l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
+  Chaque son varie un peu à chaque fois ; volume du site respecté.
+- `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
+  les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
+  bouton « Remettre à zéro ». Le Potodex passera dans le menu de gauche, sous l'inventaire,
+  quand les boosters ouvriront aux membres.
 
 ## Avatars et place
 
