@@ -1,22 +1,24 @@
 import { getPotodex, listSets } from "@app/tcg";
-import { GameCard, GameCardDefs } from "@app/tcg/ui";
+import { CARD_HEIGHT, CARD_WIDTH, GameCard, GameCardDefs } from "@app/tcg/ui";
 import { buttonClasses, Card, cx, EmptyState } from "@app/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { cardImageUrls } from "../cartes/images";
+import { PotodexCard } from "./PotodexCard";
 import { ResetCollectionButton } from "./ResetCollectionButton";
+import { Scaled } from "./Scaled";
 
 export const metadata: Metadata = { title: "Potodex" };
 
-/** Largeur d'une case (px) ; la carte (300 px à l'échelle 1) y est réduite. */
+/** Largeur d'une case (px) ; la carte (`CARD_WIDTH` à l'échelle 1) y est réduite. */
 const SLOT = 180;
 
 /**
  * Potodex de l'admin connecté (test) : toutes les cartes du set, dans l'ordre. Une carte trouvée
  * s'affiche avec son nombre d'exemplaires ; une carte pas encore tirée reste noire, avec seulement
- * son numéro (le serveur n'envoie rien d'autre).
+ * son numéro (le serveur n'envoie rien d'autre). Une carte trouvée s'ouvre en grand au clic.
  */
 export default async function AdminPotodexPage({
   searchParams,
@@ -101,20 +103,25 @@ export default async function AdminPotodexPage({
                   style={{ contentVisibility: "auto", containIntrinsicSize: "auto 280px" }}
                 >
                   {entry.found ? (
-                    <div style={{ width: SLOT, zoom: SLOT / 300 }}>
-                      <div style={{ width: 300 }}>
+                    <PotodexCard
+                      card={entry.card}
+                      imageUrl={images.get(entry.card.id) ?? null}
+                      setSize={dex.total}
+                      fontClass={designFonts}
+                    >
+                      <Scaled scale={SLOT / CARD_WIDTH}>
                         <GameCard
                           card={entry.card}
                           imageUrl={images.get(entry.card.id) ?? null}
                           setSize={dex.total}
                           still
                         />
-                      </div>
-                    </div>
+                      </Scaled>
+                    </PotodexCard>
                   ) : (
                     <div
                       className="grid place-items-center rounded-[12px] border border-white/10 bg-black shadow-inner"
-                      style={{ width: SLOT, aspectRatio: "360 / 504" }}
+                      style={{ width: SLOT, aspectRatio: `${CARD_WIDTH} / ${CARD_HEIGHT}` }}
                       aria-label={`Carte ${pad(entry.number)} : pas encore trouvée`}
                     >
                       <span className="font-display text-2xl text-white/25">?</span>
