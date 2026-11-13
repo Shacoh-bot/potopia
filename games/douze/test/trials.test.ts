@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { CALCS, CLOCKS, isTwelve, letterCount, ORACLE, QUIZ, WORDS } from "../src/content";
+import {
+  CALCS,
+  clockDecoys,
+  CLOCKS,
+  isTwelve,
+  letterCount,
+  ORACLE,
+  QUIZ,
+  WORDS,
+} from "../src/content";
 import { shiftDate } from "../src/daily";
 import { dayTitle } from "../src/titles";
 import {
@@ -178,6 +187,51 @@ describe("points", () => {
   });
 });
 
+describe("un mois sans revoir la même réponse", () => {
+  /** Ce qu'il ne faut pas revoir d'un jour à l'autre, épreuve par épreuve. */
+  function answersOf(date: string): Record<string, string[]> {
+    const out: Record<string, string[]> = {};
+    for (const t of dailyTrials(date)) {
+      if (t.kind === "quiz") out.quiz = t.questions.map((q) => q.id);
+      if (t.kind === "oracle") out.oracle = [t.question];
+      if (t.kind === "clock") {
+        const target = t.clocks[t.answer];
+        out.clock = [`${target?.h}:${target?.m}`];
+      }
+      if (t.kind === "letters") out.letters = [t.words[t.answer] ?? ""];
+      if (t.kind === "calc") out.calc = t.items.filter((c) => isTwelve(c.value)).map((c) => c.text);
+    }
+    return out;
+  }
+
+  it("31 jours de suite sans répétition, quel que soit le jour de départ", () => {
+    // fenêtres de 31 jours qui se chevauchent : le motif et la fin des réserves sont couverts
+    const days = Array.from({ length: 31 + 160 }, (_, i) => shiftDate("2026-12-12", i));
+    const all = days.map(answersOf);
+    for (let start = 0; start < days.length - 31; start += 4) {
+      const seen: Record<string, Set<string>> = {};
+      for (const day of all.slice(start, start + 31)) {
+        for (const [kind, values] of Object.entries(day)) {
+          const set = (seen[kind] ??= new Set());
+          for (const v of values) {
+            expect(set.has(v), `${kind} « ${v} » revu dès le jour ${days[start]}`).toBe(false);
+            set.add(v);
+          }
+        }
+      }
+    }
+  });
+
+  it("des réserves assez grandes pour un mois", () => {
+    expect(QUIZ.filter((q) => q.answer === 12).length).toBeGreaterThanOrEqual(62);
+    expect(QUIZ.filter((q) => q.answer !== 12).length).toBeGreaterThanOrEqual(62);
+    expect(ORACLE.length).toBeGreaterThanOrEqual(31);
+    expect(CLOCKS.length).toBeGreaterThanOrEqual(31);
+    expect(WORDS.filter((w) => letterCount(w) === 12).length).toBeGreaterThanOrEqual(31);
+    expect(CALCS.filter((c) => isTwelve(c.value)).length).toBeGreaterThanOrEqual(80);
+  });
+});
+
 describe("contenu", () => {
   it("des questions qui font 12 et d'autres pas", () => {
     expect(QUIZ.filter((q) => q.answer === 12).length).toBeGreaterThanOrEqual(3);
@@ -204,10 +258,31 @@ describe("contenu", () => {
     expect(CALCS.filter((c) => !isTwelve(c.value)).length).toBeGreaterThanOrEqual(4);
   });
 
-  it("une horloge leurre n'indique jamais l'heure demandée", () => {
+  it("horloges : 60 heures différentes, au moins 5 leurres qui n'indiquent jamais l'heure", () => {
+    expect(new Set(CLOCKS.map((c) => c.label)).size).toBe(CLOCKS.length);
+    expect(new Set(CLOCKS.map((c) => `${c.target.h}:${c.target.m}`)).size).toBe(CLOCKS.length);
     for (const c of CLOCKS) {
-      for (const d of c.decoys) expect(d).not.toEqual(c.target);
+      const decoys = clockDecoys(c.target);
+      expect(decoys.length).toBeGreaterThanOrEqual(5);
+      for (const d of decoys) expect(d).not.toEqual(c.target);
     }
+  });
+
+  it("libellés des horloges", () => {
+    const label = (h: number, m: number) =>
+      CLOCKS.find((c) => c.target.h === h && c.target.m === m)?.label;
+    expect(label(12, 0)).toBe("midi pile");
+    expect(label(12, 12)).toBe("12 h 12");
+    expect(label(11, 48)).toBe("minuit moins douze");
+    expect(label(4, 48)).toBe("5 h moins 12");
+    expect(label(12, 48)).toBe("1 h moins 12");
+    expect(label(3, 24)).toBe("3 h 24");
+  });
+
+  it("calculs et questions : pas de doublon", () => {
+    expect(new Set(CALCS.map((c) => c.text)).size).toBe(CALCS.length);
+    expect(new Set(QUIZ.map((q) => q.text)).size).toBe(QUIZ.length);
+    expect(new Set(ORACLE.map((q) => q.id)).size).toBe(ORACLE.length);
   });
 
   it("titres de la journée", () => {

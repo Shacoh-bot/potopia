@@ -51,8 +51,28 @@ tirée de la date et du type d'épreuve) : même journée pour tout le monde.
   sinon une réponse vide (0 point).
 - **Recharger la page en pleine épreuve, c'est 0** : l'épreuve lancée est notée dans
   `localStorage` (`potopia:douze-started`) ; au retour, elle est envoyée vide.
-- Les questions et réponses sont vérifiées (« Douze ou pas douze » : réponse réelle de chaque
-  question) ; la longueur des mots et la valeur des calculs sont calculées par le code.
+- Les faits sont vérifiés un par un ; la longueur des mots, la valeur des calculs, la géométrie
+  (faces, arêtes et sommets des prismes et pyramides) et les diviseurs sont calculés par le code.
+
+### Un mois sans revoir la même réponse
+
+Les épreuves à contenu piochent dans des réserves qui **tournent** (`rotation`, `src/trials.ts`) :
+chaque réserve est rangée une fois pour toutes dans un ordre mélangé fixe, et chaque jour prend
+les éléments suivants. Rien ne revient avant que toute la réserve soit passée, et les tests
+vérifient qu'aucune réponse ne revient en 31 jours, quel que soit le jour de départ.
+
+| Réserve (`src/content.ts`)      | Taille                                                                                    | Par jour           |
+| ------------------------------- | ----------------------------------------------------------------------------------------- | ------------------ |
+| « Douze ou pas douze » (`QUIZ`) | 168 questions : faits, géométrie, diviseurs, lettres d'un mot ; 69 font 12, 99 non        | 4 (1 à 3 font 12)  |
+| L'Oracle (`ORACLE`)             | 48 questions                                                                              | 1                  |
+| L'horloge (`CLOCKS`)            | 60 heures (pile, à 12, 24, 36, 48 min), leurres calculés (12 min ou 1 h d'écart, reflet…) | 1                  |
+| Douze lettres (`WORDS`)         | 39 mots de 12 lettres, 42 sosies de 11 et 13                                              | 1 (+ 3 sosies)     |
+| Calculs (`CALCS`)               | 94 calculs qui font 12, 98 sosies (11, 13…)                                               | 6 (2 ou 3 font 12) |
+| Compter (`COUNTABLES`)          | 16 objets et leurs sosies                                                                 | 1 (nombre tiré)    |
+
+Les autres épreuves (chrono, clics, fais 12, dodécagone, compteur fou, vrai 12) sont tirées au
+hasard chaque jour.
+
 - Petits bips synthétisés (WebAudio, aucun fichier son) au volume du site (`ui/sound.ts`).
 
 ## La journée
@@ -94,8 +114,10 @@ Schéma Postgres `douze`, une table `rounds` (modèle `DouzeRound`) : une ligne 
 ## Tests
 
 `test/trials.test.ts` : 12 épreuves par jour, l'Oracle en dernier, mêmes épreuves pour tous ;
-sur 90 jours, chaque épreuve peut rapporter 12 et rien sans réponse ; barèmes ; réponses
-mal formées refusées ; contenu (questions, Oracle, mots, calculs, horloges) ; titres.
+sur 90 jours, chaque épreuve peut rapporter 12 et rien sans réponse ; 31 jours de suite sans
+répétition (questions, Oracle, horloge, mot, calculs qui font 12), taille des réserves ; barèmes ;
+réponses mal formées refusées ; contenu (questions, Oracle, mots, calculs, horloges sans
+doublon) ; titres.
 `test/play.test.ts` (base de test) : journée sans les réponses, fermeture avant l'ouverture (et
 ouverture en avance), points calculés par le serveur, refus (ordre, double envoi, veille, mal
 formé), fil d'activité, classements du jour et de la semaine.

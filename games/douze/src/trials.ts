@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   CALCS,
+  clockDecoys,
   CLOCKS,
   COUNTABLES,
   COUNTER_LOOKALIKES,
@@ -11,7 +12,9 @@ import {
   QUIZ,
   WORDS,
   type Calc,
+  type ClockRiddle,
   type ClockTime,
+  type OracleQuestion,
   type QuizQuestion,
 } from "./content";
 import { random, seedOf } from "./daily";
@@ -106,11 +109,61 @@ function shuffle<T>(rand: Rand, list: readonly T[]): T[] {
 }
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
-const GENERATORS: Record<TrialKind, (rand: Rand) => Trial> = {
+/** Numéro du jour (jours écoulés depuis le 1er janvier 1970), pour faire tourner les réserves. */
+function dayIndex(date: string): number {
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+/**
+ * Contenu du jour pris dans une réserve qui tourne : la réserve est rangée une fois pour toutes
+ * dans un ordre mélangé fixe (graine `salt`), et chaque jour prend les éléments suivants, autant
+ * que `pattern` l'indique pour ce jour (motif qui se répète). Rien ne revient avant que toute la
+ * réserve soit passée : avec `n` éléments pris par jour en moyenne, une réserve de `31 × n`
+ * éléments tient un mois sans répétition (vérifié par les tests).
+ */
+export function rotation<T>(
+  pool: readonly T[],
+  salt: string,
+  date: string,
+  pattern: readonly number[] = [1],
+): T[] {
+  if (pool.length === 0) return [];
+  const order = shuffle(random(seedOf(salt)), pool);
+  const day = dayIndex(date);
+  const perCycle = pattern.reduce((n, k) => n + k, 0);
+  const step = ((day % pattern.length) + pattern.length) % pattern.length;
+  let start = Math.floor(day / pattern.length) * perCycle;
+  for (let i = 0; i < step; i++) start += pattern[i] ?? 0;
+  const count = pattern[step] ?? 0;
+  return Array.from(
+    { length: count },
+    (_, i) => order[(((start + i) % order.length) + order.length) % order.length] as T,
+  );
+}
+
+/** Questions « 12 » par jour au quiz (sur 4) : 1 à 3, 2 en moyenne. */
+export const QUIZ_TWELVES_PATTERN = [2, 1, 3, 2, 3, 1];
+/** Calculs qui font 12 par jour (sur 6) : 2 ou 3. */
+export const CALC_TWELVES_PATTERN = [2, 3, 3, 2, 3, 2];
+const complement = (pattern: readonly number[], total: number) => pattern.map((n) => total - n);
+
+const twelveQuestions = QUIZ.filter((q) => q.answer === 12);
+const otherQuestions = QUIZ.filter((q) => q.answer !== 12);
+const twelveCalcs = CALCS.filter((c) => isTwelve(c.value));
+const otherCalcs = CALCS.filter((c) => !isTwelve(c.value));
+const twelveWords = WORDS.filter((w) => letterCount(w) === 12);
+const otherWords = WORDS.filter((w) => letterCount(w) !== 12);
+
+const GENERATORS: Record<TrialKind, (rand: Rand, date: string) => Trial> = {
   chrono: (rand) => ({ kind: "chrono", visibleMs: pick(rand, [2000, 3000, 4000, 5000]) }),
   clicks: (rand) => ({ kind: "clicks", moving: rand() < 0.5 }),
-  count: (rand) => {
-    const what = pick(rand, COUNTABLES);
+  count: (rand, date) => {
+    const [what = COUNTABLES[0] as (typeof COUNTABLES)[number]] = rotation(
+      COUNTABLES,
+      "objets",
+      date,
+    );
     const count = pick(rand, [10, 11, 12, 12, 13, 14]);
     const decoys = int(rand, 3, 6);
     const thing = (decoy: boolean): Thing => ({
@@ -126,21 +179,13 @@ const GENERATORS: Record<TrialKind, (rand: Rand) => Trial> = {
     ]);
     return { kind: "count", item: what.item, decoy: what.decoy, label: what.label, things, count };
   },
-  quiz: (rand) => {
-    const twelves = shuffle(
-      rand,
-      QUIZ.filter((q) => q.answer === 12),
-    );
-    const others = shuffle(
-      rand,
-      QUIZ.filter((q) => q.answer !== 12),
-    );
-    const n = int(rand, 1, 3);
-    return {
-      kind: "quiz",
-      questions: shuffle(rand, [...twelves.slice(0, n), ...others.slice(0, 4 - n)]),
-    };
-  },
+  quiz: (rand, date) => ({
+    kind: "quiz",
+    questions: shuffle(rand, [
+      ...rotation(twelveQuestions, "quiz-12", date, QUIZ_TWELVES_PATTERN),
+      ...rotation(otherQuestions, "quiz-autres", date, complement(QUIZ_TWELVES_PATTERN, 4)),
+    ]),
+  }),
   sum: (rand) => {
     const groups = Array.from({ length: 4 }, () => {
       if (rand() < 0.5) {
@@ -163,20 +208,15 @@ const GENERATORS: Record<TrialKind, (rand: Rand) => Trial> = {
     }));
     return { kind: "polygon", shapes };
   },
-  clock: (rand) => {
-    const riddle = pick(rand, CLOCKS);
-    const clocks = shuffle(rand, [riddle.target, ...riddle.decoys]);
+  clock: (rand, date) => {
+    const [riddle = CLOCKS[0] as ClockRiddle] = rotation(CLOCKS, "horloges", date);
+    const decoys = shuffle(rand, clockDecoys(riddle.target)).slice(0, 5);
+    const clocks = shuffle(rand, [riddle.target, ...decoys]);
     return { kind: "clock", label: riddle.label, clocks, answer: clocks.indexOf(riddle.target) };
   },
-  letters: (rand) => {
-    const twelve = pick(
-      rand,
-      WORDS.filter((w) => letterCount(w) === 12),
-    );
-    const others = shuffle(
-      rand,
-      WORDS.filter((w) => letterCount(w) !== 12),
-    ).slice(0, 3);
+  letters: (rand, date) => {
+    const [twelve = twelveWords[0] as string] = rotation(twelveWords, "mots", date);
+    const others = shuffle(rand, otherWords).slice(0, 3);
     const words = shuffle(rand, [twelve, ...others]);
     return { kind: "letters", words, answer: words.indexOf(twelve) };
   },
@@ -198,21 +238,13 @@ const GENERATORS: Record<TrialKind, (rand: Rand) => Trial> = {
     if (!sequence.includes("12")) sequence[int(rand, 5, length - 3)] = "12";
     return { kind: "counter", stepMs, sequence };
   },
-  calc: (rand) => {
-    const twelves = shuffle(
-      rand,
-      CALCS.filter((c) => isTwelve(c.value)),
-    );
-    const others = shuffle(
-      rand,
-      CALCS.filter((c) => !isTwelve(c.value)),
-    );
-    const n = int(rand, 2, 3);
-    return {
-      kind: "calc",
-      items: shuffle(rand, [...twelves.slice(0, n), ...others.slice(0, 6 - n)]),
-    };
-  },
+  calc: (rand, date) => ({
+    kind: "calc",
+    items: shuffle(rand, [
+      ...rotation(twelveCalcs, "calculs-12", date, CALC_TWELVES_PATTERN),
+      ...rotation(otherCalcs, "calculs-autres", date, complement(CALC_TWELVES_PATTERN, 6)),
+    ]),
+  }),
   real: (rand) => {
     const answer = int(rand, 0, 23);
     const cells = Array.from({ length: 24 }, (_, i) =>
@@ -220,8 +252,8 @@ const GENERATORS: Record<TrialKind, (rand: Rand) => Trial> = {
     );
     return { kind: "real", cells, answer };
   },
-  oracle: (rand) => {
-    const q = pick(rand, ORACLE);
+  oracle: (rand, date) => {
+    const [q = ORACLE[0] as OracleQuestion] = rotation(ORACLE, "oracle", date);
     return {
       kind: "oracle",
       question: q.text,
@@ -241,7 +273,7 @@ export function dailyTrials(date: string): Trial[] {
     TRIAL_KINDS.filter((k) => k !== "oracle"),
   );
   return [...order, "oracle" as const].map((kind) =>
-    GENERATORS[kind](random(seedOf(`${date}:${kind}`))),
+    GENERATORS[kind](random(seedOf(`${date}:${kind}`)), date),
   );
 }
 
