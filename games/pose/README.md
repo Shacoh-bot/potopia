@@ -125,17 +125,27 @@ toujours dans le sens de l'image (même si le joueur l'a faite en miroir).
 
 ## Les poses
 
-`src/poses.ts` : 59 poses, des parties 1 à 6 (rendus officiels détourés d'All Star Battle,
+`src/poses.ts` : 56 poses, des parties 1 à 6 (rendus officiels détourés d'All Star Battle,
 All Star Battle R, Eyes of Heaven, Last Survivor et OraDora, et visuels officiels de l'anime, pris sur jojowiki.com) : personnage, nom de
 la pose, image (`apps/web/public/pose/<id>.webp`, 640 px de haut) et angles du squelette. Les
-angles ont été calés en pointant les articulations sur chaque image (épaules, coudes, poignets,
-hanches, genoux, chevilles), puis vérifiés un à un en superposant le squelette à l'image
-agrandie.
+angles sont calés en pointant les articulations sur chaque image agrandie (bassin, base du cou,
+centre de la tête, épaules, coudes, poignets, hanches, genoux, chevilles) et se mesurent
+d'articulation à articulation, comme le pantin les juge : le bras de l'épaule au coude,
+l'avant-bras du coude au poignet, la cuisse de la hanche au genou, la jambe du genou à la
+cheville. La largeur des épaules et du bassin ne compte pas (le pantin ne peut pas la changer).
+Chaque articulation se pointe dans l'axe du membre, là où il plie, sous les vêtements : pas au
+bout d'une manche bouffante, d'une épaulette ou d'un pli de pantalon. Jambes croisées : la jambe gauche de l'image peut finir à droite (Kira, Speedwagon,
+Rohan), on suit chaque jambe de la hanche à son pied. Vérification : le squelette
+pointé est tracé sur l'image, puis comparé au pantin cible. Repointage complet le 8 novembre 2026
+(plusieurs poses étaient fausses : bras, jambes inversées, têtes) ; trois poses à bras croisés
+illisibles en 2D ont été retirées (Kars « La lame », Kakyoin « Le doigt levé », Straizo « Bras
+croisés »).
 
 Règles de choix d'une pose : rien de Steel Ball Run (en cours de diffusion) ni des parties
 suivantes, sauf Gyro dans sa tenue des premiers épisodes, sans Stand ; un seul personnage, en
 pied ; chaque membre lisible à plat (pas de
-bras ni de jambe pointé droit vers l'écran, ni caché derrière le corps) ; au moins une
+bras ni de jambe pointé droit vers l'écran, ni caché derrière le corps, ni bras croisés dont on ne voit pas de quelle épaule part chaque
+main) ; au moins une
 articulation à changer par rapport à la pose debout (sinon il n'y a rien à jouer).
 
 Pour ajouter ou corriger une pose : l'**éditeur** `/pose?editeur` (en local seulement, jamais en
