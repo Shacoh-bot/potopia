@@ -50,6 +50,13 @@ pnpm dev                    # http://localhost:3000
 
 La console du stockage local est sur http://localhost:9001 (identifiants dans `.env.example`).
 
+**Connexion locale sans Discord.** En local, `/login` ouvre directement une session, sans passer
+par Discord : sur ton propre compte (le premier ID de `ADMIN_DISCORD_IDS`, avec ses droits d'admin)
+s'il s'est déjà connecté une fois avec Discord sur cette base, sinon sur un compte fictif « Dev
+local » (simple membre). `/login?discord` affiche la vraie page de connexion. Fermé en production
+et sur Vercel (route `/api/auth/dev-login` en 404). Les variables Discord doivent quand même être
+remplies (Better Auth les lit au démarrage).
+
 ### Variables d'environnement
 
 Toutes sont décrites dans [.env.example](.env.example). En local, seules celles marquées « à

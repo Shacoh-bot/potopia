@@ -1,5 +1,5 @@
 import { BRAND } from "@app/config/brand";
-import { getSession } from "@app/core";
+import { getSession, isDevLoginEnabled } from "@app/core";
 import { Button, Card } from "@app/ui";
 import { Sparkles } from "lucide-react";
 import type { Metadata } from "next";
@@ -16,10 +16,14 @@ const ERRORS: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; discord?: string }>;
 }) {
   if (await getSession(await headers())) redirect("/");
-  const { error } = await searchParams;
+  const params = await searchParams;
+  const { error } = params;
+  // En local : connexion directe, sans Discord (`/login?discord` affiche la vraie page).
+  const devLogin = isDevLoginEnabled();
+  if (devLogin && !error && !("discord" in params)) redirect("/api/auth/dev-login");
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
@@ -46,6 +50,13 @@ export default async function LoginPage({
             Entrer avec Discord
           </Button>
         </form>
+        {devLogin && (
+          <form action="/api/auth/dev-login" method="get" className="w-full">
+            <Button type="submit" variant="ghost" className="w-full">
+              Connexion locale, sans Discord
+            </Button>
+          </form>
+        )}
         {error && (
           <p role="alert" className="text-danger text-sm">
             {ERRORS[error] ?? "La connexion a échoué. Réessaie dans un instant."}

@@ -123,6 +123,15 @@ passe d'une partie à l'autre sans rechargement.
     `/change-password`, `/link-social`, `/unlink-account`) sont désactivés (`disabledPaths`) et
     répondent 404, sinon un membre pourrait prendre le pseudo d'un autre dans le fil d'activité
     ou les classements.
+- **Connexion de développement** (`packages/core/src/auth/dev-login.ts`, route
+  `/api/auth/dev-login`) : en local, `/login` y renvoie aussitôt et une session s'ouvre sans
+  Discord (`/login?discord` garde la vraie page). Compte ouvert : celui du premier ID de
+  `ADMIN_DISCORD_IDS` s'il existe en base, sinon le compte fictif `dev-local` (« Dev local »,
+  simple membre), créé au besoin. Session créée par Better Auth (`internalAdapter.createSession`),
+  cookie signé comme le sien ; sa revérification Discord est repoussée à son expiration (le
+  compte fictif n'a pas de compte Discord). Fermée dès que `NODE_ENV` vaut `production`
+  (`next build` / `next start`) ou que `VERCEL` est posée (tous les déploiements Vercel, previews
+  comprises) : la route répond 404 et `createDevSession` refuse.
 - **Revérification toutes les 6 h** (champ `guildCheckedAt` sur la session). Un membre qui a quitté
   le serveur voit sa session révoquée ; ses données sont conservées.
   - Le token Discord est rafraîchi au besoin. Un 401 de Discord sur la liste des serveurs vaut
@@ -152,8 +161,8 @@ passe d'une partie à l'autre sans rechargement.
     vient d'être révoquée, `forbidden()` (403, `app/forbidden.tsx`) pour un non-admin. Les server
     actions appellent `actionMember()` / `actionAdmin()`, qui lèvent `UnauthorizedError` (401) ou
     `ForbiddenError` (403).
-  - Seules exceptions : les routes `/api/auth/*` de Better Auth et les actions de connexion et de
-    déconnexion, qui ouvrent et ferment la session.
+  - Seules exceptions : les routes `/api/auth/*` de Better Auth (et `/api/auth/dev-login` en
+    local) et les actions de connexion et de déconnexion, qui ouvrent et ferment la session.
   - Les cookies posés par `getAuth().api.*` depuis une server action sont recopiés par
     `applyAuthCookies` (`lib/auth-cookies.ts`), l'équivalent du plugin `nextCookies` de Better
     Auth, qui ne peut pas vivre dans `packages/core` (pas d'import Next).
@@ -1263,6 +1272,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
   - la session est révoquée après la revérification ; une panne Discord ne révoque qu'après 24 h ;
   - un membre ne peut pas changer son pseudo ou son image par l'API Better Auth ;
   - chaque route et chaque page est bien protégée (`apps/web/test/access.test.ts`).
+  - connexion de développement : fermée en production et sur Vercel, compte de l'admin s'il
+    existe sinon « Dev local », cookie mal signé refusé (`packages/core/test/dev-login.test.ts`).
 - **db** : contrôle des frontières (SQL brut, toute méthode Prisma, destructuration, types,
   imports dynamiques) et faux positifs écartés.
 - **storage** : clés, présignatures, objets (sur le stockage S3 local).

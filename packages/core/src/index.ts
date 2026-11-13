@@ -36,6 +36,12 @@ export {
 export { apps, getVisibleApps, type AppEntry, type AppIconName } from "./apps/registry";
 export { createAuth, getAuth, type Auth } from "./auth/auth";
 export { checkGuildMembership, DiscordApiError, mapProfileToUser } from "./auth/discord";
+export {
+  createDevSession,
+  DEV_USER,
+  isDevLoginEnabled,
+  type DevSessionCookie,
+} from "./auth/dev-login";
 export { AvatarConfigError, AvatarPhraseError, ForbiddenError, UnauthorizedError } from "./errors";
 export {
   countUnread,
