@@ -298,8 +298,8 @@ idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. 
 toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
 
 Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
-set choisi, **Administration › Potodex** montre les cartes trouvées et remet la collection de test
-à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
+set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)
+et remet la collection de test à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
 
 ### Mettre à jour la mascotte
 

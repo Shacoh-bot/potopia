@@ -1137,8 +1137,13 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   Chaque son varie un peu à chaque fois ; volume du site respecté.
 - `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
   les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
-  bouton « Remettre à zéro ». Le Potodex passera dans le menu de gauche, sous l'inventaire,
-  quand les boosters ouvriront aux membres.
+  bouton « Remettre à zéro ». Les miniatures sont des cartes figées réduites par `zoom`
+  (`CARD_WIDTH`/`CARD_HEIGHT` de `@app/tcg/ui`) ; la boîte zoomée ne doit pas recevoir de largeur,
+  sinon elle rapetisse aussi et `content-visibility` rogne la carte. Une carte trouvée est un
+  bouton (`PotodexCard.tsx`) : clic, toucher ou Entrée l'ouvre en grand, vivante, dans un
+  `<dialog>` modal (taille adaptée à l'écran par `zoomToFit`, fermeture par clic à côté, Échap
+  ou bouton) ; la grande carte n'est rendue qu'à l'ouverture. Le Potodex passera dans le menu de
+  gauche, sous l'inventaire, quand les boosters ouvriront aux membres.
 
 ## Avatars et place
 
