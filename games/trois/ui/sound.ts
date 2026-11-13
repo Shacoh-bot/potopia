@@ -3,8 +3,11 @@
 import { effectiveVolume, onVolumeChange } from "@app/ui";
 import { useSyncExternalStore } from "react";
 import type { Mark } from "../src/game";
+import { type SoundName, TROIS_SOUNDS } from "./sound-files";
 
-// Sons synthétisés avec Web Audio : aucun fichier à charger, rien dans le bundle.
+// Sons du jeu : vrais bruitages de Motus (cases, mot trouvé, perdu, fanfare du 3 sur 3) et
+// sons d'interface de Pokémon TCG Pocket (touches, clics), fichiers de `public/audio/trois/`
+// téléchargés et décodés dès l'arrivée sur la page. Le mode Boobzilla reste synthétisé.
 
 const KEY = "trois_muted";
 let ctx: AudioContext | null = null;
@@ -38,6 +41,52 @@ function audio() {
 onVolumeChange(() => {
   if (ctx && volume) volume.gain.setTargetAtTime(effectiveVolume(), ctx.currentTime, 0.02);
 });
+
+const buffers = new Map<SoundName, AudioBuffer>();
+let loading: Promise<void> | null = null;
+
+/** Télécharge et décode les sons (une fois ; réessaie au prochain appel en cas d'échec). */
+export function preloadSounds(): Promise<void> {
+  if (typeof window === "undefined" || typeof OfflineAudioContext === "undefined") {
+    return Promise.resolve();
+  }
+  if (!loading) {
+    // Décodage hors contexte de lecture : celui-ci ne peut démarrer qu'après un geste du joueur.
+    const decoder = new OfflineAudioContext(1, 1, 44100);
+    loading = Promise.all(
+      TROIS_SOUNDS.map(async (name) => {
+        if (buffers.has(name)) return;
+        const res = await fetch(`/audio/trois/${name}.mp3`);
+        if (!res.ok) throw new Error(`${name} : ${res.status}`);
+        buffers.set(name, await decoder.decodeAudioData(await res.arrayBuffer()));
+      }),
+    ).then(
+      () => undefined,
+      () => {
+        loading = null;
+      },
+    );
+  }
+  return loading;
+}
+
+// Ce module ne sert qu'à TROIS : les sons se chargent dès l'arrivée sur la page.
+void preloadSounds();
+
+/** Joue un son du jeu, éventuellement décalé de `at` secondes. */
+function play(name: SoundName, at = 0) {
+  const buffer = buffers.get(name);
+  if (!buffer) {
+    void preloadSounds(); // pas encore là : il sera prêt pour le geste suivant
+    return;
+  }
+  const au = audio();
+  if (!au) return;
+  const src = au.a.createBufferSource();
+  src.buffer = buffer;
+  src.connect(au.out);
+  src.start(au.a.currentTime + at);
+}
 
 type Tone = {
   freq: number;
@@ -109,13 +158,6 @@ function brass(freq: number, at: number, dur: number, vol = 0.1) {
     osc.stop(end + 0.02);
   }
 }
-
-/** Coup de timbale : sinus grave qui chute. */
-const timpani = (freq: number, at: number) =>
-  tone({ freq: freq * 1.5, to: freq, at, dur: 0.5, vol: 0.35 });
-
-const notes = (freqs: number[], step: number, o: Omit<Tone, "freq" | "at"> = {}) =>
-  freqs.forEach((freq, i) => tone({ freq, at: i * step, ...o }));
 
 // ─── Mode Boobzilla : sons absurdes ───────────────────────────────────────────
 
@@ -351,58 +393,21 @@ export function stopMusic() {
   music = null;
 }
 
-// fréquences (Hz)
-const C3 = 130.81,
-  G3 = 196,
-  C4 = 261.63,
-  E4 = 329.63,
-  G4 = 392,
-  C5 = 523.25,
-  D5 = 587.33,
-  E5 = 659.25,
-  G5 = 783.99,
-  C6 = 1046.5;
-
 export const sfx = {
-  key: () => (chaos ? silly.random() : tone({ freq: 520, dur: 0.04, type: "triangle", vol: 0.08 })),
-  back: () => (chaos ? silly.fart() : tone({ freq: 340, dur: 0.05, type: "triangle", vol: 0.08 })),
-  click: () => (chaos ? silly.boing() : tone({ freq: 760, dur: 0.05, vol: 0.06 })),
-  error: () =>
-    chaos ? silly.airhorn() : tone({ freq: 180, to: 110, dur: 0.18, type: "square", vol: 0.05 }),
-  /** une case qui se retourne, au moment où elle se retourne */
-  tile: (mark: Mark, at: number) =>
-    mark === "correct"
-      ? tone({ freq: 880, at, dur: 0.12, type: "triangle", vol: 0.12 })
-      : mark === "present"
-        ? tone({ freq: 620, at, dur: 0.1, type: "triangle", vol: 0.1 })
-        : tone({ freq: 200, at, dur: 0.08, vol: 0.12 }),
-  /** un mot trouvé : petite envolée de cuivres */
-  win: () => {
-    [C5, E5, G5].forEach((f, i) => brass(f, i * 0.09, 0.1, 0.08));
-    brass(C6, 0.27, 0.45, 0.09);
-    [C4, E4, G4].forEach((f) => brass(f, 0.27, 0.45, 0.04));
-    timpani(C3, 0.27);
-  },
-  lose: () => notes([392, 330, 262], 0.16, { dur: 0.25, type: "sine", vol: 0.12 }),
-  /** 3 sur 3 : fanfare de victoire (composition originale, triolets puis note tenue) */
-  perfect: () => {
-    const step = 0.12;
-    const phrase = (at: number, pickup: number[], held: number, dur: number) => {
-      pickup.forEach((f, i) => brass(f, at + i * step, step * 0.8, 0.08));
-      const down = at + pickup.length * step;
-      brass(held, down, dur, 0.1);
-      return down;
-    };
-    const d1 = phrase(0, [G4, G4, G4], C5, 0.48);
-    [C4, E4].forEach((f) => brass(f, d1, 0.48, 0.04));
-    timpani(C3, d1);
-    const d2 = phrase(d1 + 0.54, [E5, D5, E5], G5, 1.1);
-    [C4, E4, G4].forEach((f) => brass(f, d2, 1.1, 0.045));
-    brass(G3, d2, 1.1, 0.05);
-    timpani(C3, d2);
-    timpani(G3, d2 + 0.36);
-  },
-  success: () => notes([660, 990], 0.08, { dur: 0.12, vol: 0.1 }),
+  key: () => (chaos ? silly.random() : play("key")),
+  back: () => (chaos ? silly.fart() : play("back")),
+  click: () => (chaos ? silly.boing() : play("click")),
+  /** mot refusé : le bip grave d'une lettre absente de Motus */
+  error: () => (chaos ? silly.airhorn() : play("error")),
+  /** une case qui se retourne, au moment où elle se retourne : les bips de lettres de Motus */
+  tile: (mark: Mark, at: number) => play(`tile-${mark}`, at),
+  /** un mot trouvé : la montée « mot trouvé » de Motus */
+  win: () => play("win"),
+  /** mot perdu : la glissade descendante de Motus */
+  lose: () => play("lose"),
+  /** 3 sur 3 : le jingle de Motus */
+  perfect: () => play("perfect"),
+  success: () => play("success"),
 };
 
 export function setMuted(m: boolean) {
