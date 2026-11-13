@@ -1,6 +1,7 @@
 import { AppLink } from "@app/ui";
 import type { CSSProperties } from "react";
 import {
+  Clock12,
   Grid3x3,
   Lightbulb,
   Palette,
@@ -14,6 +15,7 @@ import type { AppEntry, AppIconName } from "../src/apps/registry";
 
 // Import explicite de chaque icône : importer tout lucide alourdirait le bundle client.
 const ICONS: Record<AppIconName, LucideIcon> = {
+  clock: Clock12,
   grid: Grid3x3,
   lightbulb: Lightbulb,
   mask: VenetianMask,

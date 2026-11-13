@@ -37,6 +37,15 @@ const DESCRIPTIONS: Record<string, (payload: Payload, nameOf: NameOf) => string>
       : `a réussi une mission ${AGENTS_NAME}${duo} en ${turns ?? "?"} tours 🕵️`;
   },
   "avatar/updated": () => "a changé de look",
+  "douze/day_completed": (payload) => {
+    const points = numberField(payload, "points");
+    const day = numberField(payload, "number");
+    const title = day && day >= 1 ? `DOUZE #${day}` : "DOUZE";
+    if (points === undefined) return `a fini ${title}`;
+    if (points === 144) return `a fait 144 sur 144 à ${title} : une grosse 🕛`;
+    if (points === 12) return `a fait 12 points pile à ${title}. Douze. Évidemment.`;
+    return `a fini ${title} : ${points} / 144`;
+  },
   "ideas/idea_submitted": () => "a proposé une idée",
   "pose/day_completed": (payload) => {
     const percent = numberField(payload, "percent");
@@ -56,10 +65,17 @@ const DESCRIPTIONS: Record<string, (payload: Payload, nameOf: NameOf) => string>
   },
 };
 
-/** Exploit mis en avant en or dans le fil : un 3 sur 3 à TROIS, 90 % ou plus à Pose JoJo. */
+/**
+ * Exploit mis en avant en or dans le fil : un 3 sur 3 à TROIS, 90 % ou plus à Pose JoJo, 120 points
+ * ou plus (ou 12 pile) à DOUZE.
+ */
 function isFeat(app: string, type: string, payload: Payload): boolean {
   if (type !== "day_completed") return false;
   if (app === "pose") return (numberField(payload, "percent") ?? 0) >= 90;
+  if (app === "douze") {
+    const points = numberField(payload, "points") ?? 0;
+    return points >= 120 || points === 12;
+  }
   return app === "trois" && numberField(payload, "found") === 3;
 }
 

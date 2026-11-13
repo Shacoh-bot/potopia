@@ -4,7 +4,7 @@ Plateforme web de mini-jeux pour un groupe d'amis Discord. Nom de code et nom de
 `packages/config/brand.ts` (seul endroit où ils apparaissent).
 
 Ce document décrit la plateforme telle qu'elle est : socle (accès Discord, monnaie, activité,
-notifications), boîte à idées, avatars et place, quatre jeux (TROIS, Agents Doubles, Pose JoJo et Morpion) et le vote du
+notifications), boîte à idées, avatars et place, cinq jeux (TROIS, Agents Doubles, Pose JoJo, Morpion et DOUZE) et le vote du
 design des futures cartes. Il est tenu à jour à chaque changement (voir CLAUDE.md).
 
 ## Stack
@@ -39,6 +39,7 @@ Pourquoi Better Auth plutôt qu'Auth.js :
 apps/web/            app Next mince : routes, layouts, server actions, route handlers
 games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
+  douze/             DOUZE : douze épreuves absurdes par jour autour du 12, notées sur 12 chacune
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
   pose/              Pose JoJo : un pantin à mettre dans une pose célèbre, 3 poses par jour
   morpion/           duels entre membres, cinq univers du DM original, revanches aléatoires (perdant au premier tour)
@@ -288,7 +289,8 @@ sur données fictives, ainsi que les validations terrain et de mise en service e
 Décrits dans les README des jeux : [games/trois/README.md](../games/trois/README.md) (`games`,
 `guesses`, `daily_words`) et [games/agents/README.md](../games/agents/README.md) (`games`, `clues`,
 `guesses`, index unique partiel : une seule partie en cours par paire de joueurs). Pose JoJo :
-[games/pose/README.md](../games/pose/README.md) (`rounds`).
+[games/pose/README.md](../games/pose/README.md) (`rounds`). DOUZE :
+[games/douze/README.md](../games/douze/README.md) (`rounds`, une ligne par épreuve jouée).
 
 ## Mécanismes clés
 
@@ -395,7 +397,7 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
   le `--radius` des thèmes JoJo, One Piece et Apothicaire les rendait presque carrées.
 - Une tuile n'est visible que si l'utilisateur a le rôle requis.
 - Tuiles actuelles, dans l'ordre : « GOTY Party » (si `GOTY_ENABLED`), « TROIS », « Agents
-  Doubles », « Pose JoJo », « Boîte à idées », « Vote design des cartes » (membres), puis
+  Doubles », « Pose JoJo », « DOUZE », « Morpion », « Boîte à idées », « Vote design des cartes » (membres), puis
   « Administration » (admins).
 - Le fil d'Ariane prend le nom des apps dans ce registre (`components/Breadcrumb.tsx`, composant
   serveur) ; seule exception, le libellé plus court « Design des cartes » pour `/cartes`.
@@ -1175,7 +1177,7 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
 - `GET /api/place?since=` (requireMember) renvoie les membres (URL de leur planche, phrase,
   dernière activité) et les événements depuis `since` (10 min au plus). Le client l'appelle toutes les 30 s :
   un avatar modifié change de planche sans recharger la page, et chaque événement déclenche une
-  réaction (`REACTIONS` : `avatar/updated` → émotion, 3 sur 3 à TROIS → confettis…).
+  réaction (`REACTIONS` : `avatar/updated` → émotion, 3 sur 3 à TROIS → confettis, « Douze. » à DOUZE…).
   - `listEventsSince` reprend 10 s avant `since` (`EVENT_COMMIT_GRACE_MS`) : un événement validé
     après coup n'est pas perdu. Le prochain `since` est la date du dernier événement livré, et la
     place ne joue chaque événement qu'une fois (dédoublonnage par id).
@@ -1219,7 +1221,7 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
 - **db** : contrôle des frontières (SQL brut, toute méthode Prisma, destructuration, types,
   imports dynamiques) et faux positifs écartés.
 - **storage** : clés, présignatures, objets (sur le stockage S3 local).
-- **jeux** : voir les README de TROIS, d'Agents Doubles et de Pose JoJo ; **tcg** : vote ouvert aux membres,
+- **jeux** : voir les README de TROIS, d'Agents Doubles, de Pose JoJo et de DOUZE ; **tcg** : vote ouvert aux membres,
   numéros stables, mots-clés et négations.
 
 ## Étapes de réalisation
@@ -1247,6 +1249,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
       import), puis boosters, collection, decks et parties.
 - [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre, 3 poses par jour,
       classement (base `pose`) ; la récompense en monnaie reste à faire.
+- [ ] 16. `games/douze` : DOUZE, douze épreuves absurdes par jour (base `douze`), classement ;
+      ouverture le 12/12/2026 à 12 h 12.
 
 ## Hors périmètre (pour l'instant)
 

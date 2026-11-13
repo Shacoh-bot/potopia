@@ -1,5 +1,6 @@
 import { AgentsError } from "@app/agents";
 import { ForbiddenError, UnauthorizedError } from "@app/core";
+import { DouzeError } from "@app/douze";
 import { InvalidImageError, UploadRateLimitError } from "@app/ideas";
 import { PoseError } from "@app/pose";
 import { MorpionError } from "@app/morpion";
@@ -33,6 +34,7 @@ export function errorResponse(error: unknown): Response {
     error instanceof TroisError ||
     error instanceof AgentsError ||
     error instanceof PoseError ||
+    error instanceof DouzeError ||
     error instanceof MorpionError
   ) {
     return Response.json({ error: error.message }, { status: error.status });
