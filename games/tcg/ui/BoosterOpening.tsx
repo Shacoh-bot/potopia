@@ -1,5 +1,17 @@
 "use client";
 
+import {
+  Hand,
+  type LucideIcon,
+  Mouse,
+  MouseLeft,
+  MouseRight,
+  Move,
+  Pointer,
+  Rotate3d,
+  ScissorsLineDashed,
+  ZoomIn,
+} from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
 import { CardBack } from "./CardBack";
@@ -45,10 +57,8 @@ const VIDEO_DONE = 3.62;
 /** Largeur d'une carte `GameCard` à l'échelle 1, et rapport largeur/hauteur des cartes. */
 const CARD_WIDTH = 300;
 const CARD_RATIO = 360 / 504;
-/** Première moitié du demi-tour d'une carte (ms), comme l'animation tcg-turn-out de tcg.css. */
-const TURN_MS = 160;
-/** Seconde moitié du demi-tour (ms), comme l'animation tcg-turn-in de tcg.css. */
-const TURN_IN_MS = 240;
+/** Durée du demi-tour d'une carte (ms), comme l'animation tcg-flip-over de tcg.css. */
+const FLIP_MS = 620;
 
 type Phase = "pack" | "zoom" | "video" | "cards";
 type Size = { width: number; height: number };
@@ -115,7 +125,50 @@ export function preloadBoosterOpening(assetsBase = "/tcg/ouverture") {
   void fetch(videoSource(assetsBase)).catch(() => {});
 }
 
-/** Une carte du paquet : de dos, elle se retourne d'un demi-tour au clic (une seule fois). */
+/** Gestes du paquet 3D, à la souris et au doigt : un appareil, un geste, un mot. */
+const PACK_HELP: Record<
+  "mouse" | "touch",
+  { device: LucideIcon; does: LucideIcon; label: string }[]
+> = {
+  mouse: [
+    { device: MouseLeft, does: Rotate3d, label: "Tourner" },
+    { device: MouseRight, does: Move, label: "Déplacer" },
+    { device: Mouse, does: ZoomIn, label: "Zoomer" },
+    { device: MouseLeft, does: ScissorsLineDashed, label: "Découper" },
+  ],
+  touch: [
+    { device: Pointer, does: Rotate3d, label: "Tourner" },
+    { device: Hand, does: Move, label: "2 doigts" },
+    { device: Hand, does: ZoomIn, label: "Pincer" },
+    { device: Pointer, does: ScissorsLineDashed, label: "Découper" },
+  ],
+};
+
+/** Petites icônes d'aide sous le paquet (tactile : versions au doigt). */
+function PackHelp() {
+  const [touch, setTouch] = useState(false);
+  useEffect(() => {
+    setTouch(matchMedia("(pointer: coarse)").matches);
+  }, []);
+  return (
+    <ul className="tcg-opening-help" aria-label="Gestes">
+      {PACK_HELP[touch ? "touch" : "mouse"].map(({ device: Device, does: Does, label }) => (
+        <li key={label}>
+          <span className="tcg-opening-help-icons" aria-hidden>
+            <Device size={18} strokeWidth={1.75} />
+            <Does size={14} strokeWidth={2} />
+          </span>
+          {label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Une carte du paquet, vraie carte recto-verso : le dos et la face (`GameCard`) sont montés
+ * ensemble, dos à dos, et le clic la fait pivoter d'un seul demi-tour (une seule fois).
+ */
 function OpeningCard({
   opened,
   from,
@@ -132,8 +185,8 @@ function OpeningCard({
   onReveal: () => void;
 }) {
   const [placed, setPlaced] = useState(from === null);
-  const [side, setSide] = useState<"back" | "turning" | "face">("back");
-  // Fin du demi-tour : la face suit de nouveau la souris (inclinaison, reflets).
+  const [side, setSide] = useState<"back" | "face">("back");
+  // Fin du demi-tour : la face suit la souris (inclinaison, reflets).
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
@@ -151,14 +204,14 @@ function OpeningCard({
 
   function reveal() {
     if (side !== "back" || !opened) return;
-    setSide("turning");
+    setSide("face");
     flipSound(opened.card.rarity);
     onReveal();
-    // Mi-parcours du demi-tour (animation tcg-turn-out) : la face remplace le dos ; elle ne suit
-    // la souris qu'une fois le demi-tour fini (tcg-turn-in), sinon elle resterait de travers.
-    window.setTimeout(() => setSide("face"), TURN_MS);
-    window.setTimeout(() => setSettled(true), TURN_MS + TURN_IN_MS);
+    // La face ne suit la souris qu'une fois posée, sinon elle resterait de travers.
+    window.setTimeout(() => setSettled(true), FLIP_MS);
   }
+
+  const faceUp = side === "face";
 
   return (
     <div
@@ -169,23 +222,29 @@ function OpeningCard({
         type="button"
         className="tcg-opening-card"
         data-side={side}
+        data-settled={settled ? "" : undefined}
         data-rarity={opened?.card.rarity}
         aria-busy={!opened}
-        aria-label={side === "face" && opened ? opened.card.name : "Retourner la carte"}
+        aria-label={faceUp && opened ? opened.card.name : "Retourner la carte"}
         onClick={reveal}
       >
-        {side === "face" && opened ? (
-          <span
-            className="tcg-opening-face"
-            style={{ zoom: to.width / CARD_WIDTH, pointerEvents: settled ? undefined : "none" }}
-          >
-            <span style={{ display: "block", width: CARD_WIDTH }}>
-              <GameCard card={opened.card} imageUrl={opened.imageUrl} setSize={setSize} />
-            </span>
+        <span className="tcg-opening-turn">
+          <span className="tcg-opening-side" aria-hidden={faceUp || undefined}>
+            <CardBack />
           </span>
-        ) : (
-          <CardBack />
-        )}
+          {/* Face montée dès l'arrivée du tirage, de l'autre côté : rien ne s'échange en route. */}
+          {opened && (
+            <span
+              className="tcg-opening-side tcg-opening-face"
+              aria-hidden={!faceUp || undefined}
+              style={{ pointerEvents: settled ? undefined : "none" }}
+            >
+              <span style={{ display: "block", width: CARD_WIDTH, zoom: to.width / CARD_WIDTH }}>
+                <GameCard card={opened.card} imageUrl={opened.imageUrl} setSize={setSize} />
+              </span>
+            </span>
+          )}
+        </span>
       </button>
     </div>
   );
@@ -249,10 +308,13 @@ export function BoosterOpening({
     return () => removeEventListener("keydown", key);
   }, [onClose]);
 
-  // Sous le paquet 3D, la vidéo attend sur l'image du relais.
+  // Sous le paquet 3D, la vidéo attend sur l'image du relais (cachée : voir `.tcg-opening-video`).
+  // Elle n'est montée qu'une fois la taille de l'écran connue, parfois après `src` : on la cale
+  // quand elle apparaît, sinon elle restait à 0 s et le relais repartait de la vue d'ensemble.
+  const videoMounted = src !== null && view !== null;
   useEffect(() => {
     const v = video.current;
-    if (!v) return;
+    if (!videoMounted || !v) return;
     const ready = () => {
       v.currentTime = VIDEO_START;
       v.playbackRate = VIDEO_RATE;
@@ -260,7 +322,7 @@ export function BoosterOpening({
     if (v.readyState >= 1) ready();
     else v.addEventListener("loadedmetadata", ready, { once: true });
     return () => v.removeEventListener("loadedmetadata", ready);
-  }, [src]);
+  }, [videoMounted]);
 
   // Pendant la vidéo : bruitages calés sur l'image, puis relais aux vraies cartes.
   useEffect(() => {
@@ -280,9 +342,12 @@ export function BoosterOpening({
     return () => cancelAnimationFrame(frame);
   }, [phase]);
 
+  // Fin de la vidéo ; le modèle 3D, libéré au relais, est rechargé pour « Ouvrir un autre paquet ».
   useEffect(() => {
-    if (phase === "cards") video.current?.pause();
-  }, [phase]);
+    if (phase !== "cards") return;
+    video.current?.pause();
+    void loadScene().then((m) => m.preloadPack(`${assetsBase}/paquet.glb`));
+  }, [phase, assetsBase]);
 
   const onZoomed = useCallback(() => {
     const v = video.current;
@@ -292,6 +357,8 @@ export function BoosterOpening({
     const show = () => setPhase("video");
     if (typeof v.requestVideoFrameCallback === "function") v.requestVideoFrameCallback(show);
     else (v as HTMLVideoElement).addEventListener("playing", show, { once: true });
+    // Filet : le relais part toujours du plan serré, jamais du début de la vidéo.
+    if (Math.abs(v.currentTime - VIDEO_START) > 0.05) v.currentTime = VIDEO_START;
     v.playbackRate = VIDEO_RATE;
     v.play().catch(show);
     openSound();
@@ -327,6 +394,10 @@ export function BoosterOpening({
           preload="auto"
           className="tcg-opening-video absolute"
           data-hidden={phase === "cards" ? "" : undefined}
+          // Avant la découpe, la vidéo (calée sur le plan serré) ne se montre jamais : tant que
+          // le paquet 3D n'était pas dessiné, on voyait le paquet « zoomé à mort ». Pendant
+          // l'approche, le canevas opaque la couvre ; elle apparaît au relais.
+          data-waiting={phase === "pack" ? "" : undefined}
           // Relais aux vraies cartes, même si l'affichage est ralenti (onglet en arrière-plan).
           onTimeUpdate={(e) => {
             if (phase === "video" && e.currentTarget.currentTime >= VIDEO_DONE) setPhase("cards");
@@ -362,14 +433,17 @@ export function BoosterOpening({
       )}
 
       {phase === "pack" && (
-        <p
-          className="tcg-opening-hint pointer-events-none absolute inset-x-0 bottom-4 px-4 text-center text-sm text-white/85"
-          aria-live="polite"
-        >
-          {packReady
-            ? "Fais tourner le paquet, puis glisse la souris le long de la ligne pointillée pour le découper."
-            : "Chargement du paquet…"}
-        </p>
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 px-4">
+          {packReady && <PackHelp />}
+          <p
+            className="tcg-opening-hint text-center text-xs text-white/85 sm:text-sm"
+            aria-live="polite"
+          >
+            {packReady
+              ? "Glisse le long de la ligne pointillée pour découper le paquet."
+              : "Chargement du paquet…"}
+          </p>
+        </div>
       )}
 
       {phase === "cards" &&
