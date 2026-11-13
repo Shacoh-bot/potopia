@@ -7,7 +7,8 @@ const CLOSE_ROOM = 56;
 const MAX_ZOOM = 2.5;
 
 /**
- * Zoom d'une carte ouverte en grand : la plus grande taille où elle tient entière dans l'écran,
+ * Échelle d'une carte ouverte en grand (appliquée par `transform: scale()`, voir `Scaled`) : la
+ * plus grande taille où elle tient entière dans l'écran,
  * marges et bouton Fermer compris, sans dépasser `MAX_ZOOM`.
  */
 export function zoomToFit(viewport: Size, card: Size): number {
