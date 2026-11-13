@@ -3,8 +3,9 @@
 import { CARD_HEIGHT, CARD_WIDTH, GameCard, type GameCardFields } from "@app/tcg/ui";
 import { cx } from "@app/ui";
 import { X } from "lucide-react";
-import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Scaled } from "./Scaled";
 import { zoomToFit } from "./zoom";
 
 /**
@@ -28,10 +29,20 @@ export function PotodexCard({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  const close = () => setOpen(false);
+  // Retiré de la page sans `close()`, le dialogue ne rend pas le focus : on le rend à la miniature,
+  // une fois le dialogue parti (tant qu'il est là, le reste de la page est inerte).
+  useEffect(() => {
+    if (wasOpen.current && !open) trigger.current?.focus({ preventScroll: true });
+    wasOpen.current = open;
+  }, [open]);
 
   return (
     <>
       <button
+        ref={trigger}
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
@@ -51,7 +62,7 @@ export function PotodexCard({
             imageUrl={imageUrl}
             setSize={setSize}
             fontClass={fontClass}
-            onClose={() => setOpen(false)}
+            onClose={close}
           />,
           document.body,
         )}
@@ -88,15 +99,16 @@ function CardZoom({
         ),
       );
     fit();
-    dialog.showModal();
+    if (!dialog.open) dialog.showModal();
     window.addEventListener("resize", fit);
     const root = document.documentElement;
     const overflow = root.style.overflow;
     root.style.overflow = "hidden";
+    // Pas de `close()` ici : son événement `close`, différé, refermerait la carte rouverte
+    // aussitôt (effets rejoués en développement). Retiré de la page, le dialogue se ferme seul.
     return () => {
       window.removeEventListener("resize", fit);
       root.style.overflow = overflow;
-      if (dialog.open) dialog.close();
     };
   }, []);
 
@@ -109,7 +121,8 @@ function CardZoom({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       className={cx(
         fontClass,
-        "potodex-zoom fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none flex-col items-center justify-center border-0 bg-transparent p-4 open:flex",
+        // `overflow-hidden` : la carte inclinée dépasse un peu de sa boîte, sans barre de défilement.
+        "potodex-zoom fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none flex-col items-center justify-center overflow-hidden border-0 bg-transparent p-4 open:flex",
       )}
     >
       <button
@@ -121,9 +134,9 @@ function CardZoom({
         <X size={22} aria-hidden />
       </button>
       {zoom !== null && (
-        <div className="potodex-zoom-card" style={{ zoom }}>
+        <Scaled scale={zoom} className="potodex-zoom-card">
           <GameCard card={card} imageUrl={imageUrl} setSize={setSize} />
-        </div>
+        </Scaled>
       )}
     </dialog>
   );

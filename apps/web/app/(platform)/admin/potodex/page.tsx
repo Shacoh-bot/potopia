@@ -8,6 +8,7 @@ import { designFonts } from "../../cartes/fonts";
 import { cardImageUrls } from "../cartes/images";
 import { PotodexCard } from "./PotodexCard";
 import { ResetCollectionButton } from "./ResetCollectionButton";
+import { Scaled } from "./Scaled";
 
 export const metadata: Metadata = { title: "Potodex" };
 
@@ -108,16 +109,14 @@ export default async function AdminPotodexPage({
                       setSize={dex.total}
                       fontClass={designFonts}
                     >
-                      {/* Pas de largeur sur la boîte zoomée : elle la réduirait elle aussi, et
-                          la carte, plus large qu'elle, serait rognée par `content-visibility`. */}
-                      <div style={{ zoom: SLOT / CARD_WIDTH }}>
+                      <Scaled scale={SLOT / CARD_WIDTH}>
                         <GameCard
                           card={entry.card}
                           imageUrl={images.get(entry.card.id) ?? null}
                           setSize={dex.total}
                           still
                         />
-                      </div>
+                      </Scaled>
                     </PotodexCard>
                   ) : (
                     <div
