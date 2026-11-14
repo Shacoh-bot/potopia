@@ -30,6 +30,7 @@ import {
   type EffectParams,
   effectStats,
   effectText,
+  effectTriggers,
   getEffect,
   TRIGGER_LABELS,
 } from "../src/effects";
@@ -532,7 +533,10 @@ export function CardEditor({
                 >
                   {effect.snap}
                 </a>{" "}
-                (Marvel Snap) · {TRIGGER_LABELS[effect.trigger]}
+                (Marvel Snap) ·{" "}
+                {effectTriggers(effect)
+                  .map((t) => TRIGGER_LABELS[t])
+                  .join(", ")}
               </span>
             )}
           </div>

@@ -812,6 +812,47 @@ export function getEffect(key: string): EffectDef | null {
 }
 
 /**
+ * Débuts de phrase qui annoncent un moment dans un texte d'effet (« Révélation : … Permanent :
+ * … »). « Défaussée ou détruite : » compte pour les deux.
+ */
+const TRIGGER_MARKS: [EffectTrigger, RegExp][] = [
+  ["reveal", /Révélation :/],
+  ["ongoing", /Permanent :/],
+  ["start_of_game", /Début de partie :/],
+  ["start_of_turn", /Début de tour :/],
+  ["end_of_turn", /Fin de tour :/],
+  ["activate", /Activation :/],
+  ["moved", /Quand elle se déplace/],
+  ["destroyed", /(?:Détruite|ou détruite) :/],
+  ["discarded", /Défaussée(?: ou détruite)? :/],
+  ["end_of_game", /Fin de partie :/],
+  ["objective", /Objectif :/],
+];
+/** En début de texte ou de phrase seulement (« un effet Révélation » ne compte pas). */
+const atSentenceStart = (mark: RegExp) => new RegExp(`(?:^|[.!?»)]\\s+)${mark.source}`);
+
+const TRIGGERS_BY_KEY = new Map<string, EffectTrigger[]>();
+
+/**
+ * Tous les moments d'un effet : le principal (`trigger`), puis ceux annoncés dans son texte. Une
+ * carte Snap peut en avoir plusieurs (Electro : Révélation et Permanent) ; la recherche de l'admin
+ * la retrouve sous chacun.
+ */
+export function effectTriggers(effect: EffectDef): EffectTrigger[] {
+  const known = TRIGGERS_BY_KEY.get(effect.key);
+  if (known) return known;
+  const text = effect.text(defaultParams(effect));
+  const triggers = [
+    effect.trigger,
+    ...TRIGGER_MARKS.filter(
+      ([trigger, mark]) => trigger !== effect.trigger && atSentenceStart(mark).test(text),
+    ).map(([trigger]) => trigger),
+  ];
+  TRIGGERS_BY_KEY.set(effect.key, triggers);
+  return triggers;
+}
+
+/**
  * Coût et puissance de la carte Snap d'un effet (`SNAP_CARDS`) : ceux que prend une carte qui
  * reçoit l'effet, sauf « Stats manuelles ». Null sans effet (ou carte Snap pas encore relevée).
  */

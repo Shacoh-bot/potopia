@@ -1,4 +1,10 @@
-import { type EffectDef, type EffectTrigger, effectText, defaultParams } from "./effects";
+import {
+  defaultParams,
+  type EffectDef,
+  type EffectTrigger,
+  effectText,
+  effectTriggers,
+} from "./effects";
 import { SNAP_CARDS } from "./snap-cards";
 
 /** Filtres du choix d'effet dans l'admin : texte cherché, moment, coût de la carte Snap. */
@@ -24,7 +30,8 @@ export function searchEffects(effects: readonly EffectDef[], filters: EffectFilt
     .split(/\s+/)
     .filter(Boolean);
   return effects.filter((effect) => {
-    if (filters.trigger && effect.trigger !== filters.trigger) return false;
+    // tous les moments de la carte, pas seulement le principal (Electro : Révélation et Permanent)
+    if (filters.trigger && !effectTriggers(effect).includes(filters.trigger)) return false;
     if (filters.cost !== undefined && filters.cost !== null) {
       const cost = SNAP_CARDS[effect.snap]?.cost;
       if (cost === undefined) return false;

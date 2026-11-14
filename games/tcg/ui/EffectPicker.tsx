@@ -3,17 +3,29 @@
 import { Input, Select } from "@app/ui";
 import { useMemo, useState } from "react";
 import { COST_FILTER_MAX, searchEffects } from "../src/effect-search";
-import { EFFECTS, type EffectTrigger, getEffect, TRIGGER_LABELS } from "../src/effects";
+import {
+  EFFECTS,
+  type EffectTrigger,
+  effectTriggers,
+  getEffect,
+  TRIGGER_LABELS,
+} from "../src/effects";
 import { SNAP_CARDS } from "../src/snap-cards";
 
 const TRIGGERS = Object.keys(TRIGGER_LABELS) as EffectTrigger[];
 
-/** « Thor (3/5) — Mélange un marteau dans ta pioche » */
+/**
+ * « Thor (3/5) — Mélange un marteau dans ta pioche » ; une carte à plusieurs moments les cite :
+ * « Electro (3/2) — … · Révélation, Permanent ».
+ */
 function optionLabel(key: string): string {
   const effect = getEffect(key);
   if (!effect) return key;
   const stats = SNAP_CARDS[effect.snap];
-  return `${effect.snap}${stats ? ` (${stats.cost}/${stats.power})` : ""} — ${effect.label}`;
+  const triggers = effectTriggers(effect);
+  const moments =
+    triggers.length > 1 ? ` · ${triggers.map((t) => TRIGGER_LABELS[t]).join(", ")}` : "";
+  return `${effect.snap}${stats ? ` (${stats.cost}/${stats.power})` : ""} — ${effect.label}${moments}`;
 }
 
 /**
@@ -38,10 +50,11 @@ export function EffectPicker({
     () => searchEffects(EFFECTS, { query, trigger, cost }),
     [query, trigger, cost],
   );
-  const groups = TRIGGERS.map((t) => ({
-    trigger: t,
-    effects: found.filter((e) => e.trigger === t),
-  }));
+  // Filtré sur un moment : un seul groupe, celui-là (une carte à plusieurs moments y figure aussi).
+  // Sinon, un groupe par moment principal.
+  const groups = trigger
+    ? [{ trigger, effects: found }]
+    : TRIGGERS.map((t) => ({ trigger: t, effects: found.filter((e) => e.trigger === t) }));
   const current = value ? getEffect(value) : null;
   const hidden = current && !found.includes(current);
 
