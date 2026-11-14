@@ -27,16 +27,16 @@ import {
 } from "../src/card-rules";
 import {
   defaultParams,
-  EFFECTS,
-  type EffectDef,
-  type EffectTrigger,
   type EffectParams,
   effectStats,
   effectText,
+  effectTriggers,
   getEffect,
   TRIGGER_LABELS,
 } from "../src/effects";
+import { SNAP_CARDS } from "../src/snap-cards";
 import { CardFlip } from "./CardFlip";
+import { EffectPicker } from "./EffectPicker";
 import { GameCard, GameCardDefs } from "./GameCard";
 import { GlowPointsEditor } from "./GlowPointsEditor";
 import { ImageFramer } from "./ImageFramer";
@@ -126,11 +126,6 @@ type Props = {
     confirm: (key: string) => Promise<{ error: string } | null>;
   };
 };
-
-const EFFECT_GROUPS = (Object.keys(TRIGGER_LABELS) as EffectTrigger[]).map((trigger) => ({
-  trigger,
-  effects: (EFFECTS as readonly EffectDef[]).filter((e) => e.trigger === trigger),
-}));
 
 function initialFields(card: Card | null, initial?: Partial<Fields>): Fields {
   return {
@@ -523,25 +518,28 @@ export function CardEditor({
             ))}
           </datalist>
 
-          <Label hint={effect?.snap ? `Repris de ${effect.snap} (Marvel Snap).` : undefined}>
+          {/* Pas de <label> autour : la recherche, les filtres et la liste sont trois champs. */}
+          <div role="group" aria-label="Effet" className="text-muted flex flex-col gap-1 text-sm">
             Effet
-            <Select
-              value={fields.effectKey}
-              onChange={(e) => pickEffect(e.target.value)}
-              disabled={variant}
-            >
-              <option value="">Aucun effet</option>
-              {EFFECT_GROUPS.map((g) => (
-                <optgroup key={g.trigger} label={TRIGGER_LABELS[g.trigger]}>
-                  {g.effects.map((e) => (
-                    <option key={e.key} value={e.key}>
-                      {e.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </Select>
-          </Label>
+            <EffectPicker value={fields.effectKey} onChange={pickEffect} disabled={variant} />
+            {effect?.snap && (
+              <span className="text-muted text-xs">
+                Repris de{" "}
+                <a
+                  href={SNAP_CARDS[effect.snap]?.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-accent underline"
+                >
+                  {effect.snap}
+                </a>{" "}
+                (Marvel Snap) ·{" "}
+                {effectTriggers(effect)
+                  .map((t) => TRIGGER_LABELS[t])
+                  .join(", ")}
+              </span>
+            )}
+          </div>
           {effect && effect.params.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               {effect.params.map((p) => (
