@@ -7,5 +7,6 @@ export { GameCard, GameCardDefs, type GameCardFields, typeLine } from "./GameCar
 export { H as CARD_HEIGHT, W as CARD_WIDTH } from "./v2";
 export { CardBack } from "./CardBack";
 export { BoosterOpening, type OpenedCard, preloadBoosterOpening } from "./BoosterOpening";
+export { preloadBoosterSounds } from "./booster-sounds";
 export { CardFlip } from "./CardFlip";
 export { CardImagesUpload } from "./CardImagesUpload";

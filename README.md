@@ -262,7 +262,11 @@ il change. Pour un `<audio>` : `audio.volume = effectiveVolume()` (exemples : la
 header, `apps/web/components/SpinOrb.tsx`, qui joue `public/audio/spin2.mp3`, Luffy,
 `components/LuffyRun.tsx`, qui joue `public/audio/luffy.mp3`, Sonic, `components/SonicRun.tsx`,
 et l'arrêt sur image « To Be Continued », `components/ToBeContinued.tsx`) ; avec Web Audio : un
-`GainNode` en fin de chaîne (voir `games/trois/ui/sound.ts`).
+`GainNode` en fin de chaîne (voir `games/trois/ui/sound.ts`). Des sons courts joués souvent ou
+découpés (grains, variations de hauteur) : fichiers dans `public/audio/<sujet>/`, téléchargés et
+décodés d'avance puis joués avec Web Audio (exemple : l'ouverture des boosters,
+`games/tcg/ui/booster-sounds.ts`). On reprend de vrais sons (jeux, anime), pas de synthèse ; les
+sources sont notées hors dépôt (`<Nom> assets/sons/sources.csv`).
 
 ### Ajouter un thème
 
