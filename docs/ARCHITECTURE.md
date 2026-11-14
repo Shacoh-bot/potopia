@@ -1156,18 +1156,44 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
 - `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». L'écran d'ouverture
   (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur tire les
   cartes (`openBoosterAction`) : 1) le paquet en 3D (`PackScene`, three.js et React Three Fiber,
-  chargés à la demande) qu'on fait tourner en glissant, reflets irisés ; 2) glisser la souris le
-  long de la ligne pointillée (85 % de la largeur) le découpe : la caméra s'approche du haut du
-  paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
-  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25) ; 3) quand
-  les cartes de la vidéo sont posées, les 5 vraies cartes, de dos, se rangent côte à côte ; un clic
-  retourne chacune (demi-tour, halo selon la rareté). Le paquet 3D repasse aux couleurs du rendu
-  Blender pendant l'approche, pour un relais sans saut. Safari joue la vidéo MP4 (le WebM
-  transparent n'y marche pas) ; animations réduites : directement les cartes.
+  chargés à la demande), reflets irisés : clic gauche ou un doigt pour le tourner, clic droit ou
+  deux doigts pour le déplacer, molette ou pincement pour zoomer (bornés, la page ne défile pas) ;
+  petites icônes d'aide sous le paquet (version tactile sur écran tactile) ; 2) glisser le long de
+  la ligne pointillée (85 % de la largeur) le découpe : un clic sur le ciseau fige le paquet tel
+  qu'il est (rotation, zoom, déplacement, face visible devant ou au dos), et la position sur la
+  ligne vient d'un rayon de la caméra jusqu'au plan de cette face ; lâchée avant la fin, la
+  découpe est abandonnée, sa trace recule et le paquet se déverrouille. Une fois découpé, le
+  paquet rejoint en douceur la pose de départ de l'animation (0,45 s), puis la caméra s'approche
+  du haut du paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
+  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25). Avant la
+  découpe, la vidéo, calée sur ce plan serré, reste cachée (`data-waiting`) : sinon on la voyait
+  « zoomée » tant que le paquet 3D n'était pas dessiné ; elle est calée au moment où elle apparaît
+  dans la page (pas seulement quand `src` change). 3) quand les cartes de la vidéo sont posées,
+  les 5 vraies cartes, de dos, se rangent côte à côte ; chacune est une vraie carte recto-verso
+  (dos et `GameCard` montés dos à dos, `backface-visibility`), qu'un clic fait pivoter d'un seul
+  demi-tour (`tcg-flip-over`) ; le halo de rareté s'allume à mi-parcours, l'inclinaison et les
+  reflets reviennent une fois la carte posée ; la 3D du retournement est alors retirée et le côté
+  caché aussi (sinon ses calques animés transparaissaient quand on inclinait la carte). Chaque nouveau paquet repart de la vue d'origine
+  (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
+  un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
+  réduites : directement les cartes.
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
-  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
-  illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
-  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
+  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; le
+  modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
+  paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
+  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`), tous
+  trois produits par la version v5 du script Blender (hors dépôt, dossier
+  `Animation paquet de cartes/v5/`, textures refaites par `construire_textures_v5.py`) : couleurs
+  proches de l'original mais franches, sans voile (noirs plus profonds, peu de reflets du studio,
+  irisation et vernis limités aux soudures et légers, halo de la vidéo seulement sur les zones
+  très claires), paquet plat (bombé 0,12) de
+  2 × 3,27 m, soudures du haut et du bas identiques, courtes et nettes (stries répétées à leur
+  résolution d'origine, jamais étirées), partie centrale allongée de 8 %, soudures légèrement
+  ondulées d'avant en arrière seulement (vue de face, la silhouette reste droite). La ligne
+  pointillée est à y = 1,39238 (`CUT_Y`) et le plan serré du relais (`VIEW_CUT`) la suit ; la
+  vue de départ ne change pas. Modèle et vidéo doivent toujours venir du même
+  rendu, sinon le relais saute : leurs URL portent `?v=` (`ASSETS_VERSION` de `BoosterOpening`),
+  à augmenter à chaque nouveau rendu pour que le cache d'un jour ne garde pas l'ancien modèle.
 - Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
