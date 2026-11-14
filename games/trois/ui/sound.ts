@@ -5,8 +5,8 @@ import { useSyncExternalStore } from "react";
 import type { Mark } from "../src/game";
 import { type SoundName, TROIS_SOUNDS } from "./sound-files";
 
-// Sons du jeu : vrais bruitages de Motus (cases, mot trouvé, perdu, fanfare du 3 sur 3) et
-// sons d'interface de Pokémon TCG Pocket (touches, clics), fichiers de `public/audio/trois/`
+// Sons du jeu : bips de cases de Motus ; touches, clics, mot trouvé, perdu et 3 sur 3 : sons
+// d'interface de Pokémon TCG Pocket, fichiers de `public/audio/trois/`
 // téléchargés et décodés dès l'arrivée sur la page. Le mode Boobzilla reste synthétisé.
 
 const KEY = "trois_muted";
@@ -401,11 +401,11 @@ export const sfx = {
   error: () => (chaos ? silly.airhorn() : play("error")),
   /** une case qui se retourne, au moment où elle se retourne : les bips de lettres de Motus */
   tile: (mark: Mark, at: number) => play(`tile-${mark}`, at),
-  /** un mot trouvé : la montée « mot trouvé » de Motus */
+  /** un mot trouvé : petit son de récompense, court et sobre */
   win: () => play("win"),
-  /** mot perdu : la glissade descendante de Motus */
+  /** mot perdu (seulement si « To Be Continued » ne joue pas : voir Game) */
   lose: () => play("lose"),
-  /** 3 sur 3 : le jingle de Motus */
+  /** 3 sur 3 : son de montée de rang */
   perfect: () => play("perfect"),
   success: () => play("success"),
 };

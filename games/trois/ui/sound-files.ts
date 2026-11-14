@@ -1,6 +1,6 @@
 /**
- * Sons du jeu (`apps/web/public/audio/trois/<nom>.mp3`) : bruitages de Motus pour le jeu, sons
- * d'interface de Pokémon TCG Pocket pour les touches (sources : `Trois assets/sons/sources.csv`,
+ * Sons du jeu (`apps/web/public/audio/trois/<nom>.mp3`) : bips de cases de Motus, sons
+ * d'interface de Pokémon TCG Pocket pour le reste (sources : `Trois assets/sons/sources.csv`,
  * hors dépôt).
  */
 export const TROIS_SOUNDS = [
