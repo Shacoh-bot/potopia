@@ -20,6 +20,8 @@ export async function openBoosterAction(setCode: string): Promise<OpenResult> {
       listCards(admin, { setId: set.id }),
     ]);
     revalidatePath("/admin/potodex");
+    // compteur des garanties sous le paquet
+    revalidatePath("/admin/boosters");
     return {
       ok: true,
       setSize: setCards.length,

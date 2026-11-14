@@ -225,8 +225,10 @@ passe d'une partie à l'autre sans rechargement.
   `(user_id, card_id)`, index sur `card_id`, supprimée avec la carte. Les cartes trouvées d'un
   joueur (Potodex) et leur nombre d'exemplaires.
 - `TcgBoosterOpening` (`booster_openings`) : userId, setId, cardIds (les 5 ids, dans l'ordre du
-  paquet), hasSsr, createdAt. Index `(user_id, set_id, created_at)`, supprimé avec le set. Journal
-  des paquets ouverts, qui sert aussi à la garantie de SSR.
+  paquet), hasSsr, hasSrPlus (SR ou SSR dans le paquet), createdAt. Index `(user_id, set_id,
+created_at)`, supprimé avec le set. Journal des paquets ouverts, qui sert aussi aux garanties
+  (SR ou mieux, SSR). Migration `tcg_booster_sr_pity` : ajout de `has_sr_plus`, calculé pour
+  les paquets déjà ouverts.
 
 ### goty
 
@@ -1107,14 +1109,25 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
 
 - Un paquet donne 5 cartes d'un set (`BOOSTER_SLOTS`) : 3 cartes de base (commune 75 %, peu
   commune 25 %), 1 peu commune ou mieux (peu commune 70 %, rare 25 %, épique 5 %) et 1 carte
-  chance (rare 55 %, épique 25 %, légendaire 12 %, SR 6 %, SSR 2 %). Au plus tard au 30e paquet
-  d'un set sans SSR (`SSR_PITY`), la carte chance est une SSR. Une rareté sans carte dans le set
+  chance (rare 55 %, épique 25 %, légendaire 12 %, SR 6 %, SSR 2 %). Ces taux de la carte chance
+  (`CHANCE_RATES`) sont des **moyennes réelles, garanties comprises** (2026-11-14 : les garanties
+  n'avantagent pas). Garanties (`BOOSTER_ODDS`, tout le réglage en une constante) : au plus tard
+  au 20e paquet d'un set sans SR ni SSR (`SR_PITY`), la carte chance est une SR ou mieux (SR ou
+  SSR selon leurs poids) ; au plus tard au 90e sans SSR (`SSR_PITY`, option A provisoire, à
+  confirmer par l'utilisateur), une SSR. Une SSR garantie au 30e paquet rendait 2 % impossible (au
+  moins 1/30 = 3,33 % : le taux réel était d'environ 4,4 %). Pour retomber sur les taux annoncés,
+  les poids de base de SR et SSR sont plus bas (`baseSr`, `baseSsr`), le reste va au prorata à
+  rare, épique et légendaire (`chanceWeights`) ; calibrage par simulation, `pnpm booster:rates`
+  (`games/tcg/scripts/booster-rates.ts`, graine fixe), vérifié par test (1 million de paquets,
+  ±0,1 point). `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
+  Une rareté sans carte dans le set
   prend la rareté juste en dessous (puis la plus proche au-dessus). Doublons possibles. Seules les
   cartes du set tiré comptent (ni la réserve, ni la corbeille).
 - `drawBooster` (tirage pur, testable), `openBooster` (tire, ajoute les cartes à la collection,
   note le paquet ; un paquet à la fois par joueur, sous verrou), `getPotodex` (cartes du set dans
   l'ordre des numéros ; une carte pas encore trouvée ne renvoie que son numéro), `resetCollection`
-  (vide la collection de test et le journal, garantie comprise). Toutes vérifient l'admin tant que
+  (vide la collection de test et le journal, garanties comprises), `boosterPity` (paquets au
+  plus avant la SR ou mieux et la SSR garanties, affichés sous le paquet). Toutes vérifient l'admin tant que
   c'est un test ; les paquets sont gratuits et illimités.
 - `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». L'écran d'ouverture
   (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur tire les

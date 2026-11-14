@@ -296,7 +296,9 @@ idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. 
 `effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise) et devient disponible pour
 toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
 
-Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
+Pour tester les boosters (admins) : **Administration › Boosters** (chances et garanties affichées
+sous le paquet : SR ou mieux au 20e paquet, SSR au 90e ; réglage dans `BOOSTER_ODDS`,
+`games/tcg/src/boosters.ts`, calibrage par `pnpm booster:rates`) ouvre des paquets gratuits du
 set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)
 et remet la collection de test à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
 

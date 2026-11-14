@@ -603,6 +603,11 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; bruitages
       synthétisés ; tout est préchargé.
 - [x] Potodex : miniatures entières (plus rognées), carte trouvée ouverte en grand au clic.
+- [x] Onglet Boosters : vraie description, bloc « Ce qu'il y a dans un paquet » (raretés de
+      chaque carte, chances de la carte chance en barres, garanties, compteur du joueur) ;
+      garantie SR ou mieux au 20e paquet et SSR repoussée au 90e (option A, provisoire), taux
+      réels inchangés (calibrés par simulation) ; migration `tcg_booster_sr_pity` (ajout d'une
+      colonne, calculée pour les paquets existants).
 - [ ] Boosters pour les membres : stock par set, achat et gains, revente des doublons, Potodex
       dans le menu de gauche (sous l'inventaire), tirages SR et SSR dans l'activité ; lieux.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.

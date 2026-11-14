@@ -157,6 +157,8 @@ model TcgBoosterOpening {
   setId     String   @map("set_id")
   cardIds   String[] @map("card_ids")
   hasSsr    Boolean  @map("has_ssr")
+  // Le paquet avait une SR ou une SSR : remet à zéro la garantie « SR ou mieux ».
+  hasSrPlus Boolean  @default(false) @map("has_sr_plus")
   createdAt DateTime @default(now()) @map("created_at")
 
   set TcgSet @relation(fields: [setId], references: [id], onDelete: Cascade)
