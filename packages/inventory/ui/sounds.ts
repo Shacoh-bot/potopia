@@ -24,23 +24,20 @@ export function playClip(src: string, volume: number, fadeOutMs = 400): void {
   audio.play().catch(() => {});
 }
 
-// « Tink » quand on tape sur une émeraude de l'inventaire : un vrai scintillement de Sonic 2, jamais
-// deux fois le même. Trois variantes du son (entier, plus court, avec un léger écho) et une note de
-// la gamme pentatonique sol, la, do, ré, mi (la vitesse de lecture change la hauteur), chacune tirée
-// au hasard sans répéter la précédente, donc ça sonne toujours juste ; légèrement désaccordé, avec
-// un volume un peu différent. Comme les coups de pioche d'un jeu de minage.
-const TINK_SRCS = [
-  "/audio/emerald-tink-1.mp3",
-  "/audio/emerald-tink-2.mp3",
-  "/audio/emerald-tink-3.mp3",
-];
+// « Tink » quand on tape sur une émeraude de l'inventaire : l'orbe d'expérience de Minecraft
+// (0,2 s, en WAV : pas de blanc d'encodeur au début), jamais deux fois le même. Une note de la gamme
+// pentatonique sol, la, do, ré, mi (la vitesse de lecture change la hauteur), tirée au hasard sans
+// répéter la précédente, donc ça sonne toujours juste ; légèrement désaccordé, avec un volume un peu
+// différent. Comme les coups de pioche d'un jeu de minage.
+const TINK_SRCS = ["/audio/emerald-tink.wav"];
 const TINK_RATES = [3 / 4, 5 / 6, 1, 9 / 8, 5 / 4]; // sol, la, do, ré, mi
-const TINK_VOLUME = 0.4;
+const TINK_VOLUME = 0.7;
 let lastNote = -1;
 let lastVariant = -1;
 
 /** Un indice au hasard parmi `count`, jamais `last`. */
 function pickOther(count: number, last: number): number {
+  if (count < 2) return 0;
   if (last < 0) return Math.floor(Math.random() * count);
   const i = Math.floor(Math.random() * (count - 1));
   return i < last ? i : i + 1;

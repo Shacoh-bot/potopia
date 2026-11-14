@@ -745,12 +745,12 @@ est préchargé à l'ouverture du menu des thèmes (`ThemeSwitcher`), pas à cha
   dernière fois puis s'éteint), avec un bruitage de Sonic 2 (`emeralds-unseal.mp3`,
   `emeralds-seal.mp3`, découpés à la main).
 - Un clic sur une pierre trouvée : elle sursaute en penchant, s'illumine et lâche quelques éclats
-  de sa couleur, avec un « tink » : un scintillement de Sonic 2 en trois variantes (entier, plus
-  court, avec un léger écho : `public/audio/emerald-tink-1|2|3.mp3`, `playTink`, `ui/sounds.ts`),
-  téléchargées et décodées une fois quand le cercle s'affiche puis jouées par Web Audio (lecture
-  immédiate, sans recharger le fichier à chaque coup), à une note différente à chaque coup (la
-  vitesse de lecture change la hauteur) ; variante et note ne se répètent jamais deux fois de
-  suite. Sens, angle, hauteur, éclats
+  de sa couleur, avec un « tink » : l'orbe d'expérience de Minecraft (0,2 s,
+  `public/audio/emerald-tink.wav`, `playTink`, `ui/sounds.ts`, en WAV pour éviter le blanc
+  d'encodeur du mp3), téléchargé et décodé une fois quand le cercle s'affiche puis joué par Web
+  Audio (lecture immédiate, sans recharger le fichier à chaque coup), à une note différente à
+  chaque coup (la vitesse de lecture change la hauteur, jamais la même note deux fois de suite).
+  Sens, angle, hauteur, éclats
   et note (gamme pentatonique, jamais la même deux fois de suite) changent à chaque coup, comme
   les coups de pioche d'un jeu de minage.
 
