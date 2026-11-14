@@ -17,6 +17,7 @@ const EXAMPLE = `{
       "family": "Grenouilles",
       "cost": 2,
       "power": 3,
+      "statsManual": false,
       "effectKey": "reveal_debuff_weakest_enemy_silence",
       "effectParams": { "amount": 2 },
       "effectText": "",
@@ -32,6 +33,7 @@ const UPDATE_EXAMPLE = `{
       "name": "Nom de la carte (pour départager si l'idée a plusieurs cartes)",
       "cost": 6,
       "power": 10,
+      "statsManual": true,
       "effectKey": "reveal_move_allies_left",
       "effectParams": {},
       "effectText": "Révélation : SPINNING SPINNING ! Tes autres cartes passent à gauche."
@@ -63,7 +65,10 @@ export default async function ImportCardsPage() {
           </pre>
           <p className="text-muted mt-2">
             Raretés : common, uncommon, rare, epic, legendary, sr, ssr. Mana de 0 à 8. Sans effet :
-            omettre <code>effectKey</code>. Texte de l&apos;effet vide : proposé à partir de
+            omettre <code>effectKey</code>. Avec un effet, la carte prend le coût et la puissance de
+            sa carte Snap ; <code>cost</code> et <code>power</code> ne comptent qu&apos;avec{" "}
+            <code>&quot;statsManual&quot;: true</code> (absent : non à l&apos;import, l&apos;état
+            enregistré dans <code>updates</code>). Texte de l&apos;effet vide : proposé à partir de
             l&apos;effet.
           </p>
         </details>
