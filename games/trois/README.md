@@ -83,7 +83,9 @@ Les mots changent à minuit, heure de Paris. Pour qu'une partie en cours ne soit
   ne joue que si « To Be Continued » est coupé dans les paramètres : sinon il couvrirait
   Roundabout (`toBeContinued()` renvoie vrai quand l'effet se lance). Fichiers dans `apps/web/public/audio/trois/` (sources
   hors dépôt, `Trois assets/sons/sources.csv`), téléchargés et décodés dès l'arrivée sur la page,
-  joués avec Web Audio (`ui/sound.ts`). Le mode Boobzilla reste synthétisé. Bouton 🔊/🔇 mémorisé sur
+  joués avec Web Audio (`ui/sound.ts`). Le mode secret joue de vrais sons « mèmes » (rugissement
+  de Godzilla, corne MLG, prouts, boing, canard, sifflet à coulisse, trombone triste) ; seule sa
+  petite boucle chiptune reste synthétisée. Bouton 🔊/🔇 mémorisé sur
   l'appareil. Le bouton volume du portail (header) s'applique par-dessus : il règle ou coupe les
   sons du jeu même quand le 🔊 du jeu est actif, et un jeu en 🔇 reste muet quel que soit le volume
   du portail.
