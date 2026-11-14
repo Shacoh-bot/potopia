@@ -1898,8 +1898,10 @@
   }
 }
 
-/* Proposition 3 · Éclat (id « rayons ») : halo seul jusqu'au rare, puis la lumière peinte jaillit
-   de derrière la carte, plus grande que dans Aura, et respire. */
+/* Proposition 3 · Éclat (id « rayons ») : halo seul jusqu'au rare, puis la lumière peinte
+   entoure la carte, immobile, et des volutes s'en détachent sans cesse : chacune grandit en
+   tournant un peu et s'efface en s'éloignant, comme une fumée ou une aura d'anime. Trois
+   volutes à des rythmes et des sens différents, pour que ce ne soit jamais régulier. */
 [data-look="rayons"][data-finish="uncommon"] {
   --r6-glow: 0.25;
 }
@@ -1917,22 +1919,49 @@
     [data-finish="sr"],
     [data-finish="ssr"]
   )
-  .tcg-r6-paint {
+  :is(.tcg-r6-paint, .tcg-r6-wisp) {
   display: block;
-  inset: -120px -110px;
-  animation: tcg-r6-breathe 3.2s ease-in-out infinite;
+  inset: -110px -100px;
+}
+.tcg-r6-wisp {
+  background: center / 100% 100% no-repeat;
+  opacity: 0;
+  animation: tcg-r6-smoke var(--r6-t, 4.2s) cubic-bezier(0.25, 0.6, 0.4, 1) infinite;
+  animation-delay: var(--r6-d, 0s);
+}
+.tcg-r6-wisp:nth-of-type(2n) {
+  --r6-t: 5.3s;
+  --r6-d: -1.7s;
+  --r6-rot: -7deg;
+  --r6-dx: -14px;
+  --r6-dy: -10px;
+}
+.tcg-r6-wisp:nth-of-type(3n) {
+  --r6-t: 3.6s;
+  --r6-d: -2.9s;
+  --r6-rot: 9deg;
+  --r6-dx: 12px;
+  --r6-dy: -18px;
+}
+@keyframes tcg-r6-smoke {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.96) rotate(0deg);
+  }
+  18% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--r6-dx, 8px), var(--r6-dy, -14px)) scale(1.22)
+      rotate(var(--r6-rot, 5deg));
+  }
 }
 [data-look="rayons"][data-finish="ssr"] .tcg-r6-run {
   display: block;
 }
 [data-look="rayons"][data-finish="sr"] .tcg-r6-sheen {
   display: block;
-}
-@keyframes tcg-r6-breathe {
-  50% {
-    transform: scale(1.05);
-    opacity: 0.85;
-  }
 }
 
 /* Galaxie du portail de puissance : elle tourne doucement. */
@@ -1946,6 +1975,7 @@
   .tcg-r6-behind > i,
   .tcg-r6-edge > i,
   .tcg-r6-sheen::before,
+  .tcg-r6-wisp,
   .tcg-r6-galaxy {
     animation: none !important;
   }

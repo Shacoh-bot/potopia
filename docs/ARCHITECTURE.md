@@ -827,8 +827,8 @@ rafraîchit le routeur client sans recharger la page.
   les quatre), full art sans encadrés (textes posés sur l'illustration avec un contour, `bare`),
   et deux façons de montrer la rareté, chacune dans les sept raretés en normale puis en full art :
   **Aura** (halo discret en peu commune, de plus en plus fort, puis lumières peintes de l'épique à
-  la SSR) et **Éclat** (id `refonte-rayons` : grandes lumières peintes qui respirent dès
-  l'épique). Lumières peintes avec ChatGPT (`public/tcg/refonte/light-*.webp`, transparence tirée
+  la SSR) et **Éclat** (id `refonte-rayons` : grandes lumières peintes dès l'épique, d'où se
+  détachent des volutes qui s'effacent, `.tcg-r6-wisp`). Lumières peintes avec ChatGPT (`public/tcg/refonte/light-*.webp`, transparence tirée
   de la luminosité). SSR à liseré multicolore qui tourne. `FinalCard` reçoit l'habillage par
   `look` (`FinalLook`) ; sans `look`, la carte en service est inchangée. Effets en CSS (`tcg-r6-*`
   dans `tcg.css`, `data-look` et `data-finish`). Les autres designs sont aux Archives. Vague précédente (55 à 66,

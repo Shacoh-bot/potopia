@@ -412,7 +412,7 @@ export const DESIGNS = [
     id: "refonte-rayons",
     title: "Refonte · Éclat",
     summary:
-      "Le 70 sans coins dorés ni gemmes, puissance en portail dessiné : à partir de l'épique, une grande lumière peinte jaillit de derrière la carte et respire. Full art sans encadrés.",
+      "Le 70 sans coins dorés ni gemmes, puissance en portail dessiné : à partir de l'épique, une grande lumière peinte entoure la carte et des volutes s'en détachent comme une fumée. Full art sans encadrés.",
   },
 ] as const;
 

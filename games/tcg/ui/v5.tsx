@@ -435,11 +435,12 @@ function BackStyleFrame({ corners = true }: { corners?: boolean }) {
       />
       {/* Filet doré le long du bord intérieur. */}
       <rect
-        x={FRAME + 0.75}
-        y={FRAME + 0.75}
-        width={W - 2 * FRAME - 1.5}
-        height={H - 2 * FRAME - 1.5}
-        rx={R - FRAME - 0.75}
+        // Refonte : le filet chevauche le bord du cadre de couleur (aucun jour entre les deux).
+        x={FRAME + (corners ? 0.75 : 0.25)}
+        y={FRAME + (corners ? 0.75 : 0.25)}
+        width={W - 2 * FRAME - (corners ? 1.5 : 0.5)}
+        height={H - 2 * FRAME - (corners ? 1.5 : 0.5)}
+        rx={R - FRAME - (corners ? 0.75 : 0.25)}
         fill="none"
         stroke="url(#tcg-back-gold)"
         strokeWidth={1.5}
@@ -656,7 +657,10 @@ export function FinalCard({
             position: "absolute",
             inset: FRAME,
             borderRadius: R - FRAME,
-            boxShadow: "0 0 0 1.5px rgb(0 0 0 / 0.7), inset 0 0 16px rgb(0 0 0 / 0.45)",
+            // Refonte : pas de trait noir entre le cadre et le filet doré (il faisait un jour sombre).
+            boxShadow: look
+              ? "inset 0 0 16px rgb(0 0 0 / 0.45)"
+              : "0 0 0 1.5px rgb(0 0 0 / 0.7), inset 0 0 16px rgb(0 0 0 / 0.45)",
           }}
         />
         <BackStyleFrame corners={!look} />

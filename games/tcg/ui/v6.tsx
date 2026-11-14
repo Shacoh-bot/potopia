@@ -116,10 +116,21 @@ function lookOf(
         <i className="tcg-r6-glow" />
         <i className="tcg-r6-burst" />
         {paint && (
-          <i
-            className="tcg-r6-paint"
-            style={{ backgroundImage: `url(${ASSETS}/light-${paint}.webp)` }}
-          />
+          <>
+            <i
+              className="tcg-r6-paint"
+              style={{ backgroundImage: `url(${ASSETS}/light-${paint}.webp)` }}
+            />
+            {/* Éclat : volutes qui se détachent de la lumière (tcg.css, `.tcg-r6-wisp`). */}
+            {look === "rayons" &&
+              [1, 2, 3].map((n) => (
+                <i
+                  key={n}
+                  className="tcg-r6-wisp"
+                  style={{ backgroundImage: `url(${ASSETS}/light-${paint}.webp)` }}
+                />
+              ))}
+          </>
         )}
       </div>
     ),
