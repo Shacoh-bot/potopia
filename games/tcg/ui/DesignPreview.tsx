@@ -35,7 +35,7 @@ import {
 import { Captioned, type EffectSet, MixCard, type MixDesign } from "./v3";
 import { TOP_STYLES, TOP_VARIANTS, TopCard } from "./v4";
 import { BAND_DESIGNS, FINAL_VARIANTS, FinalCard } from "./v5";
-import { REFONTE_FINISHES, REFONTE_LOOKS, RefonteCard } from "./v6";
+import { PORTALS, REFONTE_FINISHES, REFONTE_LOOKS, RefonteCard } from "./v6";
 
 const MIX: Partial<Record<DesignId, MixDesign>> = {
   "mix-verre": "verre",
@@ -161,6 +161,12 @@ function Sheet({ designId, cards, zoom }: Required<Props>) {
             </Captioned>
           )),
         )}
+        {/* Les quatre badges de puissance au choix (1 et 2 avec un liseré doré). */}
+        {PORTALS.map((portal) => (
+          <Captioned key={`portail-${portal}`} label={`Puissance · portail ${portal}`}>
+            <RefonteCard card={card} look={look} layout="normal" finish="rare" portal={portal} />
+          </Captioned>
+        ))}
       </Board>
     );
   }

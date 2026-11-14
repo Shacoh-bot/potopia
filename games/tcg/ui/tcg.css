@@ -1611,6 +1611,12 @@
   pointer-events: none;
 }
 
+/* Lumière peinte (ChatGPT, `/tcg/refonte/light-*.webp`) : son centre vide passe sous la carte, la
+   lumière déborde tout autour. */
+.tcg-r6-paint {
+  inset: -80px -72px;
+  background: center / 100% 100% no-repeat;
+}
 /* Lueur : un halo flou de la couleur de la rareté, qui déborde tout autour. */
 .tcg-r6-glow {
   inset: -14px;
@@ -1786,8 +1792,9 @@
 [data-look="aura"]:is([data-finish="epic"], [data-finish="legendary"]) .tcg-r6-glow {
   animation: tcg-r6-pulse 2.6s ease-in-out infinite;
 }
-[data-look="aura"][data-finish="sr"] :is(.tcg-r6-burst, .tcg-r6-sheen),
-[data-look="aura"][data-finish="ssr"] :is(.tcg-r6-burst, .tcg-r6-run) {
+[data-look="aura"][data-finish="sr"] :is(.tcg-r6-paint, .tcg-r6-sheen),
+[data-look="aura"][data-finish="ssr"] :is(.tcg-r6-paint, .tcg-r6-run),
+[data-look="aura"]:is([data-finish="epic"], [data-finish="legendary"]) .tcg-r6-paint {
   display: block;
 }
 [data-look="aura"][data-finish="sr"] {
@@ -1891,81 +1898,41 @@
   }
 }
 
-/* Proposition 3 · Rayons : la lumière jaillit de derrière la carte, de plus en plus fort. */
-[data-look="rayons"]:not([data-finish="common"]) .tcg-r6-rays {
-  display: block;
-}
+/* Proposition 3 · Éclat (id « rayons ») : halo seul jusqu'au rare, puis la lumière peinte jaillit
+   de derrière la carte, plus grande que dans Aura, et respire. */
 [data-look="rayons"][data-finish="uncommon"] {
-  --r6-rays: 0.25;
-  --r6-ray: 2deg;
-  --r6-gap: 30deg;
+  --r6-glow: 0.25;
 }
 [data-look="rayons"][data-finish="rare"] {
-  --r6-rays: 0.4;
-  --r6-ray: 3deg;
-  --r6-gap: 22deg;
+  --r6-glow: 0.5;
 }
-[data-look="rayons"][data-finish="epic"] {
-  --r6-rays: 0.55;
-  --r6-ray: 4deg;
-  --r6-gap: 16deg;
-  --r6-speed: 30s;
-}
-[data-look="rayons"][data-finish="legendary"] {
-  --r6-rays: 0.9;
-  --r6-ray: 5deg;
-  --r6-gap: 12deg;
-  --r6-speed: 24s;
-  --r6-glow: 0.6;
-}
-[data-look="rayons"][data-finish="legendary"] :is(.tcg-r6-glow, .tcg-r6-sparks) {
+[data-look="rayons"]:is([data-finish="uncommon"], [data-finish="rare"]) .tcg-r6-glow {
   display: block;
+  inset: -8px;
+  filter: blur(12px);
 }
-/* SR : rayons nacrés qui tournent dans les deux sens, reflet sur la bordure. */
-[data-look="rayons"][data-finish="sr"] {
-  --r6-rays: 0.7;
-  --r6-ray: 4deg;
-  --r6-gap: 14deg;
-  --r6-speed: 20s;
-  --r6-burst: 0.45;
-}
-[data-look="rayons"][data-finish="sr"] :is(.tcg-r6-burst, .tcg-r6-sheen) {
+[data-look="rayons"]:is(
+    [data-finish="epic"],
+    [data-finish="legendary"],
+    [data-finish="sr"],
+    [data-finish="ssr"]
+  )
+  .tcg-r6-paint {
   display: block;
-}
-[data-look="rayons"][data-finish="sr"] .tcg-r6-burst {
-  inset: -70px;
-  border-radius: 50%;
-  background: repeating-conic-gradient(
-    from 9deg,
-    #c4f3ff 0deg 4deg,
-    transparent 4deg 18deg,
-    #ffd6ef 18deg 22deg,
-    transparent 22deg 36deg
-  );
-  filter: none;
-  mask: radial-gradient(closest-side, #000 50%, transparent 100%);
-  animation: tcg-r6-spin 26s linear infinite reverse;
-}
-/* SSR : rayons arc-en-ciel et liseré qui tourne. */
-[data-look="rayons"][data-finish="ssr"] {
-  --r6-rays: 0.8;
-  --r6-ray: 5deg;
-  --r6-gap: 12deg;
-  --r6-speed: 18s;
-}
-[data-look="rayons"][data-finish="ssr"] .tcg-r6-rays {
-  background: repeating-conic-gradient(
-    from 0deg,
-    #ff6ab5 0deg 5deg,
-    transparent 5deg 12deg,
-    #ffd36a 12deg 17deg,
-    transparent 17deg 24deg,
-    #6ad5ff 24deg 29deg,
-    transparent 29deg 36deg
-  );
+  inset: -120px -110px;
+  animation: tcg-r6-breathe 3.2s ease-in-out infinite;
 }
 [data-look="rayons"][data-finish="ssr"] .tcg-r6-run {
   display: block;
+}
+[data-look="rayons"][data-finish="sr"] .tcg-r6-sheen {
+  display: block;
+}
+@keyframes tcg-r6-breathe {
+  50% {
+    transform: scale(1.05);
+    opacity: 0.85;
+  }
 }
 
 /* Galaxie du portail de puissance : elle tourne doucement. */

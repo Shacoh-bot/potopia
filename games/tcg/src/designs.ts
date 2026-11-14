@@ -400,7 +400,7 @@ export const DESIGNS = [
     id: "refonte-aura",
     title: "Refonte · Aura",
     summary:
-      "Le 70 sans coins dorés, puissance en portail : la rareté rayonne en halo autour de la carte, de plus en plus fort ; SR nacrée, SSR à liseré arc-en-ciel qui tourne.",
+      "Le 70 sans coins dorés ni gemmes, puissance en portail dessiné : halo discret en peu commune, de plus en plus fort, puis lumières peintes de l'épique à la SSR. Full art sans encadrés.",
   },
   {
     id: "refonte-neon",
@@ -410,9 +410,9 @@ export const DESIGNS = [
   },
   {
     id: "refonte-rayons",
-    title: "Refonte · Rayons",
+    title: "Refonte · Éclat",
     summary:
-      "Le 70 sans coins dorés, puissance en portail : la lumière jaillit de derrière la carte en rayons, plus nombreux et plus vifs à chaque rareté ; la légendaire éclate en or.",
+      "Le 70 sans coins dorés ni gemmes, puissance en portail dessiné : à partir de l'épique, une grande lumière peinte jaillit de derrière la carte et respire. Full art sans encadrés.",
   },
 ] as const;
 

@@ -820,15 +820,18 @@ rafraîchit le routeur client sans recharger la page.
   se montre dans chaque rareté ; les n°68 à 71 (`BAND_DESIGNS`, `BandShape`) essaient d'autres
   formes de bandeau autour du mana : échancré, mana serti dans un anneau de métal, bandeau court
   (le mana déborde dessous), sans bandeau. Le n°70 (bandeau court), retenu pour l'instant, est
-  dans l'onglet Design avec la sixième vague (n°72 à 74, `ui/v6.tsx`, `RefonteCard`) : la refonte
-  du n°70, sans plaques d'angle dorées, puissance en portail rouge à marches de pixels
-  (`PortalPower`, inspiré du logo) face au losange bleu du coût, et trois façons de montrer la
-  rareté, chacune dans les sept raretés en normale puis en full art : **Aura** (halo qui déborde),
-  **Néon** (tube lumineux sur une bordure sombre), **Rayons** (lumière qui jaillit de derrière la
-  carte). SR nacrée, légendaire dorée, SSR à liseré multicolore qui tourne. `FinalCard` reçoit
-  l'habillage par `look` (`FinalLook` : bordure, puissance, calques derrière et sur la bordure) ;
-  sans `look`, la carte en service est inchangée. Effets en CSS (`tcg-r6-*` dans `tcg.css`,
-  `data-look` et `data-finish`). Les autres designs sont aux Archives. Vague précédente (55 à 66,
+  dans l'onglet Design avec la sixième vague (n°72 et 74, `ui/v6.tsx`, `RefonteCard` ; le n°73
+  Néon est aux Archives) : la refonte du n°70, sans plaques d'angle dorées ni gemmes dans les
+  coins, puissance en portail rouge à marches de pixels dessiné avec ChatGPT (`PortalPower`,
+  `public/tcg/refonte/power-portal-1..4.webp`, 1 et 2 avec un liseré doré ; chaque planche montre
+  les quatre), full art sans encadrés (textes posés sur l'illustration avec un contour, `bare`),
+  et deux façons de montrer la rareté, chacune dans les sept raretés en normale puis en full art :
+  **Aura** (halo discret en peu commune, de plus en plus fort, puis lumières peintes de l'épique à
+  la SSR) et **Éclat** (id `refonte-rayons` : grandes lumières peintes qui respirent dès
+  l'épique). Lumières peintes avec ChatGPT (`public/tcg/refonte/light-*.webp`, transparence tirée
+  de la luminosité). SSR à liseré multicolore qui tourne. `FinalCard` reçoit l'habillage par
+  `look` (`FinalLook`) ; sans `look`, la carte en service est inchangée. Effets en CSS (`tcg-r6-*`
+  dans `tcg.css`, `data-look` et `data-finish`). Les autres designs sont aux Archives. Vague précédente (55 à 66,
   `ui/v4.tsx`, aux Archives) : titre en haut, grille fixe identique en normale et en full art,
   quatre versions par ligne (puissance en bas ou en haut) ; les 12 styles (`TOP_STYLES`) varient
   la fenêtre, les encadrés (nuit, givre, parchemin, ardoise) et le titre (barre, plaque gravée,

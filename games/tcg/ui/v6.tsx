@@ -1,29 +1,27 @@
-import { useId } from "react";
 import type { CardData } from "./cards";
 import { badgeNumSize, Num } from "./snap";
 import { type CardFinish, FinalCard, type FinalLook, RARITY_FRAME } from "./v5";
 import type { TopLayout } from "./v4";
 
 /*
- * Sixième vague : refonte de la carte retenue (n°70, bandeau court). Trois propositions, chacune
- * avec sa propre façon de montrer la rareté ; la carte en service ne change pas tant que le
- * groupe n'a pas choisi.
+ * Sixième vague : refonte de la carte retenue (n°70, bandeau court). La carte en service ne change
+ * pas tant que le groupe n'a pas choisi.
  *
- * Commun aux trois :
- * - plus de plaques d'angle dorées ;
- * - le coût garde son losange bleu, la puissance prend la forme du portail rouge du logo : une
- *   arche en marches de pixels posée sur un petit escalier, néon rouge-magenta (inspirée, pas
- *   recopiée) ;
- * - la rareté se voit d'abord à une lumière qui déborde de la carte, de plus en plus forte ;
- *   la SR se démarque nettement (nacre irisée), la légendaire claque (or et éclats), la SSR a un
- *   liseré multicolore qui tourne autour de la carte.
+ * Commun aux propositions :
+ * - plus de plaques d'angle dorées ni de gemmes dans les coins ;
+ * - le coût garde son losange bleu ; la puissance est un portail rouge-magenta en marches de
+ *   pixels sur un petit escalier (inspiré du logo), dessiné avec ChatGPT (`/tcg/refonte`,
+ *   quatre versions au choix) ;
+ * - full art : textes posés sur l'illustration, sans encadrés, avec un contour ;
+ * - la rareté se voit à une lumière qui déborde de la carte : halo discret en peu commune, puis de
+ *   plus en plus fort ; de l'épique à la SSR, des lumières peintes (ChatGPT) ; SSR avec un liseré
+ *   multicolore qui tourne.
  *
- * Les effets sont en CSS (`tcg.css`, classes `tcg-r6-*`) : `data-look` (proposition) et
- * `data-finish` (rareté) choisissent le rendu. Animations en transform, opacité ou angle de
- * dégradé seulement, pour qu'une planche de 20 cartes reste fluide.
+ * Effets en CSS (`tcg.css`, classes `tcg-r6-*`) : `data-look` (proposition) et `data-finish`
+ * (rareté) choisissent le rendu. Animations en transform, opacité ou angle de dégradé seulement.
  */
 
-/** Les propositions, par id de design (`src/designs.ts`). */
+/** Les propositions, par id de design (`src/designs.ts`). Néon (n°73) est aux Archives. */
 export const REFONTE_LOOKS = {
   "refonte-aura": "aura",
   "refonte-neon": "neon",
@@ -42,71 +40,33 @@ export const REFONTE_FINISHES: { finish: CardFinish; label: string }[] = [
   { finish: "ssr", label: "SSR ★★★" },
 ];
 
-/**
- * Arche du portail en marches de pixels (repère 70 × 70 du badge de puissance), symétrique autour
- * de x = 35 ; le bas est ouvert sur l'escalier.
- */
-const ARCH = "M12 58 V31 H14 V25 H17 V20 H21 V16 H26 V13 H44 V16 H49 V20 H53 V25 H56 V31 H58 V58 Z";
-/** Ouverture de la porte, en retrait de l'arche. */
-const DOOR = "M18 58 V33 H20 V28 H23 V24 H27 V21 H31 V19 H39 V21 H43 V24 H47 V28 H50 V33 H52 V58 Z";
+const ASSETS = "/tcg/refonte";
 
-/** Puissance en forme de portail : arche néon, porte sombre où tourne la galaxie, escalier. */
-export function PortalPower({ value }: { value: number }) {
-  const id = useId().replace(/:/g, "");
+/** Les quatre badges de puissance « portail » (1 et 2 : liseré doré ; 3 et 4 : sans or). */
+export const PORTALS = [1, 2, 3, 4] as const;
+export type Portal = (typeof PORTALS)[number];
+/** Badge de chaque proposition ; la planche montre aussi les quatre au choix. */
+const LOOK_PORTAL: Record<RefonteLook, Portal> = { aura: 2, neon: 3, rayons: 4 };
+
+/** Puissance en forme de portail : le dessin, et le chiffre au centre de l'arche. */
+export function PortalPower({ value, portal }: { value: number; portal: Portal }) {
   return (
     <svg width="70" height="70" viewBox="0 0 70 70" role="img" aria-label={`Puissance ${value}`}>
-      <defs>
-        <linearGradient id={`${id}-neon`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ff7ac8" />
-          <stop offset="0.55" stopColor="#ff2d6f" />
-          <stop offset="1" stopColor="#d4144a" />
-        </linearGradient>
-        <radialGradient id={`${id}-door`} cx="0.5" cy="0.55" r="0.65">
-          <stop offset="0" stopColor="#4a1660" />
-          <stop offset="1" stopColor="#12061f" />
-        </radialGradient>
-        <clipPath id={`${id}-clip`}>
-          <path d={DOOR} />
-        </clipPath>
-        <filter id={`${id}-glow`} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="1.6" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      {/* Remonté de 4 px : l'escalier reste dans la carte. */}
-      <g transform="translate(0 -4)">
-        {/* Arche pleine (fond du néon), puis la porte et sa galaxie. */}
-        <path d={ARCH} fill="#2a0718" />
-        <path d={DOOR} fill={`url(#${id}-door)`} />
-        <g clipPath={`url(#${id}-clip)`}>
-          <image
-            className="tcg-r6-galaxy"
-            href="/tcg/portal-galaxy.webp"
-            x="17"
-            y="20"
-            width="36"
-            height="36"
-            opacity={0.95}
-          />
-        </g>
-        <g filter={`url(#${id}-glow)`}>
-          <path d={ARCH} fill="none" stroke={`url(#${id}-neon)`} strokeWidth={3} />
-          <path d={DOOR} fill="none" stroke="#ffb3d9" strokeWidth={1} strokeOpacity={0.8} />
-          {/* Escalier : trois marches de plus en plus larges sous la porte. */}
-          <rect x="14" y="58" width="42" height="3" fill={`url(#${id}-neon)`} />
-          <rect x="10" y="61" width="50" height="3" fill="#ff2d6f" />
-          <rect x="6" y="64" width="58" height="3" fill="#c0124a" />
-        </g>
-        <Num x={35} y={40} size={badgeNumSize(value, 24)} stroke="#4a0630">
-          {value}
-        </Num>
-      </g>
+      <image href={`${ASSETS}/power-portal-${portal}.webp`} x="1" y="0" width="66" height="66" />
+      <Num x={34} y={36} size={badgeNumSize(value, 24)} stroke="#4a0630">
+        {value}
+      </Num>
     </svg>
   );
 }
+
+/** Lumière peinte (ChatGPT) de chaque rareté haute. */
+const PAINT: Partial<Record<CardFinish, string>> = {
+  epic: "epique",
+  legendary: "legendaire",
+  sr: "sr",
+  ssr: "ssr",
+};
 
 /** Couleur principale de chaque rareté (lueurs, néons, rayons). */
 const HUE: Record<CardFinish, string> = {
@@ -133,13 +93,19 @@ function frameOf(look: RefonteLook, finish: CardFinish): string {
 }
 
 /** Habillage complet d'une rareté pour une proposition. */
-function lookOf(look: RefonteLook, finish: CardFinish, power: number): FinalLook {
+function lookOf(
+  look: RefonteLook,
+  finish: CardFinish,
+  power: number,
+  portal: Portal = LOOK_PORTAL[look],
+): FinalLook {
+  const paint = PAINT[finish];
   const data = { "data-look": look, "data-finish": finish } as const;
   return {
     frame: frameOf(look, finish),
     // Full art : textes sans encadrés, avec un contour.
     bare: true,
-    power: <PortalPower value={power} />,
+    power: <PortalPower value={power} portal={portal} />,
     behind: (
       <div
         aria-hidden
@@ -148,8 +114,13 @@ function lookOf(look: RefonteLook, finish: CardFinish, power: number): FinalLook
         style={{ ["--r6" as string]: HUE[finish] }}
       >
         <i className="tcg-r6-glow" />
-        <i className="tcg-r6-rays" />
         <i className="tcg-r6-burst" />
+        {paint && (
+          <i
+            className="tcg-r6-paint"
+            style={{ backgroundImage: `url(${ASSETS}/light-${paint}.webp)` }}
+          />
+        )}
       </div>
     ),
     edge: (
@@ -174,11 +145,14 @@ export function RefonteCard({
   look,
   layout,
   finish,
+  portal,
 }: {
   card: CardData;
   look: RefonteLook;
   layout: TopLayout;
   finish: CardFinish;
+  /** Badge de puissance à montrer (par défaut, celui de la proposition). */
+  portal?: Portal;
 }) {
   return (
     <FinalCard
@@ -186,7 +160,7 @@ export function RefonteCard({
       layout={layout}
       band="court"
       finish={finish}
-      look={lookOf(look, finish, card.power)}
+      look={lookOf(look, finish, card.power, portal)}
     />
   );
 }
