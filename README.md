@@ -292,9 +292,19 @@ puis à cadrer en la faisant glisser et en zoomant). Pour en créer beaucoup d'u
 fichier JSON (format affiché sur la page ; un fichier `updates` y change en masse le coût, la
 puissance et l'effet de cartes existantes), et `/admin/cartes/illustrations` plusieurs images d'un
 coup (chaque fichier porte le numéro de sa carte : `12.jpg` ; converties en WebP elles aussi). Les cartes générées à partir des
-idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Un effet nouveau s'ajoute dans
-`effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise) et devient disponible pour
-toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
+idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Le catalogue d'effets
+couvre **toutes les cartes de collection de Marvel Snap** (507 : séries 1 à 5, cartes de départ,
+niveaux de collection ; ni jetons, ni cartes de modes de jeu), chacune avec son coût et sa
+puissance actuels et un texte en français : dans la fiche, on cherche l'effet par nom de carte Snap
+ou par mot du texte, avec des filtres par moment et par coût. Coût, puissance et page snap.fan de
+chaque carte sont dans `games/tcg/src/snap-cards.ts`, généré par `pnpm snap:catalog` (télécharge
+les données une fois, le site n'appelle jamais le réseau ; `--check-urls` vérifie les pages
+snap.fan). Après un équilibrage ou une nouvelle saison : relancer `pnpm snap:catalog`, puis écrire
+dans `games/tcg/src/snap-effects.ts` le texte français des cartes que le script liste comme sans
+effet (reformulé, nombres et jetons réglables entre accolades : `{amount:2}`, `{name:Écureuil}`). Une carte qui prend un effet prend
+aussi ces stats : dans la fiche, mana et puissance se remplissent avec ceux de la carte Snap et
+suivent l'effet ; la case « Stats manuelles » les rend libres (règle appliquée aussi par le
+serveur, à la création, à la modification, à l'import et à la mise à jour en masse).
 
 Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
 set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)

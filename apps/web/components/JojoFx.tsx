@@ -1,6 +1,6 @@
 "use client";
 
-import { effectiveVolume, ROAD_ROLLER_EVENT, toBeContinued } from "@app/ui";
+import { effectiveVolume, onVolumeChange, ROAD_ROLLER_EVENT, toBeContinued } from "@app/ui";
 import { useEffect } from "react";
 import { createDamage, DAMAGE_SOUNDS, DAMAGE_SPRITES } from "./jojoDamage";
 
@@ -295,6 +295,16 @@ export function JojoFx() {
       theme.volume = Math.min(1, effectiveVolume() * 0.6);
       theme.play().catch(() => {});
     };
+
+    // Pendant une rafale, ORA, MUDA et le thème suivent le bouton volume du header en direct
+    // (pas pendant le fondu de fin du thème, qui baisse le son lui-même).
+    const offVolume = onVolumeChange(() => {
+      if (!rush) return;
+      const level = effectiveVolume();
+      rush.ora.volume = Math.min(1, level * 0.8);
+      if (rush.muda) rush.muda.volume = Math.min(1, level * 0.8);
+      if (theme) theme.volume = Math.min(1, level * 0.6);
+    });
 
     const beginRush = () => {
       if (!standOn || !isJojo()) return;
@@ -607,6 +617,7 @@ export function JojoFx() {
       window.removeEventListener("click", onClick);
       window.removeEventListener("contextmenu", onContext);
       window.removeEventListener(ROAD_ROLLER_EVENT, roadRoller);
+      offVolume();
       stopThemeFade();
       theme?.pause();
       layer.remove();

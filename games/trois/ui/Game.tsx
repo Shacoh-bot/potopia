@@ -188,9 +188,9 @@ export function Game({
           }
           if (w.status === "lost") {
             onOutcome?.("lost");
-            sfx.lose();
             flash(`C'était « ${w.answer?.toUpperCase()} »`, 2500);
-            toBeContinued();
+            // « To Be Continued » a sa musique : pas de son de défaite par-dessus
+            if (!toBeContinued()) sfx.lose();
           }
           maoReact(w.status, row, day.maxTries);
         }, REVEAL_MS);
@@ -221,9 +221,9 @@ export function Game({
         }
         if (w.status === "lost") {
           onOutcome?.("lost");
-          sfx.lose();
           flash(`C'était « ${w.answer?.toUpperCase()} »`, 2500);
-          toBeContinued();
+          // « To Be Continued » a sa musique : pas de son de défaite par-dessus
+          if (!toBeContinued()) sfx.lose();
         }
         maoReact(w.status, row, day.maxTries);
         if (w.status !== "playing" && r.slot < r.day.words.length - 1)

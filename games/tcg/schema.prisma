@@ -67,6 +67,9 @@ model TcgCard {
   family         String?
   cost           Int
   power          Int
+  // Cochée : coût et puissance saisis à la main. Sinon, une carte avec effet prend ceux de la
+  // carte Snap de l'effet (`effectStats`), appliqués à chaque enregistrement.
+  statsManual    Boolean   @default(false) @map("stats_manual")
   effectKey      String?   @map("effect_key")
   effectParams   Json?     @map("effect_params")
   effectText     String    @default("") @map("effect_text")

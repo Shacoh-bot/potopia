@@ -1,34 +1,63 @@
 import { z } from "zod";
+import { SNAP_CARDS } from "./snap-cards";
+import { SNAP_TEXTS } from "./snap-effects";
 
 /*
  * Catalogue des effets de carte. La base ne stocke que la clé d'un effet et ses réglages
  * (`TcgCard.effectKey`, `effectParams`) : l'admin choisit l'effet dans cette liste et règle ses
  * nombres, sans déploiement. Chaque effet reprend une vraie carte de Marvel Snap (`snap`), dont
- * les valeurs servent de réglages par défaut : ces cartes sont déjà équilibrées. Un effet nouveau
- * s'ajoute ici, avec sa carte Snap, puis se donne à n'importe quelle carte. Le moteur de partie (à
- * venir) lira la même liste.
+ * les valeurs servent de réglages par défaut : ces cartes sont déjà équilibrées. Une carte qui prend
+ * un effet prend aussi le coût et la puissance de sa carte Snap (`effectStats`, relevés dans
+ * `snap-cards.ts`), sauf « Stats manuelles ». Un effet nouveau s'ajoute ici, avec sa carte Snap
+ * (et ses stats dans `snap-cards.ts`), puis se donne à n'importe quelle carte. Le moteur de
+ * partie (à venir) lira la même liste.
+ *
+ * Deux sources : `BASE_EFFECTS` ci-dessous (les premiers effets, écrits à la main, clés stables :
+ * des cartes en base les utilisent), et toutes les autres cartes de collection de Marvel Snap, dont
+ * le texte français est écrit dans `snap-effects.ts` (clé `snap_<nom>`, réglages entre accolades,
+ * voir `templateEffect`). Ensemble, elles couvrent chaque carte de `SNAP_CARDS` (vérifié par test).
  */
 
 /** Moment où l'effet agit. */
 export type EffectTrigger =
-  "reveal" | "ongoing" | "end_of_turn" | "destroyed" | "hand" | "end_of_game";
+  | "reveal"
+  | "ongoing"
+  | "start_of_game"
+  | "start_of_turn"
+  | "end_of_turn"
+  | "activate"
+  | "moved"
+  | "destroyed"
+  | "discarded"
+  | "hand"
+  | "end_of_game"
+  | "objective"
+  | "none";
 
+/** Libellés des moments, dans l'ordre où l'admin les propose. */
 export const TRIGGER_LABELS: Record<EffectTrigger, string> = {
   reveal: "Révélation",
   ongoing: "Permanent",
+  start_of_game: "Début de partie",
+  start_of_turn: "Début de tour",
   end_of_turn: "Fin de tour",
+  activate: "Activation",
+  moved: "Quand elle se déplace",
   destroyed: "Quand elle est détruite",
+  discarded: "Quand elle est défaussée",
   hand: "Depuis la main",
   end_of_game: "Fin de partie",
+  objective: "Objectif",
+  none: "Sans capacité",
 };
 
 /**
  * Réglage d'un effet : un nombre borné, une famille de cartes (« Grenouilles »), ou un texte libre (le
- * nom d'un jeton invoqué).
+ * nom d'un jeton invoqué, avec un nom proposé par défaut).
  */
 export type EffectParam =
   | { name: string; label: string; kind: "int"; min: number; max: number; default: number }
-  | { name: string; label: string; kind: "family" | "text" };
+  | { name: string; label: string; kind: "family" | "text"; default?: string };
 
 export type EffectParams = Record<string, number | string>;
 
@@ -69,7 +98,8 @@ function fixed<K extends string>(
   return { key, trigger, snap, label, params: [], text: () => text } as const;
 }
 
-export const EFFECTS = [
+/** Les premiers effets, écrits à la main : leurs clés ne changent jamais (cartes en base). */
+export const BASE_EFFECTS = [
   // ── Révélation ──
   {
     key: "reveal_debuff_enemies_here",
@@ -710,12 +740,126 @@ export const EFFECTS = [
   ),
 ] as const satisfies readonly EffectDef[];
 
-export type EffectKey = (typeof EFFECTS)[number]["key"];
+/** Réglages qu'un texte de `snap-effects.ts` peut porter entre accolades, et leur libellé. */
+const TEMPLATE_PARAMS: Record<string, string> = {
+  amount: "Puissance",
+  amount2: "Second nombre",
+  count: "Nombre de cartes",
+  cost: "Coût",
+  name: "Nom du jeton",
+  name2: "Nom du second jeton",
+};
+const PLACEHOLDER = /\{(amount2?|count|cost|name2?):([^{}]+)\}/g;
 
-export const EFFECT_KEYS = EFFECTS.map((e) => e.key) as [EffectKey, ...EffectKey[]];
+/** Clé d'un effet du catalogue Snap : « Squirrel Girl » donne `snap_squirrel_girl`. */
+export const snapEffectKey = (snap: string) =>
+  `snap_${snap
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")}`;
+
+/**
+ * Effet du catalogue Snap à partir de son texte français : chaque `{nom:valeur}` du texte devient
+ * un réglage (nombre ou nom de jeton) dont `valeur` est la valeur par défaut, celle de la carte
+ * Snap. Ex. « Révélation : ajoute un {name:Écureuil} dans chaque autre lieu. »
+ */
+export function templateEffect(
+  snap: string,
+  entry: { trigger: EffectTrigger; label: string; text: string },
+): EffectDef {
+  const params: EffectParam[] = [];
+  for (const [, name = "", value = ""] of entry.text.matchAll(PLACEHOLDER)) {
+    if (params.some((p) => p.name === name)) continue;
+    const label = TEMPLATE_PARAMS[name] ?? name;
+    if (name.startsWith("name")) {
+      params.push({ name, label, kind: "text", default: value });
+    } else {
+      const def = Number(value);
+      params.push({ name, label, kind: "int", min: 0, max: Math.max(10, def * 2), default: def });
+    }
+  }
+  return {
+    key: snapEffectKey(snap),
+    label: entry.label,
+    trigger: entry.trigger,
+    params,
+    snap,
+    text: (p) =>
+      entry.text.replace(PLACEHOLDER, (_, name: string, value: string) => String(p[name] ?? value)),
+  };
+}
+
+/** Effets des autres cartes Snap (texte dans `snap-effects.ts`), sans doublon avec `BASE_EFFECTS`. */
+const covered = new Set<string>(BASE_EFFECTS.map((e) => e.snap));
+const SNAP_EFFECTS: EffectDef[] = Object.entries(SNAP_TEXTS)
+  .filter(([snap]) => !covered.has(snap))
+  .map(([snap, entry]) => templateEffect(snap, entry));
+
+/** Le catalogue complet : les effets écrits à la main, puis ceux de toutes les cartes Snap. */
+export const EFFECTS: readonly EffectDef[] = [...BASE_EFFECTS, ...SNAP_EFFECTS];
+
+/** Clé d'un effet : une des `BASE_EFFECTS`, ou `snap_<nom>` pour le reste du catalogue. */
+export type EffectKey = (typeof BASE_EFFECTS)[number]["key"] | `snap_${string}`;
+
+export const EFFECT_KEYS: string[] = EFFECTS.map((e) => e.key);
+
+const BY_KEY = new Map(EFFECTS.map((e) => [e.key, e]));
 
 export function getEffect(key: string): EffectDef | null {
-  return (EFFECTS as readonly EffectDef[]).find((e) => e.key === key) ?? null;
+  return BY_KEY.get(key) ?? null;
+}
+
+/**
+ * Débuts de phrase qui annoncent un moment dans un texte d'effet (« Révélation : … Permanent :
+ * … »). « Défaussée ou détruite : » compte pour les deux.
+ */
+const TRIGGER_MARKS: [EffectTrigger, RegExp][] = [
+  ["reveal", /Révélation :/],
+  ["ongoing", /Permanent :/],
+  ["start_of_game", /Début de partie :/],
+  ["start_of_turn", /Début de tour :/],
+  ["end_of_turn", /Fin de tour :/],
+  ["activate", /Activation :/],
+  ["moved", /Quand elle se déplace/],
+  ["destroyed", /(?:Détruite|ou détruite) :/],
+  ["discarded", /Défaussée(?: ou détruite)? :/],
+  ["end_of_game", /Fin de partie :/],
+  ["objective", /Objectif :/],
+];
+/** En début de texte ou de phrase seulement (« un effet Révélation » ne compte pas). */
+const atSentenceStart = (mark: RegExp) => new RegExp(`(?:^|[.!?»)]\\s+)${mark.source}`);
+
+const TRIGGERS_BY_KEY = new Map<string, EffectTrigger[]>();
+
+/**
+ * Tous les moments d'un effet : le principal (`trigger`), puis ceux annoncés dans son texte. Une
+ * carte Snap peut en avoir plusieurs (Electro : Révélation et Permanent) ; la recherche de l'admin
+ * la retrouve sous chacun.
+ */
+export function effectTriggers(effect: EffectDef): EffectTrigger[] {
+  const known = TRIGGERS_BY_KEY.get(effect.key);
+  if (known) return known;
+  const text = effect.text(defaultParams(effect));
+  const triggers = [
+    effect.trigger,
+    ...TRIGGER_MARKS.filter(
+      ([trigger, mark]) => trigger !== effect.trigger && atSentenceStart(mark).test(text),
+    ).map(([trigger]) => trigger),
+  ];
+  TRIGGERS_BY_KEY.set(effect.key, triggers);
+  return triggers;
+}
+
+/**
+ * Coût et puissance de la carte Snap d'un effet (`SNAP_CARDS`) : ceux que prend une carte qui
+ * reçoit l'effet, sauf « Stats manuelles ». Null sans effet (ou carte Snap pas encore relevée).
+ */
+export function effectStats(key: string | null): { cost: number; power: number } | null {
+  const effect = key ? getEffect(key) : null;
+  const stats = effect ? SNAP_CARDS[effect.snap] : undefined;
+  return stats ? { cost: stats.cost, power: stats.power } : null;
 }
 
 const TEXT_MAX = 40;
@@ -740,10 +884,10 @@ export function paramsSchema(effect: EffectDef) {
   return z.object(shape).strict();
 }
 
-/** Réglages par défaut d'un effet (familles et textes vides). */
+/** Réglages par défaut d'un effet (familles vides, textes à leur nom proposé ou vides). */
 export function defaultParams(effect: EffectDef): EffectParams {
   return Object.fromEntries(
-    effect.params.map((p) => [p.name, p.kind === "int" ? p.default : ""] as const),
+    effect.params.map((p) => [p.name, p.kind === "int" ? p.default : (p.default ?? "")] as const),
   );
 }
 

@@ -76,8 +76,16 @@ Les mots changent à minuit, heure de Paris. Pour qu'une partie en cours ne soit
 ## Sons, animations et mode secret
 
 - Victoire : les cases sautent et des confettis tombent (désactivé si l'appareil demande moins
-  d'animations). Pour un 3 sur 3, grosse pluie de confettis et fanfare.
-- Sons synthétisés avec Web Audio (`ui/sound.ts`), sans fichier audio. Bouton 🔊/🔇 mémorisé sur
+  d'animations). Pour un 3 sur 3, grosse pluie de confettis.
+- Vrais sons : chaque case qui se retourne joue le bip de lettre de Motus (bien placée, mal
+  placée, absente) ; un mot refusé joue le bip grave d'une lettre absente. Touches, boutons, mot
+  trouvé, 3 sur 3 et mot perdu : sons courts et sobres de Pokémon TCG Pocket. Le son du mot perdu
+  ne joue que si « To Be Continued » est coupé dans les paramètres : sinon il couvrirait
+  Roundabout (`toBeContinued()` renvoie vrai quand l'effet se lance). Fichiers dans `apps/web/public/audio/trois/` (sources
+  hors dépôt, `Trois assets/sons/sources.csv`), téléchargés et décodés dès l'arrivée sur la page,
+  joués avec Web Audio (`ui/sound.ts`). Le mode secret joue de vrais sons « mèmes » (rugissement
+  de Godzilla, corne MLG, prouts, boing, canard, sifflet à coulisse, trombone triste) ; seule sa
+  petite boucle chiptune reste synthétisée. Bouton 🔊/🔇 mémorisé sur
   l'appareil. Le bouton volume du portail (header) s'applique par-dessus : il règle ou coupe les
   sons du jeu même quand le 🔊 du jeu est actif, et un jeu en 🔇 reste muet quel que soit le volume
   du portail.

@@ -41,8 +41,9 @@ export function GameCardDefs() {
 
 /**
  * Une carte du jeu, dans le design retenu (n°70 : le 65 affiné, bandeau court), en carte normale
- * ou full art (la mise en page enregistrée sur la carte, sauf `layout` donné). La rareté ne se
- * voit pour l'instant qu'en pied de carte.
+ * ou full art (la mise en page enregistrée sur la carte, sauf `layout` donné), dans sa version
+ * affinée (`refined`) : sans plaques d'angle dorées ni gemmes, filet doré collé au cadre, full art
+ * avec les textes sans encadrés et un contour. La rareté se voit à la bordure et en pied de carte.
  */
 export function GameCard({
   card,
@@ -101,6 +102,7 @@ export function GameCard({
       gameFooter
       visualEffects={card.visualEffectKeys}
       still={still}
+      refined
     />
   );
   return still ? <div className="tcg-still">{face}</div> : face;
