@@ -872,14 +872,30 @@ et modifient les cartes.
   lui passe le nombre de cartes de chaque idée (`cards`, calculé par `cardCountsByIdea`) et
   l'adresse de création (`newCardHref`).
 
-- Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 85 effets) : chaque effet reprend
+- Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 507 effets : un par carte de
+  collection de Marvel Snap) : chaque effet reprend
   une vraie carte de Marvel Snap (`snap`, obligatoire, affichée dans l'éditeur : Heimdall, Magneto,
   Galactus, Wong, Iron Man…), dont l'effet, les valeurs (réglages par défaut) et, pour la carte,
   le coût et la puissance servent de repère : ces cartes sont déjà équilibrées. Règle décidée le
-  2026-10-31 : pas d'effet inventé. Le coût et la puissance de chaque carte Snap (relevés sur
-  snap.fan, valeurs actuelles, avec l'URL) sont dans `games/tcg/src/snap-cards.ts`
-  (`SNAP_CARDS`) ; `effectStats(effectKey)` les donne pour un effet, et un test vérifie que
-  chaque effet du catalogue a les siens. **Stats liées à l'effet** (décision du 2026-11-13) : une
+  2026-10-31 : pas d'effet inventé. Deux sources : `BASE_EFFECTS` (les 85 premiers, écrits à
+  la main, clés stables utilisées en base) et, pour toutes les autres cartes, les textes français
+  de `snap-effects.ts` (`SNAP_TEXTS`, indexés par nom de carte Snap, clé `snap_<nom>`) :
+  `templateEffect` transforme chaque `{amount:2}`, `{amount2:…}`, `{count:…}`, `{cost:…}`
+  (nombres) et `{name:Écureuil}`, `{name2:…}` (noms de jetons) en réglage, avec la valeur de la
+  carte Snap par défaut (un nom de jeton se change : Thor peut mélanger un « Grosmarto ! »). Moments
+  ajoutés pour le catalogue complet : début de partie, début de tour, activation, quand elle se
+  déplace, quand elle est défaussée, objectif, sans capacité. Le coût et la puissance de chaque
+  carte Snap (valeurs actuelles, après équilibrages, avec sa page snap.fan) sont dans
+  `games/tcg/src/snap-cards.ts` (`SNAP_CARDS`), **généré** par `pnpm snap:catalog`
+  (`games/tcg/scripts/snap-catalog.ts`) : il télécharge la liste des cartes de
+  marvelsnapzone.com (valeurs identiques à snap.fan, vérifiées sur 109 cartes puis sur 20 tirées au
+  hasard le 2026-11-14), garde les cartes de collection sorties, retrouve l'adresse de chaque page
+  dans l'index de snap.fan (`--check-urls` les vérifie toutes) et liste les cartes sans texte
+  français. Aucun appel réseau au build ni à l'exécution. `effectStats(effectKey)` donne les stats
+  d'un effet ; les tests vérifient qu'il y a un effet par carte de `SNAP_CARDS`, que les clés des
+  premiers effets n'ont pas changé, que chaque texte et ses réglages par défaut sont valides.
+  Recherche de la fiche : `searchEffects` (`src/effect-search.ts` : mots du nom Snap, du libellé
+  ou du texte, sans casse ni accents ; filtres moment et coût, « 6+ ») et `ui/EffectPicker.tsx`. **Stats liées à l'effet** (décision du 2026-11-13) : une
   carte avec effet prend le coût et la puissance de sa carte Snap, sauf `statsManual`.
   `cards.ts` applique la règle à chaque enregistrement (`followEffect` : `createCard`,
   `updateCard`, `importCards`, `updateCards`) ; `statsManual` absent garde l'état enregistré
@@ -887,8 +903,8 @@ et modifient les cartes.
   stats de leur effet à leur prochain enregistrement (la fiche prévient quand elles diffèrent).
   Fiche (`CardEditor`) : mana et puissance affichent les stats de l'effet et suivent son
   changement, case « Stats manuelles » pour les saisir. Migration `tcg_card_stats_manual`
-  (ajout d'une colonne, valeur par défaut). Chaque effet a une clé, un moment (révélation, permanent,
-  fin de tour, quand elle est détruite, depuis la main, fin de partie), des réglages (nombre
+  (ajout d'une colonne, valeur par défaut). Chaque effet a une clé, un moment (`TRIGGER_LABELS`),
+  des réglages (nombre
   borné ou nom de jeton, validés par `paramsSchema` ; les valeurs fixées par la carte Snap, comme
   « 10 de puissance ou plus » de Shang-Chi, ne se règlent pas) et un modèle de texte
   (`effectText`). L'admin choisit l'effet d'une carte dans cette liste et règle ses nombres, sans
