@@ -79,8 +79,8 @@ describe("DESIGNS", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("garde les numéros affichés : le n°70 et la refonte (72 à 74) en cours, le reste archivé", () => {
-    expect(DESIGN_TAB.map(designNumber)).toEqual([70, 72, 73, 74]);
+  it("garde les numéros affichés : le n°70 et la refonte (72 et 74) en cours, le reste archivé", () => {
+    expect(DESIGN_TAB.map(designNumber)).toEqual([70, 72, 74]);
     expect(designNumber("haut-bandeau")).toBe(65);
     expect(designNumber("haut-fin")).toBe(66);
     expect(REFERENCES).toEqual([]);

@@ -137,6 +137,8 @@ function lookOf(look: RefonteLook, finish: CardFinish, power: number): FinalLook
   const data = { "data-look": look, "data-finish": finish } as const;
   return {
     frame: frameOf(look, finish),
+    // Full art : textes sans encadrés, avec un contour.
+    bare: true,
     power: <PortalPower value={power} />,
     behind: (
       <div

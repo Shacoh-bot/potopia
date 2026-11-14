@@ -1744,21 +1744,35 @@
   }
 }
 
-/* Proposition 1 · Aura : la lueur grandit avec la rareté. */
+/* Proposition 1 · Aura : la lueur grandit avec la rareté ; discrète en peu commune, de plus en
+   plus « vénère » ensuite (plus large, plus vive, puis elle pulse et tourne). */
 [data-look="aura"][data-finish="uncommon"] {
-  --r6-glow: 0.35;
+  --r6-glow: 0.22;
+}
+[data-look="aura"][data-finish="uncommon"] .tcg-r6-glow {
+  inset: -6px;
+  filter: blur(9px);
 }
 [data-look="aura"][data-finish="rare"] {
-  --r6-glow: 0.55;
+  --r6-glow: 0.45;
+}
+[data-look="aura"][data-finish="rare"] .tcg-r6-glow {
+  inset: -10px;
+  filter: blur(13px);
 }
 [data-look="aura"][data-finish="epic"] {
   --r6-glow: 0.7;
 }
+[data-look="aura"][data-finish="epic"] .tcg-r6-glow {
+  inset: -16px;
+  filter: blur(18px);
+}
 [data-look="aura"][data-finish="legendary"] {
-  --r6-glow: 0.85;
-  --r6-rays: 0.35;
-  --r6-ray: 3deg;
-  --r6-gap: 15deg;
+  --r6-glow: 0.95;
+}
+[data-look="aura"][data-finish="legendary"] .tcg-r6-glow {
+  inset: -22px;
+  filter: blur(22px);
 }
 [data-look="aura"]:is(
     [data-finish="uncommon"],
@@ -1772,13 +1786,24 @@
 [data-look="aura"]:is([data-finish="epic"], [data-finish="legendary"]) .tcg-r6-glow {
   animation: tcg-r6-pulse 2.6s ease-in-out infinite;
 }
-[data-look="aura"][data-finish="legendary"] :is(.tcg-r6-rays, .tcg-r6-sparks),
-[data-look="aura"][data-finish="sr"] :is(.tcg-r6-burst, .tcg-r6-sheen, .tcg-r6-sparks),
+[data-look="aura"][data-finish="sr"] :is(.tcg-r6-burst, .tcg-r6-sheen),
 [data-look="aura"][data-finish="ssr"] :is(.tcg-r6-burst, .tcg-r6-run) {
   display: block;
 }
 [data-look="aura"][data-finish="sr"] {
-  --r6-burst: 0.55;
+  --r6-burst: 0.85;
+}
+[data-look="aura"][data-finish="sr"] .tcg-r6-burst {
+  inset: -24px;
+  filter: blur(22px);
+}
+[data-look="aura"][data-finish="ssr"] {
+  --r6-burst: 1;
+}
+[data-look="aura"][data-finish="ssr"] .tcg-r6-burst {
+  inset: -30px;
+  filter: blur(24px);
+  animation-duration: 3.5s;
 }
 /* Nacre : les mêmes couleurs, adoucies vers le blanc. */
 [data-look="aura"][data-finish="sr"] .tcg-r6-burst {

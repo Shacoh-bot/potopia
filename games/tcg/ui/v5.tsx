@@ -114,8 +114,25 @@ export const FINAL_ART = {
  * Encadrés de la carte retenue (bandeau du titre, ligne de type, effet) : l'ardoise, plus
  * transparente en full art pour laisser voir l'illustration.
  */
-function finalPanel(card: CardData, layout: TopLayout): CSSProperties {
+/**
+ * Contour du texte posé directement sur l'illustration (full art sans encadrés, refonte) : lisible
+ * sur n'importe quel fond, clair ou sombre.
+ */
+const TEXT_OUTLINE =
+  "1px 0 0 #05060c, -1px 0 0 #05060c, 0 1px 0 #05060c, 0 -1px 0 #05060c, 1px 1px 0 #05060c, -1px -1px 0 #05060c, 1px -1px 0 #05060c, -1px 1px 0 #05060c, 0 2px 6px rgb(0 0 0 / 0.9)";
+
+function finalPanel(card: CardData, layout: TopLayout, bare = false): CSSProperties {
   const style = panelStyle(card, STYLE.panel, layout);
+  if (bare && layout === "fullart") {
+    return {
+      ...style,
+      background: "transparent",
+      boxShadow: "none",
+      backdropFilter: "none",
+      color: "#fff",
+      textShadow: TEXT_OUTLINE,
+    };
+  }
   return layout === "fullart"
     ? { ...style, background: "rgb(30 34 44 / 0.35)", backdropFilter: "blur(3px)" }
     : style;
@@ -129,7 +146,18 @@ const SOCKET = 34.5;
  * Bandeau du titre : au plan de la bordure, dessiné juste avant elle, et prolongé de 2 px sous le
  * métal. Le bord visible est donc celui de la bordure elle-même.
  */
-function Band({ card, layout, shape }: { card: CardData; layout: TopLayout; shape: BandShape }) {
+function Band({
+  card,
+  layout,
+  shape,
+  bare = false,
+}: {
+  card: CardData;
+  layout: TopLayout;
+  shape: BandShape;
+  /** Full art de la refonte : pas de bandeau, le titre seul avec son contour. */
+  bare?: boolean;
+}) {
   const under = 2;
   const left = FRAME - under;
   const top = FRAME - under;
@@ -177,9 +205,17 @@ function Band({ card, layout, shape }: { card: CardData; layout: TopLayout; shap
           ? `${FRAME - top}px ${Math.round(MANA.x + MANA.r) + 2 - left}px 0`
           : `0 ${TITLE.inset - left}px`,
         overflow: "hidden",
-        ...finalPanel(card, layout),
+        ...finalPanel(card, layout, bare),
+        // Titre en dégradé : une ombre de texte le noircirait ; le contour passe par un filtre.
+        ...(bare && layout === "fullart"
+          ? {
+              textShadow: "none",
+              filter:
+                "drop-shadow(1px 0 0 #05060c) drop-shadow(-1px 0 0 #05060c) drop-shadow(0 1px 0 #05060c) drop-shadow(0 -1px 0 #05060c) drop-shadow(0 2px 4px rgb(0 0 0 / 0.8))",
+            }
+          : null),
         border: 0,
-        borderBottom: "1px solid rgb(255 255 255 / 0.14)",
+        borderBottom: bare && layout === "fullart" ? 0 : "1px solid rgb(255 255 255 / 0.14)",
         borderRadius: `${R - left}px ${R - left}px 0 0`,
         WebkitMaskImage: mask,
         maskImage: mask,
@@ -383,6 +419,7 @@ const H = 420;
  * la puissance couvrent les deux autres). La plaque du haut et son losange restent au dos.
  */
 function BackStyleFrame({ corners = true }: { corners?: boolean }) {
+  // Refonte (sans `corners`) : ni plaques d'angle dorées, ni gemmes dans les coins.
   const band = `M${R} 0 H${W - R} A${R} ${R} 0 0 1 ${W} ${R} V${H - R} A${R} ${R} 0 0 1 ${W - R} ${H} H${R} A${R} ${R} 0 0 1 0 ${H - R} V${R} A${R} ${R} 0 0 1 ${R} 0 Z M${R} ${FRAME} H${W - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - FRAME} ${R} V${H - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - R} ${H - FRAME} H${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${FRAME} ${H - R} V${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${R} ${FRAME} Z`;
   return (
     <svg
@@ -415,10 +452,12 @@ function BackStyleFrame({ corners = true }: { corners?: boolean }) {
           <polygon points={CORNER} transform={`translate(${W} ${H}) scale(-1 -1)`} />
         </g>
       )}
-      <g filter="url(#tcg-back-glow)">
-        <Gem x={W - 13} y={13} color="c" />
-        <Gem x={13} y={H - 13} color="p" />
-      </g>
+      {corners && (
+        <g filter="url(#tcg-back-glow)">
+          <Gem x={W - 13} y={13} color="c" />
+          <Gem x={13} y={H - 13} color="p" />
+        </g>
+      )}
     </svg>
   );
 }
@@ -492,8 +531,9 @@ export function FinalCard({
     ));
   // La bordure grise des encadrés laisse la place au filet doré (`PanelTrim`), posé à
   // l'intérieur : l'encadré de l'effet rogne ce qui dépasse.
+  const bare = !!look?.bare && full;
   const panel: CSSProperties = {
-    ...finalPanel(card, layout),
+    ...finalPanel(card, layout, bare),
     border: 0,
     position: "relative",
   };
@@ -599,7 +639,7 @@ export function FinalCard({
         </Layer>
       )}
 
-      <Band card={card} layout={layout} shape={band} />
+      <Band card={card} layout={layout} shape={band} bare={bare} />
 
       {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
       <Layer z={10} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
@@ -651,7 +691,7 @@ export function FinalCard({
           <span style={{ fontFamily: font("magic", "serif"), fontWeight: 700, fontSize: 12.5 }}>
             {typeLine ?? `Créature — ${card.tag}`}
           </span>
-          <PanelTrim />
+          {!bare && <PanelTrim />}
         </div>
       </Layer>
 
@@ -669,7 +709,7 @@ export function FinalCard({
             ...panel,
           }}
         >
-          <PanelTrim />
+          {!bare && <PanelTrim />}
           <div>{card.effect}</div>
           {card.flavor && (
             <div
@@ -732,6 +772,8 @@ export type FinalLook = {
   behind?: ReactNode;
   /** Par-dessus la bordure (liseré, reflets). */
   edge?: ReactNode;
+  /** Full art : textes posés sur l'illustration, sans encadrés, avec un contour. */
+  bare?: boolean;
 };
 
 /** La planche du n°67 : normale et full art, puis la carte dans chaque rareté. */

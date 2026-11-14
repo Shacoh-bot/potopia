@@ -425,12 +425,7 @@ export const DESIGN_IDS = DESIGNS.map((d) => d.id) as [DesignId, ...DesignId[]];
  * sixième vague (`ui/v6.tsx`), chacune dans toutes les raretés, normale et full art. Tout le reste
  * est aux Archives.
  */
-export const DESIGN_TAB: readonly DesignId[] = [
-  "final-court",
-  "refonte-aura",
-  "refonte-neon",
-  "refonte-rayons",
-];
+export const DESIGN_TAB: readonly DesignId[] = ["final-court", "refonte-aura", "refonte-rayons"];
 
 /** Onglet « Effets de rareté » : ce que chaque rareté ajoute, posé sur le design « Mix · Sculpté et verre fumé ». */
 export const EFFECTS_TAB: readonly DesignId[] = [
