@@ -121,15 +121,18 @@ export default async function AdminBoostersPage({
               chances :
             </li>
           </ul>
-          <table className="w-full max-w-md">
+          <table className="w-full max-w-lg">
             <caption className="sr-only">Chances de la carte chance</caption>
             <tbody>
               {chance.map(([rarity, rate]) => (
                 <tr key={rarity}>
-                  <th scope="row" className="text-text w-44 py-1 pr-3 text-left font-normal">
+                  <th
+                    scope="row"
+                    className="text-text py-1 pr-3 text-left font-normal whitespace-nowrap"
+                  >
                     {CARD_RARITY_LABELS[rarity]}
                   </th>
-                  <td className="w-full py-1">
+                  <td className="w-full min-w-24 py-1">
                     <div className="bg-border h-2 overflow-hidden rounded-full" aria-hidden>
                       <div
                         className="bg-accent h-full rounded-full"
@@ -137,7 +140,9 @@ export default async function AdminBoostersPage({
                       />
                     </div>
                   </td>
-                  <td className="text-text py-1 pl-3 text-right tabular-nums">{percent(rate)}</td>
+                  <td className="text-text py-1 pl-3 text-right whitespace-nowrap tabular-nums">
+                    {percent(rate)}
+                  </td>
                 </tr>
               ))}
             </tbody>
