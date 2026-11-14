@@ -603,6 +603,10 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; bruitages
       synthétisés ; tout est préchargé.
 - [x] Potodex : miniatures entières (plus rognées), carte trouvée ouverte en grand au clic.
+- [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`, 110 cartes
+      relevées sur snap.fan), remplis et suivis dans la fiche, case « Stats manuelles », règle
+      appliquée par le serveur ; migration `tcg_card_stats_manual` (ajout d'une colonne,
+      aucune carte réécrite).
 - [ ] Boosters pour les membres : stock par set, achat et gains, revente des doublons, Potodex
       dans le menu de gauche (sous l'inventaire), tirages SR et SSR dans l'activité ; lieux.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.

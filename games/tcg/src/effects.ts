@@ -1,12 +1,15 @@
 import { z } from "zod";
+import { SNAP_CARDS } from "./snap-cards";
 
 /*
  * Catalogue des effets de carte. La base ne stocke que la clé d'un effet et ses réglages
  * (`TcgCard.effectKey`, `effectParams`) : l'admin choisit l'effet dans cette liste et règle ses
  * nombres, sans déploiement. Chaque effet reprend une vraie carte de Marvel Snap (`snap`), dont
- * les valeurs servent de réglages par défaut : ces cartes sont déjà équilibrées. Un effet nouveau
- * s'ajoute ici, avec sa carte Snap, puis se donne à n'importe quelle carte. Le moteur de partie (à
- * venir) lira la même liste.
+ * les valeurs servent de réglages par défaut : ces cartes sont déjà équilibrées. Une carte qui prend
+ * un effet prend aussi le coût et la puissance de sa carte Snap (`effectStats`, relevés dans
+ * `snap-cards.ts`), sauf « Stats manuelles ». Un effet nouveau s'ajoute ici, avec sa carte Snap
+ * (et ses stats dans `snap-cards.ts`), puis se donne à n'importe quelle carte. Le moteur de
+ * partie (à venir) lira la même liste.
  */
 
 /** Moment où l'effet agit. */
@@ -716,6 +719,16 @@ export const EFFECT_KEYS = EFFECTS.map((e) => e.key) as [EffectKey, ...EffectKey
 
 export function getEffect(key: string): EffectDef | null {
   return (EFFECTS as readonly EffectDef[]).find((e) => e.key === key) ?? null;
+}
+
+/**
+ * Coût et puissance de la carte Snap d'un effet (`SNAP_CARDS`) : ceux que prend une carte qui
+ * reçoit l'effet, sauf « Stats manuelles ». Null sans effet (ou carte Snap pas encore relevée).
+ */
+export function effectStats(key: string | null): { cost: number; power: number } | null {
+  const effect = key ? getEffect(key) : null;
+  const stats = effect ? SNAP_CARDS[effect.snap] : undefined;
+  return stats ? { cost: stats.cost, power: stats.power } : null;
 }
 
 const TEXT_MAX = 40;

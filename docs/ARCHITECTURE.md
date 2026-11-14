@@ -204,7 +204,8 @@ passe d'une partie à l'autre sans rechargement.
 - `TcgSet` : code (unique, `S1`), name, createdAt. Une édition de cartes.
 - `TcgCard` : setId?, number? (`(set_id, number)` unique ; contrainte `cards_set_number_check` : un
   numéro si et seulement si la carte est dans un set, sinon elle est dans la réserve), name, rarity (enum `TcgRarity` :
-  common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power, effectKey?,
+  common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power,
+  statsManual (défaut false : avec un effet, cost et power suivent sa carte Snap), effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
@@ -875,7 +876,18 @@ et modifient les cartes.
   une vraie carte de Marvel Snap (`snap`, obligatoire, affichée dans l'éditeur : Heimdall, Magneto,
   Galactus, Wong, Iron Man…), dont l'effet, les valeurs (réglages par défaut) et, pour la carte,
   le coût et la puissance servent de repère : ces cartes sont déjà équilibrées. Règle décidée le
-  2026-10-31 : pas d'effet inventé. Chaque effet a une clé, un moment (révélation, permanent,
+  2026-10-31 : pas d'effet inventé. Le coût et la puissance de chaque carte Snap (relevés sur
+  snap.fan, valeurs actuelles, avec l'URL) sont dans `games/tcg/src/snap-cards.ts`
+  (`SNAP_CARDS`) ; `effectStats(effectKey)` les donne pour un effet, et un test vérifie que
+  chaque effet du catalogue a les siens. **Stats liées à l'effet** (décision du 2026-11-13) : une
+  carte avec effet prend le coût et la puissance de sa carte Snap, sauf `statsManual`.
+  `cards.ts` applique la règle à chaque enregistrement (`followEffect` : `createCard`,
+  `updateCard`, `importCards`, `updateCards`) ; `statsManual` absent garde l'état enregistré
+  (faux à la création). Les cartes déjà enregistrées ne sont pas réécrites : elles prennent les
+  stats de leur effet à leur prochain enregistrement (la fiche prévient quand elles diffèrent).
+  Fiche (`CardEditor`) : mana et puissance affichent les stats de l'effet et suivent son
+  changement, case « Stats manuelles » pour les saisir. Migration `tcg_card_stats_manual`
+  (ajout d'une colonne, valeur par défaut). Chaque effet a une clé, un moment (révélation, permanent,
   fin de tour, quand elle est détruite, depuis la main, fin de partie), des réglages (nombre
   borné ou nom de jeton, validés par `paramsSchema` ; les valeurs fixées par la carte Snap, comme
   « 10 de puissance ou plus » de Shang-Chi, ne se règlent pas) et un modèle de texte
@@ -888,11 +900,12 @@ et modifient les cartes.
   clé `cards/<uuid>.<ext>`, 5 Mo), `setCardImage` (vérifie l'objet), `importCards`. Toutes
   prennent l'admin en premier argument et lèvent `ForbiddenError` sinon. Constantes sans
   dépendance serveur dans `src/card-rules.ts` (importables côté navigateur).
-- Variante (`baseCardId`) : elle reprend mana, puissance, type, famille et effet de sa carte de
-  base ; `updateCard` sur la carte de base les lui recopie, et sur la variante ne change que le
+- Variante (`baseCardId`) : elle reprend mana, puissance, stats manuelles, type, famille et effet
+  de sa carte de base ; `updateCard` sur la carte de base les lui recopie, et sur la variante ne change que le
   nom, la rareté et la description. Pas de variante d'une variante.
 - Mise à jour en masse (même page, `updateCards`) : fichier `{ updates: [{ ideaId, name?, cost?,
-power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est retrouvée par son
+power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et power ne comptent
+  qu'en stats manuelles ou sans effet). Chaque carte de base est retrouvée par son
   idée (le nom départage si l'idée a plusieurs cartes) ; seuls le coût, la puissance et l'effet
   changent, et les variantes suivent. Un nouvel effet sans texte prend le texte du catalogue.
   Tout ou rien.

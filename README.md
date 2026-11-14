@@ -293,8 +293,12 @@ fichier JSON (format affiché sur la page ; un fichier `updates` y change en mas
 puissance et l'effet de cartes existantes), et `/admin/cartes/illustrations` plusieurs images d'un
 coup (chaque fichier porte le numéro de sa carte : `12.jpg` ; converties en WebP elles aussi). Les cartes générées à partir des
 idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Un effet nouveau s'ajoute dans
-`effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise) et devient disponible pour
-toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
+`effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise), avec le coût et la puissance
+de sa carte Snap dans `games/tcg/src/snap-cards.ts`, et devient disponible pour toutes les cartes :
+chaque effet reprend une vraie carte Snap, déjà équilibrée. Une carte qui prend un effet prend
+aussi ces stats : dans la fiche, mana et puissance se remplissent avec ceux de la carte Snap et
+suivent l'effet ; la case « Stats manuelles » les rend libres (règle appliquée aussi par le
+serveur, à la création, à la modification, à l'import et à la mise à jour en masse).
 
 Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
 set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)

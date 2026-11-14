@@ -31,6 +31,7 @@ import {
   type EffectDef,
   type EffectTrigger,
   type EffectParams,
+  effectStats,
   effectText,
   getEffect,
   TRIGGER_LABELS,
@@ -68,8 +69,11 @@ type Fields = {
   rarity: Card["rarity"];
   type: string;
   family: string;
+  /** Coût et puissance saisis ; avec un effet, utilisés seulement en stats manuelles. */
   cost: number;
   power: number;
+  /** Stats manuelles : coût et puissance ne suivent plus la carte Snap de l'effet. */
+  statsManual: boolean;
   effectKey: string;
   effectParams: EffectParams;
   effectText: string;
@@ -143,6 +147,7 @@ function defaults(card: Card | null): Fields {
     family: card?.family ?? "",
     cost: card?.cost ?? 1,
     power: card?.power ?? 2,
+    statsManual: card?.statsManual ?? false,
     effectKey: card?.effectKey ?? "",
     effectParams: card?.effectParams ?? {},
     effectText: card?.effectText ?? "",
@@ -153,7 +158,9 @@ function defaults(card: Card | null): Fields {
 
 /**
  * Formulaire d'une carte, avec l'aperçu du design retenu à côté, mis à jour pendant la saisie. Le
- * texte de l'effet suit l'effet choisi tant qu'on ne l'a pas réécrit à la main.
+ * texte de l'effet suit l'effet choisi tant qu'on ne l'a pas réécrit à la main ; le coût et la
+ * puissance suivent la carte Snap de l'effet tant que « Stats manuelles » n'est pas cochée (le
+ * serveur applique la même règle).
  */
 export function CardEditor({
   card,
@@ -228,10 +235,25 @@ export function CardEditor({
   const effect = fields.effectKey ? getEffect(fields.effectKey) : null;
   const proposed = effectText(fields.effectKey || null, effect ? fields.effectParams : null);
   const shownText = customText ? fields.effectText : proposed;
+  // Stats de la carte Snap de l'effet ; tant qu'elles s'appliquent, les champs les affichent.
+  const snapStats = effectStats(fields.effectKey || null);
+  const following = !fields.statsManual && !!snapStats;
+  const cost = following && snapStats ? snapStats.cost : fields.cost;
+  const power = following && snapStats ? snapStats.power : fields.power;
+  // Carte enregistrée avec d'autres stats que celles de son effet (avant la règle) : on prévient
+  // qu'elles seront remplacées, sauf à cocher « Stats manuelles ».
+  const savedDiffers =
+    !!card &&
+    !variant &&
+    following &&
+    card.effectKey === fields.effectKey &&
+    (card.cost !== cost || card.power !== power);
 
   const preview = useMemo(
     () => ({
       ...fields,
+      cost,
+      power,
       family: fields.family.trim() || null,
       flavor: fields.flavor.trim() || null,
       effectText: shownText,
@@ -241,11 +263,23 @@ export function CardEditor({
       imageFrameFull: frames.fullart,
       glowPoints,
     }),
-    [fields, shownText, card, sets, setId, setSizes, frames, glowPoints],
+    [fields, cost, power, shownText, card, sets, setId, setSizes, frames, glowPoints],
   );
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
     setFields((f) => ({ ...f, [key]: value }));
+  }
+
+  /**
+   * Coche ou décoche « Stats manuelles ». Cochée, la saisie part des stats affichées (celles de
+   * l'effet), ou des stats enregistrées si elles en diffèrent : la case sert alors à les garder.
+   */
+  function setManual(manual: boolean) {
+    setFields((f) =>
+      manual && !savedDiffers
+        ? { ...f, statsManual: true, cost, power }
+        : { ...f, statsManual: manual },
+    );
   }
 
   function pickEffect(key: string) {
@@ -259,6 +293,8 @@ export function CardEditor({
       "card",
       JSON.stringify({
         ...fields,
+        cost,
+        power,
         effectText: shownText,
         imageFrame: image ? frames.normal : null,
         imageFrameFull: image ? frames.fullart : null,
@@ -442,9 +478,9 @@ export function CardEditor({
                 type="number"
                 min={CARD_LIMITS.cost.min}
                 max={CARD_LIMITS.cost.max}
-                value={fields.cost}
+                value={cost}
                 onChange={(e) => set("cost", Number(e.target.value))}
-                disabled={variant}
+                disabled={variant || following}
               />
             </Label>
             <Label>
@@ -453,12 +489,34 @@ export function CardEditor({
                 type="number"
                 min={CARD_LIMITS.power.min}
                 max={CARD_LIMITS.power.max}
-                value={fields.power}
+                value={power}
                 onChange={(e) => set("power", Number(e.target.value))}
-                disabled={variant}
+                disabled={variant || following}
               />
             </Label>
           </div>
+          {snapStats && effect && !variant && (
+            <div className="flex flex-col gap-1 text-sm">
+              <label className="text-text flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={fields.statsManual}
+                  onChange={(e) => setManual(e.target.checked)}
+                />
+                Stats manuelles (ne pas suivre l&apos;effet)
+              </label>
+              <p className="text-muted text-xs">
+                {fields.statsManual
+                  ? `Coût et puissance libres. Décoche pour reprendre ceux de ${effect.snap} (${snapStats.cost}/${snapStats.power}).`
+                  : `Coût et puissance de ${effect.snap} (Marvel Snap) : ${snapStats.cost}/${snapStats.power}. Ils suivent l'effet choisi.`}
+              </p>
+              {savedDiffers && card && (
+                <p role="status" className="text-accent text-xs">
+                  {`Enregistrée avec ${card.cost}/${card.power} : à l'enregistrement, elle prendra ${cost}/${power}. Coche « Stats manuelles » pour garder ${card.cost}/${card.power}.`}
+                </p>
+              )}
+            </div>
+          )}
           <datalist id="tcg-families">
             {families.map((f) => (
               <option key={f} value={f} />
