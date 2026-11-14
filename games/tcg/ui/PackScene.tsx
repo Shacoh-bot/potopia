@@ -63,8 +63,8 @@ const ASPECT = 16 / 9;
  * pour que le relais se fasse sans saut de couleur.
  */
 const LOOK = {
-  free: { env: 1.1, iridescence: 0.6, ambient: 0.35, key: 1.1 },
-  video: { env: 1.35, iridescence: 0.25, ambient: 0.8, key: 1.8 },
+  free: { env: 0.7, iridescence: 0.25, ambient: 0.3, key: 1.1 },
+  video: { env: 0.85, iridescence: 0.1, ambient: 0.55, key: 1.6 },
 };
 
 type Motion = { rotX: number; rotY: number; velX: number; velY: number; dragging: boolean };
@@ -361,7 +361,8 @@ function Pack({
     const holo = look.current;
     for (const mat of materials) {
       mat.iridescence = mix(LOOK.video.iridescence, LOOK.free.iridescence, holo);
-      mat.clearcoat = 0.7 * holo;
+      // Vernis léger : fort, il posait un voile laiteux sur les couleurs.
+      mat.clearcoat = 0.25 * holo;
     }
 
     // La ligne pointillée pulse ; pendant la découpe, la trace lumineuse suit la souris.

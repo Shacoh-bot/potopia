@@ -1529,6 +1529,23 @@
   inset: 0;
   transform: rotateY(180deg);
 }
+/* Hors du demi-tour, seul le côté visible existe : avant, la face n'est pas montrée ; une fois la
+   carte posée, la 3D du retournement est retirée (même rendu : 180° + 180° = 0°) et le dos est
+   caché. Sinon, en inclinant la carte à la souris, les calques animés de l'autre côté (galaxie du
+   dos, reflets) transparaissaient. */
+.tcg-opening-card[data-side="back"] .tcg-opening-face {
+  visibility: hidden;
+}
+.tcg-opening-card[data-settled] .tcg-opening-turn {
+  transform: none;
+  animation: none;
+}
+.tcg-opening-card[data-settled] .tcg-opening-face {
+  transform: none;
+}
+.tcg-opening-card[data-settled] .tcg-opening-side:not(.tcg-opening-face) {
+  visibility: hidden;
+}
 /* Un seul geste : la carte accélère jusqu'à la tranche en se décollant un peu, puis ralentit en
    se reposant. Mêmes fonctions à chaque étape : le navigateur interpole l'angle, sans raccourci. */
 @keyframes tcg-flip-over {

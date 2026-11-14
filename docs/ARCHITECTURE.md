@@ -1135,7 +1135,8 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   les 5 vraies cartes, de dos, se rangent côte à côte ; chacune est une vraie carte recto-verso
   (dos et `GameCard` montés dos à dos, `backface-visibility`), qu'un clic fait pivoter d'un seul
   demi-tour (`tcg-flip-over`) ; le halo de rareté s'allume à mi-parcours, l'inclinaison et les
-  reflets reviennent une fois la carte posée. Chaque nouveau paquet repart de la vue d'origine
+  reflets reviennent une fois la carte posée ; la 3D du retournement est alors retirée et le côté
+  caché aussi (sinon ses calques animés transparaissaient quand on inclinait la carte). Chaque nouveau paquet repart de la vue d'origine
   (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
   un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
   réduites : directement les cartes.
@@ -1144,9 +1145,11 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
   paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
   (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`), tous
-  trois produits par la version v4 du script Blender (hors dépôt, dossier
-  `Animation paquet de cartes/v4/`, textures refaites par `construire_textures_v4.py`) : couleurs
-  vives (textures saturées, illustration très peu métallique), paquet plat (bombé 0,12) de
+  trois produits par la version v5 du script Blender (hors dépôt, dossier
+  `Animation paquet de cartes/v5/`, textures refaites par `construire_textures_v5.py`) : couleurs
+  proches de l'original mais franches, sans voile (noirs plus profonds, peu de reflets du studio,
+  irisation et vernis limités aux soudures et légers, halo de la vidéo seulement sur les zones
+  très claires), paquet plat (bombé 0,12) de
   2 × 3,27 m, soudures du haut et du bas identiques, courtes et nettes (stries répétées à leur
   résolution d'origine, jamais étirées), partie centrale allongée de 8 %, soudures légèrement
   ondulées d'avant en arrière seulement (vue de face, la silhouette reste droite). La ligne
