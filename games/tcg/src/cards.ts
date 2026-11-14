@@ -20,7 +20,14 @@ import {
   type ImageFrame,
   type VisualEffect,
 } from "./card-rules";
-import { EFFECT_KEYS, type EffectParams, effectText, getEffect, paramsSchema } from "./effects";
+import {
+  EFFECT_KEYS,
+  type EffectParams,
+  effectStats,
+  effectText,
+  getEffect,
+  paramsSchema,
+} from "./effects";
 
 /*
  * Cartes et sets : lus et modifiés par les admins seulement, pour l'instant. Une carte dans un set
@@ -133,6 +140,8 @@ const cardFields = z.object({
   family: optionalText(CARD_LIMITS.family, "Famille"),
   cost: int("Mana", CARD_LIMITS.cost.min, CARD_LIMITS.cost.max),
   power: int("Puissance", CARD_LIMITS.power.min, CARD_LIMITS.power.max),
+  // Stats saisies à la main. Absent : à la création non ; à la modification, l'état enregistré.
+  statsManual: z.boolean("Stats manuelles : oui ou non.").optional(),
   effectKey: z
     .string()
     .nullish()
@@ -179,6 +188,18 @@ function parseCard(input: CardInput) {
     imageFrameFull:
       fields.imageFrameFull === undefined ? undefined : (fields.imageFrameFull ?? Prisma.DbNull),
   };
+}
+
+/**
+ * Coût et puissance à enregistrer : ceux de la carte Snap de l'effet (`effectStats`), sauf stats
+ * manuelles ou sans effet, où ceux saisis restent.
+ */
+function followEffect<T extends { cost: number; power: number; effectKey: string | null }>(
+  fields: T,
+  manual: boolean,
+): T & { statsManual: boolean } {
+  const stats = manual ? null : effectStats(fields.effectKey);
+  return { ...fields, ...stats, statsManual: manual };
 }
 
 type CardRow = Omit<
@@ -256,6 +277,7 @@ type Stats = {
   family: string | null;
   cost: number;
   power: number;
+  statsManual: boolean;
   effectKey: string | null;
   effectParams: unknown;
   effectText: string;
@@ -268,6 +290,7 @@ function shared(card: Stats) {
     family: card.family,
     cost: card.cost,
     power: card.power,
+    statsManual: card.statsManual,
     effectKey: card.effectKey,
     effectParams: (card.effectParams ?? Prisma.DbNull) as
       Prisma.InputJsonValue | typeof Prisma.DbNull,
@@ -372,8 +395,9 @@ const createInput = z.object({
 });
 
 /**
- * Crée une carte, à la fin de son set ou dans la réserve. Une variante (`baseCardId`) prend les
- * stats de sa carte de base, quelles que soient celles envoyées.
+ * Crée une carte, à la fin de son set ou dans la réserve. Avec un effet, elle prend le coût et la
+ * puissance de sa carte Snap, sauf `statsManual`. Une variante (`baseCardId`) prend les stats de
+ * sa carte de base, quelles que soient celles envoyées.
  */
 export async function createCard(
   admin: Admin,
@@ -382,7 +406,8 @@ export async function createCard(
 ): Promise<Card> {
   assertAdmin(admin);
   const { setId, ideaId, baseCardId } = createInput.parse(input);
-  const { visualEffectKeys, ...fields } = parseCard(input);
+  const { visualEffectKeys, ...parsed } = parseCard(input);
+  const fields = followEffect(parsed, parsed.statsManual ?? false);
   return withTx(async (tx) => {
     const base = baseCardId ? await tx.tcgCard.findUnique({ where: { id: baseCardId } }) : null;
     if (baseCardId && !base) throw new CardInputError("Carte de base introuvable.");
@@ -409,7 +434,9 @@ export async function createCard(
 
 /**
  * Modifie une carte. Sur une variante, seuls le nom, la rareté et la description changent ; sur une
- * carte de base, les stats sont recopiées sur ses variantes. Les parties en cours n'en voient
+ * carte de base, les stats sont recopiées sur ses variantes. Avec un effet, coût et puissance
+ * prennent ceux de sa carte Snap, sauf stats manuelles (`statsManual` envoyé, sinon celui
+ * enregistré). Les parties en cours n'en voient
  * rien : elles ont figé les decks à leur début.
  */
 export async function updateCard(
@@ -441,7 +468,7 @@ export async function updateCard(
       });
       return toCard(row);
     }
-    const stats = shared(fields);
+    const stats = shared(followEffect(fields, fields.statsManual ?? current.statsManual));
     const row = await tx.tcgCard.update({
       where: { id },
       data: {
@@ -716,7 +743,8 @@ export async function importCards(
   const { set, cards } = importInput.parse(input);
   const parsed = cards.map((card, i) => {
     try {
-      return { ...parseCard(card as CardInput), ideaId: card.ideaId ?? null };
+      const fields = parseCard(card as CardInput);
+      return { ...followEffect(fields, fields.statsManual ?? false), ideaId: card.ideaId ?? null };
     } catch (error) {
       const detail = error instanceof z.ZodError ? error.issues[0]?.message : String(error);
       throw new CardInputError(`Carte ${i + 1} (${card.name}) : ${detail}`);
@@ -761,14 +789,15 @@ const updatesInput = z.object({
 });
 
 type CardUpdate = { ideaId: string; name?: string } & Partial<
-  Pick<CardInput, "cost" | "power" | "effectKey" | "effectParams" | "effectText">
+  Pick<CardInput, "cost" | "power" | "statsManual" | "effectKey" | "effectParams" | "effectText">
 >;
 
 export type CardUpdates = { updates: CardUpdate[] };
 
 /**
  * Change le coût, la puissance et l'effet de cartes existantes, retrouvées par leur idée (et par leur
- * nom quand l'idée a plusieurs cartes). Le reste est gardé : nom, illustration, cadrage, set et
+ * nom quand l'idée a plusieurs cartes). Comme dans la fiche, une carte avec effet prend les stats
+ * de sa carte Snap, sauf stats manuelles (`statsManual`, sinon l'état enregistré). Le reste est gardé : nom, illustration, cadrage, set et
  * numéro. Un nouvel effet sans texte prend le texte proposé par le catalogue. Les variantes suivent
  * leur carte de base. Tout ou rien.
  */
@@ -813,6 +842,7 @@ export async function updateCards(
             imageFrame: card.imageFrame,
             cost: update.cost ?? card.cost,
             power: update.power ?? card.power,
+            statsManual: update.statsManual,
             effectKey: newEffect ? update.effectKey : card.effectKey,
             effectParams: newEffect ? update.effectParams : card.effectParams,
             effectText: update.effectText ?? (newEffect ? null : card.effectText),

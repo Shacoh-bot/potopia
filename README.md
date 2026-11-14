@@ -5,7 +5,7 @@ Un portail web réservé aux membres d'un serveur Discord : connexion avec Disco
 commune (et y disent la phrase choisie par leur membre), boîte à idées, vote du design des futures cartes, et des jeux : **TROIS** (un Wordle
 français à 3 mots par jour), **Agents Doubles** (jeu d'espions coopératif à deux), **Pose JoJo**
 (mettre un pantin articulé dans une pose célèbre de JoJo), **Morpion** (duels entre membres) et
-**DOUZE** (douze épreuves absurdes par jour autour du nombre 12). Le nom affiché
+**DOUZE** (douze épreuves par jour autour du nombre 12). Le nom affiché
 et celui de la monnaie viennent de `packages/config/brand.ts`.
 
 - Choix techniques et règles d'architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -128,8 +128,7 @@ La migration additive `20261104230000_morpion` crée le schéma du jeu (`pnpm db
 
 La tuile **DOUZE** ouvre `/douze` : douze épreuves express par jour (chrono à l'aveugle, compter
 des canards, trouver le dodécagone…), les mêmes pour tout le monde, chacune notée sur 12 (144 au
-plus), classement du jour, de la semaine et du mois. Ouverture le 12/12/2026 à 12 h 12 (compte à
-rebours d'ici là) ; en local, le jeu est ouvert tout de suite pour le tester. Voir
+plus), classement du jour, de la semaine et du mois. Voir
 [le module](games/douze/README.md). La migration additive `20261113190000_douze` crée le schéma
 du jeu (`pnpm db:deploy` en local).
 
@@ -177,7 +176,7 @@ packages/
   ui/            thèmes et composants de base
 games/
   agents/        Agents Doubles, le jeu d'espions coopératif à deux
-  douze/         DOUZE, douze épreuves absurdes par jour autour du 12 (ouverture le 12/12 à 12 h 12)
+  douze/         DOUZE, douze épreuves par jour autour du 12
   goty/          GOTY Party : préparation, pronostics, cérémonie, archives et interface React/TV
   pose/          Pose JoJo, le pantin à mettre dans une pose célèbre, 3 poses par jour
   tcg/           jeu de cartes : vote du design (/cartes), cartes et effets (admin /admin/cartes),
@@ -297,13 +296,23 @@ puis à cadrer en la faisant glisser et en zoomant). Pour en créer beaucoup d'u
 fichier JSON (format affiché sur la page ; un fichier `updates` y change en masse le coût, la
 puissance et l'effet de cartes existantes), et `/admin/cartes/illustrations` plusieurs images d'un
 coup (chaque fichier porte le numéro de sa carte : `12.jpg` ; converties en WebP elles aussi). Les cartes générées à partir des
-idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Un effet nouveau s'ajoute dans
-`effects.ts` (clé, moment, réglages, texte, carte Marvel Snap reprise) et devient disponible pour
-toutes les cartes : chaque effet reprend une vraie carte Snap, déjà équilibrée.
+idées restent hors du dépôt, puisqu'elles reprennent le contenu des membres. Le catalogue d'effets
+couvre **toutes les cartes de collection de Marvel Snap** (507 : séries 1 à 5, cartes de départ,
+niveaux de collection ; ni jetons, ni cartes de modes de jeu), chacune avec son coût et sa
+puissance actuels et un texte en français : dans la fiche, on cherche l'effet par nom de carte Snap
+ou par mot du texte, avec des filtres par moment et par coût. Coût, puissance et page snap.fan de
+chaque carte sont dans `games/tcg/src/snap-cards.ts`, généré par `pnpm snap:catalog` (télécharge
+les données une fois, le site n'appelle jamais le réseau ; `--check-urls` vérifie les pages
+snap.fan). Après un équilibrage ou une nouvelle saison : relancer `pnpm snap:catalog`, puis écrire
+dans `games/tcg/src/snap-effects.ts` le texte français des cartes que le script liste comme sans
+effet (reformulé, nombres et jetons réglables entre accolades : `{amount:2}`, `{name:Écureuil}`). Une carte qui prend un effet prend
+aussi ces stats : dans la fiche, mana et puissance se remplissent avec ceux de la carte Snap et
+suivent l'effet ; la case « Stats manuelles » les rend libres (règle appliquée aussi par le
+serveur, à la création, à la modification, à l'import et à la mise à jour en masse).
 
 Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
-set choisi, **Administration › Potodex** montre les cartes trouvées et remet la collection de test
-à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
+set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)
+et remet la collection de test à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
 
 ### Mettre à jour la mascotte
 

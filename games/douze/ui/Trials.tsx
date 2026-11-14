@@ -218,7 +218,7 @@ function Chrono({ trial, done }: TrialProps<"chrono">) {
 
 function Clicks({ trial, progress }: TrialProps<"clicks">) {
   const [count, setCount] = useLive(0);
-  const [spot, setSpot] = useState({ x: 50, y: 50 });
+  const [spot, setSpot] = useState(trial.start);
   return (
     <div className="douze-arena">
       <button
@@ -273,7 +273,7 @@ function Count({ trial, done }: TrialProps<"count">) {
     <div className="douze-center">
       <p className="douze-question">Alors, combien de {trial.item} ?</p>
       <div className="douze-choices">
-        {[10, 11, 12, 13, 14].map((n) => (
+        {trial.choices.map((n) => (
           <button key={n} type="button" className="douze-choice" onClick={() => done({ count: n })}>
             {n}
           </button>
@@ -383,8 +383,9 @@ function polygonPoints({ sides, rotation, scale }: Shape): string {
 }
 
 function Polygons({ trial, done }: TrialProps<"polygon">) {
+  // 9 formes en 3 colonnes, 12 ou 16 en 4
   return (
-    <div className="douze-grid douze-grid-4">
+    <div className={cx("douze-grid", trial.shapes.length === 9 ? "douze-grid-3" : "douze-grid-4")}>
       {trial.shapes.map((shape, i) => (
         <button key={i} type="button" className="douze-cell" onClick={() => done({ pick: i })}>
           <svg viewBox="0 0 100 100" aria-label={`Forme ${i + 1}`}>
@@ -435,8 +436,9 @@ function ClockFace({ time }: { time: ClockTime }) {
 }
 
 function Clocks({ trial, done }: TrialProps<"clock">) {
+  // 4 horloges en carré, 5 ou 6 sur 3 colonnes
   return (
-    <div className="douze-grid douze-grid-3">
+    <div className={cx("douze-grid", trial.clocks.length === 4 ? "douze-grid-2" : "douze-grid-3")}>
       {trial.clocks.map((time, i) => (
         <button key={i} type="button" className="douze-cell" onClick={() => done({ pick: i })}>
           <ClockFace time={time} />

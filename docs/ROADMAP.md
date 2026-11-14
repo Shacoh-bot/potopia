@@ -603,6 +603,17 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; vrais bruitages
       de Pokémon TCG Pocket (révélation de plus en plus forte selon la rareté) ; tout est
       préchargé.
+      pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; bruitages
+      synthétisés ; tout est préchargé.
+- [x] Potodex : miniatures entières (plus rognées), carte trouvée ouverte en grand au clic.
+- [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`), remplis et
+      suivis dans la fiche, case « Stats manuelles », règle appliquée par le serveur ; migration
+      `tcg_card_stats_manual` (ajout d'une colonne, aucune carte réécrite).
+- [x] Catalogue Marvel Snap complet : les 507 cartes de collection, coût et puissance actuels
+      (`pnpm snap:catalog`, données téléchargées une fois, pages snap.fan vérifiées), texte
+      français reformulé pour chacune (`snap-effects.ts`), nouveaux moments (activation,
+      défaussée, déplacement, début de partie, début de tour, objectif) ; choix de l'effet dans la
+      fiche par recherche et filtres (moment, coût).
 - [ ] Boosters pour les membres : stock par set, achat et gains, revente des doublons, Potodex
       dans le menu de gauche (sous l'inventaire), tirages SR et SSR dans l'activité ; lieux.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.
@@ -691,7 +702,7 @@ position. Détails du jeu : [games/pose/README.md](../games/pose/README.md).
 
 ## Étape 16 : DOUZE (en cours)
 
-Jeu du portail : douze épreuves absurdes par jour autour du nombre 12, notées chacune sur 12.
+Jeu du portail : douze épreuves par jour autour du nombre 12, notées chacune sur 12.
 Détails du jeu : [games/douze/README.md](../games/douze/README.md).
 
 **Tâches**
@@ -700,12 +711,15 @@ Détails du jeu : [games/douze/README.md](../games/douze/README.md).
       fais 12, dodécagone, horloge, douze lettres, compteur fou, calculs, le vrai 12, l'Oracle),
       tirées chaque jour à partir de la date, l'Oracle toujours en 12e ; points calculés par le
       serveur ; recharger en pleine épreuve compte 0.
-- [x] Page `/douze`, tuile illustrée « DOUZE », compte à rebours jusqu'à l'ouverture (12/12 à
-      12 h 12), entraînement pour de faux en local et pour les admins, jeu ouvert en local.
+- [x] Page `/douze`, tuile illustrée « DOUZE » ; journée rejouable pour de faux (un jour passé
+      tiré au hasard) en local et pour les admins.
 - [x] Base `douze` (table `rounds`, migration `20261113190000_douze`, ajout seul) ; classement
       jour, semaine et mois avec l'historique et le podium ; journée finie dans le fil d'activité
       et sur la place.
-- [ ] Ouverture le 12/12/2026 à 12 h 12, retours des membres, nouvelles épreuves.
+- [x] Sortie immédiate (plus d'attente du 12/12), intro courte, plus d'aléatoire chaque jour
+      (grilles, leurres, positions ; le vrai 12 jamais à la case de la veille), sous-titre de
+      la tuile raccourci.
+- [ ] Retours des membres, nouvelles épreuves.
 
 **Fini quand**
 

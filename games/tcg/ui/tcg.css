@@ -1472,6 +1472,10 @@
 .tcg-opening-video[data-hidden] {
   opacity: 0;
 }
+/* Avant la découpe, la vidéo attend sur le plan serré : elle ne doit pas se voir. */
+.tcg-opening-video[data-waiting] {
+  visibility: hidden;
+}
 /* Les cartes quittent la vidéo pour se ranger côte à côte. */
 .tcg-opening-slot {
   transform-origin: 0 0;
@@ -1495,42 +1499,82 @@
   transform: translateY(-8px);
   filter: drop-shadow(0 0 18px rgb(255 122 246 / 0.55));
 }
+/* Pendant le demi-tour, la carte reste soulevée ; elle se repose une fois retournée. */
+.tcg-opening-card[data-side="face"]:not([data-settled]) {
+  transform: translateY(-8px);
+}
 .tcg-opening-card[data-side="face"] {
   cursor: default;
-  animation: tcg-turn-in 0.22s ease-out both;
 }
-.tcg-opening-card[data-side="turning"] {
-  animation: tcg-turn-out 0.16s ease-in both;
+/* Vraie carte recto-verso : le dos et la face sont dos à dos dans un même volume, et toute la
+   carte pivote d'un seul demi-tour. Chaque côté est à plat (la 3D interne de la face, inclinaison
+   et reflets, s'y aplatit) pour que `backface-visibility` cache celui de derrière, Firefox compris. */
+.tcg-opening-turn {
+  position: relative;
+  display: block;
+  transform-style: preserve-3d;
+  transform: perspective(1000px) translateZ(0) rotateY(0deg);
+}
+.tcg-opening-card[data-side="face"] .tcg-opening-turn {
+  transform: perspective(1000px) translateZ(0) rotateY(180deg);
+  animation: tcg-flip-over 0.62s both;
+}
+.tcg-opening-side {
+  display: block;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .tcg-opening-face {
-  display: block;
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
 }
-@keyframes tcg-turn-out {
-  to {
-    transform: perspective(900px) rotateY(90deg);
-  }
+/* Hors du demi-tour, seul le côté visible existe : avant, la face n'est pas montrée ; une fois la
+   carte posée, la 3D du retournement est retirée (même rendu : 180° + 180° = 0°) et le dos est
+   caché. Sinon, en inclinant la carte à la souris, les calques animés de l'autre côté (galaxie du
+   dos, reflets) transparaissaient. */
+.tcg-opening-card[data-side="back"] .tcg-opening-face {
+  visibility: hidden;
 }
-@keyframes tcg-turn-in {
+.tcg-opening-card[data-settled] .tcg-opening-turn {
+  transform: none;
+  animation: none;
+}
+.tcg-opening-card[data-settled] .tcg-opening-face {
+  transform: none;
+}
+.tcg-opening-card[data-settled] .tcg-opening-side:not(.tcg-opening-face) {
+  visibility: hidden;
+}
+/* Un seul geste : la carte accélère jusqu'à la tranche en se décollant un peu, puis ralentit en
+   se reposant. Mêmes fonctions à chaque étape : le navigateur interpole l'angle, sans raccourci. */
+@keyframes tcg-flip-over {
   from {
-    transform: perspective(900px) rotateY(-90deg);
+    transform: perspective(1000px) translateZ(0) rotateY(0deg);
+    animation-timing-function: ease-in;
+  }
+  50% {
+    transform: perspective(1000px) translateZ(60px) rotateY(90deg);
+    animation-timing-function: ease-out;
+  }
+  to {
+    transform: perspective(1000px) translateZ(0) rotateY(180deg);
   }
 }
-/* Halo de la carte révélée, selon la rareté. */
+/* Halo de la carte révélée, selon la rareté : il s'allume quand la face arrive (mi-parcours). */
 .tcg-opening-card[data-side="face"][data-rarity="rare"] {
   filter: drop-shadow(0 0 14px rgb(96 165 250 / 0.6));
+  transition-delay: 0.31s;
 }
 .tcg-opening-card[data-side="face"][data-rarity="epic"] {
   filter: drop-shadow(0 0 18px rgb(192 132 252 / 0.7));
+  transition-delay: 0.31s;
 }
 .tcg-opening-card[data-side="face"][data-rarity="legendary"] {
-  animation:
-    tcg-turn-in 0.22s ease-out both,
-    tcg-halo-gold 2.4s ease-in-out 0.22s infinite;
+  animation: tcg-halo-gold 2.4s ease-in-out 0.31s infinite;
 }
 .tcg-opening-card[data-side="face"]:is([data-rarity="sr"], [data-rarity="ssr"]) {
-  animation:
-    tcg-turn-in 0.22s ease-out both,
-    tcg-halo-rainbow 3s linear 0.22s infinite;
+  animation: tcg-halo-rainbow 3s linear 0.31s infinite;
 }
 @keyframes tcg-halo-gold {
   0%,
@@ -1573,6 +1617,44 @@
 .tcg-opening-hint {
   animation: tcg-opening-hint 2.4s ease-in-out infinite;
 }
+/* Aide aux gestes du paquet : icônes discrètes, un mot sous chacune. */
+.tcg-opening-help {
+  display: flex;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: rgb(255 255 255 / 0.7);
+}
+.tcg-opening-help li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 4.2rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 0.06);
+}
+.tcg-opening-help-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: #ff9cf8;
+}
+.tcg-opening-help-icons svg:last-child {
+  color: #8ef3ff;
+}
+/* Petit écran : les icônes seules (les mots restent pour les lecteurs d'écran). */
+@media (max-width: 639px) {
+  .tcg-opening-help {
+    font-size: 0;
+    gap: 0.25rem;
+  }
+  .tcg-opening-help li {
+    min-width: 0;
+    padding: 0.25rem 0.35rem;
+  }
+}
 @keyframes tcg-opening-hint {
   50% {
     opacity: 0.55;
@@ -1584,6 +1666,7 @@
     transition: none;
   }
   .tcg-opening-card,
+  .tcg-opening-turn,
   .tcg-opening-hint {
     animation: none !important;
   }

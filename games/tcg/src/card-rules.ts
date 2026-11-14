@@ -132,6 +132,8 @@ export type Card = {
   family: string | null;
   cost: number;
   power: number;
+  /** Coût et puissance saisis à la main ; sinon, ceux de la carte Snap de l'effet. */
+  statsManual: boolean;
   effectKey: string | null;
   effectParams: EffectParams | null;
   effectText: string;

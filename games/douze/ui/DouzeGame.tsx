@@ -1,8 +1,8 @@
 "use client";
 
 import { Button, Card, cx } from "@app/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { dayKey } from "../src/daily";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { dayKey, shiftDate } from "../src/daily";
 import type { DayView, Round } from "../src/play";
 import { dayTitle } from "../src/titles";
 import {
@@ -12,6 +12,7 @@ import {
   MAX_TRIAL_POINTS,
   scoreTrial,
   TRIAL_COUNT,
+  trialView,
   type Answer,
   type TrialScore,
 } from "../src/trials";
@@ -57,34 +58,12 @@ function untilTomorrow(key: string): string {
   return h ? `${h} h ${minutes % 60} min` : `${minutes} min`;
 }
 
-/** Compte à rebours jusqu'à l'ouverture (12/12 à 12 h 12), à la seconde. */
-function Countdown({ to, onOpen }: { to: string; onOpen: () => void }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(t);
-  }, []);
-  const left = Math.max(0, Date.parse(to) - now);
-  useEffect(() => {
-    if (left === 0) onOpen();
-  }, [left, onOpen]);
-  const s = Math.floor(left / 1000);
-  const parts: [number, string][] = [
-    [Math.floor(s / 86_400), "j"],
-    [Math.floor(s / 3600) % 24, "h"],
-    [Math.floor(s / 60) % 60, "min"],
-    [s % 60, "s"],
-  ];
-  return (
-    <div className="douze-countdown">
-      {parts.map(([n, unit]) => (
-        <span key={unit}>
-          <strong>{String(n).padStart(2, "0")}</strong>
-          {unit}
-        </span>
-      ))}
-    </div>
-  );
+/**
+ * Journée tirée au hasard pour rejouer pour de faux : un jour passé (jusqu'à dix ans), jamais
+ * aujourd'hui ni un jour à venir. Rejouer la journée du jour donnerait toujours les mêmes épreuves.
+ */
+function practiceDate(today: string): string {
+  return shiftDate(today, -(1 + Math.floor(Math.random() * 3650)));
 }
 
 type Phase =
@@ -94,18 +73,24 @@ type Phase =
   | { kind: "result"; index: number; score: TrialScore };
 
 /**
- * DOUZE : chaque jour, douze épreuves absurdes autour du 12, les mêmes pour tout le monde, notées
- * chacune sur 12 (144 points au plus). Chaque épreuve est annoncée en grand, se joue en quelques
- * secondes, puis sa réponse part au serveur, qui compte les points. L'Oracle (la 12e) a toujours
- * la même réponse : 12. Avant l'ouverture (12/12 à 12 h 12), un compte à rebours ;
- * `allowPractice` (en local et pour les admins) : jouer pour de faux, sans rien enregistrer.
+ * DOUZE : chaque jour, douze épreuves autour du 12, les mêmes pour tout le monde, notées chacune
+ * sur 12 (144 points au plus). Chaque épreuve est annoncée en grand, se joue en quelques secondes,
+ * puis sa réponse part au serveur, qui compte les points. L'Oracle (la 12e) a toujours la même
+ * réponse : 12. `allowPractice` (en local et pour les admins) : une fois la journée finie, en
+ * rejouer une autre pour de faux (un jour passé tiré au hasard), sans rien enregistrer.
  */
 export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }) {
   const [day, setDay] = useState<DayView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
-  const [practice, setPractice] = useState<Round[] | null>(null);
+  const [practice, setPractice] = useState<{ date: string; rounds: Round[] } | null>(null);
+  // épreuves de la journée pour de faux, calculées dans le navigateur
+  const practiceDay = practice?.date;
+  const practiceTrials = useMemo(
+    () => (practiceDay ? dailyTrials(practiceDay) : null),
+    [practiceDay],
+  );
   const [version, setVersion] = useState(0);
   const [, tick] = useState(0);
   const sending = useRef(false);
@@ -116,7 +101,7 @@ export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }
       // page rechargée en pleine épreuve : elle compte, à 0
       const slot = fresh.rounds.length;
       const trial = fresh.trials[slot];
-      if (fresh.open && trial && readStarted() === `${fresh.date}:${slot}`) {
+      if (trial && readStarted() === `${fresh.date}:${slot}`) {
         writeStarted(null);
         const res = await api<{ day: DayView }>("/api/douze/play", {
           body: { date: fresh.date, slot, answer: EMPTY_ANSWERS[trial.kind] },
@@ -164,7 +149,7 @@ export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }
     );
   }
 
-  const rounds = practice ?? day.rounds;
+  const rounds = practice?.rounds ?? day.rounds;
   const total = rounds.reduce((n, r) => n + r.points, 0);
   const finished = rounds.length >= TRIAL_COUNT;
 
@@ -175,7 +160,7 @@ export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }
 
   const start = (fromScratch: boolean) => {
     setNotice(null);
-    if (fromScratch) setPractice([]);
+    if (fromScratch) setPractice({ date: practiceDate(day.date), rounds: [] });
     setPhase({ kind: "splash", index: fromScratch ? 0 : rounds.length });
   };
 
@@ -184,10 +169,13 @@ export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }
     sending.current = true;
     try {
       if (practice) {
-        const trial = dailyTrials(day.date)[index];
+        const trial = practiceTrials?.[index];
         if (!trial) return;
         const score = scoreTrial(trial, value);
-        setPractice([...practice, { slot: index, kind: trial.kind, points: score.points }]);
+        setPractice({
+          ...practice,
+          rounds: [...practice.rounds, { slot: index, kind: trial.kind, points: score.points }],
+        });
         sounds.result(score.points);
         setPhase({ kind: "result", index, score });
         return;
@@ -212,7 +200,8 @@ export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }
   };
 
   if (phase.kind === "splash" || phase.kind === "play" || phase.kind === "result") {
-    const trial = day.trials[phase.index];
+    const practiceTrial = practiceTrials?.[phase.index];
+    const trial = practiceTrial ? trialView(practiceTrial) : day.trials[phase.index];
     if (!trial) return null;
     const { title, hint } = trialTitle(trial);
     const header = (
@@ -325,32 +314,16 @@ export function DouzeGame({ allowPractice = false }: { allowPractice?: boolean }
     <div className="douze-page">
       <Card className="douze-intro">
         <h1 className="douze-logo">DOUZE</h1>
-        {!day.open && (
-          <>
-            <p className="text-text">Ouverture le 12/12 à 12 h 12. Évidemment.</p>
-            <Countdown to={day.opensAt} onOpen={() => void load()} />
-          </>
-        )}
         <p className="text-muted max-w-prose text-sm">
-          Chaque jour, douze épreuves absurdes, les mêmes pour tout le monde, chacune notée sur 12 :
-          arrêter un chrono à l'aveugle, compter des canards, trouver le dodécagone… Elles
-          s'enchaînent en quelques secondes. Une journée parfaite vaut 144 points (une grosse).
-          Recharger la page en pleine épreuve, c'est 0. Et la 12e épreuve a toujours la même
-          réponse.
+          Chaque jour, douze épreuves éclair, les mêmes pour tout le monde, notées sur 12 chacune.
+          Recharger la page en pleine épreuve, c'est 0.
         </p>
         {notice && <p className="text-danger text-sm">{notice}</p>}
         {error && <p className="text-danger text-sm">{error}</p>}
         <div className="flex flex-wrap items-center gap-2">
-          {day.open && (
-            <Button onClick={launch}>
-              {started ? `Reprendre (épreuve ${rounds.length + 1} / ${TRIAL_COUNT})` : "Commencer"}
-            </Button>
-          )}
-          {!day.open && allowPractice && (
-            <Button variant="secondary" onClick={() => start(true)}>
-              S'entraîner pour de faux
-            </Button>
-          )}
+          <Button onClick={launch}>
+            {started ? `Reprendre (épreuve ${rounds.length + 1} / ${TRIAL_COUNT})` : "Commencer"}
+          </Button>
         </div>
       </Card>
       {ranking}

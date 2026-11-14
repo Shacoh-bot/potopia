@@ -3,12 +3,14 @@ import { truncateTestDb } from "@app/db/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 import {
+  CARD_LIMITS,
   CardInputError,
   createCard,
   createSet,
   createCardImageUpload,
   deleteCards,
   EFFECTS,
+  effectStats,
   effectText,
   ensureSet,
   frameFor,
@@ -20,6 +22,7 @@ import {
   moveCards,
   paramsSchema,
   setCardImage,
+  SNAP_CARDS,
   trashCards,
   updateCard,
   updateCards,
@@ -52,6 +55,24 @@ describe("catalogue d'effets", () => {
       expect(effect.snap).not.toBe("");
       expect(effectText(effect.key, { family: "Test", name: "un jeton" })).toMatch(/\.$/);
     }
+  });
+
+  it("chaque effet a le coût et la puissance de sa carte Snap, dans les bornes d'une carte", () => {
+    for (const effect of EFFECTS) {
+      const stats = effectStats(effect.key);
+      expect(stats, `${effect.key} (${effect.snap}) : stats Snap manquantes`).not.toBeNull();
+      if (!stats) continue;
+      expect(stats.cost).toBeGreaterThanOrEqual(CARD_LIMITS.cost.min);
+      expect(stats.cost).toBeLessThanOrEqual(CARD_LIMITS.cost.max);
+      expect(stats.power).toBeGreaterThanOrEqual(CARD_LIMITS.power.min);
+      expect(stats.power).toBeLessThanOrEqual(CARD_LIMITS.power.max);
+      expect(SNAP_CARDS[effect.snap]?.url).toMatch(/^https:\/\/snap\.fan\/cards\//);
+    }
+    // valeurs vérifiées à la main sur snap.fan le 13/11/2026
+    expect(SNAP_CARDS["Spider-Woman"]).toMatchObject({ cost: 5, power: 8 });
+    expect(SNAP_CARDS["Colossus"]).toMatchObject({ cost: 2, power: 4 });
+    expect(SNAP_CARDS["Mother Askani"]).toMatchObject({ cost: 4, power: 4 });
+    expect(effectStats(null)).toBeNull();
   });
 
   it("borne les réglages", () => {
@@ -250,11 +271,13 @@ describe("createCard", () => {
 
 describe("variantes", () => {
   it("reprennent les stats de la carte de base, qui les leur recopie", async () => {
+    // stats manuelles : la base garde les stats saisies malgré son effet
     const base = await createCard(ADMIN, {
       ...BASE,
       setId,
       effectKey: "end_of_turn_grow",
       effectParams: { amount: 1 },
+      statsManual: true,
     });
     const variant = await createCard(ADMIN, {
       ...BASE,
@@ -600,5 +623,158 @@ describe("effets visuels", () => {
       cards: [{ ...BASE, name: "Importée", visualEffectKeys: ["holo"] }],
     });
     expect((await listCards(ADMIN))[0]?.visualEffectKeys).toEqual(["holo"]);
+  });
+});
+
+describe("stats de l'effet", () => {
+  // Spider-Woman (5/8) et Laufey (4/5) dans Marvel Snap
+  const SPIDER = "reveal_debuff_enemies_here";
+  const LAUFEY = "reveal_steal_power_all_here";
+  const AMOUNT = { amount: 1 };
+  const statsOf = (key: string) => {
+    const stats = effectStats(key);
+    if (!stats) throw new Error(`stats manquantes : ${key}`);
+    return stats;
+  };
+  const found = <T>(value: T | null | undefined): T => {
+    if (!value) throw new Error("carte introuvable");
+    return value;
+  };
+  const pick = (card: { cost: number; power: number; statsManual: boolean }) => ({
+    cost: card.cost,
+    power: card.power,
+    statsManual: card.statsManual,
+  });
+
+  it("une carte avec effet prend le coût et la puissance de sa carte Snap", async () => {
+    const card = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      effectKey: SPIDER,
+      effectParams: AMOUNT,
+    });
+    expect(pick(card)).toEqual({ ...statsOf(SPIDER), statsManual: false });
+    expect(statsOf(SPIDER)).not.toMatchObject({ cost: BASE.cost, power: BASE.power });
+    // sans effet, les stats saisies restent
+    expect(pick(await createCard(ADMIN, { ...BASE, setId }))).toEqual({
+      cost: BASE.cost,
+      power: BASE.power,
+      statsManual: false,
+    });
+  });
+
+  it("stats manuelles : les valeurs saisies sont gardées, et l'état est enregistré", async () => {
+    const card = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      effectKey: SPIDER,
+      effectParams: AMOUNT,
+      statsManual: true,
+    });
+    expect(pick(card)).toEqual({ cost: BASE.cost, power: BASE.power, statsManual: true });
+    // une modification sans la case garde l'état enregistré (et les stats saisies)
+    const kept = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      effectKey: LAUFEY,
+      effectParams: AMOUNT,
+      cost: 7,
+    });
+    expect(pick(kept)).toEqual({ cost: 7, power: BASE.power, statsManual: true });
+    // décochée : retour aux stats de l'effet
+    const follows = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      effectKey: LAUFEY,
+      effectParams: AMOUNT,
+      statsManual: false,
+    });
+    expect(pick(follows)).toEqual({ ...statsOf(LAUFEY), statsManual: false });
+  });
+
+  it("changer d'effet change les stats, côté serveur quelles que soient celles envoyées", async () => {
+    const card = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      effectKey: SPIDER,
+      effectParams: AMOUNT,
+    });
+    const next = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      effectKey: LAUFEY,
+      effectParams: AMOUNT,
+      cost: 0,
+      power: 30,
+    });
+    expect(pick(next)).toEqual({ ...statsOf(LAUFEY), statsManual: false });
+  });
+
+  it("une carte existante n'est pas réécrite tant qu'on ne l'enregistre pas", async () => {
+    const card = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      effectKey: SPIDER,
+      effectParams: AMOUNT,
+    });
+    // stats d'avant la règle, écrites directement en base
+    await db.tcgCard.update({ where: { id: card.id }, data: { cost: 1, power: 1 } });
+    expect(pick(found(await getCard(ADMIN, card.id)))).toEqual({
+      cost: 1,
+      power: 1,
+      statsManual: false,
+    });
+  });
+
+  it("les variantes suivent leur carte de base, case comprise", async () => {
+    const base = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      effectKey: SPIDER,
+      effectParams: AMOUNT,
+    });
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: base.id });
+    expect(pick(variant)).toEqual(pick(base));
+    await updateCard(ADMIN, base.id, {
+      ...BASE,
+      effectKey: SPIDER,
+      effectParams: AMOUNT,
+      statsManual: true,
+      cost: 6,
+    });
+    expect(pick(found(await getCard(ADMIN, variant.id)))).toEqual({
+      cost: 6,
+      power: BASE.power,
+      statsManual: true,
+    });
+  });
+
+  it("import et mise à jour en masse suivent la même règle", async () => {
+    await importCards(ADMIN, {
+      cards: [
+        { ...BASE, name: "Suit", ideaId: "idea-s", effectKey: SPIDER, effectParams: AMOUNT },
+        {
+          ...BASE,
+          name: "Libre",
+          ideaId: "idea-l",
+          effectKey: SPIDER,
+          effectParams: AMOUNT,
+          statsManual: true,
+        },
+      ],
+    });
+    const byName = async (name: string) =>
+      found((await listCards(ADMIN)).find((c) => c.name === name));
+    expect(pick(await byName("Suit"))).toEqual({ ...statsOf(SPIDER), statsManual: false });
+    expect(pick(await byName("Libre"))).toEqual({
+      cost: BASE.cost,
+      power: BASE.power,
+      statsManual: true,
+    });
+    await updateCards(ADMIN, {
+      updates: [
+        { ideaId: "idea-s", effectKey: LAUFEY, effectParams: AMOUNT, cost: 0 },
+        { ideaId: "idea-l", cost: 4 },
+      ],
+    });
+    expect(pick(await byName("Suit"))).toEqual({ ...statsOf(LAUFEY), statsManual: false });
+    expect(pick(await byName("Libre"))).toMatchObject({ cost: 4, statsManual: true });
   });
 });

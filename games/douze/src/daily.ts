@@ -48,15 +48,13 @@ export function periodEnd(from: string, period: "week" | "month"): string {
   return shiftDate(shiftDate(from.slice(0, 8) + "28", 4).slice(0, 8) + "01", -1);
 }
 
-/** Ouverture du jeu : le 12/12 à 12 h 12, heure de Paris (11 h 12 UTC en hiver). */
-export const OPENS_AT = new Date("2026-12-12T11:12:00Z");
-/** Journée n° 1 : le jour de l'ouverture. */
-export const FIRST_DAY = "2026-12-12";
+/**
+ * Journée n° 1 : le jour de la mise en ligne (AAAA-MM-JJ, heure de Paris). Le jeu est ouvert dès
+ * le déploiement ; seule la numérotation « DOUZE #n » en dépend.
+ */
+export const FIRST_DAY = "2026-11-13";
 
-/** Le jeu est-il ouvert (les parties comptent) ? */
-export const isOpen = (now = new Date()) => now.getTime() >= OPENS_AT.getTime();
-
-/** Numéro de la journée de DOUZE (1 le jour de l'ouverture), pour le fil d'activité. */
+/** Numéro de la journée de DOUZE (1 le jour de la mise en ligne), pour le fil d'activité. */
 export function dayNumber(date: string): number {
   const ms = (d: string) => Date.parse(d + "T00:00:00Z");
   return Math.round((ms(date) - ms(FIRST_DAY)) / 86_400_000) + 1;

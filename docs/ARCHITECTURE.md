@@ -39,7 +39,7 @@ Pourquoi Better Auth plutôt qu'Auth.js :
 apps/web/            app Next mince : routes, layouts, server actions, route handlers
 games/
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
-  douze/             DOUZE : douze épreuves absurdes par jour autour du 12, notées sur 12 chacune
+  douze/             DOUZE : douze épreuves par jour autour du 12, notées sur 12 chacune
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
   pose/              Pose JoJo : un pantin à mettre dans une pose célèbre, 3 poses par jour
   morpion/           duels entre membres, cinq univers du DM original, revanches aléatoires (perdant au premier tour)
@@ -204,7 +204,8 @@ passe d'une partie à l'autre sans rechargement.
 - `TcgSet` : code (unique, `S1`), name, createdAt. Une édition de cartes.
 - `TcgCard` : setId?, number? (`(set_id, number)` unique ; contrainte `cards_set_number_check` : un
   numéro si et seulement si la carte est dans un set, sinon elle est dans la réserve), name, rarity (enum `TcgRarity` :
-  common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power, effectKey?,
+  common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power,
+  statsManual (défaut false : avec un effet, cost et power suivent sa carte Snap), effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
@@ -516,7 +517,8 @@ décors.
   en grille 11 × 4, `dio-road-roller-grid.webp`, une bande de 44 images dépassant la taille de
   texture des cartes graphiques), voix et musiques (`public/audio/jojo-*.mp3`, tirés de vidéos du
   jeu et de l'anime) ; sprites et bruitages sont préchargés et décodés dès que le thème est
-  affiché, le thème de Jotaro (1,4 Mo) se lit en flux à la première rafale. Star Platinum suit la
+  affiché, le thème de Jotaro (1,4 Mo) se lit en flux à la première rafale ; pendant une rafale,
+  ORA, MUDA et le thème suivent le bouton volume du header en direct (`onVolumeChange`). Star Platinum suit la
   souris dans une boucle `requestAnimationFrame` qui ne tourne que pendant qu'il la rattrape (rien
   sans Stand ni hors du thème), déplacé par `translate`. Sécurités : une rafale
   s'arrête si l'onglet passe en arrière-plan ou si le clic est relâché hors de la fenêtre (pas de limite de durée) ; le thème de Jotaro reprend là où la rafale précédente l'a laissé ; rien pendant l'arrêt du temps,
@@ -596,8 +598,8 @@ décors.
   d'avatar, confettis de TROIS…) ; les sons en cours sont mis en pause puis reprennent
   (`trackMedia()`), la musique en Web Audio de Super Sonic aussi (`onTimeStop`).
 - Passer au thème One Piece déclenche **ドン!!** (`apps/web/components/Don.tsx`, `don()` de
-  `@app/ui`) : les Tambours de la Libération, le cœur de Nika (« ドン・ドッ・トッ・ト », quatre
-  coups de taiko synthétisés en Web Audio, pas de fichier), un flash, des lignes de vitesse de
+  `@app/ui`) : le vrai bruitage « ドン!! » de l'anime (un coup de taiko qui résonne,
+  `public/audio/onepiece-don.mp3`, préchargé au montage), un flash, des lignes de vitesse de
   manga qui convergent vers le centre, « ドン!! » qui tombe de haut, s'écrase et tremble sous le
   choc, et Luffy en Gear 5 qui surgit derrière en riant, rebondit comme du caoutchouc dans une
   couronne de nuages de vapeur (1,9 s).
@@ -699,8 +701,10 @@ qui s'assombrit, main sur la bouche (`public/apothicaire/mao-judge.mp4`), une r�
 hasard (clins d'œil à l'anime) et un sceau vermillon « 三連続 » (trois de suite) qui s'imprime. À
 l'avant-dernier essai, son dégoût, cachée derrière sa manche (`mao-disgust.mp4`, « 五連続 »). Le
 mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du bas de
-l'écran à côté de la fenêtre du jeu, avec un sourire narquois. Petite phrase de cordes pincées synthétisée (Karplus-Strong,
-pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
+l'écran à côté de la fenêtre du jeu, avec un sourire narquois. Une vraie phrase de guzheng tirée de la BO de l'anime pour chaque
+humeur (`public/audio/maomao/guzheng-judge|disgust|smug.mp3`, préchargées avec les vidéos), au
+volume du site ; elle se tait (l'image reste) si « To Be Continued » vient de se lancer, pour ne pas
+couvrir Roundabout. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
 pas de voile sur la page, les clics traversent le rouleau (`pointer-events: none`, on continue de
 taper au clavier ou sur les lettres à l'écran) et il repart seul au bout de 4 s, sans clic ; le
 mot perdu garde « To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les
@@ -743,9 +747,14 @@ est préchargé à l'ouverture du menu des thèmes (`ThemeSwitcher`), pas à cha
   dernière fois puis s'éteint), avec un bruitage de Sonic 2 (`emeralds-unseal.mp3`,
   `emeralds-seal.mp3`, découpés à la main).
 - Un clic sur une pierre trouvée : elle sursaute en penchant, s'illumine et lâche quelques éclats
-  de sa couleur, avec un « tink » de cristal synthétisé (`playTink`, `ui/sounds.ts`). Sens, angle,
-  hauteur, éclats et note (gamme pentatonique, jamais la même deux fois de suite) changent à
-  chaque coup, comme les coups de pioche d'un jeu de minage.
+  de sa couleur, avec un « tink » : l'orbe d'expérience de Minecraft (0,2 s,
+  `public/audio/emerald-tink.wav`, `playTink`, `ui/sounds.ts`, en WAV pour éviter le blanc
+  d'encodeur du mp3), téléchargé et décodé une fois quand le cercle s'affiche puis joué par Web
+  Audio (lecture immédiate, sans recharger le fichier à chaque coup), à une note différente à
+  chaque coup (la vitesse de lecture change la hauteur, jamais la même note deux fois de suite).
+  Sens, angle, hauteur, éclats
+  et note (gamme pentatonique, jamais la même deux fois de suite) changent à chaque coup, comme
+  les coups de pioche d'un jeu de minage.
 
 **Dates.** Toutes les dates affichées passent par `BRAND.timeZone` (`Europe/Paris`) : le serveur
 Vercel tourne en UTC, les navigateurs des membres en France ; sans fuseau explicite, l'heure
@@ -871,12 +880,39 @@ et modifient les cartes.
   lui passe le nombre de cartes de chaque idée (`cards`, calculé par `cardCountsByIdea`) et
   l'adresse de création (`newCardHref`).
 
-- Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 85 effets) : chaque effet reprend
+- Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 507 effets : un par carte de
+  collection de Marvel Snap) : chaque effet reprend
   une vraie carte de Marvel Snap (`snap`, obligatoire, affichée dans l'éditeur : Heimdall, Magneto,
   Galactus, Wong, Iron Man…), dont l'effet, les valeurs (réglages par défaut) et, pour la carte,
   le coût et la puissance servent de repère : ces cartes sont déjà équilibrées. Règle décidée le
-  2026-10-31 : pas d'effet inventé. Chaque effet a une clé, un moment (révélation, permanent,
-  fin de tour, quand elle est détruite, depuis la main, fin de partie), des réglages (nombre
+  2026-10-31 : pas d'effet inventé. Deux sources : `BASE_EFFECTS` (les 85 premiers, écrits à
+  la main, clés stables utilisées en base) et, pour toutes les autres cartes, les textes français
+  de `snap-effects.ts` (`SNAP_TEXTS`, indexés par nom de carte Snap, clé `snap_<nom>`) :
+  `templateEffect` transforme chaque `{amount:2}`, `{amount2:…}`, `{count:…}`, `{cost:…}`
+  (nombres) et `{name:Écureuil}`, `{name2:…}` (noms de jetons) en réglage, avec la valeur de la
+  carte Snap par défaut (un nom de jeton se change : Thor peut mélanger un « Grosmarto ! »). Moments
+  ajoutés pour le catalogue complet : début de partie, début de tour, activation, quand elle se
+  déplace, quand elle est défaussée, objectif, sans capacité. Le coût et la puissance de chaque
+  carte Snap (valeurs actuelles, après équilibrages, avec sa page snap.fan) sont dans
+  `games/tcg/src/snap-cards.ts` (`SNAP_CARDS`), **généré** par `pnpm snap:catalog`
+  (`games/tcg/scripts/snap-catalog.ts`) : il télécharge la liste des cartes de
+  marvelsnapzone.com (valeurs identiques à snap.fan, vérifiées sur 109 cartes puis sur 20 tirées au
+  hasard le 2026-11-14), garde les cartes de collection sorties, retrouve l'adresse de chaque page
+  dans l'index de snap.fan (`--check-urls` les vérifie toutes) et liste les cartes sans texte
+  français. Aucun appel réseau au build ni à l'exécution. `effectStats(effectKey)` donne les stats
+  d'un effet ; les tests vérifient qu'il y a un effet par carte de `SNAP_CARDS`, que les clés des
+  premiers effets n'ont pas changé, que chaque texte et ses réglages par défaut sont valides.
+  Recherche de la fiche : `searchEffects` (`src/effect-search.ts` : mots du nom Snap, du libellé
+  ou du texte, sans casse ni accents ; filtres moment et coût, « 6+ ») et `ui/EffectPicker.tsx`. **Stats liées à l'effet** (décision du 2026-11-13) : une
+  carte avec effet prend le coût et la puissance de sa carte Snap, sauf `statsManual`.
+  `cards.ts` applique la règle à chaque enregistrement (`followEffect` : `createCard`,
+  `updateCard`, `importCards`, `updateCards`) ; `statsManual` absent garde l'état enregistré
+  (faux à la création). Les cartes déjà enregistrées ne sont pas réécrites : elles prennent les
+  stats de leur effet à leur prochain enregistrement (la fiche prévient quand elles diffèrent).
+  Fiche (`CardEditor`) : mana et puissance affichent les stats de l'effet et suivent son
+  changement, case « Stats manuelles » pour les saisir. Migration `tcg_card_stats_manual`
+  (ajout d'une colonne, valeur par défaut). Chaque effet a une clé, un moment (`TRIGGER_LABELS`),
+  des réglages (nombre
   borné ou nom de jeton, validés par `paramsSchema` ; les valeurs fixées par la carte Snap, comme
   « 10 de puissance ou plus » de Shang-Chi, ne se règlent pas) et un modèle de texte
   (`effectText`). L'admin choisit l'effet d'une carte dans cette liste et règle ses nombres, sans
@@ -888,11 +924,12 @@ et modifient les cartes.
   clé `cards/<uuid>.<ext>`, 5 Mo), `setCardImage` (vérifie l'objet), `importCards`. Toutes
   prennent l'admin en premier argument et lèvent `ForbiddenError` sinon. Constantes sans
   dépendance serveur dans `src/card-rules.ts` (importables côté navigateur).
-- Variante (`baseCardId`) : elle reprend mana, puissance, type, famille et effet de sa carte de
-  base ; `updateCard` sur la carte de base les lui recopie, et sur la variante ne change que le
+- Variante (`baseCardId`) : elle reprend mana, puissance, stats manuelles, type, famille et effet
+  de sa carte de base ; `updateCard` sur la carte de base les lui recopie, et sur la variante ne change que le
   nom, la rareté et la description. Pas de variante d'une variante.
 - Mise à jour en masse (même page, `updateCards`) : fichier `{ updates: [{ ideaId, name?, cost?,
-power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est retrouvée par son
+power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et power ne comptent
+  qu'en stats manuelles ou sans effet). Chaque carte de base est retrouvée par son
   idée (le nom départage si l'idée a plusieurs cartes) ; seuls le coût, la puissance et l'effet
   changent, et les variantes suivent. Un nouvel effet sans texte prend le texte du catalogue.
   Tout ou rien.
@@ -938,17 +975,21 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   par-dessus (plus petit à partir de deux chiffres). Les anciennes propositions gardent leurs
   badges dessinés (`Cost`, `Power`).
 - Cadre de la carte retenue (`BackStyleFrame` de `v5.tsx`) : le style du dos posé sur la bordure
-  de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur, plaques d'angle
-  dorées, gemmes cyan (haut droit) et magenta (bas
-  gauche) dans les coins que le coût et la puissance laissent libres. Dégradés et halo dans
+  de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur. Les cartes du
+  jeu (`GameCard`, donc partout dans l'admin et à l'ouverture des boosters) passent `refined` à
+  `FinalCard` : ni plaques d'angle dorées ni gemmes dans les coins, filet doré collé au cadre de
+  couleur (sans le trait noir qui faisait un jour entre les deux), et en full art les textes posés
+  sur l'illustration sans encadrés, avec un contour sombre (`TEXT_OUTLINE`, le titre en dégradé
+  par un filtre `TITLE_OUTLINE`). Sans `refined` (le design n°70 du vote), les plaques d'angle
+  dorées et les gemmes cyan (haut droit) et magenta (bas gauche) restent. Dégradés et halo dans
   `SnapDefs` (`tcg-back-*`). La plaque du haut et son losange magenta restent au dos seulement.
   Avec le bandeau court, la fenêtre d'illustration monte jusqu'au trait sous le titre
   et s'étend sur toute la largeur contre la bordure (`FINAL_ART`, 286 × 186 px, de 46 à 232,
   coins droits), fermée en bas par le même trait que sous le titre, proportions reprises par le cadrage de l'éditeur.
   Les encadrés (ligne de type, effet) ont le même esprit, très fin (`PanelTrim`) : un filet doré
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
-  En full art, les encadrés (bandeau du titre compris) sont plus transparents (`finalPanel` :
-  ardoise à 35 %, flou de 3 px).
+  En full art (sans `refined`), les encadrés (bandeau du titre compris) sont plus transparents
+  (`finalPanel` : ardoise à 35 %, flou de 3 px).
 - Effets visuels : rubrique « Effets visuels » de la fiche (`CardEditor`), cases à cocher sur trois
   colonnes (deux sur mobile) tirées de `listVisualEffects` (admins seulement, tri français) ; on en coche plusieurs, empilés dans
   l'ordre où on les coche (le premier en dessous, « calque n » affiché), enregistrés dans
@@ -1119,14 +1160,27 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
 - `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». L'écran d'ouverture
   (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur tire les
   cartes (`openBoosterAction`) : 1) le paquet en 3D (`PackScene`, three.js et React Three Fiber,
-  chargés à la demande) qu'on fait tourner en glissant, reflets irisés ; 2) glisser la souris le
-  long de la ligne pointillée (85 % de la largeur) le découpe : la caméra s'approche du haut du
-  paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
-  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25) ; 3) quand
-  les cartes de la vidéo sont posées, les 5 vraies cartes, de dos, se rangent côte à côte ; un clic
-  retourne chacune (demi-tour, halo selon la rareté). Le paquet 3D repasse aux couleurs du rendu
-  Blender pendant l'approche, pour un relais sans saut. Safari joue la vidéo MP4 (le WebM
-  transparent n'y marche pas) ; animations réduites : directement les cartes.
+  chargés à la demande), reflets irisés : clic gauche ou un doigt pour le tourner, clic droit ou
+  deux doigts pour le déplacer, molette ou pincement pour zoomer (bornés, la page ne défile pas) ;
+  petites icônes d'aide sous le paquet (version tactile sur écran tactile) ; 2) glisser le long de
+  la ligne pointillée (85 % de la largeur) le découpe : un clic sur le ciseau fige le paquet tel
+  qu'il est (rotation, zoom, déplacement, face visible devant ou au dos), et la position sur la
+  ligne vient d'un rayon de la caméra jusqu'au plan de cette face ; lâchée avant la fin, la
+  découpe est abandonnée, sa trace recule et le paquet se déverrouille. Une fois découpé, le
+  paquet rejoint en douceur la pose de départ de l'animation (0,45 s), puis la caméra s'approche
+  du haut du paquet jusqu'au plan exact de la vidéo de découpe à 1,40 s (caméra du script Blender
+  `construire_ouverture.py`, hors dépôt), où la vidéo prend le relais (lecture × 1,25). Avant la
+  découpe, la vidéo, calée sur ce plan serré, reste cachée (`data-waiting`) : sinon on la voyait
+  « zoomée » tant que le paquet 3D n'était pas dessiné ; elle est calée au moment où elle apparaît
+  dans la page (pas seulement quand `src` change). 3) quand les cartes de la vidéo sont posées,
+  les 5 vraies cartes, de dos, se rangent côte à côte ; chacune est une vraie carte recto-verso
+  (dos et `GameCard` montés dos à dos, `backface-visibility`), qu'un clic fait pivoter d'un seul
+  demi-tour (`tcg-flip-over`) ; le halo de rareté s'allume à mi-parcours, l'inclinaison et les
+  reflets reviennent une fois la carte posée ; la 3D du retournement est alors retirée et le côté
+  caché aussi (sinon ses calques animés transparaissaient quand on inclinait la carte). Chaque nouveau paquet repart de la vue d'origine
+  (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
+  un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
+  réduites : directement les cartes.
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
@@ -1139,10 +1193,37 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   étoiles ; couronne pour la SR ; révélation « immersive » pour la SSR). Téléchargés et décodés
   dès l'arrivée sur la page (`preloadBoosterSounds`, à côté de `preloadBoosterOpening`) ; volume
   du site appliqué en fin de chaîne, même pendant un son long.
+  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; le
+  modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
+  paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
+  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`), tous
+  trois produits par la version v5 du script Blender (hors dépôt, dossier
+  `Animation paquet de cartes/v5/`, textures refaites par `construire_textures_v5.py`) : couleurs
+  proches de l'original mais franches, sans voile (noirs plus profonds, peu de reflets du studio,
+  irisation et vernis limités aux soudures et légers, halo de la vidéo seulement sur les zones
+  très claires), paquet plat (bombé 0,12) de
+  2 × 3,27 m, soudures du haut et du bas identiques, courtes et nettes (stries répétées à leur
+  résolution d'origine, jamais étirées), partie centrale allongée de 8 %, soudures légèrement
+  ondulées d'avant en arrière seulement (vue de face, la silhouette reste droite). La ligne
+  pointillée est à y = 1,39238 (`CUT_Y`) et le plan serré du relais (`VIEW_CUT`) la suit ; la
+  vue de départ ne change pas. Modèle et vidéo doivent toujours venir du même
+  rendu, sinon le relais saute : leurs URL portent `?v=` (`ASSETS_VERSION` de `BoosterOpening`),
+  à augmenter à chaque nouveau rendu pour que le cache d'un jour ne garde pas l'ancien modèle.
+- Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
+  froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
+  l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
+  Chaque son varie un peu à chaque fois ; volume du site respecté.
 - `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
   les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
-  bouton « Remettre à zéro ». Le Potodex passera dans le menu de gauche, sous l'inventaire,
-  quand les boosters ouvriront aux membres.
+  bouton « Remettre à zéro ». Miniatures et grande carte passent par `Scaled` : boîte à la
+  taille finale (`CARD_WIDTH`/`CARD_HEIGHT` de `@app/tcg/ui`), carte mise à l'échelle par
+  `transform`. Pas de `zoom` : sous Firefox, il décale les calques 3D d'une carte vivante
+  (survol, grande carte) ; et une boîte zoomée qui reçoit une largeur rapetisse elle aussi, la
+  carte déborde et `content-visibility` la rogne (l'ancien bug des cartes coupées). Une carte
+  trouvée est un bouton (`PotodexCard.tsx`) : clic, toucher ou Entrée l'ouvre en grand, vivante,
+  dans un `<dialog>` modal (taille adaptée à l'écran par `zoomToFit`, fermeture par clic à côté,
+  Échap ou bouton, focus rendu à la miniature) ; la grande carte n'est rendue qu'à l'ouverture. Le Potodex passera dans le menu de
+  gauche, sous l'inventaire, quand les boosters ouvriront aux membres.
 
 ## Avatars et place
 
@@ -1309,8 +1390,8 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
       import), puis boosters, collection, decks et parties.
 - [ ] 15. `games/pose` : Pose JoJo, pantin articulé à mettre dans une pose célèbre, 3 poses par jour,
       classement (base `pose`) ; la récompense en monnaie reste à faire.
-- [ ] 16. `games/douze` : DOUZE, douze épreuves absurdes par jour (base `douze`), classement ;
-      ouverture le 12/12/2026 à 12 h 12.
+- [ ] 16. `games/douze` : DOUZE, douze épreuves par jour (base `douze`), classement ; ouvert
+      dès sa mise en ligne.
 
 ## Hors périmètre (pour l'instant)
 
