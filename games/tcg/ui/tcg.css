@@ -1588,3 +1588,373 @@
     animation: none !important;
   }
 }
+
+/* ── Refonte des cartes, sixième vague (ui/v6.tsx) ──
+   Trois propositions (`data-look`) : aura (lueur qui déborde), néon (tube lumineux sur la
+   bordure), rayons (éclats de lumière derrière la carte). `data-finish` règle l'intensité par
+   rareté. `--r6` : couleur de la rareté. Tout est éteint par défaut ; chaque règle allume ses
+   calques. Animations en transform, opacité ou angle de dégradé seulement. */
+.tcg-r6-behind,
+.tcg-r6-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+}
+.tcg-r6-behind {
+  z-index: -1;
+}
+.tcg-r6-behind > i,
+.tcg-r6-edge > i {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+
+/* Lueur : un halo flou de la couleur de la rareté, qui déborde tout autour. */
+.tcg-r6-glow {
+  inset: -14px;
+  border-radius: 34px;
+  background: var(--r6);
+  filter: blur(16px);
+  opacity: var(--r6-glow, 0.5);
+}
+/* Rayons : éventail de lumière qui tourne lentement derrière la carte. */
+.tcg-r6-rays {
+  inset: -70px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--r6) 0deg var(--r6-ray, 5deg),
+    transparent var(--r6-ray, 5deg) var(--r6-gap, 20deg)
+  );
+  mask: radial-gradient(closest-side, #000 52%, transparent 100%);
+  opacity: var(--r6-rays, 0.5);
+  animation: tcg-r6-spin var(--r6-speed, 40s) linear infinite;
+}
+/* Éclat : halo multicolore (SR nacrée, SSR arc-en-ciel) ; ses couleurs tournent autour de la
+   carte, la forme du halo reste celle de la carte. */
+.tcg-r6-burst {
+  inset: -16px;
+  border-radius: 36px;
+  background: conic-gradient(
+    from var(--tcg-angle),
+    #ff6ab5,
+    #ffd36a,
+    #7dffb0,
+    #6ad5ff,
+    #b88bff,
+    #ff6ab5
+  );
+  filter: blur(16px);
+  opacity: var(--r6-burst, 0.8);
+  animation: tcg-orbit 6s linear infinite;
+}
+/* Tube néon posé sur la bordure (7 px) : trait de lumière et sa lueur. */
+.tcg-r6-tube {
+  inset: 2.5px;
+  border-radius: 19.5px;
+  border: 2px solid var(--r6);
+  box-shadow:
+    0 0 6px var(--r6),
+    0 0 14px var(--r6),
+    inset 0 0 6px var(--r6);
+  opacity: var(--r6-tube, 1);
+}
+/* Liseré qui court autour de la carte : dégradé conique qui tourne, découpé en anneau. */
+.tcg-r6-run {
+  inset: -3px;
+  border-radius: 25px;
+  padding: 4px;
+  background: conic-gradient(
+    from var(--tcg-angle),
+    #ff6ab5,
+    #ffd36a,
+    #7dffb0,
+    #6ad5ff,
+    #b88bff,
+    #ff6ab5
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.6));
+  animation: tcg-orbit 3s linear infinite;
+}
+/* Reflet qui balaie la bordure (nacre de la SR). */
+.tcg-r6-sheen {
+  inset: 0;
+  border-radius: 22px;
+  padding: 7px;
+  overflow: hidden;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+.tcg-r6-sheen::before {
+  content: "";
+  position: absolute;
+  inset: -40% -120%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgb(255 255 255 / 0.95) 48%,
+    #c4f3ff 50%,
+    #ffd6ef 52%,
+    transparent 60%
+  );
+  animation: tcg-r6-sweep 3.2s ease-in-out infinite;
+}
+/* Étincelles aux quatre coins. */
+.tcg-r6-sparks {
+  inset: -10px;
+  background:
+    radial-gradient(circle at 6% 5%, #fff 0 1.5px, transparent 3px),
+    radial-gradient(circle at 95% 8%, #fff 0 2px, transparent 4px),
+    radial-gradient(circle at 92% 95%, #fff 0 1.5px, transparent 3px),
+    radial-gradient(circle at 5% 93%, #fff 0 2px, transparent 4px),
+    radial-gradient(circle at 50% -1%, #fff 0 1.5px, transparent 3px);
+  filter: drop-shadow(0 0 4px var(--r6));
+  animation: tcg-r6-twinkle 1.8s ease-in-out infinite;
+}
+@keyframes tcg-r6-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes tcg-r6-sweep {
+  0%,
+  20% {
+    transform: translateX(-45%);
+  }
+  80%,
+  100% {
+    transform: translateX(45%);
+  }
+}
+@keyframes tcg-r6-twinkle {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes tcg-r6-pulse {
+  50% {
+    transform: scale(1.04);
+    opacity: calc(var(--r6-glow, 0.5) * 0.6);
+  }
+}
+
+/* Proposition 1 · Aura : la lueur grandit avec la rareté. */
+[data-look="aura"][data-finish="uncommon"] {
+  --r6-glow: 0.35;
+}
+[data-look="aura"][data-finish="rare"] {
+  --r6-glow: 0.55;
+}
+[data-look="aura"][data-finish="epic"] {
+  --r6-glow: 0.7;
+}
+[data-look="aura"][data-finish="legendary"] {
+  --r6-glow: 0.85;
+  --r6-rays: 0.35;
+  --r6-ray: 3deg;
+  --r6-gap: 15deg;
+}
+[data-look="aura"]:is(
+    [data-finish="uncommon"],
+    [data-finish="rare"],
+    [data-finish="epic"],
+    [data-finish="legendary"]
+  )
+  .tcg-r6-glow {
+  display: block;
+}
+[data-look="aura"]:is([data-finish="epic"], [data-finish="legendary"]) .tcg-r6-glow {
+  animation: tcg-r6-pulse 2.6s ease-in-out infinite;
+}
+[data-look="aura"][data-finish="legendary"] :is(.tcg-r6-rays, .tcg-r6-sparks),
+[data-look="aura"][data-finish="sr"] :is(.tcg-r6-burst, .tcg-r6-sheen, .tcg-r6-sparks),
+[data-look="aura"][data-finish="ssr"] :is(.tcg-r6-burst, .tcg-r6-run) {
+  display: block;
+}
+[data-look="aura"][data-finish="sr"] {
+  --r6-burst: 0.55;
+}
+/* Nacre : les mêmes couleurs, adoucies vers le blanc. */
+[data-look="aura"][data-finish="sr"] .tcg-r6-burst {
+  background: conic-gradient(from var(--tcg-angle), #fff, #ffd6ef, #d9ccff, #c4f3ff, #fff2d6, #fff);
+}
+
+/* Proposition 2 · Néon : un tube lumineux sur une bordure sombre. */
+[data-look="neon"] .tcg-r6-tube {
+  display: block;
+}
+[data-look="neon"][data-finish="common"] {
+  --r6-tube: 0.35;
+}
+[data-look="neon"][data-finish="common"] .tcg-r6-tube {
+  box-shadow: none;
+}
+[data-look="neon"]:is([data-finish="rare"], [data-finish="epic"], [data-finish="legendary"])
+  .tcg-r6-glow {
+  display: block;
+  --r6-glow: 0.35;
+  inset: -6px;
+  filter: blur(10px);
+}
+/* Épique : le tube double, un trait intérieur plus fin. */
+[data-look="neon"][data-finish="epic"] .tcg-r6-tube {
+  outline: 1px solid var(--r6);
+  outline-offset: -6px;
+}
+/* Légendaire : tube d'or qui grésille, étincelles. */
+[data-look="neon"][data-finish="legendary"] .tcg-r6-tube {
+  border-width: 2.5px;
+  animation: tcg-r6-buzz 3.4s steps(1) infinite;
+}
+[data-look="neon"][data-finish="legendary"] .tcg-r6-sparks {
+  display: block;
+}
+/* SR : trois tons qui se poursuivent autour de la carte. */
+[data-look="neon"][data-finish="sr"] .tcg-r6-run {
+  display: block;
+  background: repeating-conic-gradient(
+    from var(--tcg-angle),
+    #fff 0deg 12deg,
+    #c9b6ff 12deg 24deg,
+    #8fe9ff 24deg 36deg
+  );
+  animation-duration: 6s;
+}
+[data-look="neon"][data-finish="sr"] .tcg-r6-tube {
+  border-color: #fff;
+  box-shadow:
+    0 0 8px #e6dcff,
+    0 0 18px #9fe8ff;
+}
+/* SSR : une comète arc-en-ciel fait le tour de la carte. */
+[data-look="neon"][data-finish="ssr"] .tcg-r6-run {
+  display: block;
+  background: conic-gradient(
+    from var(--tcg-angle),
+    transparent 0deg 200deg,
+    #b88bff 250deg,
+    #6ad5ff 290deg,
+    #7dffb0 320deg,
+    #ffd36a 345deg,
+    #fff 360deg
+  );
+  padding: 5px;
+  animation-duration: 2.4s;
+}
+[data-look="neon"][data-finish="ssr"] .tcg-r6-tube {
+  border-color: #ff9ad0;
+}
+@keyframes tcg-r6-buzz {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  91% {
+    opacity: 0.55;
+  }
+  93% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0.7;
+  }
+}
+
+/* Proposition 3 · Rayons : la lumière jaillit de derrière la carte, de plus en plus fort. */
+[data-look="rayons"]:not([data-finish="common"]) .tcg-r6-rays {
+  display: block;
+}
+[data-look="rayons"][data-finish="uncommon"] {
+  --r6-rays: 0.25;
+  --r6-ray: 2deg;
+  --r6-gap: 30deg;
+}
+[data-look="rayons"][data-finish="rare"] {
+  --r6-rays: 0.4;
+  --r6-ray: 3deg;
+  --r6-gap: 22deg;
+}
+[data-look="rayons"][data-finish="epic"] {
+  --r6-rays: 0.55;
+  --r6-ray: 4deg;
+  --r6-gap: 16deg;
+  --r6-speed: 30s;
+}
+[data-look="rayons"][data-finish="legendary"] {
+  --r6-rays: 0.9;
+  --r6-ray: 5deg;
+  --r6-gap: 12deg;
+  --r6-speed: 24s;
+  --r6-glow: 0.6;
+}
+[data-look="rayons"][data-finish="legendary"] :is(.tcg-r6-glow, .tcg-r6-sparks) {
+  display: block;
+}
+/* SR : rayons nacrés qui tournent dans les deux sens, reflet sur la bordure. */
+[data-look="rayons"][data-finish="sr"] {
+  --r6-rays: 0.7;
+  --r6-ray: 4deg;
+  --r6-gap: 14deg;
+  --r6-speed: 20s;
+  --r6-burst: 0.45;
+}
+[data-look="rayons"][data-finish="sr"] :is(.tcg-r6-burst, .tcg-r6-sheen) {
+  display: block;
+}
+[data-look="rayons"][data-finish="sr"] .tcg-r6-burst {
+  inset: -70px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 9deg,
+    #c4f3ff 0deg 4deg,
+    transparent 4deg 18deg,
+    #ffd6ef 18deg 22deg,
+    transparent 22deg 36deg
+  );
+  filter: none;
+  mask: radial-gradient(closest-side, #000 50%, transparent 100%);
+  animation: tcg-r6-spin 26s linear infinite reverse;
+}
+/* SSR : rayons arc-en-ciel et liseré qui tourne. */
+[data-look="rayons"][data-finish="ssr"] {
+  --r6-rays: 0.8;
+  --r6-ray: 5deg;
+  --r6-gap: 12deg;
+  --r6-speed: 18s;
+}
+[data-look="rayons"][data-finish="ssr"] .tcg-r6-rays {
+  background: repeating-conic-gradient(
+    from 0deg,
+    #ff6ab5 0deg 5deg,
+    transparent 5deg 12deg,
+    #ffd36a 12deg 17deg,
+    transparent 17deg 24deg,
+    #6ad5ff 24deg 29deg,
+    transparent 29deg 36deg
+  );
+}
+[data-look="rayons"][data-finish="ssr"] .tcg-r6-run {
+  display: block;
+}
+
+/* Galaxie du portail de puissance : elle tourne doucement. */
+.tcg-r6-galaxy {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tcg-galaxy-spin 30s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcg-r6-behind > i,
+  .tcg-r6-edge > i,
+  .tcg-r6-sheen::before,
+  .tcg-r6-galaxy {
+    animation: none !important;
+  }
+}

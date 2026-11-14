@@ -396,6 +396,24 @@ export const DESIGNS = [
     summary:
       "Le 67 sans bandeau : le titre est posé directement sur la carte, ou sur l'image en full art.",
   },
+  {
+    id: "refonte-aura",
+    title: "Refonte · Aura",
+    summary:
+      "Le 70 sans coins dorés, puissance en portail : la rareté rayonne en halo autour de la carte, de plus en plus fort ; SR nacrée, SSR à liseré arc-en-ciel qui tourne.",
+  },
+  {
+    id: "refonte-neon",
+    title: "Refonte · Néon",
+    summary:
+      "Le 70 sans coins dorés, puissance en portail : bordure sombre et tube néon de la couleur de la rareté ; la SR fait courir trois tons, la SSR une comète arc-en-ciel.",
+  },
+  {
+    id: "refonte-rayons",
+    title: "Refonte · Rayons",
+    summary:
+      "Le 70 sans coins dorés, puissance en portail : la lumière jaillit de derrière la carte en rayons, plus nombreux et plus vifs à chaque rareté ; la légendaire éclate en or.",
+  },
 ] as const;
 
 export type DesignId = (typeof DESIGNS)[number]["id"];
@@ -403,10 +421,16 @@ export type DesignId = (typeof DESIGNS)[number]["id"];
 export const DESIGN_IDS = DESIGNS.map((d) => d.id) as [DesignId, ...DesignId[]];
 
 /**
- * Onglet « Design » : les propositions en cours (cinquième vague, le 65 affiné, `ui/v5.tsx`), en
- * carte normale et full art, puis quatre formes du bandeau autour du mana. Tout le reste est aux Archives.
+ * Onglet « Design » : la carte retenue (n°70, `ui/v5.tsx`) puis les propositions de refonte de la
+ * sixième vague (`ui/v6.tsx`), chacune dans toutes les raretés, normale et full art. Tout le reste
+ * est aux Archives.
  */
-export const DESIGN_TAB: readonly DesignId[] = ["final-court"];
+export const DESIGN_TAB: readonly DesignId[] = [
+  "final-court",
+  "refonte-aura",
+  "refonte-neon",
+  "refonte-rayons",
+];
 
 /** Onglet « Effets de rareté » : ce que chaque rareté ajoute, posé sur le design « Mix · Sculpté et verre fumé ». */
 export const EFFECTS_TAB: readonly DesignId[] = [

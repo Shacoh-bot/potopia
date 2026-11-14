@@ -35,6 +35,7 @@ import {
 import { Captioned, type EffectSet, MixCard, type MixDesign } from "./v3";
 import { TOP_STYLES, TOP_VARIANTS, TopCard } from "./v4";
 import { BAND_DESIGNS, FINAL_VARIANTS, FinalCard } from "./v5";
+import { REFONTE_FINISHES, REFONTE_LOOKS, RefonteCard } from "./v6";
 
 const MIX: Partial<Record<DesignId, MixDesign>> = {
   "mix-verre": "verre",
@@ -139,6 +140,27 @@ function Sheet({ designId, cards, zoom }: Required<Props>) {
             <FinalCard card={card} layout={v.layout} finish={v.finish} />
           </Captioned>
         ))}
+      </Board>
+    );
+  }
+  // Sixième vague, refonte du n°70 : chaque rareté en carte normale, puis en full art.
+  if (designId in REFONTE_LOOKS) {
+    const look = REFONTE_LOOKS[designId as keyof typeof REFONTE_LOOKS];
+    const card = pick(pictured, 0);
+    return (
+      <Board zoom={zoom} wrap background={STAGE}>
+        <PremiumDefs />
+        <SnapDefs />
+        {(["normal", "fullart"] as const).flatMap((layout) =>
+          REFONTE_FINISHES.map(({ finish, label }) => (
+            <Captioned
+              key={`${layout}-${finish}`}
+              label={layout === "fullart" ? `Full art · ${label}` : label}
+            >
+              <RefonteCard card={card} look={look} layout={layout} finish={finish} />
+            </Captioned>
+          )),
+        )}
       </Board>
     );
   }

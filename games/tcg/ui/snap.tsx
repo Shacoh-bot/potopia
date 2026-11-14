@@ -104,7 +104,7 @@ export function SnapDefs() {
 }
 SnapDefs.tcgDefs = true;
 
-function Num({
+export function Num({
   x,
   y,
   size,
@@ -185,7 +185,7 @@ export function Power({ value }: { value: number }) {
 const BADGE_ASSETS = "/tcg";
 
 /** Taille du chiffre d'un badge illustré : plus petit à partir de deux chiffres. */
-const badgeNumSize = (value: number, size: number) =>
+export const badgeNumSize = (value: number, size: number) =>
   String(value).length > 1 ? size * 0.78 : size;
 
 /** Coût illustré : losange néon cyan serti d'or (image), le chiffre en texte par-dessus. */

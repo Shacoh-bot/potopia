@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
@@ -382,7 +382,7 @@ const H = 420;
  * plaques d'angle dorées, gemmes cyan (haut) et magenta (bas) dans les coins libres (le coût et
  * la puissance couvrent les deux autres). La plaque du haut et son losange restent au dos.
  */
-function BackStyleFrame() {
+function BackStyleFrame({ corners = true }: { corners?: boolean }) {
   const band = `M${R} 0 H${W - R} A${R} ${R} 0 0 1 ${W} ${R} V${H - R} A${R} ${R} 0 0 1 ${W - R} ${H} H${R} A${R} ${R} 0 0 1 0 ${H - R} V${R} A${R} ${R} 0 0 1 ${R} 0 Z M${R} ${FRAME} H${W - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - FRAME} ${R} V${H - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - R} ${H - FRAME} H${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${FRAME} ${H - R} V${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${R} ${FRAME} Z`;
   return (
     <svg
@@ -407,12 +407,14 @@ function BackStyleFrame() {
         stroke="url(#tcg-back-gold)"
         strokeWidth={1.5}
       />
-      <g fill="url(#tcg-back-gold)" stroke="rgb(0 0 0 / 0.45)" strokeWidth={0.6}>
-        <polygon points={CORNER} />
-        <polygon points={CORNER} transform={`translate(${W} 0) scale(-1 1)`} />
-        <polygon points={CORNER} transform={`translate(0 ${H}) scale(1 -1)`} />
-        <polygon points={CORNER} transform={`translate(${W} ${H}) scale(-1 -1)`} />
-      </g>
+      {corners && (
+        <g fill="url(#tcg-back-gold)" stroke="rgb(0 0 0 / 0.45)" strokeWidth={0.6}>
+          <polygon points={CORNER} />
+          <polygon points={CORNER} transform={`translate(${W} 0) scale(-1 1)`} />
+          <polygon points={CORNER} transform={`translate(0 ${H}) scale(1 -1)`} />
+          <polygon points={CORNER} transform={`translate(${W} ${H}) scale(-1 -1)`} />
+        </g>
+      )}
       <g filter="url(#tcg-back-glow)">
         <Gem x={W - 13} y={13} color="c" />
         <Gem x={13} y={H - 13} color="p" />
@@ -456,6 +458,7 @@ export function FinalCard({
   gameFooter = false,
   visualEffects = [],
   still = false,
+  look,
 }: {
   card: CardData;
   layout: TopLayout;
@@ -469,6 +472,11 @@ export function FinalCard({
   visualEffects?: string[];
   /** Carte figée (planches) : l'effet visuel reste à l'arrêt. */
   still?: boolean;
+  /**
+   * Propositions de refonte (`ui/v6.tsx`) : sans plaques d'angle dorées, bordure, puissance et
+   * effets de rareté à elles. Absent : la carte en service, inchangée.
+   */
+  look?: FinalLook;
 }) {
   const full = layout === "fullart";
   // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
@@ -512,6 +520,8 @@ export function FinalCard({
 
   return (
     <Shell card={card}>
+      {/* Refonte : ce qui rayonne derrière la carte et déborde de son bord. */}
+      {look?.behind}
       {full ? (
         <>
           <Art card={card} />
@@ -593,7 +603,7 @@ export function FinalCard({
 
       {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
       <Layer z={10} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
-        <Ring background={RARITY_FRAME[finish]} width={FRAME} />
+        <Ring background={look?.frame ?? RARITY_FRAME[finish]} width={FRAME} />
         <div
           style={{
             ...fill,
@@ -609,8 +619,14 @@ export function FinalCard({
             boxShadow: "0 0 0 1.5px rgb(0 0 0 / 0.7), inset 0 0 16px rgb(0 0 0 / 0.45)",
           }}
         />
-        <BackStyleFrame />
+        <BackStyleFrame corners={!look} />
       </Layer>
+      {/* Refonte : liserés et lumières posés sur la bordure. */}
+      {look?.edge && (
+        <Layer z={25} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+          {look.edge}
+        </Layer>
+      )}
       {band === "serti" && <Socket finish={finish} />}
 
       {/* Carte normale, effets de cadre (liserés, prisme, halo) : par-dessus la bordure et le
@@ -700,11 +716,23 @@ export function FinalCard({
           transformOrigin: "100% 100%",
         }}
       >
-        <ImagePower value={card.power} />
+        {look?.power ?? <ImagePower value={card.power} />}
       </Layer>
     </Shell>
   );
 }
+
+/** Habillage d'une proposition de refonte (`ui/v6.tsx`). */
+export type FinalLook = {
+  /** Fond de la bordure (couleur, dégradé). */
+  frame: string;
+  /** Badge de puissance. */
+  power: ReactNode;
+  /** Derrière la carte, peut déborder (lueur, rayons). */
+  behind?: ReactNode;
+  /** Par-dessus la bordure (liseré, reflets). */
+  edge?: ReactNode;
+};
 
 /** La planche du n°67 : normale et full art, puis la carte dans chaque rareté. */
 export const FINAL_VARIANTS: { layout: TopLayout; finish: CardFinish; label: string }[] = [
