@@ -225,7 +225,8 @@ passe d'une partie à l'autre sans rechargement.
   `(user_id, card_id)`, index sur `card_id`, supprimée avec la carte. Les cartes trouvées d'un
   joueur (Potodex) et leur nombre d'exemplaires.
 - `TcgBoosterOpening` (`booster_openings`) : userId, setId, cardIds (les 5 ids, dans l'ordre du
-  paquet), hasSsr, hasSrPlus (SR ou SSR dans le paquet), createdAt. Index `(user_id, set_id,
+  paquet), hasSsr, hasSrPlus (SR ou SSR dans le paquet), isTest (paquet de test de l'admin, ignoré
+  par les garanties), createdAt. Index `(user_id, set_id,
 created_at)`, supprimé avec le set. Journal des paquets ouverts, qui sert aussi aux garanties
   (SR ou mieux, SSR). Migration `tcg_booster_sr_pity` : ajout de `has_sr_plus`, calculé pour
   les paquets déjà ouverts.
@@ -1113,13 +1114,16 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   (`CHANCE_RATES`) sont des **moyennes réelles, garanties comprises** (2026-11-14 : les garanties
   n'avantagent pas). Garanties (`BOOSTER_ODDS`, tout le réglage en une constante) : au plus tard
   au 20e paquet d'un set sans SR ni SSR (`SR_PITY`), la carte chance est une SR ou mieux (SR ou
-  SSR selon leurs poids) ; au plus tard au 90e sans SSR (`SSR_PITY`, option A provisoire, à
-  confirmer par l'utilisateur), une SSR. Une SSR garantie au 30e paquet rendait 2 % impossible (au
+  SSR selon leurs poids) ; au plus tard au 90e sans SSR (`SSR_PITY`, option A, confirmée
+  par l'utilisateur), une SSR. Une SSR garantie au 30e paquet rendait 2 % impossible (au
   moins 1/30 = 3,33 % : le taux réel était d'environ 4,4 %). Pour retomber sur les taux annoncés,
   les poids de base de SR et SSR sont plus bas (`baseSr`, `baseSsr`), le reste va au prorata à
   rare, épique et légendaire (`chanceWeights`) ; calibrage par simulation, `pnpm booster:rates`
   (`games/tcg/scripts/booster-rates.ts`, graine fixe), vérifié par test (1 million de paquets,
-  ±0,1 point). `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
+  ±0,1 point). Option A confirmée par l'utilisateur le 2026-11-14. **Paquets de test de l'admin**
+  (`openBooster(…, { test: true })`, utilisé par `/admin/boosters`) : une carte de chaque rareté
+  haute (`TEST_PACK_RARITIES` : rare, épique, légendaire, SR, SSR ; `drawTestBooster`) pour
+  essayer ouvertures, sons et effets ; notés `isTest`, ils ne comptent pas pour les garanties. `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
   Une rareté sans carte dans le set
   prend la rareté juste en dessous (puis la plus proche au-dessus). Doublons possibles. Seules les
   cartes du set tiré comptent (ni la réserve, ni la corbeille).

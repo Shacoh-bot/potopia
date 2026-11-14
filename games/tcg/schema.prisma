@@ -159,6 +159,8 @@ model TcgBoosterOpening {
   hasSsr    Boolean  @map("has_ssr")
   // Le paquet avait une SR ou une SSR : remet à zéro la garantie « SR ou mieux ».
   hasSrPlus Boolean  @default(false) @map("has_sr_plus")
+  // Paquet de test de l'admin (une carte de chaque rareté haute) : hors garanties et hors taux.
+  isTest    Boolean  @default(false) @map("is_test")
   createdAt DateTime @default(now()) @map("created_at")
 
   set TcgSet @relation(fields: [setId], references: [id], onDelete: Cascade)

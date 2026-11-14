@@ -30,7 +30,7 @@ export const CHANCE_RATES = { rare: 55, epic: 25, legendary: 12, sr: 6, ssr: 2 }
  * SSR à part). Les garanties ajoutant des SR et des SSR, leurs poids de base sont plus bas que les
  * taux annoncés, calibrés par `pnpm booster:rates` (simulation) pour retomber sur CHANCE_RATES.
  *
- * Option A (2026-11-14, provisoire, à confirmer par l'utilisateur) : SR ou mieux au 20e paquet,
+ * Option A (confirmée par l'utilisateur le 2026-11-14) : SR ou mieux au 20e paquet,
  * SSR au 90e. Autres options chiffrées : B, sans garantie SSR à part (`ssrPity: null`, poids
  * 3,976 / 1,336) ; C, SSR au 30e comme avant, mais alors 2 % est impossible (au moins 1/30 =
  * 3,33 %) et il faut annoncer les vrais taux (SSR ~4,5 %).
@@ -171,6 +171,30 @@ function candidates(pool: PoolCard[], rarity: CardRarityId): PoolCard[] {
   return [];
 }
 
+/** Raretés d'un paquet de test de l'admin : une carte de chacune, de rare à SSR (la SSR en dernier). */
+export const TEST_PACK_RARITIES: readonly CardRarityId[] = [
+  "rare",
+  "epic",
+  "legendary",
+  "sr",
+  "ssr",
+];
+
+/**
+ * Paquet de test de l'admin : une carte de chaque rareté haute (rare, épique, légendaire, SR, SSR),
+ * pour essayer les ouvertures, sons et effets de chaque rareté. Une rareté absente du set prend la
+ * plus proche (comme un paquet normal). Jamais pour les joueurs.
+ */
+export function drawTestBooster(pool: PoolCard[], rnd: () => number = Math.random): PoolCard[] {
+  if (pool.length === 0) throw new CardInputError("Ce set n'a aucune carte à tirer.");
+  return TEST_PACK_RARITIES.map((rarity) => {
+    const choices = candidates(pool, rarity);
+    const card = choices[Math.floor(rnd() * choices.length)];
+    if (!card) throw new CardInputError("Ce set n'a aucune carte à tirer.");
+    return card;
+  });
+}
+
 /**
  * Tire les 5 cartes d'un paquet parmi `pool` (doublons possibles, dans un paquet comme d'un paquet
  * à l'autre). `forced` : garantie appliquée à la carte chance (SR ou mieux, ou SSR). Fonction
@@ -211,12 +235,13 @@ async function boostersSince(
   mark: "hasSsr" | "hasSrPlus",
 ): Promise<number> {
   const last = await tx.tcgBoosterOpening.findFirst({
-    where: { userId, setId, [mark]: true },
+    where: { userId, setId, isTest: false, [mark]: true },
     orderBy: { createdAt: "desc" },
     select: { createdAt: true },
   });
   return tx.tcgBoosterOpening.count({
-    where: { userId, setId, ...(last && { createdAt: { gt: last.createdAt } }) },
+    // les paquets de test de l'admin ne comptent pas
+    where: { userId, setId, isTest: false, ...(last && { createdAt: { gt: last.createdAt } }) },
   });
 }
 
@@ -227,6 +252,12 @@ async function pityCounters(tx: DbTx, userId: string, setId: string) {
     boostersSince(tx, userId, setId, "hasSsr"),
   ]);
   return { sinceSr, sinceSsr };
+}
+
+/** Garantie du prochain paquet normal du joueur dans ce set. */
+async function nextForced(tx: DbTx, userId: string, setId: string): Promise<Forced> {
+  const { sinceSr, sinceSsr } = await pityCounters(tx, userId, setId);
+  return forcedChance(sinceSr, sinceSsr);
 }
 
 /**
@@ -254,10 +285,11 @@ export async function boosterPity(
 export async function openBooster(
   player: Player,
   input: z.input<typeof setInput>,
-  opts?: { tx?: DbTx; rnd?: () => number },
+  opts?: { tx?: DbTx; rnd?: () => number; test?: boolean },
 ): Promise<{ set: CardSet; cards: Card[] }> {
   assertAdmin(player);
   const { setCode } = setInput.parse(input);
+  const test = opts?.test ?? false;
   return withTx(async (tx) => {
     // Un paquet à la fois par joueur : les garanties comptent les paquets précédents.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tcg-booster-${player.id}`}))`;
@@ -266,12 +298,13 @@ export async function openBooster(
       where: { setId: set.id, deletedAt: null },
       select: { id: true, rarity: true },
     });
-    const { sinceSr, sinceSsr } = await pityCounters(tx, player.id, set.id);
-    const drawn = drawBooster(
-      pool as PoolCard[],
-      { forced: forcedChance(sinceSr, sinceSsr) },
-      opts?.rnd,
-    );
+    const drawn = test
+      ? drawTestBooster(pool as PoolCard[], opts?.rnd)
+      : drawBooster(
+          pool as PoolCard[],
+          { forced: await nextForced(tx, player.id, set.id) },
+          opts?.rnd,
+        );
 
     const counts = new Map<string, number>();
     for (const c of drawn) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
@@ -289,6 +322,7 @@ export async function openBooster(
         cardIds: drawn.map((c) => c.id),
         hasSsr: drawn.some((c) => c.rarity === "ssr"),
         hasSrPlus: drawn.some((c) => c.rarity === "sr" || c.rarity === "ssr"),
+        isTest: test,
       },
     });
 

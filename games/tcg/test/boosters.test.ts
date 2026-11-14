@@ -15,6 +15,7 @@ import {
   simulateChance,
   SR_PITY,
   SSR_PITY,
+  TEST_PACK_RARITIES,
 } from "../src/index";
 
 const ADMIN = { id: "user-admin", discordId: "100000000000000001" };
@@ -172,6 +173,35 @@ describe("openBooster", () => {
       untilSr: SR_PITY,
       untilSsr: SSR_PITY,
     });
+  });
+});
+
+describe("paquets de test de l'admin", () => {
+  it("une carte de chaque rareté haute, notés comme tests, sans toucher aux garanties", async () => {
+    for (const rarity of TEST_PACK_RARITIES) await addCards(rarity, 1);
+    await addCards("common", 1);
+    const set = await db.tcgSet.findUniqueOrThrow({ where: { code: "S1" } });
+    // 3 paquets normaux sans SR ni SSR déjà ouverts
+    await db.tcgBoosterOpening.createMany({
+      data: Array.from({ length: 3 }, () => ({
+        userId: ADMIN.id,
+        setId: set.id,
+        cardIds: [],
+        hasSsr: false,
+        hasSrPlus: false,
+      })),
+    });
+    const before = await boosterPity(ADMIN, { setCode: "S1" });
+    for (let i = 0; i < 3; i++) {
+      const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { test: true });
+      expect(cards.map((c) => c.rarity)).toEqual([...TEST_PACK_RARITIES]);
+    }
+    const tests = await db.tcgBoosterOpening.findMany({ where: { isTest: true } });
+    expect(tests).toHaveLength(3);
+    expect(tests.every((t) => t.hasSsr && t.hasSrPlus)).toBe(true);
+    // les SR et SSR des paquets de test ne remettent pas les garanties à zéro
+    expect(await boosterPity(ADMIN, { setCode: "S1" })).toEqual(before);
+    expect(before.untilSr).toBe(SR_PITY - 3);
   });
 });
 

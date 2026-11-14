@@ -101,6 +101,11 @@ export default async function AdminBoostersPage({
         ) : (
           <BoosterOpener setCode={current.code} fonts={designFonts} />
         )}
+        <p className="text-accent text-sm">
+          Mode test (admin) : chaque paquet contient une carte de chaque rareté, de rare à SSR, pour
+          essayer ouvertures, sons et effets. Ces paquets ne comptent ni pour les garanties ni pour
+          les chances ci-dessous, qui sont celles des joueurs.
+        </p>
 
         <section
           aria-labelledby="booster-odds"

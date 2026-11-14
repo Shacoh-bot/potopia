@@ -69,6 +69,7 @@ export {
   boosterPity,
   CHANCE_RATES,
   drawBooster,
+  drawTestBooster,
   forcedChance,
   getPotodex,
   openBooster,
@@ -76,6 +77,7 @@ export {
   simulateChance,
   SR_PITY,
   SSR_PITY,
+  TEST_PACK_RARITIES,
   type Forced,
   type PotodexEntry,
 } from "./boosters";
