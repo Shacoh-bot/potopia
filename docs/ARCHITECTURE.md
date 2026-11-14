@@ -701,7 +701,8 @@ l'avant-dernier essai, son dégoût, cachée derrière sa manche (`mao-disgust.m
 mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du bas de
 l'écran à côté de la fenêtre du jeu, avec un sourire narquois. Une vraie phrase de guzheng tirée de la BO de l'anime pour chaque
 humeur (`public/audio/maomao/guzheng-judge|disgust|smug.mp3`, préchargées avec les vidéos), au
-volume du site. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
+volume du site ; elle se tait (l'image reste) si « To Be Continued » vient de se lancer, pour ne pas
+couvrir Roundabout. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
 pas de voile sur la page, les clics traversent le rouleau (`pointer-events: none`, on continue de
 taper au clavier ou sur les lettres à l'écran) et il repart seul au bout de 4 s, sans clic ; le
 mot perdu garde « To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les

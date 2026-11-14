@@ -7,6 +7,7 @@ import {
   MAO_MAO_SOON_EVENT,
   type MaoMaoDetail,
   type MaoMood,
+  TO_BE_CONTINUED_EVENT,
 } from "@app/ui";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -70,6 +71,8 @@ const GUZHENG: Record<MaoMood, string> = {
   smug: "/audio/maomao/guzheng-smug.mp3", // deux notes qui montent : petit « hm ! »
 };
 const GUZHENG_VOLUME = 0.8;
+// Pendant « To Be Continued » (6,3 s, sa musique Roundabout), Mao Mao apparaît mais se tait.
+const TBC_QUIET_MS = 6300;
 
 type Scene = {
   mood: MaoMood;
@@ -94,6 +97,10 @@ export function MaoMao() {
 
   useEffect(() => {
     const loaded = sounds.current;
+    let tbcAt = Number.NEGATIVE_INFINITY;
+    const onTbc = () => {
+      tbcAt = performance.now();
+    };
     const sound = (mood: MaoMood) => {
       let audio = loaded[mood];
       if (!audio) {
@@ -127,7 +134,8 @@ export function MaoMao() {
         spot: mood === "smug" ? besideGame(...SMUG_W) : besideGame(...SCROLL_W),
       });
       const level = effectiveVolume() * GUZHENG_VOLUME;
-      if (level > 0) {
+      const tbcPlaying = performance.now() - tbcAt < TBC_QUIET_MS;
+      if (level > 0 && !tbcPlaying) {
         const audio = sound(mood);
         audio.currentTime = 0;
         audio.volume = Math.min(1, level);
@@ -140,7 +148,9 @@ export function MaoMao() {
     };
     window.addEventListener(MAO_MAO_SOON_EVENT, preload);
     window.addEventListener(MAO_MAO_EVENT, onMood);
+    window.addEventListener(TO_BE_CONTINUED_EVENT, onTbc);
     return () => {
+      window.removeEventListener(TO_BE_CONTINUED_EVENT, onTbc);
       window.removeEventListener(MAO_MAO_SOON_EVENT, preload);
       window.removeEventListener(MAO_MAO_EVENT, onMood);
       window.clearTimeout(timer.current);
