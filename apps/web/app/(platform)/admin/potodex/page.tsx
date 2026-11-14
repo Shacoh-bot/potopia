@@ -5,7 +5,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
+import { Pagination } from "../cartes/Pagination";
 import { cardImageUrls } from "../cartes/images";
+import { paginate } from "./paginate";
 import { PotodexCard } from "./PotodexCard";
 import { ResetCollectionButton } from "./ResetCollectionButton";
 import { Scaled } from "./Scaled";
@@ -13,21 +15,27 @@ import { Scaled } from "./Scaled";
 export const metadata: Metadata = { title: "Potodex" };
 
 /** Largeur d'une case (px) ; la carte (`CARD_WIDTH` à l'échelle 1) y est réduite. */
-const SLOT = 180;
+const SLOT = 220;
+/**
+ * Cases par page : au-delà, la planche devient lourde (cartes, effets, illustrations signées). Seules
+ * les illustrations de la page affichée sont demandées au stockage.
+ */
+const PAGE_SIZE = 24;
 
 /**
  * Potodex de l'admin connecté (test) : toutes les cartes du set, dans l'ordre. Une carte trouvée
  * s'affiche avec son nombre d'exemplaires ; une carte pas encore tirée reste noire, avec seulement
  * son numéro (le serveur n'envoie rien d'autre). Une carte trouvée s'ouvre en grand au clic.
+ * Paginé (`?page=`), `PAGE_SIZE` cases par page.
  */
 export default async function AdminPotodexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ set?: string }>;
+  searchParams: Promise<{ set?: string; page?: string }>;
 }) {
   const admin = await getCurrentAdmin();
   const sets = await listSets(admin);
-  const { set: code } = await searchParams;
+  const { set: code, page: pageParam } = await searchParams;
   const current = sets.find((s) => s.code === code) ?? sets[0];
   if (!current) {
     return (
@@ -37,8 +45,11 @@ export default async function AdminPotodexPage({
     );
   }
   const dex = await getPotodex(admin, { setCode: current.code });
-  const found = dex.entries.flatMap((e) => (e.found ? [e.card] : []));
+  const { page, pageCount, shown } = paginate(dex.entries, pageParam, PAGE_SIZE);
+  const found = shown.flatMap((e) => (e.found ? [e.card] : []));
   const images = await cardImageUrls(admin, found);
+  const pageHref = (p: number) => `/admin/potodex?set=${current.code}${p > 1 ? `&page=${p}` : ""}`;
+  const pager = <Pagination page={page} count={pageCount} href={pageHref} />;
   const pad = (n: number) => String(n).padStart(2, "0");
   const percent = dex.total ? Math.round((dex.found / dex.total) * 100) : 0;
 
@@ -95,12 +106,21 @@ export default async function AdminPotodexPage({
         ) : (
           <>
             <GameCardDefs />
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] justify-items-center gap-4">
-              {dex.entries.map((entry) => (
+            {pageCount > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-muted text-sm tabular-nums">
+                  Cartes {pad(shown[0]?.number ?? 0)} à {pad(shown.at(-1)?.number ?? 0)} sur{" "}
+                  {dex.total}
+                </span>
+                {pager}
+              </div>
+            )}
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] justify-items-center gap-5">
+              {shown.map((entry) => (
                 <li
                   key={entry.number}
                   className="flex flex-col items-center gap-1"
-                  style={{ contentVisibility: "auto", containIntrinsicSize: "auto 280px" }}
+                  style={{ contentVisibility: "auto", containIntrinsicSize: "auto 330px" }}
                 >
                   {entry.found ? (
                     <PotodexCard
@@ -134,6 +154,7 @@ export default async function AdminPotodexPage({
                 </li>
               ))}
             </ul>
+            {pageCount > 1 && <div className="flex justify-center">{pager}</div>}
           </>
         )}
       </div>
