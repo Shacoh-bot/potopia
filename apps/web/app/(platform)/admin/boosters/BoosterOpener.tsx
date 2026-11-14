@@ -1,6 +1,11 @@
 "use client";
 
-import { BoosterOpening, type OpenedCard, preloadBoosterOpening } from "@app/tcg/ui";
+import {
+  BoosterOpening,
+  type OpenedCard,
+  preloadBoosterOpening,
+  preloadBoosterSounds,
+} from "@app/tcg/ui";
 import { buttonClasses } from "@app/ui";
 import { useEffect, useState } from "react";
 import { openBoosterAction } from "./actions";
@@ -15,9 +20,11 @@ export function BoosterOpener({ setCode, fonts }: { setCode: string; fonts: stri
   const [opened, setOpened] = useState<Opened | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Code 3D, modèle et vidéo téléchargés dès l'arrivée sur la page : l'ouverture est immédiate.
+  // Code 3D, modèle, vidéo et sons téléchargés dès l'arrivée sur la page : l'ouverture est
+  // immédiate.
   useEffect(() => {
     preloadBoosterOpening();
+    void preloadBoosterSounds();
   }, []);
 
   function open() {

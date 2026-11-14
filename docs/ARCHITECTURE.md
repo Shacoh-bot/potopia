@@ -1199,6 +1199,17 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
   réduites : directement les cartes.
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
+  modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
+  illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
+  (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
+- Bruitages : vrais sons de Pokémon TCG Pocket (`public/audio/tcg/`, liste dans
+  `ui/booster-sound-files.ts`, sources dans `TCG assets/sons/sources.csv` hors dépôt), joués par
+  `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains
+  du vrai son tant que la découpe avance (plus fort si plus vite), ouverture, cartes qui se posent,
+  retournement puis révélation selon la rareté, de plus en plus forte (1, 2, 4 losanges ; 1 et 3
+  étoiles ; couronne pour la SR ; révélation « immersive » pour la SSR). Téléchargés et décodés
+  dès l'arrivée sur la page (`preloadBoosterSounds`, à côté de `preloadBoosterOpening`) ; volume
+  du site appliqué en fin de chaîne, même pendant un son long.
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; le
   modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
   paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
@@ -1221,7 +1232,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   Chaque son varie un peu à chaque fois ; volume du site respecté.
 - `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
   les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
-  bouton « Remettre à zéro ». Miniatures et grande carte passent par `Scaled` : boîte à la
+  bouton « Remettre à zéro ». Paginé : 24 cases par page (`?page=`, `paginate`, barre `Pagination`
+  de l'admin des cartes), et seules les illustrations de la page affichée sont signées ; cases de
+  220 px. Miniatures et grande carte passent par `Scaled` : boîte à la
   taille finale (`CARD_WIDTH`/`CARD_HEIGHT` de `@app/tcg/ui`), carte mise à l'échelle par
   `transform`. Pas de `zoom` : sous Firefox, il décale les calques 3D d'une carte vivante
   (survol, grande carte) ; et une boîte zoomée qui reçoit une largeur rapetisse elle aussi, la

@@ -600,6 +600,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       rareté avec SSR garantie au 30e paquet, collection (`tcg.owned_cards`) et journal des
       paquets (`tcg.booster_openings`), migration `tcg_boosters_potodex` (ajout seul) ; ouverture
       dans la page : paquet 3D à faire tourner, découpe à la souris le long de la ligne
+      pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; vrais bruitages
+      de Pokémon TCG Pocket (révélation de plus en plus forte selon la rareté) ; tout est
+      préchargé.
       pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; bruitages
       synthétisés ; tout est préchargé.
 - [x] Potodex : miniatures entières (plus rognées), carte trouvée ouverte en grand au clic.
@@ -609,6 +612,7 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       réels inchangés (calibrés par simulation) ; migration `tcg_booster_sr_pity` (ajout d'une
       colonne, calculée pour les paquets existants) ; dans l'admin, paquets de test avec une carte
       de chaque rareté haute, hors garanties.
+- [x] Potodex paginé (24 cases par page) et cartes plus grandes (220 px).
 - [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`), remplis et
       suivis dans la fiche, case « Stats manuelles », règle appliquée par le serveur ; migration
       `tcg_card_stats_manual` (ajout d'une colonne, aucune carte réécrite).
