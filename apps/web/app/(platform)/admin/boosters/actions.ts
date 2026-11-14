@@ -10,16 +10,21 @@ import { cardImageUrls } from "../cartes/images";
 export type OpenResult =
   { ok: true; cards: OpenedCard[]; setSize: number } | { ok: false; error: string };
 
-/** Ouvre un paquet du set (test admin : gratuit, illimité) et renvoie ses 5 cartes illustrées. */
+/**
+ * Ouvre un paquet de test du set (admin : gratuit, illimité, une carte de chaque rareté haute,
+ * hors garanties) et renvoie ses 5 cartes illustrées.
+ */
 export async function openBoosterAction(setCode: string): Promise<OpenResult> {
   const admin = await actionAdmin();
   try {
-    const { set, cards } = await openBooster(admin, { setCode });
+    const { set, cards } = await openBooster(admin, { setCode }, { test: true });
     const [images, setCards] = await Promise.all([
       cardImageUrls(admin, cards),
       listCards(admin, { setId: set.id }),
     ]);
     revalidatePath("/admin/potodex");
+    // compteur des garanties sous le paquet
+    revalidatePath("/admin/boosters");
     return {
       ok: true,
       setSize: setCards.length,

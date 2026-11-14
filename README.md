@@ -310,7 +310,9 @@ aussi ces stats : dans la fiche, mana et puissance se remplissent avec ceux de l
 suivent l'effet ; la case « Stats manuelles » les rend libres (règle appliquée aussi par le
 serveur, à la création, à la modification, à l'import et à la mise à jour en masse).
 
-Pour tester les boosters (admins) : **Administration › Boosters** ouvre des paquets gratuits du
+Pour tester les boosters (admins) : **Administration › Boosters** (chances et garanties affichées
+sous le paquet : SR ou mieux au 20e paquet, SSR au 90e ; réglage dans `BOOSTER_ODDS`,
+`games/tcg/src/boosters.ts`, calibrage par `pnpm booster:rates`) ouvre des paquets gratuits du
 set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)
 et remet la collection de test à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
 

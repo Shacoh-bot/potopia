@@ -17,19 +17,130 @@ type Player = Admin & { id: string };
 type SlotWeights = Partial<Record<CardRarityId, number>>;
 
 /**
+ * Taux annoncés de la carte chance (en %), garanties comprises : ce sont les taux MOYENS RÉELS sur
+ * la durée (décidé le 2026-11-13 : 2 % de SSR ; 2026-11-14 : les garanties n'avantagent pas, elles
+ * ne changent pas ces taux). Vérifiés par simulation dans les tests.
+ */
+export const CHANCE_RATES = { rare: 55, epic: 25, legendary: 12, sr: 6, ssr: 2 } as const;
+
+/**
+ * Garanties et poids de base de la carte chance : tout le réglage tient ici. Au plus tard au
+ * `srPity`-ième paquet d'un set sans SR ni SSR, la carte chance est une SR ou mieux (SR ou SSR
+ * selon leurs poids) ; au plus tard au `ssrPity`-ième sans SSR, une SSR (null : pas de garantie
+ * SSR à part). Les garanties ajoutant des SR et des SSR, leurs poids de base sont plus bas que les
+ * taux annoncés, calibrés par `pnpm booster:rates` (simulation) pour retomber sur CHANCE_RATES.
+ *
+ * Option A (confirmée par l'utilisateur le 2026-11-14) : SR ou mieux au 20e paquet,
+ * SSR au 90e. Autres options chiffrées : B, sans garantie SSR à part (`ssrPity: null`, poids
+ * 3,976 / 1,336) ; C, SSR au 30e comme avant, mais alors 2 % est impossible (au moins 1/30 =
+ * 3,33 %) et il faut annoncer les vrais taux (SSR ~4,5 %).
+ */
+export const BOOSTER_ODDS: {
+  srPity: number;
+  ssrPity: number | null;
+  baseSr: number;
+  baseSsr: number;
+} = { srPity: 20, ssrPity: 90, baseSr: 3.908, baseSsr: 0.994 };
+
+/** Au plus tard à ce paquet d'un set sans SR ni SSR, la carte chance est une SR ou mieux. */
+export const SR_PITY = BOOSTER_ODDS.srPity;
+/** Au plus tard à ce paquet d'un set sans SSR, la carte chance est une SSR (null : aucune). */
+export const SSR_PITY = BOOSTER_ODDS.ssrPity;
+
+/**
+ * Poids de la carte chance : SR et SSR à leur poids de base, le reste réparti entre rare, épique
+ * et légendaire au prorata des taux annoncés.
+ */
+export function chanceWeights(sr: number, ssr: number): SlotWeights {
+  const others = CHANCE_RATES.rare + CHANCE_RATES.epic + CHANCE_RATES.legendary;
+  const left = 100 - sr - ssr;
+  return {
+    rare: (left * CHANCE_RATES.rare) / others,
+    epic: (left * CHANCE_RATES.epic) / others,
+    legendary: (left * CHANCE_RATES.legendary) / others,
+    sr,
+    ssr,
+  };
+}
+
+/**
  * Les 5 emplacements d'un paquet : 3 cartes de base, 1 peu commune ou mieux, 1 carte chance (rare
- * ou mieux). Décidé le 2026-11-13 : 2 % de SSR sur la carte chance, avec garantie.
+ * ou mieux, avec les garanties).
  */
 export const BOOSTER_SLOTS: readonly SlotWeights[] = [
   { common: 75, uncommon: 25 },
   { common: 75, uncommon: 25 },
   { common: 75, uncommon: 25 },
   { uncommon: 70, rare: 25, epic: 5 },
-  { rare: 55, epic: 25, legendary: 12, sr: 6, ssr: 2 },
+  chanceWeights(BOOSTER_ODDS.baseSr, BOOSTER_ODDS.baseSsr),
 ];
 
-/** Au plus tard à ce paquet d'un set sans SSR, la carte chance est une SSR. */
-export const SSR_PITY = 30;
+/** Garantie à appliquer à la carte chance du prochain paquet. */
+export type Forced = "sr" | "ssr" | null;
+
+/**
+ * Garantie du prochain paquet : `sinceSr` paquets depuis la dernière SR ou mieux, `sinceSsr`
+ * depuis la dernière SSR (dans ce set). La SSR passe avant.
+ */
+export function forcedChance(sinceSr: number, sinceSsr: number): Forced {
+  if (SSR_PITY !== null && sinceSsr >= SSR_PITY - 1) return "ssr";
+  if (sinceSr >= SR_PITY - 1) return "sr";
+  return null;
+}
+
+const CHANCE_SLOT = BOOSTER_SLOTS[BOOSTER_SLOTS.length - 1] ?? {};
+
+/** Rareté de la carte chance : tirée selon ses poids, ou imposée par une garantie. */
+export function drawChance(
+  forced: Forced,
+  rnd: () => number,
+  weights: SlotWeights = CHANCE_SLOT,
+): CardRarityId {
+  if (forced === "ssr") return "ssr";
+  if (forced === "sr") return pickRarity({ sr: weights.sr ?? 0, ssr: weights.ssr ?? 0 }, rnd);
+  return pickRarity(weights, rnd);
+}
+
+/** Générateur pseudo-aléatoire à graine (mulberry32) : même graine, mêmes tirages. */
+function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Taux moyens réels (en %) de la carte chance sur `packs` paquets d'affilée, garanties
+ * comprises : simulation déterministe (graine `seed`), pour le calibrage et les tests.
+ */
+export function simulateChance(
+  packs: number,
+  weights: SlotWeights = CHANCE_SLOT,
+  seed = 1,
+): Record<"rare" | "epic" | "legendary" | "sr" | "ssr", number> {
+  const rnd = seeded(seed);
+  const counts = { rare: 0, epic: 0, legendary: 0, sr: 0, ssr: 0 };
+  let sinceSr = 0;
+  let sinceSsr = 0;
+  for (let i = 0; i < packs; i++) {
+    const rarity = drawChance(forcedChance(sinceSr, sinceSsr), rnd, weights);
+    if (rarity in counts) counts[rarity as keyof typeof counts]++;
+    sinceSr = rarity === "sr" || rarity === "ssr" ? 0 : sinceSr + 1;
+    sinceSsr = rarity === "ssr" ? 0 : sinceSsr + 1;
+  }
+  const pct = (n: number) => (100 * n) / packs;
+  return {
+    rare: pct(counts.rare),
+    epic: pct(counts.epic),
+    legendary: pct(counts.legendary),
+    sr: pct(counts.sr),
+    ssr: pct(counts.ssr),
+  };
+}
 
 /** Carte candidate au tirage : son id et sa rareté. */
 type PoolCard = { id: string; rarity: CardRarityId };
@@ -60,20 +171,44 @@ function candidates(pool: PoolCard[], rarity: CardRarityId): PoolCard[] {
   return [];
 }
 
+/** Raretés d'un paquet de test de l'admin : une carte de chacune, de rare à SSR (la SSR en dernier). */
+export const TEST_PACK_RARITIES: readonly CardRarityId[] = [
+  "rare",
+  "epic",
+  "legendary",
+  "sr",
+  "ssr",
+];
+
+/**
+ * Paquet de test de l'admin : une carte de chaque rareté haute (rare, épique, légendaire, SR, SSR),
+ * pour essayer les ouvertures, sons et effets de chaque rareté. Une rareté absente du set prend la
+ * plus proche (comme un paquet normal). Jamais pour les joueurs.
+ */
+export function drawTestBooster(pool: PoolCard[], rnd: () => number = Math.random): PoolCard[] {
+  if (pool.length === 0) throw new CardInputError("Ce set n'a aucune carte à tirer.");
+  return TEST_PACK_RARITIES.map((rarity) => {
+    const choices = candidates(pool, rarity);
+    const card = choices[Math.floor(rnd() * choices.length)];
+    if (!card) throw new CardInputError("Ce set n'a aucune carte à tirer.");
+    return card;
+  });
+}
+
 /**
  * Tire les 5 cartes d'un paquet parmi `pool` (doublons possibles, dans un paquet comme d'un paquet
- * à l'autre). `forceSsr` : la carte chance est une SSR (garantie). Fonction pure, testable avec
- * un `rnd` déterministe.
+ * à l'autre). `forced` : garantie appliquée à la carte chance (SR ou mieux, ou SSR). Fonction
+ * pure, testable avec un `rnd` déterministe.
  */
 export function drawBooster(
   pool: PoolCard[],
-  { forceSsr = false }: { forceSsr?: boolean } = {},
+  { forced = null }: { forced?: Forced } = {},
   rnd: () => number = Math.random,
 ): PoolCard[] {
   if (pool.length === 0) throw new CardInputError("Ce set n'a aucune carte à tirer.");
   return BOOSTER_SLOTS.map((weights, i) => {
     const chance = i === BOOSTER_SLOTS.length - 1;
-    const rarity = chance && forceSsr ? "ssr" : pickRarity(weights, rnd);
+    const rarity = chance ? drawChance(forced, rnd, weights) : pickRarity(weights, rnd);
     const choices = candidates(pool, rarity);
     const card = choices[Math.floor(rnd() * choices.length)];
     if (!card) throw new CardInputError("Ce set n'a aucune carte à tirer.");
@@ -92,16 +227,55 @@ async function findSet(tx: DbTx, setCode: string): Promise<CardSet> {
   return set;
 }
 
-/** Paquets ouverts dans ce set depuis la dernière SSR (ou depuis le début). */
-async function boostersSinceSsr(tx: DbTx, userId: string, setId: string): Promise<number> {
-  const lastSsr = await tx.tcgBoosterOpening.findFirst({
-    where: { userId, setId, hasSsr: true },
+/** Paquets ouverts dans ce set depuis le dernier qui avait une SSR (`hasSsr`) ou une SR ou mieux. */
+async function boostersSince(
+  tx: DbTx,
+  userId: string,
+  setId: string,
+  mark: "hasSsr" | "hasSrPlus",
+): Promise<number> {
+  const last = await tx.tcgBoosterOpening.findFirst({
+    where: { userId, setId, isTest: false, [mark]: true },
     orderBy: { createdAt: "desc" },
     select: { createdAt: true },
   });
   return tx.tcgBoosterOpening.count({
-    where: { userId, setId, ...(lastSsr && { createdAt: { gt: lastSsr.createdAt } }) },
+    // les paquets de test de l'admin ne comptent pas
+    where: { userId, setId, isTest: false, ...(last && { createdAt: { gt: last.createdAt } }) },
   });
+}
+
+/** Paquets ouverts dans ce set depuis la dernière SR ou mieux, et depuis la dernière SSR. */
+async function pityCounters(tx: DbTx, userId: string, setId: string) {
+  const [sinceSr, sinceSsr] = await Promise.all([
+    boostersSince(tx, userId, setId, "hasSrPlus"),
+    boostersSince(tx, userId, setId, "hasSsr"),
+  ]);
+  return { sinceSr, sinceSsr };
+}
+
+/** Garantie du prochain paquet normal du joueur dans ce set. */
+async function nextForced(tx: DbTx, userId: string, setId: string): Promise<Forced> {
+  const { sinceSr, sinceSsr } = await pityCounters(tx, userId, setId);
+  return forcedChance(sinceSr, sinceSsr);
+}
+
+/**
+ * Où en sont les garanties du joueur dans un set : nombre de paquets au plus (le prochain compris)
+ * avant la SR ou mieux garantie, et avant la SSR garantie (null : pas de garantie SSR).
+ */
+export async function boosterPity(
+  player: Player,
+  input: z.input<typeof setInput>,
+): Promise<{ untilSr: number; untilSsr: number | null }> {
+  assertAdmin(player);
+  const { setCode } = setInput.parse(input);
+  const set = await findSet(db, setCode);
+  const { sinceSr, sinceSsr } = await pityCounters(db, player.id, set.id);
+  return {
+    untilSr: Math.max(1, SR_PITY - sinceSr),
+    untilSsr: SSR_PITY === null ? null : Math.max(1, SSR_PITY - sinceSsr),
+  };
 }
 
 /**
@@ -111,20 +285,26 @@ async function boostersSinceSsr(tx: DbTx, userId: string, setId: string): Promis
 export async function openBooster(
   player: Player,
   input: z.input<typeof setInput>,
-  opts?: { tx?: DbTx; rnd?: () => number },
+  opts?: { tx?: DbTx; rnd?: () => number; test?: boolean },
 ): Promise<{ set: CardSet; cards: Card[] }> {
   assertAdmin(player);
   const { setCode } = setInput.parse(input);
+  const test = opts?.test ?? false;
   return withTx(async (tx) => {
-    // Un paquet à la fois par joueur : la garantie compte les paquets sans SSR.
+    // Un paquet à la fois par joueur : les garanties comptent les paquets précédents.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tcg-booster-${player.id}`}))`;
     const set = await findSet(tx, setCode);
     const pool = await tx.tcgCard.findMany({
       where: { setId: set.id, deletedAt: null },
       select: { id: true, rarity: true },
     });
-    const forceSsr = (await boostersSinceSsr(tx, player.id, set.id)) >= SSR_PITY - 1;
-    const drawn = drawBooster(pool as PoolCard[], { forceSsr }, opts?.rnd);
+    const drawn = test
+      ? drawTestBooster(pool as PoolCard[], opts?.rnd)
+      : drawBooster(
+          pool as PoolCard[],
+          { forced: await nextForced(tx, player.id, set.id) },
+          opts?.rnd,
+        );
 
     const counts = new Map<string, number>();
     for (const c of drawn) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
@@ -141,6 +321,8 @@ export async function openBooster(
         setId: set.id,
         cardIds: drawn.map((c) => c.id),
         hasSsr: drawn.some((c) => c.rarity === "ssr"),
+        hasSrPlus: drawn.some((c) => c.rarity === "sr" || c.rarity === "ssr"),
+        isTest: test,
       },
     });
 
