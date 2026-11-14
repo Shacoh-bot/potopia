@@ -603,6 +603,7 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       pointillée, vidéo de découpe en relais sans saut, cartes à retourner ; bruitages
       synthétisés ; tout est préchargé.
 - [x] Potodex : miniatures entières (plus rognées), carte trouvée ouverte en grand au clic.
+- [x] Potodex paginé (24 cases par page) et cartes plus grandes (220 px).
 - [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`), remplis et
       suivis dans la fiche, case « Stats manuelles », règle appliquée par le serveur ; migration
       `tcg_card_stats_manual` (ajout d'une colonne, aucune carte réécrite).

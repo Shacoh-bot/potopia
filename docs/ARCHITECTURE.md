@@ -1204,7 +1204,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   Chaque son varie un peu à chaque fois ; volume du site respecté.
 - `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
   les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
-  bouton « Remettre à zéro ». Miniatures et grande carte passent par `Scaled` : boîte à la
+  bouton « Remettre à zéro ». Paginé : 24 cases par page (`?page=`, `paginate`, barre `Pagination`
+  de l'admin des cartes), et seules les illustrations de la page affichée sont signées ; cases de
+  220 px. Miniatures et grande carte passent par `Scaled` : boîte à la
   taille finale (`CARD_WIDTH`/`CARD_HEIGHT` de `@app/tcg/ui`), carte mise à l'échelle par
   `transform`. Pas de `zoom` : sous Firefox, il décale les calques 3D d'une carte vivante
   (survol, grande carte) ; et une boîte zoomée qui reçoit une largeur rapetisse elle aussi, la
