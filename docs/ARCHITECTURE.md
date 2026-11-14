@@ -598,8 +598,8 @@ décors.
   d'avatar, confettis de TROIS…) ; les sons en cours sont mis en pause puis reprennent
   (`trackMedia()`), la musique en Web Audio de Super Sonic aussi (`onTimeStop`).
 - Passer au thème One Piece déclenche **ドン!!** (`apps/web/components/Don.tsx`, `don()` de
-  `@app/ui`) : les Tambours de la Libération, le cœur de Nika (« ドン・ドッ・トッ・ト », quatre
-  coups de taiko synthétisés en Web Audio, pas de fichier), un flash, des lignes de vitesse de
+  `@app/ui`) : le vrai bruitage « ドン!! » de l'anime (un coup de taiko qui résonne,
+  `public/audio/onepiece-don.mp3`, préchargé au montage), un flash, des lignes de vitesse de
   manga qui convergent vers le centre, « ドン!! » qui tombe de haut, s'écrase et tremble sous le
   choc, et Luffy en Gear 5 qui surgit derrière en riant, rebondit comme du caoutchouc dans une
   couronne de nuages de vapeur (1,9 s).
@@ -701,8 +701,10 @@ qui s'assombrit, main sur la bouche (`public/apothicaire/mao-judge.mp4`), une r�
 hasard (clins d'œil à l'anime) et un sceau vermillon « 三連続 » (trois de suite) qui s'imprime. À
 l'avant-dernier essai, son dégoût, cachée derrière sa manche (`mao-disgust.mp4`, « 五連続 »). Le
 mot enfin trouvé après au moins 3 ratés : elle surgit, détourée (`mao-smug.webp`), du bas de
-l'écran à côté de la fenêtre du jeu, avec un sourire narquois. Petite phrase de cordes pincées synthétisée (Karplus-Strong,
-pas de fichier), au volume du site. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
+l'écran à côté de la fenêtre du jeu, avec un sourire narquois. Une vraie phrase de guzheng tirée de la BO de l'anime pour chaque
+humeur (`public/audio/maomao/guzheng-judge|disgust|smug.mp3`, préchargées avec les vidéos), au
+volume du site ; elle se tait (l'image reste) si « To Be Continued » vient de se lancer, pour ne pas
+couvrir Roundabout. Les vidéos se chargent au 2e raté. Rien ne bloque le jeu :
 pas de voile sur la page, les clics traversent le rouleau (`pointer-events: none`, on continue de
 taper au clavier ou sur les lettres à l'écran) et il repart seul au bout de 4 s, sans clic ; le
 mot perdu garde « To Be Continued ». L'effet se coupe dans les paramètres. Images et vidéos fournies par les
@@ -745,9 +747,14 @@ est préchargé à l'ouverture du menu des thèmes (`ThemeSwitcher`), pas à cha
   dernière fois puis s'éteint), avec un bruitage de Sonic 2 (`emeralds-unseal.mp3`,
   `emeralds-seal.mp3`, découpés à la main).
 - Un clic sur une pierre trouvée : elle sursaute en penchant, s'illumine et lâche quelques éclats
-  de sa couleur, avec un « tink » de cristal synthétisé (`playTink`, `ui/sounds.ts`). Sens, angle,
-  hauteur, éclats et note (gamme pentatonique, jamais la même deux fois de suite) changent à
-  chaque coup, comme les coups de pioche d'un jeu de minage.
+  de sa couleur, avec un « tink » : l'orbe d'expérience de Minecraft (0,2 s,
+  `public/audio/emerald-tink.wav`, `playTink`, `ui/sounds.ts`, en WAV pour éviter le blanc
+  d'encodeur du mp3), téléchargé et décodé une fois quand le cercle s'affiche puis joué par Web
+  Audio (lecture immédiate, sans recharger le fichier à chaque coup), à une note différente à
+  chaque coup (la vitesse de lecture change la hauteur, jamais la même note deux fois de suite).
+  Sens, angle, hauteur, éclats
+  et note (gamme pentatonique, jamais la même deux fois de suite) changent à chaque coup, comme
+  les coups de pioche d'un jeu de minage.
 
 **Dates.** Toutes les dates affichées passent par `BRAND.timeZone` (`Europe/Paris`) : le serveur
 Vercel tourne en UTC, les navigateurs des membres en France ; sans fuseau explicite, l'heure
