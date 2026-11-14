@@ -938,17 +938,21 @@ power?, effectKey?, effectParams?, effectText? }] }`. Chaque carte de base est r
   par-dessus (plus petit à partir de deux chiffres). Les anciennes propositions gardent leurs
   badges dessinés (`Cost`, `Power`).
 - Cadre de la carte retenue (`BackStyleFrame` de `v5.tsx`) : le style du dos posé sur la bordure
-  de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur, plaques d'angle
-  dorées, gemmes cyan (haut droit) et magenta (bas
-  gauche) dans les coins que le coût et la puissance laissent libres. Dégradés et halo dans
+  de rareté (qui garde sa couleur) : polissage en diagonale, filet doré intérieur. Les cartes du
+  jeu (`GameCard`, donc partout dans l'admin et à l'ouverture des boosters) passent `refined` à
+  `FinalCard` : ni plaques d'angle dorées ni gemmes dans les coins, filet doré collé au cadre de
+  couleur (sans le trait noir qui faisait un jour entre les deux), et en full art les textes posés
+  sur l'illustration sans encadrés, avec un contour sombre (`TEXT_OUTLINE`, le titre en dégradé
+  par un filtre `TITLE_OUTLINE`). Sans `refined` (le design n°70 du vote), les plaques d'angle
+  dorées et les gemmes cyan (haut droit) et magenta (bas gauche) restent. Dégradés et halo dans
   `SnapDefs` (`tcg-back-*`). La plaque du haut et son losange magenta restent au dos seulement.
   Avec le bandeau court, la fenêtre d'illustration monte jusqu'au trait sous le titre
   et s'étend sur toute la largeur contre la bordure (`FINAL_ART`, 286 × 186 px, de 46 à 232,
   coins droits), fermée en bas par le même trait que sous le titre, proportions reprises par le cadrage de l'éditeur.
   Les encadrés (ligne de type, effet) ont le même esprit, très fin (`PanelTrim`) : un filet doré
   de 1 px à la place de la bordure grise, doublé à l'intérieur d'un liseré cyan presque invisible.
-  En full art, les encadrés (bandeau du titre compris) sont plus transparents (`finalPanel` :
-  ardoise à 35 %, flou de 3 px).
+  En full art (sans `refined`), les encadrés (bandeau du titre compris) sont plus transparents
+  (`finalPanel` : ardoise à 35 %, flou de 3 px).
 - Effets visuels : rubrique « Effets visuels » de la fiche (`CardEditor`), cases à cocher sur trois
   colonnes (deux sur mobile) tirées de `listVisualEffects` (admins seulement, tri français) ; on en coche plusieurs, empilés dans
   l'ordre où on les coche (le premier en dessous, « calque n » affiché), enregistrés dans
