@@ -29,13 +29,13 @@ const FOV = 22.8952;
 const VIEW_START = { position: new THREE.Vector3(0, 0, 11), target: new THREE.Vector3(0, 0, 0) };
 /** Plan serré sur la bande soudée, tenu dans la vidéo jusqu'à la lame (image 90 de la scène). */
 const VIEW_CUT = {
-  position: new THREE.Vector3(0, 1.5, 3.2),
-  target: new THREE.Vector3(0, 1.33, 0),
+  position: new THREE.Vector3(0, 1.58144, 3.2),
+  target: new THREE.Vector3(0, 1.41144, 0),
 };
 /** Moment de la vidéo (s) qui correspond à VIEW_CUT : la vidéo démarre là. */
 export const VIDEO_HANDOFF = 1.4;
 /** Hauteur de la ligne pointillée « Déchirer ici » sur le paquet. */
-const CUT_Y = 1.31094;
+const CUT_Y = 1.39238;
 /** Zone (m) où commencer la découpe : un peu sous la ligne, jusqu'au haut de la bande soudée. */
 const CUT_BELOW = 0.12;
 const CUT_ABOVE = 0.3;
@@ -63,7 +63,7 @@ const ASPECT = 16 / 9;
  * pour que le relais se fasse sans saut de couleur.
  */
 const LOOK = {
-  free: { env: 1.1, iridescence: 1, ambient: 0.35, key: 1.1 },
+  free: { env: 1.1, iridescence: 0.6, ambient: 0.35, key: 1.1 },
   video: { env: 1.35, iridescence: 0.25, ambient: 0.8, key: 1.8 },
 };
 
@@ -212,7 +212,7 @@ function Pack({
       const m = new THREE.MeshPhysicalMaterial({
         map: old.map,
         // Peu métallique : le métal reflète le fond sombre et délavait les couleurs du paquet.
-        metalness: 0.2,
+        metalness: 0.08,
         roughness: 0.24,
         iridescence: 1,
         iridescenceIOR: 1.5,

@@ -1144,11 +1144,14 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   modèle, libéré au relais vidéo, est rechargé quand les cartes arrivent (« Ouvrir un autre
   paquet » immédiat) ; les illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
   (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`), tous
-  trois produits par la version v3 du script Blender (hors dépôt, dossier
-  `Animation paquet de cartes/v3/`) : couleurs plus vives (textures plus saturées, illustration
-  peu métallique), paquet plus plat et plus long (2 × 3,8 m, bombé 0,12), soudures du haut et du
-  bas légèrement ondulées d'avant en arrière seulement (vue de face, la silhouette reste droite) ;
-  la ligne pointillée et la caméra du raccord sont inchangées. Modèle et vidéo doivent toujours venir du même
+  trois produits par la version v4 du script Blender (hors dépôt, dossier
+  `Animation paquet de cartes/v4/`, textures refaites par `construire_textures_v4.py`) : couleurs
+  vives (textures saturées, illustration très peu métallique), paquet plat (bombé 0,12) de
+  2 × 3,27 m, soudures du haut et du bas identiques, courtes et nettes (stries répétées à leur
+  résolution d'origine, jamais étirées), partie centrale allongée de 8 %, soudures légèrement
+  ondulées d'avant en arrière seulement (vue de face, la silhouette reste droite). La ligne
+  pointillée est à y = 1,39238 (`CUT_Y`) et le plan serré du relais (`VIEW_CUT`) la suit ; la
+  vue de départ ne change pas. Modèle et vidéo doivent toujours venir du même
   rendu, sinon le relais saute : leurs URL portent `?v=` (`ASSETS_VERSION` de `BoosterOpening`),
   à augmenter à chaque nouveau rendu pour que le cache d'un jour ne garde pas l'ancien modèle.
 - Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
