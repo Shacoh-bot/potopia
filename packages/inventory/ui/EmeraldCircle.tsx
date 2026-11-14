@@ -1,9 +1,9 @@
 "use client";
 
 import { Button, cx } from "@app/ui";
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { EMERALDS, emeraldSrc, hasAllEmeralds, type EmeraldColor } from "../src/catalog";
-import { playClip, playTink, SOUNDS } from "./sounds";
+import { playClip, playTink, preloadTink, SOUNDS } from "./sounds";
 import { setEmeraldsDisabled, useEmeraldsDisabled } from "./superSonic";
 
 /**
@@ -105,6 +105,8 @@ export function EmeraldCircle({ items }: { items: readonly string[] }) {
   const complete = hasAllEmeralds(items);
   const [wave, setWave] = useState<"seal" | "unseal" | null>(null);
   const layerRef = useRef<HTMLDivElement>(null);
+  // le « tink » est prêt dès le premier coup sur une émeraude
+  useEffect(preloadTink, []);
 
   const toggle = () => {
     const next = !sealed;

@@ -609,6 +609,14 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       réels inchangés (calibrés par simulation) ; migration `tcg_booster_sr_pity` (ajout d'une
       colonne, calculée pour les paquets existants) ; dans l'admin, paquets de test avec une carte
       de chaque rareté haute, hors garanties.
+- [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`), remplis et
+      suivis dans la fiche, case « Stats manuelles », règle appliquée par le serveur ; migration
+      `tcg_card_stats_manual` (ajout d'une colonne, aucune carte réécrite).
+- [x] Catalogue Marvel Snap complet : les 507 cartes de collection, coût et puissance actuels
+      (`pnpm snap:catalog`, données téléchargées une fois, pages snap.fan vérifiées), texte
+      français reformulé pour chacune (`snap-effects.ts`), nouveaux moments (activation,
+      défaussée, déplacement, début de partie, début de tour, objectif) ; choix de l'effet dans la
+      fiche par recherche et filtres (moment, coût).
 - [ ] Boosters pour les membres : stock par set, achat et gains, revente des doublons, Potodex
       dans le menu de gauche (sous l'inventaire), tirages SR et SSR dans l'activité ; lieux.
 - [ ] Decks, défis, moteur de résolution des tours, page de partie.

@@ -20,11 +20,13 @@ function readDisabled(): boolean {
 /**
  * Défaite : l'écran se fige en sépia sur Roundabout, et la flèche « To Be Continued » glisse en bas
  * à gauche (JoJo). Les jeux l'appellent ; sans overlay monté, ou si le membre a coupé l'effet
- * dans ses paramètres, rien ne se passe.
+ * dans ses paramètres, rien ne se passe. Renvoie vrai si l'effet est lancé : le jeu ne joue alors
+ * pas son propre son de défaite, qui couvrirait Roundabout.
  */
-export function toBeContinued(): void {
-  if (typeof window === "undefined" || readDisabled()) return;
+export function toBeContinued(): boolean {
+  if (typeof window === "undefined" || readDisabled()) return false;
   window.dispatchEvent(new Event(TO_BE_CONTINUED_EVENT));
+  return true;
 }
 
 export function setToBeContinuedDisabled(disabled: boolean): void {

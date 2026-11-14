@@ -7,6 +7,7 @@ import {
   MAO_MAO_SOON_EVENT,
   type MaoMaoDetail,
   type MaoMood,
+  TO_BE_CONTINUED_EVENT,
 } from "@app/ui";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -61,36 +62,17 @@ function kanji(n: number): string {
 const pick = <T,>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)] as T;
 
 /**
- * Cordes pincées synthétisées (Karplus-Strong), façon guzheng : une petite phrase pentatonique.
- * Pas de fichier son ; au volume réglé dans l'app.
+ * Une vraie phrase de guzheng par humeur, tirée de la BO de l'anime (sources dans
+ * `Apothicaire assets/sons/sources.csv`, hors dépôt).
  */
-function pluck(notes: number[], gap = 0.16) {
-  const volume = effectiveVolume() * 0.35;
-  if (volume <= 0) return;
-  const ctx = new AudioContext();
-  notes.forEach((freq, i) => {
-    const length = Math.floor(ctx.sampleRate * 1.6);
-    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    const period = Math.round(ctx.sampleRate / freq);
-    for (let s = 0; s < period; s++) data[s] = Math.random() * 2 - 1;
-    for (let s = period; s < length; s++) {
-      data[s] = 0.996 * 0.5 * ((data[s - period] ?? 0) + (data[s - period + 1] ?? 0));
-    }
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    const gain = ctx.createGain();
-    gain.gain.value = volume;
-    source.connect(gain).connect(ctx.destination);
-    source.start(ctx.currentTime + i * gap);
-  });
-  window.setTimeout(() => void ctx.close(), notes.length * gap * 1000 + 2000);
-}
-const TUNES: Record<MaoMood, number[]> = {
-  judge: [659.3, 587.3, 493.9, 440], // mi, ré, si, la : qui descend, déçu
-  disgust: [392, 370, 293.7], // sol, fa#, ré : plus bas, plus sombre
-  smug: [587.3, 880], // ré, la : petit « hm ! »
+const GUZHENG: Record<MaoMood, string> = {
+  judge: "/audio/maomao/guzheng-judge.mp3", // trois notes qui tombent, déçue
+  disgust: "/audio/maomao/guzheng-disgust.mp3", // deux notes qui descendent
+  smug: "/audio/maomao/guzheng-smug.mp3", // deux notes qui montent : petit « hm ! »
 };
+const GUZHENG_VOLUME = 0.8;
+// Pendant « To Be Continued » (6,3 s, sa musique Roundabout), Mao Mao apparaît mais se tait.
+const TBC_QUIET_MS = 6300;
 
 type Scene = {
   mood: MaoMood;
@@ -111,13 +93,29 @@ export function MaoMao() {
   const [scene, setScene] = useState<Scene | null>(null);
   const timer = useRef(0);
   const preloaded = useRef(false);
+  const sounds = useRef<Partial<Record<MaoMood, HTMLAudioElement>>>({});
 
   useEffect(() => {
+    const loaded = sounds.current;
+    let tbcAt = Number.NEGATIVE_INFINITY;
+    const onTbc = () => {
+      tbcAt = performance.now();
+    };
+    const sound = (mood: MaoMood) => {
+      let audio = loaded[mood];
+      if (!audio) {
+        audio = new Audio(GUZHENG[mood]);
+        audio.preload = "auto";
+        loaded[mood] = audio;
+      }
+      return audio;
+    };
     // une défaite de plus et elle juge : ses vidéos et l'image se chargent en fond
     const preload = () => {
       if (preloaded.current) return;
       preloaded.current = true;
       for (const src of [MEDIA.judge.poster, MEDIA.disgust.poster, SMUG]) new Image().src = src;
+      for (const mood of Object.keys(GUZHENG) as MaoMood[]) sound(mood);
       for (const { video } of Object.values(MEDIA)) {
         const v = document.createElement("video");
         v.preload = "auto";
@@ -135,7 +133,14 @@ export function MaoMao() {
         key: Date.now(),
         spot: mood === "smug" ? besideGame(...SMUG_W) : besideGame(...SCROLL_W),
       });
-      pluck(TUNES[mood]);
+      const level = effectiveVolume() * GUZHENG_VOLUME;
+      const tbcPlaying = performance.now() - tbcAt < TBC_QUIET_MS;
+      if (level > 0 && !tbcPlaying) {
+        const audio = sound(mood);
+        audio.currentTime = 0;
+        audio.volume = Math.min(1, level);
+        audio.play().catch(() => {});
+      }
       timer.current = window.setTimeout(
         () => setScene(null),
         mood === "smug" ? SMUG_MS : SCROLL_MS,
@@ -143,10 +148,13 @@ export function MaoMao() {
     };
     window.addEventListener(MAO_MAO_SOON_EVENT, preload);
     window.addEventListener(MAO_MAO_EVENT, onMood);
+    window.addEventListener(TO_BE_CONTINUED_EVENT, onTbc);
     return () => {
+      window.removeEventListener(TO_BE_CONTINUED_EVENT, onTbc);
       window.removeEventListener(MAO_MAO_SOON_EVENT, preload);
       window.removeEventListener(MAO_MAO_EVENT, onMood);
       window.clearTimeout(timer.current);
+      for (const audio of Object.values(loaded)) audio.pause();
     };
   }, []);
 
