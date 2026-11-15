@@ -132,6 +132,15 @@ passe d'une partie à l'autre sans rechargement.
   compte fictif n'a pas de compte Discord). Fermée dès que `NODE_ENV` vaut `production`
   (`next build` / `next start`) ou que `VERCEL` est posée (tous les déploiements Vercel, previews
   comprises) : la route répond 404 et `createDevSession` refuse.
+- **Cookie de session par port en développement** (`packages/core/src/auth/cookie-prefix.ts`,
+  `sessionCookiePrefix`, exporté aussi par `@app/core/cookies` pour le proxy) : un cookie ne
+  tient pas compte du port, et plusieurs serveurs locaux en parallèle (3000, 3001…, chacun sur sa
+  base) s'écrasaient leur session ; la page restait affichée connectée, puis l'action suivante
+  répondait 401. Avec `next dev` sur `localhost` ou `127.0.0.1` avec un port, Better Auth prend le
+  préfixe `better-auth-<port>` (`advanced.cookiePrefix`), et le proxy lit le même nom. Partout
+  ailleurs (prod, previews Vercel, `next start`, tests), le préfixe reste `better-auth` : même
+  nom de cookie qu'avant, personne n'est déconnecté au déploiement (testé dans
+  `packages/core/test/cookie-prefix.test.ts`).
 - **Revérification toutes les 6 h** (champ `guildCheckedAt` sur la session). Un membre qui a quitté
   le serveur voit sa session révoquée ; ses données sont conservées.
   - Le token Discord est rafraîchi au besoin. Un 401 de Discord sur la liste des serveurs vaut
