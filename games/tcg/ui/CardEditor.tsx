@@ -684,6 +684,7 @@ export function CardEditor({
                 layout={layout}
                 setSize={setSize}
                 author={author}
+                aura
               />
             </CardFlip>
             {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}

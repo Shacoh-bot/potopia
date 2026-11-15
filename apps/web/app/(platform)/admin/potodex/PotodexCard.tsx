@@ -135,7 +135,7 @@ function CardZoom({
       </button>
       {zoom !== null && (
         <Scaled scale={zoom} className="potodex-zoom-card">
-          <GameCard card={card} imageUrl={imageUrl} setSize={setSize} />
+          <GameCard card={card} imageUrl={imageUrl} setSize={setSize} aura />
         </Scaled>
       )}
     </dialog>

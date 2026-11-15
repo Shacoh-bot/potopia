@@ -1,3 +1,4 @@
+import { CardAura, hasAura } from "./CardAura";
 import { type Card, frameFor } from "../src/card-rules";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
@@ -52,6 +53,7 @@ export function GameCard({
   setSize,
   still = false,
   author,
+  aura = false,
 }: {
   card: GameCardFields;
   imageUrl: string | null;
@@ -63,6 +65,8 @@ export function GameCard({
   still?: boolean;
   /** Auteur de l'idée d'origine, en pied de carte (« idée de … »). */
   author?: string | null;
+  /** Aura de la rareté derrière la carte (cartes agrandies) : voir `CardAura`. */
+  aura?: boolean;
 }) {
   const layout = forced ?? card.layout ?? "normal";
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -104,5 +108,14 @@ export function GameCard({
       refined
     />
   );
-  return still ? <div className="tcg-still">{face}</div> : face;
+  if (still) return <div className="tcg-still">{face}</div>;
+  if (aura && hasAura(card.rarity)) {
+    return (
+      <div className="tcg-aura-host">
+        <CardAura rarity={card.rarity} />
+        {face}
+      </div>
+    );
+  }
+  return face;
 }

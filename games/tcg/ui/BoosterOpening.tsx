@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
+import { CardAura, hasAura } from "./CardAura";
 import { CardBack } from "./CardBack";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { OPENING_BG, openingPlan } from "./opening";
@@ -228,6 +229,8 @@ function OpeningCard({
       className="tcg-opening-slot absolute"
       style={{ ...to, transform: start, transitionDuration: placed ? undefined : "0s" }}
     >
+      {/* Aura de la carte, derrière elle (et sous les cartes voisines), une fois retournée. */}
+      {settled && opened && hasAura(opened.card.rarity) && <CardAura rarity={opened.card.rarity} />}
       <button
         type="button"
         className="tcg-opening-card"
