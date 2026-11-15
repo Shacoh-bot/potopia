@@ -1212,16 +1212,17 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   réduites (`prefers-reduced-motion`) : l'ouverture se joue quand même en entier (paquet, découpe,
   relais vidéo), seuls les mouvements secondaires sont adoucis (`openingPlan` de `ui/opening.ts` :
   pas de flottement du paquet ; cartes rangées et retournées sans transition).
-- Aura des cartes (`ui/CardAura.tsx`, validée par l'utilisateur) : derrière la carte révélée à
-  l'ouverture d'un booster et derrière les cartes agrandies (Potodex, aperçu de la fiche dans
-  l'admin, `GameCard aura`). Rendu WebGL (bruit simplex, vrilles qui tournent en sens contraire et
-  s'éloignent en s'effaçant, lueur contre le bord) et canvas 2D (étincelles indépendantes qui
-  tourbillonnent). Gradation par rareté (`PALETTES`) : rare = halo doux seul (CSS
-  `tcg-aura-rare`), épique discrète, légendaire, SR bien plus fournie, SSR débordante
-  (arc-en-ciel) ; commune et peu commune : rien. Une carte en deux versions (Alt Art) prend
-  l'aura de sa rareté. Fluidité : une seule aura animée à la fois (la dernière apparue ou
-  survolée), les autres gardent leur dernière image ; arrêt hors écran (IntersectionObserver) ;
-  « réduire les animations » : aura présente mais immobile.
+- Aura des cartes (`ui/CardAura.tsx`, validée par l'utilisateur), réservée à l'ouverture des
+  boosters : derrière chaque carte révélée, jamais ailleurs. Rendu WebGL (bruit simplex, vrilles
+  qui tournent en sens contraire et s'éloignent en s'effaçant, lueur contre le bord) et canvas 2D
+  (étincelles indépendantes qui tourbillonnent). Gradation par rareté (`PALETTES`) : rare = halo
+  doux seul (CSS `tcg-aura-rare`), épique discrète, légendaire, SR bien plus fournie, SSR
+  débordante (arc-en-ciel) ; commune et peu commune : rien. Une Alt Art prend l'aura de sa
+  rareté. Une seule aura animée à la fois (la dernière apparue ou survolée), arrêt hors écran ;
+  « réduire les animations » : aura présente mais immobile. Partout ailleurs (planches, Potodex,
+  carte agrandie, fiche), `GameCard` n'a qu'un halo doux de la couleur de la rareté au survol
+  (`hoverHalo`, `.tcg-hover-halo`, plus fort pour les hautes raretés, sans particules, rien sans
+  survol) ; l'ouverture le coupe (`hoverHalo={false}`).
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`

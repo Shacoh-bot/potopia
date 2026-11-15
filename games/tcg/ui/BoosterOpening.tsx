@@ -253,7 +253,13 @@ function OpeningCard({
               style={{ pointerEvents: settled ? undefined : "none" }}
             >
               <span style={{ display: "block", width: CARD_WIDTH, zoom: to.width / CARD_WIDTH }}>
-                <GameCard card={opened.card} imageUrl={opened.imageUrl} setSize={setSize} />
+                <GameCard
+                  card={opened.card}
+                  imageUrl={opened.imageUrl}
+                  setSize={setSize}
+                  // Ici, c'est l'aura (CardAura) qui entoure la carte : pas de halo de survol.
+                  hoverHalo={false}
+                />
               </span>
             </span>
           )}

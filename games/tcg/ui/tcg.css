@@ -1651,12 +1651,8 @@
   }
 }
 
-/* Aura des cartes (`CardAura`) : derrière la carte, elle déborde tout autour sans capter le
-   pointeur. Le parent est `position: relative` et isole l'empilement (`tcg-aura-host`). */
-.tcg-aura-host {
-  position: relative;
-  isolation: isolate;
-}
+/* Aura des cartes (`CardAura`), réservée à l'ouverture des boosters : derrière la carte, elle
+   déborde tout autour sans capter le pointeur. */
 .tcg-aura {
   position: absolute;
   z-index: -1;
@@ -1677,4 +1673,51 @@
   pointer-events: none;
   background: rgb(96 165 250 / 0.55);
   filter: blur(22px);
+}
+
+/* Halo de survol des cartes (hors ouverture des boosters) : une lumière douce de la couleur de la
+   rareté, un peu plus forte pour les hautes raretés, sans particules ; rien sans survol. Posé
+   derrière la carte (premier calque de `Shell`), il apparaît quand `Tilt` marque le survol
+   (`data-active`) ou quand une carte figée de planche redevient vivante (`data-live`). */
+.tcg-hover-halo {
+  --halo: rgb(200 205 220 / 0.35);
+  --halo-size: 14px;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 22px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 var(--halo-size) calc(var(--halo-size) / 3) var(--halo);
+  transition: opacity 0.25s ease;
+}
+.tcg-hover-halo[data-rarity="uncommon"] {
+  --halo: rgb(61 220 132 / 0.38);
+}
+.tcg-hover-halo[data-rarity="rare"] {
+  --halo: rgb(79 143 247 / 0.45);
+  --halo-size: 16px;
+}
+.tcg-hover-halo[data-rarity="epic"] {
+  --halo: rgb(164 92 255 / 0.5);
+  --halo-size: 18px;
+}
+.tcg-hover-halo[data-rarity="legendary"] {
+  --halo: rgb(255 194 61 / 0.55);
+  --halo-size: 20px;
+}
+.tcg-hover-halo[data-rarity="sr"] {
+  --halo: rgb(236 228 255 / 0.6);
+  --halo-size: 22px;
+}
+.tcg-hover-halo[data-rarity="ssr"] {
+  --halo: rgb(255 106 181 / 0.6);
+  --halo-size: 24px;
+  box-shadow:
+    -6px 0 var(--halo-size) calc(var(--halo-size) / 3) rgb(106 213 255 / 0.5),
+    6px 0 var(--halo-size) calc(var(--halo-size) / 3) var(--halo);
+}
+.tcg-tilt[data-active] .tcg-hover-halo,
+.tcg-still[data-live] .tcg-hover-halo {
+  opacity: 1;
 }

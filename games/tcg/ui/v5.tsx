@@ -495,6 +495,7 @@ export function FinalCard({
   gameFooter = false,
   visualEffects = [],
   refined = false,
+  hoverHalo = false,
 }: {
   card: CardData;
   layout: TopLayout;
@@ -511,6 +512,8 @@ export function FinalCard({
    * et en full art les textes sans encadrés, avec un contour. Absent : le design n°70 du vote.
    */
   refined?: boolean;
+  /** Halo doux de la couleur de la rareté autour de la carte, au survol seulement. */
+  hoverHalo?: boolean;
 }) {
   const full = layout === "fullart";
   // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
@@ -553,6 +556,7 @@ export function FinalCard({
 
   return (
     <Shell card={card}>
+      {hoverHalo && <div aria-hidden className="tcg-hover-halo" data-rarity={finish} />}
       {full ? (
         <>
           <Art card={card} />

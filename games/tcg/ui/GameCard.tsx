@@ -3,7 +3,6 @@ import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
 import type { TopLayout } from "./v4";
-import { CardAura, hasAura } from "./CardAura";
 import { FinalCard } from "./v5";
 
 /** Ce qu'il faut d'une carte pour l'afficher (la carte enregistrée, ou le formulaire en cours). */
@@ -53,7 +52,7 @@ export function GameCard({
   setSize,
   still = false,
   author,
-  aura = false,
+  hoverHalo = true,
 }: {
   card: GameCardFields;
   imageUrl: string | null;
@@ -65,8 +64,11 @@ export function GameCard({
   still?: boolean;
   /** Auteur de l'idée d'origine, en pied de carte (« idée de … »). */
   author?: string | null;
-  /** Aura de la rareté derrière la carte (cartes agrandies) : voir `CardAura`. */
-  aura?: boolean;
+  /**
+   * Halo doux de la couleur de la rareté au survol (par défaut). L'aura animée (`CardAura`) est
+   * réservée à l'ouverture des boosters, qui coupe ce halo.
+   */
+  hoverHalo?: boolean;
 }) {
   const layout = forced ?? card.layout ?? "normal";
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -106,16 +108,9 @@ export function GameCard({
       gameFooter
       visualEffects={card.visualEffectKeys}
       refined
+      hoverHalo={hoverHalo}
     />
   );
   if (still) return <div className="tcg-still">{face}</div>;
-  if (aura && hasAura(card.rarity)) {
-    return (
-      <div className="tcg-aura-host">
-        <CardAura rarity={card.rarity} />
-        {face}
-      </div>
-    );
-  }
   return face;
 }
