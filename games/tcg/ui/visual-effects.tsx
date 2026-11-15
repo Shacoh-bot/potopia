@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  type ComponentType,
-  type CSSProperties,
-  type RefObject,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentType, type CSSProperties, useEffect, useId, useState } from "react";
 import type { CardData } from "./cards";
 import { faction, PremiumArt } from "./premium";
 import { ExtraArt, type ExtraStyle } from "./snap-styles";
-import { watchStillHover } from "./still-hover";
 
 /*
  * Effets visuels des cartes : le rendu (CSS de tcg.css, section « Effets visuels », et JS ici) de
@@ -34,8 +25,10 @@ import { watchStillHover } from "./still-hover";
  * - `frame` : sur toute la carte, au-dessus de la bordure mais sous les encadrés (effets de cadre).
  * Un effet `image` redessine l'illustration (or, pop art, aquarelle…) : il se pose juste sur elle,
  * sous tout le reste, dans les deux mises en page, et sous les autres effets de l'illustration.
- * Sur les planches (`still`), tcg.css coupe toutes les animations : l'effet doit rester joli à
- * l'arrêt. La carte survolée les reprend (CSS, et `still` passé à faux aux effets JS).
+ * Sur les planches (cartes figées), l'effet tourne quand même, survolé ou non : tcg.css ne coupe
+ * pas les animations du calque `.tcg-vfx`, et les effets JS reçoivent `still` à faux. Figé, il
+ * restait dans une pose artificielle (pétales alignés). Le `still` des effets (image fixe) reste
+ * prévu, mais le calque le passe toujours à faux.
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
  * (éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
@@ -796,48 +789,24 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   ombres: { render: Shadows },
 };
 
-/**
- * Carte figée survolée (`watchStillHover`) : les effets animés en JS (éclair, mirage) y reçoivent
- * `still` à faux ; tcg.css y relance les animations CSS. Toujours faux hors carte figée.
- */
-function useHovered(ref: RefObject<HTMLElement | null>, still: boolean) {
-  const [hovered, setHovered] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!still || !el) return;
-    const stop = watchStillHover(el, {
-      enter: () => setHovered(true),
-      leave: () => setHovered(false),
-    });
-    return () => {
-      stop?.();
-      setHovered(false);
-    };
-  }, [ref, still]);
-  return hovered;
-}
-
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */
 export function VisualEffectLayer({
   effectKey,
   card,
   full = false,
-  still = false,
 }: {
   effectKey: string | null | undefined;
   card: CardData;
   /** Full art (sinon carte normale). */
   full?: boolean;
-  still?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const hovered = useHovered(ref, still);
   const def = effectKey ? VISUAL_EFFECTS[effectKey] : undefined;
   if (!def) return null;
   const Effect = def.render;
   return (
-    <div ref={ref} className="tcg-vfx" aria-hidden data-effect={effectKey}>
-      <Effect still={still && !hovered} card={card} full={full} />
+    <div className="tcg-vfx" aria-hidden data-effect={effectKey}>
+      {/* Toujours animé, même sur une planche (carte figée) : voir l'en-tête du module. */}
+      <Effect still={false} card={card} full={full} />
     </div>
   );
 }

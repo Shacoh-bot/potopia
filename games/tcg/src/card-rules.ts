@@ -31,6 +31,7 @@ export const CARD_LIMITS = {
   family: 40,
   effectText: 300,
   flavor: 300,
+  adminNote: 120,
   // Jusqu'à 8, comme Skaar (7) et Death (8) dans Snap : des cartes qui coûtent moins en main.
   cost: { min: 0, max: 8 },
   power: { min: -20, max: 30 },
@@ -207,6 +208,8 @@ export type Card = {
   effectParams: EffectParams | null;
   effectText: string;
   flavor: string | null;
+  /** Note de l'admin (« Doublon de … ») : jamais montrée aux joueurs, sans effet en jeu. */
+  adminNote: string | null;
   imageKey: string | null;
   /** Illustration de la version full art ; null : celle de la normale (`imageKey`). */
   imageKeyFull: string | null;

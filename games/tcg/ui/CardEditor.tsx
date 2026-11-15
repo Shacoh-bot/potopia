@@ -82,6 +82,8 @@ type Fields = {
   effectParams: EffectParams;
   effectText: string;
   flavor: string;
+  /** Note de l'admin, jamais montrée aux joueurs. */
+  adminNote: string;
   /** Effets visuels cochés, dans l'ordre des calques (le premier en dessous). */
   visualEffectKeys: string[];
 };
@@ -155,6 +157,7 @@ function defaults(card: Card | null): Fields {
     effectParams: card?.effectParams ?? {},
     effectText: card?.effectText ?? "",
     flavor: card?.flavor ?? "",
+    adminNote: card?.adminNote ?? "",
     visualEffectKeys: card?.visualEffectKeys ?? [],
   };
 }
@@ -647,6 +650,30 @@ export function CardEditor({
               maxLength={CARD_LIMITS.flavor}
               onChange={(e) => set("flavor", e.target.value)}
             />
+          </Label>
+
+          <Label hint="Pour l'admin seulement : jamais montrée aux joueurs, sans effet en jeu.">
+            Note admin
+            <span className="flex gap-2">
+              <Input
+                value={fields.adminNote}
+                maxLength={CARD_LIMITS.adminNote}
+                placeholder="Ex. doublon de « … »"
+                onChange={(e) => set("adminNote", e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const note = fields.adminNote.trim();
+                  if (/^doublon/i.test(note)) return;
+                  set("adminNote", note ? `Doublon — ${note}` : "Doublon");
+                }}
+              >
+                Doublon
+              </Button>
+            </span>
           </Label>
 
           {fromIdea?.hasCards && (

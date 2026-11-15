@@ -195,6 +195,18 @@ ne se négocient pas sont dans [CLAUDE.md](CLAUDE.md) et détaillées dans l'arc
 
 ---
 
+## Patch notes (nouveautés du site)
+
+Le bouton « Nouveautés » du header (à gauche du thème) montre les mises à jour du site, la plus
+récente en haut, avec une pastille tant que la dernière n'a pas été lue. **Chaque PR qui change
+quelque chose de visible pour les membres ajoute ses lignes** dans `apps/web/content/patch-notes.ts` :
+dans l'entrée du jour si elle existe, sinon dans une nouvelle entrée en tête (une entrée par jour).
+Français simple, ton du site, sans jargon, sans numéro de PR ni pseudo. Les tests
+(`apps/web/test/patch-notes.test.tsx`) refusent une date mal écrite, une entrée vide ou deux
+entrées le même jour.
+
+---
+
 ## Ajouter un jeu ou une app
 
 Exemple pour un jeu `games/monjeu` :
@@ -291,7 +303,8 @@ dans la réserve (la page s'ouvre dessus) ; une carte rangée dans un set y pren
 prod avec lui. Depuis la page
 d'une idée (Administration › Boîte à idées), « Créer une carte » pré-remplit une carte. On y règle : nom, type, famille,
 mana, puissance, rareté, effet (choisi dans le catalogue `games/tcg/src/effects.ts`, puis réglé),
-description et illustration (fichier ou image collée avec Ctrl+V, convertie en WebP avant l'envoi,
+description, une note admin (« Doublon de … », bouton « Doublon » ; visible dans la liste et la
+corbeille, jamais montrée aux joueurs) et illustration (fichier ou image collée avec Ctrl+V, convertie en WebP avant l'envoi,
 puis à cadrer en la faisant glisser et en zoomant). Pour en créer beaucoup d'un coup, `/admin/cartes/import` prend un
 fichier JSON (format affiché sur la page ; un fichier `updates` y change en masse le coût, la
 puissance et l'effet de cartes existantes), et `/admin/cartes/illustrations` plusieurs images d'un

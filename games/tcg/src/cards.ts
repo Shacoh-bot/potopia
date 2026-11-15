@@ -150,6 +150,13 @@ const cardFields = z.object({
   effectParams: z.record(z.string(), z.union([z.string(), z.number()])).nullish(),
   effectText: optionalText(CARD_LIMITS.effectText, "Texte de l'effet"),
   flavor: optionalText(CARD_LIMITS.flavor, "Description"),
+  // Note de l'admin. Absente : celle enregistrée ne change pas ; vide : plus de note.
+  adminNote: z
+    .string()
+    .trim()
+    .max(CARD_LIMITS.adminNote, `Note : ${CARD_LIMITS.adminNote} caractères maximum.`)
+    .nullish()
+    .transform((v) => (v === undefined ? undefined : v || null)),
   imageFrame: frameSchema.nullish().transform((v) => v ?? null),
   // Absent : le cadrage full art enregistré ne change pas (mise à jour en masse, anciens appels) ;
   // null : la full art reprend le cadrage de la carte normale.
@@ -482,6 +489,7 @@ export async function updateCard(
           name: fields.name,
           rarity: fields.rarity,
           flavor: fields.flavor,
+          adminNote: fields.adminNote,
           imageFrame: fields.imageFrame,
           imageFrameFull: fields.imageFrameFull,
           ...resolveVersions(fields, current, current.layout),
@@ -500,6 +508,7 @@ export async function updateCard(
         name: fields.name,
         rarity: fields.rarity,
         flavor: fields.flavor,
+        adminNote: fields.adminNote,
         imageFrame: fields.imageFrame,
         imageFrameFull: fields.imageFrameFull,
         ...resolveVersions(fields, current, current.layout),

@@ -74,6 +74,8 @@ model TcgCard {
   effectParams   Json?     @map("effect_params")
   effectText     String    @default("") @map("effect_text")
   flavor         String?
+  // Note de l'admin (« Doublon de … ») : jamais montrée aux joueurs, sans effet en jeu.
+  adminNote      String?   @map("admin_note")
   // Clé de l'illustration dans le stockage (jamais une URL) ; sans elle, l'image de l'idée.
   imageKey       String?   @map("image_key")
   // Illustration propre à la version full art ; null : la full art reprend `imageKey`.

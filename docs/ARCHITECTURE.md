@@ -208,6 +208,9 @@ passe d'une partie à l'autre sans rechargement.
   statsManual (défaut false : avec un effet, cost et power suivent sa carte Snap), effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageKeyFull? (illustration de la
   version Alt Art ; null, elle reprend `imageKey`), imageFrame? (JSON : cadrage de
+  effectParams? (JSON), effectText, flavor?, adminNote? (note de l'admin, 120 caractères :
+  « Doublon de … » ; jamais montrée aux joueurs, sans effet en jeu ; absente d'une modification,
+  elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
   l'illustration, voir plus bas ; null, aucun), layout
@@ -630,7 +633,16 @@ ApothicaireOpening.tsx`, `apothicaire()` de `@app/ui`) : la page s'assombrit sou
   `min-w-0`, sinon il dépasse de son cadre (fenêtre du volume).
 
 **Header** (`packages/core/ui/Header.tsx`, boutons passés par `(platform)/layout.tsx`). De gauche à
-droite : Sonic, Luffy, la boule musicale, thème, cloche, volume, menu du profil.
+droite : Sonic, Luffy, la boule musicale, nouveautés, thème, cloche, volume, menu du profil.
+
+- Nouveautés (`components/PatchNotes.tsx`, juste à gauche du thème) : le bouton ouvre la liste des
+  mises à jour du site, la plus récente en haut (date, titre, puces). Données dans
+  `apps/web/content/patch-notes.ts`, une entrée par jour, validées par zod au chargement côté
+  serveur (`parsePatchNotes` : date AAAA-MM-JJ, au moins une ligne, pas deux entrées le même jour)
+  puis passées au bouton. Une pastille reste tant que la dernière entrée n'a pas été ouverte sur
+  l'appareil (`localStorage`, clé `potopia-patch-notes-vu` = date de la dernière lue), lue par
+  `useSyncExternalStore` (aucune pastille au rendu serveur, puis celle du navigateur ; suit aussi les
+  autres onglets). Fermeture : clic à côté, Échap ou le bouton.
 
 - Sonic (`apps/web/components/SonicRun.tsx`, masqué sous 1024 px), Luffy
   (`components/LuffyRun.tsx`, masqué sous 640 px) et la boule (`components/SpinOrb.tsx`) lancent
@@ -974,7 +986,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   la carte survolée redevient vivante, comme dans sa fiche : inclinaison 3D vers le pointeur,
   reflet, ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
   `still-hover.ts` écoute le survol sur le lien, la carte y étant insensible au pointeur, et
-  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante.
+  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante. Exception : l'effet
+  visuel de la carte (calque `.tcg-vfx` : pétales, braises, fumée…) tourne toujours, survolé ou
+  non ; figé, il restait dans une pose artificielle (pétales alignés).
 - Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
   pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
   `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
@@ -1014,9 +1028,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   Un effet `image` redessine l'illustration (il reçoit la carte et la redessine avec
   `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
   texte, en carte normale comme en full art. Sur la
-  planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées ; sur la
-  planche, la carte survolée les reprend (`data-live`, voir plus haut ; `VisualEffectLayer` passe
-  alors `still` à faux aux effets en JS). Une clé sans
+  planche, les effets tournent même sans survol (tcg.css ne coupe pas le calque `.tcg-vfx`, et
+  `VisualEffectLayer` passe toujours `still` à faux aux effets en JS) ; avec
+  `prefers-reduced-motion`, leurs animations sont coupées. Une clé sans
   rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
@@ -1028,8 +1042,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   puis toutes les 1 à 3,5 s, la traverse avec deux ou trois ramifications, scintille et l'illumine
   d'un flash parti de son point de départ ; rendu en couches SVG : grand halo flou violet et
   cyan (bloom, `feGaussianBlur`), lueur cyan, cœur blanc net et point d'impact qui brille,
-  fusionnés en `screen`, sans sortir de la carte ; carte figée d'une planche (non survolée) : aucun éclair ;
-  mouvement réduit : un éclair fixe). Repris des anciennes propositions de
+  fusionnés en `screen`, sans sortir de la carte ; mouvement réduit : un éclair fixe). Repris des anciennes propositions de
   design, avec leurs styles de `tcg.css` tels quels (migration
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
@@ -1061,9 +1074,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   et `fumeeblanche` (« Fumée blanche ») : un fond de fumée au pied de la carte et des bouffées
   floues (`tcg-vfx-puff`, tirées avec une graine fixe) qui montent, grossissent, dérivent et
   s'estompent, en fusion `screen` ; la couleur passe par `--smoke` (`smoke(rgb)` dans
-  `visual-effects.tsx`) ; figées à mi-hauteur sur la planche ou en mouvement réduit.
+  `visual-effects.tsx`) ; figées à mi-hauteur en mouvement réduit.
   Ambiances (migration `tcg_visual_effects_ambiances`, tirages à graine fixe, figées à
-  mi-course sur la planche et en mouvement réduit) : `braises` (« Braises », place `card` :
+  mi-course en mouvement réduit) : `braises` (« Braises », place `card` :
   étincelles orange qui montent en vacillant, lueur chaude au pied), `caustiques`
   (« Caustiques », sur l'illustration : deux réseaux d'anneaux clairs qui glissent en sens
   contraire, reflets d'un fond de piscine, et des bulles), `rayons` (« Rayons de lumière »,
@@ -1224,7 +1237,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   caché aussi (sinon ses calques animés transparaissaient quand on inclinait la carte). Chaque nouveau paquet repart de la vue d'origine
   (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
   un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
-  réduites : directement les cartes.
+  réduites (`prefers-reduced-motion`) : l'ouverture se joue quand même en entier (paquet, découpe,
+  relais vidéo), seuls les mouvements secondaires sont adoucis (`openingPlan` de `ui/opening.ts` :
+  pas de flottement du paquet ; cartes rangées et retournées sans transition).
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`

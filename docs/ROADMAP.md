@@ -617,6 +617,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       illustration et son cadrage ; l'Alt Art sort à 10 % quand la carte tirée a les deux versions
       (taux et garanties inchangés), les deux se collectionnent à part dans le Potodex. Migration
       `tcg_card_versions` (colonnes ajoutées, valeurs calculées pour l'existant).
+- [x] Note admin sur une carte (« Doublon de … »), visible dans la liste et la corbeille, jamais
+      montrée aux joueurs ; migration `tcg_card_admin_note` (ajout d'une colonne).
 - [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`), remplis et
       suivis dans la fiche, case « Stats manuelles », règle appliquée par le serveur ; migration
       `tcg_card_stats_manual` (ajout d'une colonne, aucune carte réécrite).
@@ -735,3 +737,22 @@ Détails du jeu : [games/douze/README.md](../games/douze/README.md).
 **Fini quand**
 
 - Le jeu est ouvert et joué par les membres.
+
+---
+
+## Étape 17 : patch notes (en cours)
+
+Bouton « Nouveautés » dans le header, à gauche du thème : les mises à jour du site, la plus récente
+en haut, avec une pastille tant que la dernière n'a pas été lue.
+
+**Tâches**
+
+- [x] Données versionnées `apps/web/content/patch-notes.ts` (une entrée par jour, validées par zod,
+      testées), bouton et panneau `components/PatchNotes.tsx`, pastille mémorisée dans le
+      navigateur.
+- [x] Contenu de départ : les mises à jour depuis DOUZE (13 et 14 novembre).
+- [ ] Chaque PR visible pour les membres ajoute son entrée (règle notée dans le README).
+
+**Fini quand**
+
+- Les membres voient les nouveautés de chaque mise à jour.

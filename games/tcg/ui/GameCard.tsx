@@ -106,7 +106,6 @@ export function GameCard({
       typeLine={typeLine(card)}
       gameFooter
       visualEffects={card.visualEffectKeys}
-      still={still}
       refined
     />
   );
