@@ -1197,7 +1197,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   caché aussi (sinon ses calques animés transparaissaient quand on inclinait la carte). Chaque nouveau paquet repart de la vue d'origine
   (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
   un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
-  réduites : directement les cartes.
+  réduites (`prefers-reduced-motion`) : l'ouverture se joue quand même en entier (paquet, découpe,
+  relais vidéo), seuls les mouvements secondaires sont adoucis (`openingPlan` de `ui/opening.ts` :
+  pas de flottement du paquet ; cartes rangées et retournées sans transition).
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
