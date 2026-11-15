@@ -71,6 +71,8 @@ export {
   cardVersions,
   drawVersion,
   imageKeyFor,
+  isAltArt,
+  revealRarity,
   type CardLayout,
 } from "./card-rules";
 export { SNAP_CARDS, type SnapStats } from "./snap-cards";

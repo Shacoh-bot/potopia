@@ -278,8 +278,10 @@ export function CardEditor({
       imageFrame: frames.normal,
       imageFrameFull: frames.fullart,
       glowPoints,
+      // mention AA dans l'aperçu : seulement si la version normale est active
+      hasNormal: versions.normal,
     }),
-    [fields, cost, power, shownText, card, sets, setId, setSizes, frames, glowPoints],
+    [fields, cost, power, shownText, card, sets, setId, setSizes, frames, glowPoints, versions],
   );
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {

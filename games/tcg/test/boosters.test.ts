@@ -217,7 +217,7 @@ describe("Potodex", () => {
     const dex = await getPotodex(ADMIN, { setCode: "S1" });
     expect(dex).toMatchObject({ found: 1, total: 2, boosters: 1 });
     expect(dex.entries[0]).toMatchObject({ number: 1, found: true, count: 5 });
-    expect(dex.entries[1]).toEqual({ number: 2, version: "normal", found: false });
+    expect(dex.entries[1]).toEqual({ number: 2, version: "normal", altArt: false, found: false });
   });
 
   it("remise à zéro : collection et paquets vidés", async () => {

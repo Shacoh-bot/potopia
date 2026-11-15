@@ -316,7 +316,7 @@ sous le paquet : SR ou mieux au 20e paquet, SSR au 90e ; réglage dans `BOOSTER_
 set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)
 et remet la collection de test à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
 
-Chaque carte a deux versions, chacune activable dans sa fiche (boutons sous l'aperçu, case « active », illustration et cadrage propres) : la normale et l'**Alt Art** (« AA », en full art). Quand une carte tirée a les deux, elle sort en Alt Art à 10 % (`ALT_ART_CHANCE`, `games/tcg/src/card-rules.ts`) ; le Potodex compte les deux versions à part.
+Chaque carte a deux versions, chacune activable dans sa fiche (boutons sous l'aperçu, case « active », illustration et cadrage propres) : la normale et l'**Alt Art** (« AA », en full art). Quand une carte tirée a les deux, elle sort en Alt Art à 10 % (`ALT_ART_CHANCE`, `games/tcg/src/card-rules.ts`), avec le son de révélation de la SR ; le Potodex compte les deux versions à part. Une carte qui n'existe qu'en full art n'a pas la mention AA (`ALT_ART_NEEDS_NORMAL`).
 
 ### Mettre à jour la mascotte
 

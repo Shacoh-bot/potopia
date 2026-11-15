@@ -13,6 +13,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { revealRarity } from "../src/card-rules";
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
 import { CardBack } from "./CardBack";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
@@ -215,7 +216,8 @@ function OpeningCard({
   function reveal() {
     if (side !== "back" || !opened) return;
     setSide("face");
-    flipSound(opened.card.rarity);
+    // une Alt Art se révèle au moins avec le son de la SR ; le halo reste celui de sa rareté
+    flipSound(revealRarity(opened.card));
     onReveal();
     // La face ne suit la souris qu'une fois posée, sinon elle resterait de travers.
     window.setTimeout(() => setSettled(true), FLIP_MS);

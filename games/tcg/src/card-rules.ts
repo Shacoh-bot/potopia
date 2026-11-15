@@ -104,6 +104,35 @@ export function drawVersion(
   return card.hasFullArt ? "fullart" : "normal";
 }
 
+/**
+ * L'Alt Art est la variante rare d'une carte qui a aussi sa version normale : une carte qui n'existe
+ * qu'en full art (ex. Le vieux sage) n'a pas la mention AA. Choix du 15/11, à confirmer par
+ * l'utilisateur : passer à `false` pour mentionner AA sur toute version full art.
+ */
+export const ALT_ART_NEEDS_NORMAL = true;
+
+/**
+ * La carte, montrée dans cette version, est-elle une Alt Art (mention « AA ») ? `hasNormal`
+ * absent : la carte est comptée comme ayant sa version normale.
+ */
+export function isAltArt(card: { hasNormal?: boolean }, version: CardLayout): boolean {
+  return version === "fullart" && (!ALT_ART_NEEDS_NORMAL || card.hasNormal !== false);
+}
+
+/**
+ * Rareté dont on joue le son à la révélation d'une carte : celle de la carte, mais une Alt Art se
+ * révèle au moins comme une SR (demande de l'utilisateur, 15/11 ; une SSR garde le sien). Seul le
+ * son change : le halo et les effets restent ceux de la rareté de la carte.
+ */
+export function revealRarity(card: {
+  rarity: CardRarityId;
+  hasNormal?: boolean;
+  layout?: CardLayout;
+}): CardRarityId {
+  if (!isAltArt(card, card.layout ?? "normal")) return card.rarity;
+  return card.rarity === "ssr" ? "ssr" : "sr";
+}
+
 /** Versions actives d'une carte, la normale d'abord. */
 export function cardVersions(card: { hasNormal: boolean; hasFullArt: boolean }): CardLayout[] {
   return CARD_LAYOUTS.filter((v) => (v === "normal" ? card.hasNormal : card.hasFullArt));

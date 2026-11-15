@@ -144,11 +144,11 @@ export default async function AdminPotodexPage({
                     <div
                       className="grid place-items-center rounded-[12px] border border-white/10 bg-black shadow-inner"
                       style={{ width: SLOT, aspectRatio: `${CARD_WIDTH} / ${CARD_HEIGHT}` }}
-                      aria-label={`Carte ${pad(entry.number)}${entry.version === "fullart" ? " en Alt Art" : ""} : pas encore trouvée`}
+                      aria-label={`Carte ${pad(entry.number)}${entry.altArt ? " en Alt Art" : ""} : pas encore trouvée`}
                     >
                       <span className="flex flex-col items-center gap-1">
                         <span className="font-display text-2xl text-white/25">?</span>
-                        {entry.version === "fullart" && (
+                        {entry.altArt && (
                           <span className="rounded border border-amber-300/40 px-1.5 text-xs font-bold tracking-wider text-amber-200/60">
                             AA
                           </span>
@@ -158,7 +158,7 @@ export default async function AdminPotodexPage({
                   )}
                   <span className="text-muted text-xs tabular-nums">
                     {pad(entry.number)}
-                    {entry.version === "fullart" && (
+                    {entry.altArt && (
                       <span
                         title={CARD_VERSION_LABELS.fullart}
                         className="font-semibold text-amber-300"

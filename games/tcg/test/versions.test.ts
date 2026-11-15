@@ -12,6 +12,8 @@ import {
   ensureSet,
   getPotodex,
   imageKeyFor,
+  isAltArt,
+  revealRarity,
   openBooster,
   updateCard,
 } from "../src/index";
@@ -89,6 +91,32 @@ describe("versions d'une carte", () => {
   });
 });
 
+describe("mention AA et révélation", () => {
+  it("AA seulement pour la full art d'une carte qui a aussi sa version normale", () => {
+    expect(isAltArt({ hasNormal: true }, "fullart")).toBe(true);
+    expect(isAltArt({ hasNormal: true }, "normal")).toBe(false);
+    // carte full art seule (ex. Le vieux sage) : pas de mention AA
+    expect(isAltArt({ hasNormal: false }, "fullart")).toBe(false);
+  });
+
+  it("une Alt Art se révèle au moins avec le son de la SR, une SSR garde le sien", () => {
+    const aa = { hasNormal: true, layout: "fullart" } as const;
+    expect(revealRarity({ ...aa, rarity: "common" })).toBe("sr");
+    expect(revealRarity({ ...aa, rarity: "legendary" })).toBe("sr");
+    expect(revealRarity({ ...aa, rarity: "ssr" })).toBe("ssr");
+    expect(revealRarity({ hasNormal: true, layout: "normal", rarity: "rare" })).toBe("rare");
+    expect(revealRarity({ hasNormal: false, layout: "fullart", rarity: "legendary" })).toBe(
+      "legendary",
+    );
+  });
+
+  it("Potodex : pas de case AA pour une carte qui n'existe qu'en full art", async () => {
+    await createCard(ADMIN, { ...BASE, name: "Le vieux sage", setId, layout: "fullart" });
+    const dex = await getPotodex(ADMIN, { setCode: "S1" });
+    expect(dex.entries).toEqual([{ number: 1, version: "fullart", altArt: false, found: false }]);
+  });
+});
+
 describe("tirage de la version", () => {
   const both = { hasNormal: true, hasFullArt: true };
 
@@ -148,7 +176,7 @@ describe("collection par version", () => {
       [1, "fullart"],
       [2, "normal"],
     ]);
-    expect(dex.entries[1]).toEqual({ number: 1, version: "fullart", found: false });
+    expect(dex.entries[1]).toEqual({ number: 1, version: "fullart", altArt: true, found: false });
 
     // 0 : Alt Art à chaque tirage (la carte qui a ses deux versions)
     const alt = await openBooster(ADMIN, { setCode: "S1" }, { rnd: () => 0 });

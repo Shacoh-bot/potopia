@@ -8,6 +8,7 @@ import {
   type CardSet,
   cardVersions,
   drawVersion,
+  isAltArt,
 } from "./card-rules";
 import { type Admin, assertAdmin, CardInputError, toCard, withSet } from "./cards";
 
@@ -369,8 +370,8 @@ export async function openBooster(
  * `layout`) si elle a été trouvée, sinon seulement son numéro et sa version (en noir).
  */
 export type PotodexEntry =
-  | { number: number; version: CardLayout; found: true; count: number; card: Card }
-  | { number: number; version: CardLayout; found: false };
+  | { number: number; version: CardLayout; altArt: boolean; found: true; count: number; card: Card }
+  | { number: number; version: CardLayout; altArt: boolean; found: false };
 
 /**
  * Potodex d'un joueur pour un set : chaque version active de chaque carte du set, dans l'ordre des
@@ -410,9 +411,11 @@ export async function getPotodex(
     cardVersions(row).map((version): PotodexEntry => {
       const number = row.number ?? 0;
       const count = counts.get(`${row.id}:${version}`);
+      // case « AA » : seulement pour la variante d'une carte qui a aussi sa normale
+      const altArt = isAltArt(row, version);
       return count
-        ? { number, version, found: true, count, card: { ...toCard(row), layout: version } }
-        : { number, version, found: false };
+        ? { number, version, altArt, found: true, count, card: { ...toCard(row), layout: version } }
+        : { number, version, altArt, found: false };
     }),
   );
   return {
