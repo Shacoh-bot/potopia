@@ -1,3 +1,4 @@
+import { sessionCookiePrefix } from "@app/core/cookies";
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -7,7 +8,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * requireMember / requireAdmin dans chaque layout, page, server action et route handler.
  */
 export function proxy(request: NextRequest) {
-  if (!getSessionCookie(request)) {
+  // même nom de cookie que Better Auth (propre au port en développement local)
+  const cookiePrefix = sessionCookiePrefix(process.env.BETTER_AUTH_URL);
+  if (!getSessionCookie(request, { cookiePrefix })) {
     if (request.nextUrl.pathname.startsWith("/api/")) {
       return Response.json({ error: "Connexion requise." }, { status: 401 });
     }

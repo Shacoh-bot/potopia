@@ -1463,6 +1463,8 @@
 /* ── Ouverture d'un booster (BoosterOpening) ── */
 /* L'écran s'ouvre dans la page, au format de la vidéo (16:9), sans dépasser la fenêtre. */
 .tcg-opening {
+  /* Les auras des cartes (z-index -1) passent sous toutes les cartes, au-dessus du fond. */
+  isolation: isolate;
   aspect-ratio: 16 / 9;
   max-height: calc(100dvh - 9rem);
   min-height: 340px;
@@ -1505,8 +1507,9 @@
 .tcg-opening-card[data-side="face"]:not([data-settled]) {
   transform: translateY(-8px);
 }
+/* Carte retournée : un clic l'ouvre en grand. */
 .tcg-opening-card[data-side="face"] {
-  cursor: default;
+  cursor: zoom-in;
 }
 /* Vraie carte recto-verso : le dos et la face sont dos à dos dans un même volume, et toute la
    carte pivote d'un seul demi-tour. Chaque côté est à plat (la 3D interne de la face, inclinaison
@@ -1563,40 +1566,15 @@
     transform: perspective(1000px) translateZ(0) rotateY(180deg);
   }
 }
-/* Halo de la carte révélée, selon la rareté : il s'allume quand la face arrive (mi-parcours). */
-.tcg-opening-card[data-side="face"][data-rarity="rare"] {
-  filter: drop-shadow(0 0 14px rgb(96 165 250 / 0.6));
-  transition-delay: 0.31s;
+/* La carte révélée prend son aura (`CardAura`, posée derrière elle dans la case) : elle apparaît
+   en fondu une fois la carte posée. Les anciens halos (ombres portées) sont remplacés. */
+.tcg-opening-slot > .tcg-aura,
+.tcg-opening-slot > .tcg-aura-rare {
+  animation: tcg-aura-in 0.7s ease-out both;
 }
-.tcg-opening-card[data-side="face"][data-rarity="epic"] {
-  filter: drop-shadow(0 0 18px rgb(192 132 252 / 0.7));
-  transition-delay: 0.31s;
-}
-.tcg-opening-card[data-side="face"][data-rarity="legendary"] {
-  animation: tcg-halo-gold 2.4s ease-in-out 0.31s infinite;
-}
-.tcg-opening-card[data-side="face"]:is([data-rarity="sr"], [data-rarity="ssr"]) {
-  animation: tcg-halo-rainbow 3s linear 0.31s infinite;
-}
-@keyframes tcg-halo-gold {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 14px rgb(251 191 36 / 0.55));
-  }
-  50% {
-    filter: drop-shadow(0 0 28px rgb(251 191 36 / 0.9));
-  }
-}
-@keyframes tcg-halo-rainbow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 22px rgb(255 61 242 / 0.8));
-  }
-  33% {
-    filter: drop-shadow(0 0 22px rgb(47 230 255 / 0.8));
-  }
-  66% {
-    filter: drop-shadow(0 0 22px rgb(255 214 102 / 0.85));
+@keyframes tcg-aura-in {
+  from {
+    opacity: 0;
   }
 }
 .tcg-opening-button {
@@ -1672,4 +1650,75 @@
   .tcg-opening-hint {
     animation: none !important;
   }
+}
+
+/* Aura des cartes (`CardAura`), réservée à l'ouverture des boosters : derrière la carte, elle
+   déborde tout autour sans capter le pointeur. */
+.tcg-aura {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+.tcg-aura canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* Rare : un halo doux seul, sans vrilles ni étincelles. */
+.tcg-aura-rare {
+  position: absolute;
+  inset: -4%;
+  z-index: -1;
+  border-radius: 9%;
+  pointer-events: none;
+  background: rgb(96 165 250 / 0.55);
+  filter: blur(22px);
+}
+
+/* Halo de survol des cartes (hors ouverture des boosters) : une lumière douce de la couleur de la
+   rareté, un peu plus forte pour les hautes raretés, sans particules ; rien sans survol. Posé
+   derrière la carte (premier calque de `Shell`), il apparaît quand `Tilt` marque le survol
+   (`data-active`) ou quand une carte figée de planche redevient vivante (`data-live`). */
+.tcg-hover-halo {
+  --halo: rgb(200 205 220 / 0.35);
+  --halo-size: 14px;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 22px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 var(--halo-size) calc(var(--halo-size) / 3) var(--halo);
+  transition: opacity 0.25s ease;
+}
+.tcg-hover-halo[data-rarity="uncommon"] {
+  --halo: rgb(61 220 132 / 0.38);
+}
+.tcg-hover-halo[data-rarity="rare"] {
+  --halo: rgb(79 143 247 / 0.45);
+  --halo-size: 16px;
+}
+.tcg-hover-halo[data-rarity="epic"] {
+  --halo: rgb(164 92 255 / 0.5);
+  --halo-size: 18px;
+}
+.tcg-hover-halo[data-rarity="legendary"] {
+  --halo: rgb(255 194 61 / 0.55);
+  --halo-size: 20px;
+}
+.tcg-hover-halo[data-rarity="sr"] {
+  --halo: rgb(236 228 255 / 0.6);
+  --halo-size: 22px;
+}
+.tcg-hover-halo[data-rarity="ssr"] {
+  --halo: rgb(255 106 181 / 0.6);
+  --halo-size: 24px;
+  box-shadow:
+    -6px 0 var(--halo-size) calc(var(--halo-size) / 3) rgb(106 213 255 / 0.5),
+    6px 0 var(--halo-size) calc(var(--halo-size) / 3) var(--halo);
+}
+.tcg-tilt[data-active] .tcg-hover-halo,
+.tcg-still[data-live] .tcg-hover-halo {
+  opacity: 1;
 }
