@@ -27,11 +27,13 @@ import {
 } from "@/app/actions/notifications";
 import { LuffyRun } from "@/components/LuffyRun";
 import { MobileMenu } from "@/components/MobileMenu";
+import { PatchNotes } from "@/components/PatchNotes";
 import { SideNav } from "@/components/SideNav";
 import { SonicRun } from "@/components/SonicRun";
 import { SpinOrb } from "@/components/SpinOrb";
 import { SpyroRun } from "@/components/SpyroRun";
 import { Ocarina } from "@/components/Ocarina";
+import { LATEST_PATCH_NOTE, PATCH_NOTES } from "@/content/patch-notes";
 import { getActivityFeed } from "@/lib/activity";
 import { canSendTestNotification } from "@/lib/notifications";
 import { getCurrentMember } from "@/lib/session";
@@ -109,6 +111,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
             <Ocarina />
             <LuffyRun />
             <SpinOrb />
+            {/* nouveautés du site, juste à gauche du thème */}
+            <PatchNotes notes={PATCH_NOTES} latest={LATEST_PATCH_NOTE} />
             <ThemeSwitcher current={theme} />
             <NotificationBell
               notifications={notifications}

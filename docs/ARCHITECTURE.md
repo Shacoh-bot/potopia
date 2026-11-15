@@ -629,7 +629,16 @@ ApothicaireOpening.tsx`, `apothicaire()` de `@app/ui`) : la page s'assombrit sou
   `min-w-0`, sinon il dépasse de son cadre (fenêtre du volume).
 
 **Header** (`packages/core/ui/Header.tsx`, boutons passés par `(platform)/layout.tsx`). De gauche à
-droite : Sonic, Luffy, la boule musicale, thème, cloche, volume, menu du profil.
+droite : Sonic, Luffy, la boule musicale, nouveautés, thème, cloche, volume, menu du profil.
+
+- Nouveautés (`components/PatchNotes.tsx`, juste à gauche du thème) : le bouton ouvre la liste des
+  mises à jour du site, la plus récente en haut (date, titre, puces). Données dans
+  `apps/web/content/patch-notes.ts`, une entrée par jour, validées par zod au chargement côté
+  serveur (`parsePatchNotes` : date AAAA-MM-JJ, au moins une ligne, pas deux entrées le même jour)
+  puis passées au bouton. Une pastille reste tant que la dernière entrée n'a pas été ouverte sur
+  l'appareil (`localStorage`, clé `potopia-patch-notes-vu` = date de la dernière lue), lue par
+  `useSyncExternalStore` (aucune pastille au rendu serveur, puis celle du navigateur ; suit aussi les
+  autres onglets). Fermeture : clic à côté, Échap ou le bouton.
 
 - Sonic (`apps/web/components/SonicRun.tsx`, masqué sous 1024 px), Luffy
   (`components/LuffyRun.tsx`, masqué sous 640 px) et la boule (`components/SpinOrb.tsx`) lancent
