@@ -33,7 +33,7 @@ export const PATCH_NOTES = parsePatchNotes([
     date: "2026-11-14",
     title: "Des vrais sons un peu partout",
     items: [
-      "TROIS sonne enfin comme Motus, avec les vrais sons de l'émission.",
+      "TROIS a de vrais bruitages, plus sobres.",
       "Thème JoJo : ORA, MUDA et le thème de Jotaro suivent le volume en direct, même en plein morceau.",
       "Les effets de thème ont leurs vrais sons : le « ドン!! » de One Piece, Mao Mao, et le « tink » des émeraudes.",
       "Morpion Simpson : M. Burns et l'égalité passent en vraie qualité, en VF.",
