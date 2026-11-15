@@ -973,7 +973,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   la carte survolée redevient vivante, comme dans sa fiche : inclinaison 3D vers le pointeur,
   reflet, ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
   `still-hover.ts` écoute le survol sur le lien, la carte y étant insensible au pointeur, et
-  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante.
+  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante. Exception : l'effet
+  visuel de la carte (calque `.tcg-vfx` : pétales, braises, fumée…) tourne toujours, survolé ou
+  non ; figé, il restait dans une pose artificielle (pétales alignés).
 - Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
   pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
   `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
@@ -1013,9 +1015,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   Un effet `image` redessine l'illustration (il reçoit la carte et la redessine avec
   `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
   texte, en carte normale comme en full art. Sur la
-  planche (`still`) et avec `prefers-reduced-motion`, les animations sont coupées ; sur la
-  planche, la carte survolée les reprend (`data-live`, voir plus haut ; `VisualEffectLayer` passe
-  alors `still` à faux aux effets en JS). Une clé sans
+  planche, les effets tournent même sans survol (tcg.css ne coupe pas le calque `.tcg-vfx`, et
+  `VisualEffectLayer` passe toujours `still` à faux aux effets en JS) ; avec
+  `prefers-reduced-motion`, leurs animations sont coupées. Une clé sans
   rendu codé ne montre rien (la fiche l'indique « rendu pas encore codé ») ; une clé hors
   catalogue est refusée à l'enregistrement et à l'import (rien n'est enregistré). Premiers
   effets : `holo` (« Reflet holographique » : bandes arc-en-ciel qui glissent avec le pointeur
@@ -1027,8 +1029,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   puis toutes les 1 à 3,5 s, la traverse avec deux ou trois ramifications, scintille et l'illumine
   d'un flash parti de son point de départ ; rendu en couches SVG : grand halo flou violet et
   cyan (bloom, `feGaussianBlur`), lueur cyan, cœur blanc net et point d'impact qui brille,
-  fusionnés en `screen`, sans sortir de la carte ; carte figée d'une planche (non survolée) : aucun éclair ;
-  mouvement réduit : un éclair fixe). Repris des anciennes propositions de
+  fusionnés en `screen`, sans sortir de la carte ; mouvement réduit : un éclair fixe). Repris des anciennes propositions de
   design, avec leurs styles de `tcg.css` tels quels (migration
   `tcg_visual_effects_propositions`) : sur l'illustration, `eclat` (« Éclat de lumière », `tcg-shine`) ; sur le cadre, `orbite`
   (« Liseré lumineux », `tcg-orbit` en cyan), `prisme` (« Cadre prismatique », `tcg-prism`),
@@ -1060,9 +1061,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   et `fumeeblanche` (« Fumée blanche ») : un fond de fumée au pied de la carte et des bouffées
   floues (`tcg-vfx-puff`, tirées avec une graine fixe) qui montent, grossissent, dérivent et
   s'estompent, en fusion `screen` ; la couleur passe par `--smoke` (`smoke(rgb)` dans
-  `visual-effects.tsx`) ; figées à mi-hauteur sur la planche ou en mouvement réduit.
+  `visual-effects.tsx`) ; figées à mi-hauteur en mouvement réduit.
   Ambiances (migration `tcg_visual_effects_ambiances`, tirages à graine fixe, figées à
-  mi-course sur la planche et en mouvement réduit) : `braises` (« Braises », place `card` :
+  mi-course en mouvement réduit) : `braises` (« Braises », place `card` :
   étincelles orange qui montent en vacillant, lueur chaude au pied), `caustiques`
   (« Caustiques », sur l'illustration : deux réseaux d'anneaux clairs qui glissent en sens
   contraire, reflets d'un fond de piscine, et des bulles), `rayons` (« Rayons de lumière »,
