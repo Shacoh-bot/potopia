@@ -278,7 +278,7 @@ export function CardEditor({
       imageFrame: frames.normal,
       imageFrameFull: frames.fullart,
       glowPoints,
-      // mention AA dans l'aperçu : seulement si la version normale est active
+      // pour la mention AA de l'aperçu (`isAltArt`, selon `ALT_ART_NEEDS_NORMAL`)
       hasNormal: versions.normal,
     }),
     [fields, cost, power, shownText, card, sets, setId, setSizes, frames, glowPoints, versions],

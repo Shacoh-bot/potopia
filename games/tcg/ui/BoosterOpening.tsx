@@ -216,7 +216,7 @@ function OpeningCard({
   function reveal() {
     if (side !== "back" || !opened) return;
     setSide("face");
-    // une Alt Art se révèle au moins avec le son de la SR ; le halo reste celui de sa rareté
+    // une Alt Art se révèle avec le son de la SSR ; le halo reste celui de sa rareté
     flipSound(revealRarity(opened.card));
     onReveal();
     // La face ne suit la souris qu'une fois posée, sinon elle resterait de travers.

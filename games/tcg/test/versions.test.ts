@@ -12,6 +12,7 @@ import {
   ensureSet,
   getPotodex,
   imageKeyFor,
+  ALT_ART_NEEDS_NORMAL,
   isAltArt,
   revealRarity,
   openBooster,
@@ -92,28 +93,26 @@ describe("versions d'une carte", () => {
 });
 
 describe("mention AA et révélation", () => {
-  it("AA seulement pour la full art d'une carte qui a aussi sa version normale", () => {
+  it("full art = Alt Art, toujours, même pour une carte qui n'existe qu'en full art", () => {
+    expect(ALT_ART_NEEDS_NORMAL).toBe(false);
     expect(isAltArt({ hasNormal: true }, "fullart")).toBe(true);
     expect(isAltArt({ hasNormal: true }, "normal")).toBe(false);
-    // carte full art seule (ex. Le vieux sage) : pas de mention AA
-    expect(isAltArt({ hasNormal: false }, "fullart")).toBe(false);
+    // carte full art seule (ex. Le vieux sage) : AA aussi
+    expect(isAltArt({ hasNormal: false }, "fullart")).toBe(true);
   });
 
-  it("une Alt Art se révèle au moins avec le son de la SR, une SSR garde le sien", () => {
-    const aa = { hasNormal: true, layout: "fullart" } as const;
-    expect(revealRarity({ ...aa, rarity: "common" })).toBe("sr");
-    expect(revealRarity({ ...aa, rarity: "legendary" })).toBe("sr");
-    expect(revealRarity({ ...aa, rarity: "ssr" })).toBe("ssr");
+  it("toute Alt Art se révèle avec le son de la SSR, full art seule comprise", () => {
+    for (const rarity of ["common", "rare", "legendary", "sr", "ssr"] as const) {
+      expect(revealRarity({ hasNormal: true, layout: "fullart", rarity }), rarity).toBe("ssr");
+      expect(revealRarity({ hasNormal: false, layout: "fullart", rarity }), rarity).toBe("ssr");
+    }
     expect(revealRarity({ hasNormal: true, layout: "normal", rarity: "rare" })).toBe("rare");
-    expect(revealRarity({ hasNormal: false, layout: "fullart", rarity: "legendary" })).toBe(
-      "legendary",
-    );
   });
 
-  it("Potodex : pas de case AA pour une carte qui n'existe qu'en full art", async () => {
+  it("Potodex : case AA aussi pour une carte qui n'existe qu'en full art", async () => {
     await createCard(ADMIN, { ...BASE, name: "Le vieux sage", setId, layout: "fullart" });
     const dex = await getPotodex(ADMIN, { setCode: "S1" });
-    expect(dex.entries).toEqual([{ number: 1, version: "fullart", altArt: false, found: false }]);
+    expect(dex.entries).toEqual([{ number: 1, version: "fullart", altArt: true, found: false }]);
   });
 });
 

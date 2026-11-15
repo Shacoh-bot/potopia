@@ -66,6 +66,7 @@ export {
 } from "./effects";
 export {
   ALT_ART_CHANCE,
+  ALT_ART_NEEDS_NORMAL,
   CARD_LAYOUTS,
   CARD_VERSION_LABELS,
   cardVersions,

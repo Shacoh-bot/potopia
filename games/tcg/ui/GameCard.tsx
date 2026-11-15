@@ -46,8 +46,8 @@ export function GameCardDefs() {
  * ou full art (la mise en page enregistrée sur la carte, sauf `layout` donné), dans sa version
  * affinée (`refined`) : sans plaques d'angle dorées ni gemmes, filet doré collé au cadre, full art
  * avec les textes sans encadrés et un contour. La rareté se voit à la bordure et en pied de carte ;
- * en full art, une carte qui a aussi sa version normale est dans sa version Alt Art : mention
- * « AA » à côté de la rareté (`isAltArt`).
+ * en full art, la carte est dans sa version Alt Art : mention « AA » à côté de la rareté
+ * (`isAltArt`).
  */
 export function GameCard({
   card,

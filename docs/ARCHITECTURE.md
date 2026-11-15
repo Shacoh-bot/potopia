@@ -1142,9 +1142,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   `imageKeyFull` ; sans la sienne, l'Alt Art reprend celle de la normale, `imageKeyFor`) et son
   cadrage (`imageFrame`, `imageFrameFull`). L'Alt Art est une mention en plus de la rareté,
   possible pour toute rareté : `GameCard` affiche alors un badge doré « AA » en pied de carte,
-  après la rareté. L'AA est la variante rare d'une carte qui a aussi sa version normale : une
-  carte qui n'existe qu'en full art n'a pas la mention (`isAltArt`, réglable par
-  `ALT_ART_NEEDS_NORMAL`, à confirmer par l'utilisateur). Une AA garde les effets lumineux de sa
+  après la rareté. Full art = AA, toujours, y compris pour une carte qui n'existe qu'en full art
+  (`isAltArt` ; décision de l'utilisateur du 2026-11-15, `ALT_ART_NEEDS_NORMAL` à `true`
+  réserverait la mention aux cartes qui ont aussi leur version normale). Une AA garde les effets lumineux de sa
   carte (halo et effets de sa rareté, effets visuels et lumières communs aux deux versions).
   `layout` est la version montrée sur les planches : la normale si elle
   est active, sinon l'Alt Art (`resolveVersions` l'impose à l'enregistrement). Migration
@@ -1234,9 +1234,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains
   du vrai son tant que la découpe avance (plus fort si plus vite), ouverture, cartes qui se posent,
   retournement puis révélation selon la rareté, de plus en plus forte (1, 2, 4 losanges ; 1 et 3
-  étoiles ; couronne pour la SR ; révélation « immersive » pour la SSR). Une Alt Art se révèle
-  au moins avec le son de la SR (`revealRarity` ; une SSR garde le sien), son halo restant celui
-  de sa rareté. Téléchargés et décodés
+  étoiles ; couronne pour la SR ; révélation « immersive » pour la SSR). Toute Alt Art se révèle
+  avec le son de la SSR, quelle que soit sa rareté (`revealRarity`), son halo restant celui de sa
+  rareté (carte full art seule comprise). Téléchargés et décodés
   dès l'arrivée sur la page (`preloadBoosterSounds`, à côté de `preloadBoosterOpening`) ; volume
   du site appliqué en fin de chaîne, même pendant un son long.
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; le
