@@ -1249,6 +1249,24 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   réduites (`prefers-reduced-motion`) : l'ouverture se joue quand même en entier (paquet, découpe,
   relais vidéo), seuls les mouvements secondaires sont adoucis (`openingPlan` de `ui/opening.ts` :
   pas de flottement du paquet ; cartes rangées et retournées sans transition).
+- Aura des cartes (`ui/CardAura.tsx`, validée par l'utilisateur), réservée à l'ouverture des
+  boosters : derrière chaque carte révélée, jamais ailleurs. Rendu WebGL (bruit simplex, vrilles
+  qui tournent en sens contraire et s'éloignent en s'effaçant, lueur contre le bord) et canvas 2D
+  (étincelles indépendantes qui tourbillonnent). Gradation par rareté (`PALETTES`) : rare = halo
+  doux seul (CSS `tcg-aura-rare`), épique discrète, légendaire, SR bien plus fournie, SSR
+  débordante (arc-en-ciel) ; commune et peu commune : rien. Une Alt Art prend l'aura de sa
+  rareté. Une seule aura animée à la fois (la dernière apparue ou survolée), arrêt hors écran ;
+  « réduire les animations » : aura présente mais immobile. Partout ailleurs (planches, Potodex,
+  carte agrandie, fiche), `GameCard` n'a qu'un halo doux de la couleur de la rareté au survol
+  (`hoverHalo`, `.tcg-hover-halo`, plus fort pour les hautes raretés, sans particules, rien sans
+  survol) ; l'ouverture le coupe (`hoverHalo={false}`).
+- Carte ouverte en grand (`ui/CardZoom.tsx`, Potodex et ouverture des boosters) : la carte est
+  mise en page directement à sa grande taille (`zoom` CSS, `zoomToFit`) et non grossie après coup
+  par `transform: scale`, qui gardait la netteté de la petite carte (titre et illustration flous,
+  surtout pendant l'inclinaison 3D). L'illustration est l'image d'origine (URL présignée, pas de
+  miniature). Dialogue modal (`showModal`, au-dessus de toute la page sans portail) ; fermeture
+  par clic à côté, Échap ou le bouton ; pas d'aura. À l'ouverture d'un booster, un clic sur une
+  carte déjà retournée l'ouvre en grand (avant, le clic la retourne).
 - Préchargement : en arrivant sur la page, `preloadBoosterOpening` télécharge le code 3D, le
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`

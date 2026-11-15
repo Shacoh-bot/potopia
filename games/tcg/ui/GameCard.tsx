@@ -56,6 +56,7 @@ export function GameCard({
   setSize,
   still = false,
   author,
+  hoverHalo = true,
 }: {
   card: GameCardFields;
   imageUrl: string | null;
@@ -67,6 +68,11 @@ export function GameCard({
   still?: boolean;
   /** Auteur de l'idée d'origine, en pied de carte (« idée de … »). */
   author?: string | null;
+  /**
+   * Halo doux de la couleur de la rareté au survol (par défaut). L'aura animée (`CardAura`) est
+   * réservée à l'ouverture des boosters, qui coupe ce halo.
+   */
+  hoverHalo?: boolean;
 }) {
   const layout = forced ?? card.layout ?? "normal";
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -107,7 +113,9 @@ export function GameCard({
       gameFooter
       visualEffects={card.visualEffectKeys}
       refined
+      hoverHalo={hoverHalo}
     />
   );
-  return still ? <div className="tcg-still">{face}</div> : face;
+  if (still) return <div className="tcg-still">{face}</div>;
+  return face;
 }

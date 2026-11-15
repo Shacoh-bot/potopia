@@ -9,4 +9,5 @@ export { CardBack } from "./CardBack";
 export { BoosterOpening, type OpenedCard, preloadBoosterOpening } from "./BoosterOpening";
 export { preloadBoosterSounds } from "./booster-sounds";
 export { CardFlip } from "./CardFlip";
+export { CardZoom, zoomToFit } from "./CardZoom";
 export { CardImagesUpload } from "./CardImagesUpload";
