@@ -173,6 +173,7 @@ function Pack({
   onReady,
   onZoomed,
   onHoverLine,
+  float,
 }: {
   url: string;
   motion: React.RefObject<Motion>;
@@ -184,6 +185,7 @@ function Pack({
   onReady: () => void;
   onZoomed: () => void;
   onHoverLine: (onLine: boolean) => void;
+  float: boolean;
 }) {
   const gltf = useLoader(GLTFLoader, url);
   const camera = useThree((s) => s.camera);
@@ -354,8 +356,10 @@ function Pack({
         m.rotX *= Math.pow(0.97, dt * 60);
       }
       m.rotX = Math.max(-0.6, Math.min(0.6, m.rotX));
-      g.position.y = v.panY + Math.sin(ft * 1.3) * 0.05;
-      g.rotation.set(m.rotX, m.rotY, Math.sin(ft * 0.9) * 0.02);
+      // Léger flottement au repos, coupé avec « réduire les animations ».
+      const bob = float ? 1 : 0;
+      g.position.y = v.panY + Math.sin(ft * 1.3) * 0.05 * bob;
+      g.rotation.set(m.rotX, m.rotY, Math.sin(ft * 0.9) * 0.02 * bob);
     }
 
     const holo = look.current;
@@ -479,6 +483,7 @@ export default function PackScene({
   onZoomed,
   onGrab,
   onTear,
+  float = true,
 }: {
   url: string;
   /** Vrai une fois le paquet découpé : la caméra s'approche. */
@@ -490,6 +495,8 @@ export default function PackScene({
   onGrab?: () => void;
   /** Un bout de découpe (vitesse en m/s, pour le son). */
   onTear?: (speed: number) => void;
+  /** Léger flottement du paquet au repos (coupé avec « réduire les animations »). */
+  float?: boolean;
 }) {
   const motion = useRef<Motion>({ rotX: 0, rotY: 0, velX: 0, velY: 0, dragging: false });
   const cut = useRef<Cut>({ ...NEW_CUT });
@@ -710,6 +717,7 @@ export default function PackScene({
             onReady={onReady}
             onZoomed={onZoomed}
             onHoverLine={hover}
+            float={float}
           />
         </Suspense>
       </Canvas>

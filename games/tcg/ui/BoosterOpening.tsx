@@ -16,7 +16,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
 import { CardBack } from "./CardBack";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
-import { OPENING_BG } from "./opening";
+import { OPENING_BG, openingPlan } from "./opening";
 
 // three.js et le modèle ne se chargent que pour cet écran (préchargés par `preloadBoosterOpening`).
 const loadScene = () => import("./PackScene");
@@ -283,7 +283,6 @@ export function BoosterOpening({
   const view = useSize(root);
   const video = useRef<HTMLVideoElement>(null);
   const [phase, setPhase] = useState<Phase>("pack");
-  const [fromVideo, setFromVideo] = useState(true);
   const [packReady, setPackReady] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(0);
@@ -303,12 +302,11 @@ export function BoosterOpening({
     for (const c of cards ?? []) if (c.imageUrl) new Image().src = c.imageUrl;
   }, [cards]);
 
-  // Animations réduites : directement les 5 cartes.
+  // Animations réduites : l'ouverture se joue quand même (paquet, découpe, vidéo) ; seuls les
+  // mouvements secondaires sont adoucis (`openingPlan`). Elle était sautée : bug en prod.
+  const [plan, setPlan] = useState(() => openingPlan(false));
   useEffect(() => {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setFromVideo(false);
-      setPhase("cards");
-    }
+    setPlan(openingPlan(matchMedia("(prefers-reduced-motion: reduce)").matches));
   }, []);
 
   // Échap ferme.
@@ -437,6 +435,7 @@ export function BoosterOpening({
               onZoomed={onZoomed}
               onGrab={onGrab}
               onTear={tearSound}
+              float={plan.packFloat}
             />
           </Suspense>
         </div>
@@ -462,7 +461,7 @@ export function BoosterOpening({
         slots.map((slot, i) => {
           const v = VIDEO_CARDS[i];
           if (!v) return null;
-          const from = fromVideo
+          const from = plan.fromVideo
             ? {
                 left: frame.left + v.x * frame.scale,
                 top: frame.top + v.y * frame.scale,
