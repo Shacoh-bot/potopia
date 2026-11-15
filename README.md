@@ -195,6 +195,18 @@ ne se négocient pas sont dans [CLAUDE.md](CLAUDE.md) et détaillées dans l'arc
 
 ---
 
+## Patch notes (nouveautés du site)
+
+Le bouton « Nouveautés » du header (à gauche du thème) montre les mises à jour du site, la plus
+récente en haut, avec une pastille tant que la dernière n'a pas été lue. **Chaque PR qui change
+quelque chose de visible pour les membres ajoute ses lignes** dans `apps/web/content/patch-notes.ts` :
+dans l'entrée du jour si elle existe, sinon dans une nouvelle entrée en tête (une entrée par jour).
+Français simple, ton du site, sans jargon, sans numéro de PR ni pseudo. Les tests
+(`apps/web/test/patch-notes.test.tsx`) refusent une date mal écrite, une entrée vide ou deux
+entrées le même jour.
+
+---
+
 ## Ajouter un jeu ou une app
 
 Exemple pour un jeu `games/monjeu` :

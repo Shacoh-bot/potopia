@@ -731,3 +731,22 @@ Détails du jeu : [games/douze/README.md](../games/douze/README.md).
 **Fini quand**
 
 - Le jeu est ouvert et joué par les membres.
+
+---
+
+## Étape 17 : patch notes (en cours)
+
+Bouton « Nouveautés » dans le header, à gauche du thème : les mises à jour du site, la plus récente
+en haut, avec une pastille tant que la dernière n'a pas été lue.
+
+**Tâches**
+
+- [x] Données versionnées `apps/web/content/patch-notes.ts` (une entrée par jour, validées par zod,
+      testées), bouton et panneau `components/PatchNotes.tsx`, pastille mémorisée dans le
+      navigateur.
+- [x] Contenu de départ : les mises à jour depuis DOUZE (13 et 14 novembre).
+- [ ] Chaque PR visible pour les membres ajoute son entrée (règle notée dans le README).
+
+**Fini quand**
+
+- Les membres voient les nouveautés de chaque mise à jour.
