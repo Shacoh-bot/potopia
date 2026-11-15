@@ -117,10 +117,22 @@ describe("openBooster", () => {
     expect(await db.tcgBoosterOpening.count()).toBe(1);
   });
 
-  /** Paquets déjà ouverts dans le set S1, avec ou sans SR / SSR. */
+  /**
+   * Date du prochain paquet créé par `opened` : une heure dans le passé, puis une seconde de plus
+   * à chaque paquet. Les garanties comptent les paquets « après » la dernière SR (`createdAt`
+   * strictement plus grand) ; laissée à `now()`, deux insertions à la suite peuvent tomber dans la
+   * même milliseconde et le paquet suivant la SR ne serait pas compté (test instable).
+   */
+  let clock = 0;
+  beforeEach(() => {
+    clock = Date.now() - 3_600_000;
+  });
+
+  /** Paquets déjà ouverts dans le set S1, avec ou sans SR / SSR, chacun à une date distincte. */
   async function opened(count: number, marks: { hasSsr?: boolean; hasSrPlus?: boolean } = {}) {
     const set = await db.tcgSet.findUniqueOrThrow({ where: { code: "S1" } });
     for (let i = 0; i < count; i++) {
+      clock += 1_000;
       await db.tcgBoosterOpening.create({
         data: {
           userId: ADMIN.id,
@@ -128,6 +140,7 @@ describe("openBooster", () => {
           cardIds: [],
           hasSsr: marks.hasSsr ?? false,
           hasSrPlus: marks.hasSrPlus ?? false,
+          createdAt: new Date(clock),
         },
       });
     }
