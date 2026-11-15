@@ -67,7 +67,10 @@ export const PATCH_NOTES = parsePatchNotes([
     date: "2026-11-15",
     title: "Des cartes qui brillent à l'ouverture",
     items: [
-      "En coulisses (cartes réservées aux admins pour l'instant) : à l'ouverture d'un booster, chaque carte révélée s'entoure d'une aura qui monte en puissance avec sa rareté. Ailleurs, un simple halo doux au survol, et une carte cliquée s'ouvre en grand, bien nette, même pendant l'ouverture.",
+      {
+        admin: true,
+        text: "Cartes : à l'ouverture d'un booster, chaque carte révélée s'entoure d'une aura qui monte en puissance avec sa rareté. Ailleurs, un simple halo doux au survol, et une carte cliquée s'ouvre en grand, bien nette, même pendant l'ouverture.",
+      },
     ],
   },
   {
