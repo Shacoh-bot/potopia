@@ -778,3 +778,29 @@ describe("stats de l'effet", () => {
     expect(pick(await byName("Libre"))).toMatchObject({ cost: 4, statsManual: true });
   });
 });
+
+describe("note admin", () => {
+  it("posée à la création, gardée si absente, effacée si vide, bornée", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId, adminNote: "  Doublon de Nae  " });
+    expect(card.adminNote).toBe("Doublon de Nae");
+    // une modification sans le champ (mise à jour en masse, anciens appels) garde la note
+    expect((await updateCard(ADMIN, card.id, { ...BASE })).adminNote).toBe("Doublon de Nae");
+    expect((await updateCard(ADMIN, card.id, { ...BASE, adminNote: "" })).adminNote).toBeNull();
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, adminNote: "x".repeat(121) }),
+    ).rejects.toThrow(ZodError);
+    expect((await createCard(ADMIN, { ...BASE, setId })).adminNote).toBeNull();
+  });
+
+  it("sur une variante aussi, et toujours là à la corbeille", async () => {
+    const base = await createCard(ADMIN, { ...BASE, setId });
+    const variant = await createCard(ADMIN, { ...BASE, setId, baseCardId: base.id });
+    expect((await updateCard(ADMIN, variant.id, { ...BASE, adminNote: "Doublon" })).adminNote).toBe(
+      "Doublon",
+    );
+    const dup = await createCard(ADMIN, { ...BASE, setId, name: "Doublon", adminNote: "Doublon" });
+    await trashCards(ADMIN, [dup.id]);
+    const [trashed] = await listCards(ADMIN, { trashed: true });
+    expect(trashed).toMatchObject({ id: dup.id, adminNote: "Doublon" });
+  });
+});

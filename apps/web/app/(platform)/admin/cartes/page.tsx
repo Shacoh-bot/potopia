@@ -321,6 +321,11 @@ export default async function AdminCardsPage({
                           {card.name}
                         </Link>
                         {card.baseCardId && <span className="text-muted text-xs"> · variante</span>}
+                        {card.adminNote && (
+                          <span className="text-accent block text-xs" title="Note admin">
+                            {card.adminNote}
+                          </span>
+                        )}
                       </td>
                       <td className="text-muted px-3 py-1.5 whitespace-nowrap">
                         {CARD_RARITY_LABELS[card.rarity]}
@@ -375,6 +380,12 @@ export default async function AdminCardsPage({
                     <input type="checkbox" name="ids" value={card.id} />
                     {card.number ?? "—"} · {CARD_RARITY_LABELS[card.rarity]}
                     {card.baseCardId ? " · variante" : ""}
+                    {card.adminNote && (
+                      <span className="text-accent" title="Note admin">
+                        {" "}
+                        · {card.adminNote}
+                      </span>
+                    )}
                   </label>
                 </li>
               ))}
