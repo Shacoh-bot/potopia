@@ -206,12 +206,14 @@ passe d'une partie à l'autre sans rechargement.
   numéro si et seulement si la carte est dans un set, sinon elle est dans la réserve), name, rarity (enum `TcgRarity` :
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power,
   statsManual (défaut false : avec un effet, cost et power suivent sa carte Snap), effectKey?,
-  effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
+  effectParams? (JSON), effectText, flavor?, imageKey?, imageKeyFull? (illustration de la
+  version Alt Art ; null, elle reprend `imageKey`), imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
   l'illustration, voir plus bas ; null, aucun), layout
-  (enum `TcgCardLayout` : normal, fullart ; mise en page dans laquelle la carte s'affiche, normale
-  par défaut, full art par défaut pour une variante), ideaId? (index simple, `ideas.ideas`
+  (enum `TcgCardLayout` : normal, fullart ; version dans laquelle la carte s'affiche sur les
+  planches, toujours une version active), hasNormal (défaut true), hasFullArt (défaut false) :
+  versions qui existent, au moins une (voir « Deux versions » plus bas), ideaId? (index simple, `ideas.ideas`
   sans relation : lien de gestion, une idée peut donner plusieurs cartes), baseCardId? (variante full art → sa carte de base), deletedAt? (mise à la corbeille ; null,
   carte active), createdAt,
   updatedAt. La base ne contient aucune logique d'effet : seulement la clé
@@ -222,9 +224,10 @@ passe d'une partie à l'autre sans rechargement.
   0 en dessous). Clé primaire `(card_id, effect_key)`, index sur `effect_key`, suppression en
   cascade des deux côtés. Les effets visuels d'une carte, plusieurs à la fois, propres à chaque
   carte (variantes comprises).
-- `TcgOwnedCard` (`owned_cards`) : userId, cardId, count, firstAt, updatedAt. Clé primaire
-  `(user_id, card_id)`, index sur `card_id`, supprimée avec la carte. Les cartes trouvées d'un
-  joueur (Potodex) et leur nombre d'exemplaires.
+- `TcgOwnedCard` (`owned_cards`) : userId, cardId, version (`TcgCardLayout`, défaut normal),
+  count, firstAt, updatedAt. Clé primaire `(user_id, card_id, version)`, index sur `card_id`,
+  supprimée avec la carte. Les cartes trouvées d'un joueur (Potodex), version par version, et leur
+  nombre d'exemplaires.
 - `TcgBoosterOpening` (`booster_openings`) : userId, setId, cardIds (les 5 ids, dans l'ordre du
   paquet), hasSsr, hasSrPlus (SR ou SSR dans le paquet), isTest (paquet de test de l'admin, ignoré
   par les garanties), createdAt. Index `(user_id, set_id,
@@ -1133,12 +1136,26 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   la glissant ; un clic sans glisser pose un point ; un clic pose un point, un glisser le déplace, le point
   choisi se règle (couleur, taille, clignotement) ou se supprime. Une mise à jour sans
   `glowPoints` (fichier `updates`) les laisse tels quels.
-- Mise en page : les boutons « Normale » / « Full art » sous l'aperçu de l'éditeur choisissent
-  l'affichage de la carte (`layout`), enregistré avec elle : la planche de l'admin et `GameCard`
-  l'appliquent (le prop `layout` de `GameCard` ne sert qu'à forcer une mise en page). Une mise à
-  jour sans `layout` (fichier `updates`, import) la laisse telle quelle.
-- Illustration : celle de la carte ou, à défaut, celle de son idée (`listIdeaImageUrls`). Les pages
-  admin la signent directement (`cardImageUrls`) avec `presignGetStable` (`@app/storage`) : l'URL
+- **Deux versions** (décidé le 2026-11-15) : chaque carte a une version normale et une version
+  full art, appelée **Alt Art** (« AA », idée reprise du One Piece TCG), chacune active ou non
+  (`hasNormal`, `hasFullArt`, au moins une ; `cardVersions`), avec son illustration (`imageKey`,
+  `imageKeyFull` ; sans la sienne, l'Alt Art reprend celle de la normale, `imageKeyFor`) et son
+  cadrage (`imageFrame`, `imageFrameFull`). L'Alt Art est une mention en plus de la rareté,
+  possible pour toute rareté : `GameCard` en full art affiche un badge doré « AA » en pied de
+  carte, après la rareté. `layout` est la version montrée sur les planches : la normale si elle
+  est active, sinon l'Alt Art (`resolveVersions` l'impose à l'enregistrement). Migration
+  `tcg_card_versions` : chaque carte existante n'a d'active que la version de sa mise en page
+  d'alors, et ses exemplaires possédés sont rangés dans cette version (valeurs calculées). Les
+  points lumineux restent communs aux deux versions.
+- Éditeur : sous l'aperçu, les boutons « Normale » / « Alt Art (AA) » choisissent la version
+  montrée et réglée (barrée si inactive) ; la case « Version … active » l'active ou non (la
+  dernière active ne se décoche pas). À droite, le cadrage et l'envoi d'illustration portent sur
+  cette version (`confirmCardImageAction(id, key, version)`, `setCardImage(…, { version })`).
+  Une mise à jour sans `hasNormal` / `hasFullArt` / `layout` (fichier `updates`, import) les
+  laisse tels quels ; un `layout` envoyé seul active sa version.
+- Illustration : celle de la version de la carte (`layout`) ou, à défaut, celle de son idée
+  (`listIdeaImageUrls`). Les pages admin la signent directement (`cardImageUrls`, clé `imageId` :
+  id et version, une même carte pouvant paraître dans ses deux versions) avec `presignGetStable` (`@app/storage`) : l'URL
   reste identique pendant une fenêtre de 5 min (signée au début de la fenêtre, valable 15 min) et
   autorise la mise en cache (`response-cache-control: private, max-age=600`), donc le navigateur
   ne retélécharge pas les images d'une page à l'autre ; une nouvelle illustration a une nouvelle
@@ -1167,10 +1184,16 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   essayer ouvertures, sons et effets ; notés `isTest`, ils ne comptent pas pour les garanties. `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
   Une rareté sans carte dans le set
   prend la rareté juste en dessous (puis la plus proche au-dessus). Doublons possibles. Seules les
-  cartes du set tiré comptent (ni la réserve, ni la corbeille).
+  cartes du set tiré comptent (ni la réserve, ni la corbeille). **Version** : une fois les 5
+  raretés et cartes tirées, chaque carte tirée qui a ses deux versions sort en Alt Art à 10 %
+  (`ALT_ART_CHANCE`, choix de l'utilisateur du 2026-11-15), sinon en normale ; une carte à une seule
+  version sort dans celle-ci (`drawVersion`). Tirée après la rareté, la version ne change ni les
+  taux ni les garanties (vérifié par test : mêmes cartes qu'un tirage sans versions).
 - `drawBooster` (tirage pur, testable), `openBooster` (tire, ajoute les cartes à la collection,
-  note le paquet ; un paquet à la fois par joueur, sous verrou), `getPotodex` (cartes du set dans
-  l'ordre des numéros ; une carte pas encore trouvée ne renvoie que son numéro), `resetCollection`
+  note le paquet ; un paquet à la fois par joueur, sous verrou ; cartes renvoyées dans leur version
+  tirée, `layout`), `getPotodex` (chaque version active de chaque carte du set, dans l'ordre des
+  numéros, la normale puis l'Alt Art ; une version pas encore trouvée ne renvoie que son numéro et
+  sa version ; `found` et `total` comptent les versions, `size` les cartes), `resetCollection`
   (vide la collection de test et le journal, garanties comprises), `boosterPity` (paquets au
   plus avant la SR ou mieux et la SSR garanties, affichés sous le paquet). Toutes vérifient l'admin tant que
   c'est un test ; les paquets sont gratuits et illimités.
@@ -1230,8 +1253,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
   Chaque son varie un peu à chaque fois ; volume du site respecté.
-- `/admin/potodex` : toutes les cartes du set, celles trouvées avec leur nombre d'exemplaires,
-  les autres en noir avec seulement leur numéro ; compteur « trouvées/total », paquets ouverts,
+- `/admin/potodex` : toutes les cartes du set, chaque version à part (case « AA » pour l'Alt
+  Art), celles trouvées avec leur nombre d'exemplaires, les autres en noir avec seulement leur
+  numéro (et « AA » pour une Alt Art) ; compteur « versions trouvées/total », paquets ouverts,
   bouton « Remettre à zéro ». Paginé : 24 cases par page (`?page=`, `paginate`, barre `Pagination`
   de l'admin des cartes), et seules les illustrations de la page affichée sont signées ; cases de
   220 px. Miniatures et grande carte passent par `Scaled` : boîte à la

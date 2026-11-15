@@ -162,6 +162,9 @@ const cardFields = z.object({
   // Mise en page affichée. Absent : celle enregistrée ne change pas ; à la création, normale (full
   // art pour une variante).
   layout: z.enum(CARD_LAYOUTS, "Mise en page inconnue.").optional(),
+  // Versions actives. Absentes : celles enregistrées ; à la création, celle de la mise en page.
+  hasNormal: z.boolean("Version normale : oui ou non.").optional(),
+  hasFullArt: z.boolean("Version full art : oui ou non.").optional(),
   // Effets visuels, dans l'ordre des calques (le premier en dessous). Absent : ceux enregistrés ne
   // changent pas ; liste vide : aucun. Les doublons sont retirés.
   visualEffectKeys: z
@@ -200,6 +203,27 @@ function followEffect<T extends { cost: number; power: number; effectKey: string
 ): T & { statsManual: boolean } {
   const stats = manual ? null : effectStats(fields.effectKey);
   return { ...fields, ...stats, statsManual: manual };
+}
+
+/**
+ * Versions actives et mise en page montrée par défaut : celles envoyées, sinon celles enregistrées
+ * (`current`), sinon la version de la mise en page. Une mise en page envoyée seule active sa
+ * version. Au moins une version ; la mise en page montrée est toujours une version active.
+ */
+function resolveVersions(
+  fields: { layout?: CardLayout; hasNormal?: boolean; hasFullArt?: boolean },
+  current: { layout: CardLayout; hasNormal: boolean; hasFullArt: boolean } | null,
+  fallbackLayout: CardLayout,
+): { layout: CardLayout; hasNormal: boolean; hasFullArt: boolean } {
+  const layout = fields.layout ?? current?.layout ?? fallbackLayout;
+  const asked = (v: CardLayout) => fields.layout === v || (!current && layout === v);
+  const hasNormal = fields.hasNormal ?? ((current?.hasNormal ?? false) || asked("normal"));
+  const hasFullArt = fields.hasFullArt ?? ((current?.hasFullArt ?? false) || asked("fullart"));
+  if (!hasNormal && !hasFullArt) {
+    throw new CardInputError("Une carte garde au moins une version : normale ou full art.");
+  }
+  const shown = layout === "fullart" ? hasFullArt : hasNormal;
+  return { hasNormal, hasFullArt, layout: shown ? layout : hasNormal ? "normal" : "fullart" };
 }
 
 type CardRow = Omit<
@@ -419,7 +443,7 @@ export async function createCard(
       data: {
         ...fields,
         ...shared(base ?? fields),
-        layout: fields.layout ?? (base ? "fullart" : "normal"),
+        ...resolveVersions(fields, null, base ? "fullart" : "normal"),
         setId,
         number,
         ideaId: ideaId ?? null,
@@ -460,7 +484,7 @@ export async function updateCard(
           flavor: fields.flavor,
           imageFrame: fields.imageFrame,
           imageFrameFull: fields.imageFrameFull,
-          layout: fields.layout,
+          ...resolveVersions(fields, current, current.layout),
           glowPoints: fields.glowPoints,
           visualEffects: replaceEffects(visualEffectKeys),
         },
@@ -478,7 +502,7 @@ export async function updateCard(
         flavor: fields.flavor,
         imageFrame: fields.imageFrame,
         imageFrameFull: fields.imageFrameFull,
-        layout: fields.layout,
+        ...resolveVersions(fields, current, current.layout),
         glowPoints: fields.glowPoints,
         visualEffects: replaceEffects(visualEffectKeys),
       },
@@ -637,11 +661,15 @@ export async function deleteCards(
       );
     }
     const keys = await tx.tcgCard.findMany({
-      where: { id: { in: unique }, imageKey: { not: null } },
-      select: { imageKey: true },
+      where: { id: { in: unique } },
+      select: { imageKey: true, imageKeyFull: true },
     });
     const { count } = await tx.tcgCard.deleteMany({ where: { id: { in: unique } } });
-    return { deleted: count, imageKeys: keys.map((k) => k.imageKey as string) };
+    // les deux illustrations (normale et full art)
+    const imageKeys = keys.flatMap((k) =>
+      [k.imageKey, k.imageKeyFull].filter((x): x is string => x !== null),
+    );
+    return { deleted: count, imageKeys };
   }, opts);
   if (!opts?.tx) await Promise.allSettled(result.imageKeys.map((key) => deleteObject(key)));
   return result;
@@ -689,12 +717,15 @@ export async function createCardImageUpload(
 
 const imageKey = z.string().regex(/^cards\/[0-9a-f-]{36}\.webp$/, "Clé d'image invalide.");
 
-/** Pose l'illustration envoyée (vérifiée dans le stockage) sur la carte. */
+/**
+ * Pose l'illustration envoyée (vérifiée dans le stockage) sur une version de la carte : la normale
+ * (`imageKey`, par défaut) ou la full art (`imageKeyFull`).
+ */
 export async function setCardImage(
   admin: Admin,
   id: string,
   key: string,
-  opts?: { tx?: DbTx },
+  opts?: { tx?: DbTx; version?: CardLayout },
 ): Promise<Card> {
   assertAdmin(admin);
   const checked = imageKey.parse(key);
@@ -705,7 +736,7 @@ export async function setCardImage(
   }
   const row = await (opts?.tx ?? db).tcgCard.update({
     where: { id },
-    data: { imageKey: checked },
+    data: opts?.version === "fullart" ? { imageKeyFull: checked } : { imageKey: checked },
     include: withSet,
   });
   return toCard(row);
@@ -769,6 +800,7 @@ export async function importCards(
         data: {
           ...card,
           ...shared(card),
+          ...resolveVersions(card, null, "normal"),
           setId,
           number: number === null ? null : number++,
           visualEffects: effectRows(visualEffectKeys ?? []),

@@ -5,7 +5,7 @@ import type { OpenedCard } from "@app/tcg/ui";
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { actionAdmin } from "@/lib/session";
-import { cardImageUrls } from "../cartes/images";
+import { cardImageUrls, imageId } from "../cartes/images";
 
 export type OpenResult =
   { ok: true; cards: OpenedCard[]; setSize: number } | { ok: false; error: string };
@@ -28,7 +28,12 @@ export async function openBoosterAction(setCode: string): Promise<OpenResult> {
     return {
       ok: true,
       setSize: setCards.length,
-      cards: cards.map((card) => ({ id: card.id, card, imageUrl: images.get(card.id) ?? null })),
+      // chaque carte dans sa version tirée (`layout`), Alt Art comprise
+      cards: cards.map((card) => ({
+        id: card.id,
+        card,
+        imageUrl: images.get(imageId(card)) ?? null,
+      })),
     };
   } catch (error) {
     if (error instanceof CardInputError) return { ok: false, error: error.message };

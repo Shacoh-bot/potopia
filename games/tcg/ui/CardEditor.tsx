@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Label, Select, Textarea } from "@app/ui";
+import { Button, cx, Input, Label, Select, Textarea } from "@app/ui";
 import { ClipboardPaste } from "lucide-react";
 import {
   type ReactNode,
@@ -12,11 +12,12 @@ import {
   useTransition,
 } from "react";
 import {
-  CARD_LAYOUT_LABELS,
+  ALT_ART_CHANCE,
   CARD_LAYOUTS,
   CARD_LIMITS,
   CARD_RARITIES,
   CARD_RARITY_LABELS,
+  CARD_VERSION_LABELS,
   type Card,
   type CardSet,
   DEFAULT_FRAME,
@@ -55,7 +56,10 @@ type SideTab = (typeof SIDE_TABS)[number]["id"];
 const EFFECT_COLUMN = 200;
 const EFFECT_GAP = 12;
 
-/** Mise en page de la carte (enregistrée), de l'aperçu et du cadrage qu'on règle. */
+/**
+ * Version de la carte (normale ou Alt Art en full art) : celle qu'on voit dans l'aperçu et dont on
+ * règle l'illustration et le cadrage.
+ */
 type Layout = Card["layout"];
 
 export type CardEditorState =
@@ -90,7 +94,10 @@ type Props = {
   families: string[];
   /** Catalogue des effets visuels (`listVisualEffects`), proposés dans la fiche. */
   visualEffects: VisualEffect[];
+  /** Illustration de la version normale. */
   imageUrl: string | null;
+  /** Illustration de l'Alt Art (la sienne, sinon celle de la normale) ; absente : `imageUrl`. */
+  imageUrlFull?: string | null;
   /** Auteur de l'idée d'origine, affiché en pied de carte (« idée de … »). */
   author?: string | null;
   /** Nombre de cartes du set, pour le numéro affiché dans l'aperçu. */
@@ -112,18 +119,19 @@ type Props = {
    * `confirmDuplicate`.
    */
   save: (state: CardEditorState, formData: FormData) => Promise<CardEditorState>;
-  /**
-   * Envoi de l'illustration (carte existante seulement) : `request` donne une URL d'envoi
-   * présignée, le navigateur y envoie le fichier, puis `confirm` pose l'image sur la carte.
-   */
   /** Infos posées au-dessus du formulaire (place, idée, variantes), à gauche de l'aperçu. */
   header?: ReactNode;
+  /**
+   * Envoi de l'illustration (carte existante seulement) : `request` donne une URL d'envoi
+   * présignée, le navigateur y envoie le fichier, puis `confirm` pose l'image sur la version
+   * réglée de la carte.
+   */
   upload?: {
     request: (
       contentType: string,
       size: number,
     ) => Promise<{ key: string; url: string } | { error: string }>;
-    confirm: (key: string) => Promise<{ error: string } | null>;
+    confirm: (key: string, version: Layout) => Promise<{ error: string } | null>;
   };
 };
 
@@ -163,6 +171,7 @@ export function CardEditor({
   families,
   visualEffects,
   imageUrl,
+  imageUrlFull,
   author,
   setSize,
   setSizes,
@@ -181,8 +190,20 @@ export function CardEditor({
   const [customText, setCustomText] = useState(
     () => !!card && card.effectText !== effectText(card.effectKey, card.effectParams),
   );
+  // Version montrée et réglée ; versions actives (tirées et collectionnées), au moins une.
   const [layout, setLayout] = useState<Layout>(card?.layout ?? "normal");
-  const [image, setImage] = useState(imageUrl);
+  const [versions, setVersions] = useState<Record<Layout, boolean>>(() => ({
+    normal: card?.hasNormal ?? true,
+    fullart: card?.hasFullArt ?? false,
+  }));
+  // Illustration de chaque version ; l'Alt Art reprend celle de la normale tant qu'elle n'a pas
+  // la sienne (`ownFull`).
+  const [images, setImages] = useState<Record<Layout, string | null>>(() => ({
+    normal: imageUrl,
+    fullart: imageUrlFull === undefined ? imageUrl : imageUrlFull,
+  }));
+  const [ownFull, setOwnFull] = useState(!!card?.imageKeyFull);
+  const image = images[layout];
   // Un cadrage par mise en page. La full art part du cadrage de la carte normale tant qu'elle n'a
   // pas le sien (cartes cadrées avant la séparation) : rien n'est perdu.
   // Points lumineux, en % de l'image (accrochés à elle).
@@ -291,10 +312,13 @@ export function CardEditor({
         cost,
         power,
         effectText: shownText,
-        imageFrame: image ? frames.normal : null,
-        imageFrameFull: image ? frames.fullart : null,
+        imageFrame: images.normal ? frames.normal : null,
+        imageFrameFull: images.fullart ? frames.fullart : null,
         glowPoints,
-        layout,
+        hasNormal: versions.normal,
+        hasFullArt: versions.fullart,
+        // version montrée par défaut (planches) : la normale si elle existe
+        layout: versions.normal ? "normal" : "fullart",
       }),
     );
     if (!card) {
@@ -305,8 +329,10 @@ export function CardEditor({
     startTransition(() => dispatch(data));
   }
 
+  /** Envoie l'illustration de la version réglée (`layout`). */
   async function sendImage(original: Blob, name?: string) {
     if (!upload || !card) return;
+    const version = layout;
     setUploadState("Conversion en WebP…");
     let file: File;
     try {
@@ -323,11 +349,19 @@ export function CardEditor({
       headers: { "content-type": file.type },
     }).catch(() => null);
     if (!put?.ok) return setUploadState("L'envoi de l'image a échoué.");
-    const failed = await upload.confirm(target.key);
+    const failed = await upload.confirm(target.key, version);
     if (failed) return setUploadState(failed.error);
-    setImage(URL.createObjectURL(file));
-    setFrames({ normal: DEFAULT_FRAME, fullart: DEFAULT_FRAME });
-    setUploadState("Illustration enregistrée.");
+    const url = URL.createObjectURL(file);
+    // Nouvelle illustration de la normale : l'Alt Art sans la sienne la reprend (cadrage compris).
+    const both = version === "normal" && !ownFull;
+    setImages((i) => (both ? { normal: url, fullart: url } : { ...i, [version]: url }));
+    setFrames((f) =>
+      both ? { normal: DEFAULT_FRAME, fullart: DEFAULT_FRAME } : { ...f, [version]: DEFAULT_FRAME },
+    );
+    if (version === "fullart") setOwnFull(true);
+    setUploadState(
+      `Illustration ${version === "normal" ? "de la version normale" : "de l'Alt Art"} enregistrée.`,
+    );
   }
 
   /** Bouton « Coller une image » : lit le presse-papiers (le navigateur peut demander l'accord). */
@@ -659,11 +693,12 @@ export function CardEditor({
                 author={author}
               />
             </CardFlip>
-            {/* La mise en page choisie est celle de la carte : enregistrée avec elle. */}
+            {/* Les deux versions de la carte : chacune active ou non, avec son illustration et
+                son cadrage (réglés à droite pour la version choisie ici). */}
             <div
               role="group"
-              aria-label="Affichage de la carte"
-              className="flex flex-col items-center gap-1"
+              aria-label="Versions de la carte"
+              className="flex flex-col items-center gap-1.5"
             >
               <div className="flex gap-2 text-sm">
                 {CARD_LAYOUTS.map((l) => (
@@ -672,19 +707,38 @@ export function CardEditor({
                     type="button"
                     aria-pressed={layout === l}
                     onClick={() => setLayout(l)}
-                    className={
-                      layout === l
-                        ? "border-accent text-text rounded-full border px-3 py-1"
-                        : "border-border text-muted rounded-full border px-3 py-1"
-                    }
+                    className={cx(
+                      "rounded-full border px-3 py-1",
+                      layout === l ? "border-accent text-text" : "border-border text-muted",
+                      !versions[l] && "line-through decoration-1",
+                    )}
                   >
-                    {CARD_LAYOUT_LABELS[l]}
+                    {CARD_VERSION_LABELS[l]}
                   </button>
                 ))}
               </div>
-              <p className="text-muted text-xs">
-                Affichage de la carte
-                {layout === (card?.layout ?? "normal") ? "" : " (à enregistrer)"}
+              <label className="text-text flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={versions[layout]}
+                  // au moins une version : la dernière active ne se décoche pas
+                  disabled={
+                    versions[layout] && !versions[layout === "normal" ? "fullart" : "normal"]
+                  }
+                  onChange={(e) => setVersions((v) => ({ ...v, [layout]: e.target.checked }))}
+                />
+                Version {layout === "normal" ? "normale" : "Alt Art"} active
+              </label>
+              <p className="text-muted max-w-[300px] text-center text-xs">
+                {versions[layout]
+                  ? layout === "fullart" && versions.normal
+                    ? `Tirée à la place de la normale ${Math.round(ALT_ART_CHANCE * 100)} fois sur 100, collectionnée à part.`
+                    : "Tirée dans les boosters et collectionnée dans le Potodex."
+                  : "Inactive : ni tirée, ni dans le Potodex."}
+                {card &&
+                (card.hasNormal !== versions.normal || card.hasFullArt !== versions.fullart)
+                  ? " (à enregistrer)"
+                  : ""}
               </p>
             </div>
           </div>
@@ -719,7 +773,7 @@ export function CardEditor({
                   {image && (
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-muted text-sm">
-                        Cadrage {layout === "normal" ? "de la carte normale" : "de la full art"} :
+                        Cadrage {layout === "normal" ? "de la version normale" : "de l'Alt Art"} :
                         glisse l&apos;image, zoome, puis enregistre la carte.
                       </p>
                       <ImageFramer
@@ -732,7 +786,7 @@ export function CardEditor({
                         width={layout === "normal" ? FINAL_ART.width : 200}
                         height={layout === "normal" ? FINAL_ART.height : 280}
                       />
-                      {layout === "fullart" && (
+                      {layout === "fullart" && !ownFull && (
                         <button
                           type="button"
                           className="text-accent text-sm underline-offset-4 hover:underline"
@@ -749,10 +803,13 @@ export function CardEditor({
                         className="w-full"
                         hint={
                           uploadState ??
-                          "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
+                          (layout === "fullart" && !ownFull
+                            ? "Sans illustration à elle, l'Alt Art reprend celle de la normale. Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi."
+                            : "Choisis un fichier ou colle une image (Ctrl+V) : convertie en WebP avant l'envoi.")
                         }
                       >
-                        Illustration
+                        Illustration{" "}
+                        {layout === "normal" ? "de la version normale" : "de l'Alt Art"}
                         <Input
                           type="file"
                           accept="image/*"

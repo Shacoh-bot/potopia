@@ -77,6 +77,46 @@ export function frameFor(
   return layout === "fullart" ? (card.imageFrameFull ?? normal) : normal;
 }
 
+/**
+ * Nom des versions d'une carte. La version full art est l'« Alt Art » (AA, idée reprise du One
+ * Piece TCG) : une mention en plus de la rareté, possible pour toute rareté.
+ */
+export const CARD_VERSION_LABELS: Record<CardLayout, string> = {
+  normal: "Normale",
+  fullart: "Alt Art (AA)",
+};
+
+/**
+ * Chance (sur 1) qu'une carte tirée qui a ses deux versions sorte en Alt Art (choix de
+ * l'utilisateur, 15/11). Tirée après la rareté : ne change ni les taux ni les garanties.
+ */
+export const ALT_ART_CHANCE = 0.1;
+
+/**
+ * Version obtenue d'une carte tirée : l'Alt Art à `ALT_ART_CHANCE` si la carte a ses deux
+ * versions, sinon sa seule version active (`rnd` dans [0, 1[).
+ */
+export function drawVersion(
+  card: { hasNormal: boolean; hasFullArt: boolean },
+  rnd: () => number = Math.random,
+): CardLayout {
+  if (card.hasNormal && card.hasFullArt) return rnd() < ALT_ART_CHANCE ? "fullart" : "normal";
+  return card.hasFullArt ? "fullart" : "normal";
+}
+
+/** Versions actives d'une carte, la normale d'abord. */
+export function cardVersions(card: { hasNormal: boolean; hasFullArt: boolean }): CardLayout[] {
+  return CARD_LAYOUTS.filter((v) => (v === "normal" ? card.hasNormal : card.hasFullArt));
+}
+
+/** Clé de l'illustration d'une version : la full art reprend celle de la normale sans la sienne. */
+export function imageKeyFor(
+  card: { imageKey: string | null; imageKeyFull?: string | null },
+  version: CardLayout,
+): string | null {
+  return version === "fullart" ? (card.imageKeyFull ?? card.imageKey) : card.imageKey;
+}
+
 /** Types de lumière à placer sur l'illustration. */
 export const GLOW_KINDS = ["glow", "sparks", "rays", "line"] as const;
 export type GlowKind = (typeof GLOW_KINDS)[number];
@@ -139,11 +179,16 @@ export type Card = {
   effectText: string;
   flavor: string | null;
   imageKey: string | null;
+  /** Illustration de la version full art ; null : celle de la normale (`imageKey`). */
+  imageKeyFull: string | null;
   imageFrame: ImageFrame | null;
   /** Cadrage en full art ; null : celui de la carte normale (voir `frameFor`). */
   imageFrameFull: ImageFrame | null;
   /** Mise en page choisie pour afficher la carte. */
   layout: CardLayout;
+  /** Versions qui existent (au moins une), tirées et collectionnées séparément. */
+  hasNormal: boolean;
+  hasFullArt: boolean;
   /** Points lumineux sur l'illustration (vide : aucun). */
   glowPoints: GlowPoint[];
   ideaId: string | null;

@@ -43,7 +43,8 @@ export function GameCardDefs() {
  * Une carte du jeu, dans le design retenu (n°70 : le 65 affiné, bandeau court), en carte normale
  * ou full art (la mise en page enregistrée sur la carte, sauf `layout` donné), dans sa version
  * affinée (`refined`) : sans plaques d'angle dorées ni gemmes, filet doré collé au cadre, full art
- * avec les textes sans encadrés et un contour. La rareté se voit à la bordure et en pied de carte.
+ * avec les textes sans encadrés et un contour. La rareté se voit à la bordure et en pied de carte ;
+ * en full art, la carte est dans sa version Alt Art : mention « AA » à côté de la rareté.
  */
 export function GameCard({
   card,
@@ -83,6 +84,7 @@ export function GameCard({
     imageUrl,
     imageFrame: frameFor(card, layout),
     glowPoints: card.glowPoints,
+    altArt: layout === "fullart",
     author: author ?? undefined,
     // Hors set, pas de numéro : la carte est dans la réserve.
     serial:

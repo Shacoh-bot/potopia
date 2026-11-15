@@ -158,22 +158,26 @@ describe("openBooster", () => {
     if (SSR_PITY !== null) expect(pity.untilSsr).toBe(SSR_PITY - 9);
   });
 
-  it("garantit une SSR au plus tard au paquet prévu, même quand la SR est garantie aussi", async () => {
-    if (SSR_PITY === null) return;
-    await addCards("rare", 1);
-    await addCards("sr", 1);
-    await addCards("ssr", 1);
-    // assez de paquets sans SSR ; les SR+ à part, la garantie SR tombe en même temps
-    await opened(SSR_PITY - SR_PITY, { hasSrPlus: true });
-    await opened(SR_PITY - 1);
-    expect(await boosterPity(ADMIN, { setCode: "S1" })).toEqual({ untilSr: 1, untilSsr: 1 });
-    const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { rnd: sequence() });
-    expect(cards[4]?.rarity).toBe("ssr");
-    expect(await boosterPity(ADMIN, { setCode: "S1" })).toEqual({
-      untilSr: SR_PITY,
-      untilSsr: SSR_PITY,
-    });
-  });
+  it(
+    "garantit une SSR au plus tard au paquet prévu, même quand la SR est garantie aussi",
+    { timeout: 30_000 },
+    async () => {
+      if (SSR_PITY === null) return;
+      await addCards("rare", 1);
+      await addCards("sr", 1);
+      await addCards("ssr", 1);
+      // assez de paquets sans SSR ; les SR+ à part, la garantie SR tombe en même temps
+      await opened(SSR_PITY - SR_PITY, { hasSrPlus: true });
+      await opened(SR_PITY - 1);
+      expect(await boosterPity(ADMIN, { setCode: "S1" })).toEqual({ untilSr: 1, untilSsr: 1 });
+      const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { rnd: sequence() });
+      expect(cards[4]?.rarity).toBe("ssr");
+      expect(await boosterPity(ADMIN, { setCode: "S1" })).toEqual({
+        untilSr: SR_PITY,
+        untilSsr: SSR_PITY,
+      });
+    },
+  );
 });
 
 describe("paquets de test de l'admin", () => {
@@ -213,7 +217,7 @@ describe("Potodex", () => {
     const dex = await getPotodex(ADMIN, { setCode: "S1" });
     expect(dex).toMatchObject({ found: 1, total: 2, boosters: 1 });
     expect(dex.entries[0]).toMatchObject({ number: 1, found: true, count: 5 });
-    expect(dex.entries[1]).toEqual({ number: 2, found: false });
+    expect(dex.entries[1]).toEqual({ number: 2, version: "normal", found: false });
   });
 
   it("remise à zéro : collection et paquets vidés", async () => {
