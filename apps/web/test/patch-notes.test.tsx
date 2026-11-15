@@ -3,7 +3,13 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PatchNotes } from "@/components/PatchNotes";
-import { LATEST_PATCH_NOTE, PATCH_NOTES, parsePatchNotes } from "@/content/patch-notes";
+import {
+  latestPatchNote,
+  notesFor,
+  PATCH_NOTES,
+  parsePatchNotes,
+  type PatchNoteEntry,
+} from "@/content/patch-notes";
 
 vi.mock("@app/ui", () => ({
   cx: (...parts: unknown[]) => parts.filter(Boolean).join(" "),
@@ -15,11 +21,10 @@ describe("données des patch notes", () => {
     const dates = PATCH_NOTES.map((n) => n.date);
     expect(dates).toEqual([...dates].sort().reverse());
     expect(new Set(dates).size).toBe(dates.length);
-    expect(LATEST_PATCH_NOTE).toBe(dates[0]);
   });
 
   it("restent lisibles par les membres : ni numéro de PR, ni mention", () => {
-    for (const note of PATCH_NOTES) {
+    for (const note of notesFor(PATCH_NOTES, true)) {
       for (const text of [note.title, ...note.items]) {
         expect(text, text).not.toMatch(/#\d+|@\w/);
       }
@@ -41,6 +46,69 @@ describe("données des patch notes", () => {
         { date: "2026-11-14", title: "y", items: ["b"] },
       ]),
     ).toThrow("Deux entrées le 2026-11-14");
+    // une ligne admin s'écrit { text, admin: true }, rien d'autre
+    expect(() =>
+      parsePatchNotes([{ date: "2026-11-14", title: "x", items: [{ text: "a", admin: false }] }]),
+    ).toThrow();
+  });
+});
+
+describe("nouveautés selon le compte", () => {
+  const entries: PatchNoteEntry[] = parsePatchNotes([
+    {
+      date: "2026-11-14",
+      title: "Le Potodex grandit",
+      publicTitle: "Petites retouches",
+      items: ["Pour tous.", { text: "Détail admin : Potodex.", admin: true }],
+    },
+    { date: "2026-11-12", title: "Coulisses", items: [{ text: "Booster secret.", admin: true }] },
+    { date: "2026-11-10", title: "Ancienne", items: ["Pour tous aussi."] },
+  ]);
+
+  it("un admin voit tout, dans l'ordre", () => {
+    const notes = notesFor(entries, true);
+    expect(notes.map((n) => [n.date, n.title, n.items])).toEqual([
+      ["2026-11-14", "Le Potodex grandit", ["Pour tous.", "Détail admin : Potodex."]],
+      ["2026-11-12", "Coulisses", ["Booster secret."]],
+      ["2026-11-10", "Ancienne", ["Pour tous aussi."]],
+    ]);
+    expect(latestPatchNote(notes)).toBe("2026-11-14");
+  });
+
+  it("un non-admin ne reçoit aucune ligne admin, ni entrée sans ligne pour lui, ni titre admin", () => {
+    const notes = notesFor(entries, false);
+    expect(notes).toEqual([
+      { date: "2026-11-14", title: "Petites retouches", items: ["Pour tous."] },
+      { date: "2026-11-10", title: "Ancienne", items: ["Pour tous aussi."] },
+    ]);
+    // ce qui part vers le navigateur : rien d'admin
+    const sent = JSON.stringify(notes);
+    for (const secret of ["Détail admin", "Booster secret", "Coulisses", "Potodex"]) {
+      expect(sent).not.toContain(secret);
+    }
+  });
+
+  it("pas de pastille pour une entrée invisible : la dernière visible compte", () => {
+    const onlyAdminNews = parsePatchNotes([
+      { date: "2026-11-15", title: "Admin", items: [{ text: "Outil admin.", admin: true }] },
+      { date: "2026-11-13", title: "Pour tous", items: ["Nouveau jeu."] },
+    ]);
+    expect(latestPatchNote(notesFor(onlyAdminNews, true))).toBe("2026-11-15");
+    expect(latestPatchNote(notesFor(onlyAdminNews, false))).toBe("2026-11-13");
+    expect(latestPatchNote([])).toBe("");
+  });
+
+  it("contenu réel : aucun détail des cartes pour un non-admin, au plus une ligne vague", () => {
+    const sent = JSON.stringify(notesFor(PATCH_NOTES, false)).toLowerCase();
+    for (const word of ["booster", "potodex", "sr ou mieux", "look", "full art", "paquet"]) {
+      expect(sent, word).not.toContain(word);
+    }
+    const vague = notesFor(PATCH_NOTES, false)
+      .flatMap((n) => n.items)
+      .filter((item) => /carte/i.test(item));
+    expect(vague).toEqual(["En coulisses, les admins préparent les cartes Potopia."]);
+    // l'admin, lui, a le détail
+    expect(JSON.stringify(notesFor(PATCH_NOTES, true))).toContain("Potodex");
   });
 });
 
