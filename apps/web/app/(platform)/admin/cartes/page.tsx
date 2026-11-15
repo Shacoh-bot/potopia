@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { CardSearch, type MoveTarget, MoveCardsForm, NewSetForm, PlaceSelect } from "./forms";
-import { cardAuthors, cardImageUrls } from "./images";
+import { cardAuthors, cardImageUrls, imageId } from "./images";
 import { Pagination } from "./Pagination";
 
 export const metadata: Metadata = { title: "Cartes" };
@@ -368,7 +368,7 @@ export default async function AdminCardsPage({
                       <div style={{ zoom: 4 / 3 }} className="pointer-events-none">
                         <GameCard
                           card={card}
-                          imageUrl={images.get(card.id) ?? null}
+                          imageUrl={images.get(imageId(card)) ?? null}
                           setSize={card.setId ? setSizes.get(card.setId) : undefined}
                           author={authors.get(card.id)}
                           still

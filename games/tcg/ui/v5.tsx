@@ -355,6 +355,25 @@ function Footer({
       <span title={game ? FINISH_LABELS[finish] : undefined}>
         {game ? FINISH_SHORT[finish] : FINISH_LABELS[finish]}
       </span>
+      {card.altArt && (
+        // Alt Art : mention en plus de la rareté, quelle qu'elle soit.
+        <span
+          title="Alt Art"
+          style={{
+            padding: "0 5px",
+            borderRadius: 3,
+            fontWeight: 800,
+            fontSize: 10,
+            letterSpacing: 1,
+            lineHeight: "14px",
+            color: "#1d1607",
+            background: "linear-gradient(135deg, #fff3b8, #f2c24f 45%, #fff6cf 60%, #d9a52e)",
+            boxShadow: "0 0 5px rgb(255 205 90 / 0.8)",
+          }}
+        >
+          AA
+        </span>
+      )}
       {stars > 0 && (
         <span
           role="img"

@@ -1,4 +1,4 @@
-import { getPotodex, listSets } from "@app/tcg";
+import { CARD_VERSION_LABELS, getPotodex, listSets } from "@app/tcg";
 import { CARD_HEIGHT, CARD_WIDTH, GameCard, GameCardDefs } from "@app/tcg/ui";
 import { buttonClasses, Card, cx, EmptyState } from "@app/ui";
 import type { Metadata } from "next";
@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { Pagination } from "../cartes/Pagination";
-import { cardImageUrls } from "../cartes/images";
+import { cardImageUrls, imageId } from "../cartes/images";
 import { paginate } from "./paginate";
 import { PotodexCard } from "./PotodexCard";
 import { ResetCollectionButton } from "./ResetCollectionButton";
@@ -23,9 +23,10 @@ const SLOT = 220;
 const PAGE_SIZE = 24;
 
 /**
- * Potodex de l'admin connecté (test) : toutes les cartes du set, dans l'ordre. Une carte trouvée
- * s'affiche avec son nombre d'exemplaires ; une carte pas encore tirée reste noire, avec seulement
- * son numéro (le serveur n'envoie rien d'autre). Une carte trouvée s'ouvre en grand au clic.
+ * Potodex de l'admin connecté (test) : toutes les cartes du set, dans l'ordre, chaque version à part
+ * (la normale, puis l'Alt Art, « AA »). Une version trouvée s'affiche avec son nombre
+ * d'exemplaires ; une version pas encore tirée reste noire, avec seulement son numéro et, pour
+ * l'Alt Art, la mention AA (le serveur n'envoie rien d'autre). Une carte trouvée s'ouvre en grand au clic.
  * Paginé (`?page=`), `PAGE_SIZE` cases par page.
  */
 export default async function AdminPotodexPage({
@@ -90,7 +91,8 @@ export default async function AdminPotodexPage({
                 {dex.found}/{dex.total}
               </span>{" "}
               <span className="text-muted">
-                cartes trouvées · {dex.boosters} paquet{dex.boosters > 1 ? "s" : ""} ouvert
+                versions trouvées (Alt Art comprises) · {dex.boosters} paquet
+                {dex.boosters > 1 ? "s" : ""} ouvert
                 {dex.boosters > 1 ? "s" : ""}
               </span>
             </p>
@@ -118,22 +120,22 @@ export default async function AdminPotodexPage({
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] justify-items-center gap-5">
               {shown.map((entry) => (
                 <li
-                  key={entry.number}
+                  key={`${entry.number}:${entry.version}`}
                   className="flex flex-col items-center gap-1"
                   style={{ contentVisibility: "auto", containIntrinsicSize: "auto 330px" }}
                 >
                   {entry.found ? (
                     <PotodexCard
                       card={entry.card}
-                      imageUrl={images.get(entry.card.id) ?? null}
-                      setSize={dex.total}
+                      imageUrl={images.get(imageId(entry.card)) ?? null}
+                      setSize={dex.size}
                       fontClass={designFonts}
                     >
                       <Scaled scale={SLOT / CARD_WIDTH}>
                         <GameCard
                           card={entry.card}
-                          imageUrl={images.get(entry.card.id) ?? null}
-                          setSize={dex.total}
+                          imageUrl={images.get(imageId(entry.card)) ?? null}
+                          setSize={dex.size}
                           still
                         />
                       </Scaled>
@@ -142,13 +144,29 @@ export default async function AdminPotodexPage({
                     <div
                       className="grid place-items-center rounded-[12px] border border-white/10 bg-black shadow-inner"
                       style={{ width: SLOT, aspectRatio: `${CARD_WIDTH} / ${CARD_HEIGHT}` }}
-                      aria-label={`Carte ${pad(entry.number)} : pas encore trouvée`}
+                      aria-label={`Carte ${pad(entry.number)}${entry.altArt ? " en Alt Art" : ""} : pas encore trouvée`}
                     >
-                      <span className="font-display text-2xl text-white/25">?</span>
+                      <span className="flex flex-col items-center gap-1">
+                        <span className="font-display text-2xl text-white/25">?</span>
+                        {entry.altArt && (
+                          <span className="rounded border border-amber-300/40 px-1.5 text-xs font-bold tracking-wider text-amber-200/60">
+                            AA
+                          </span>
+                        )}
+                      </span>
                     </div>
                   )}
                   <span className="text-muted text-xs tabular-nums">
                     {pad(entry.number)}
+                    {entry.altArt && (
+                      <span
+                        title={CARD_VERSION_LABELS.fullart}
+                        className="font-semibold text-amber-300"
+                      >
+                        {" "}
+                        AA
+                      </span>
+                    )}
                     {entry.found && entry.count > 1 ? ` · ×${entry.count}` : ""}
                   </span>
                 </li>

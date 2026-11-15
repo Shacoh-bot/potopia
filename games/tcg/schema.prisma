@@ -78,6 +78,8 @@ model TcgCard {
   adminNote      String?   @map("admin_note")
   // Clé de l'illustration dans le stockage (jamais une URL) ; sans elle, l'image de l'idée.
   imageKey       String?   @map("image_key")
+  // Illustration propre à la version full art ; null : la full art reprend `imageKey`.
+  imageKeyFull   String?   @map("image_key_full")
   // Cadrage de l'illustration (point central en % et zoom) : l'image n'est jamais rognée.
   imageFrame     Json?     @map("image_frame")
   // Cadrage de l'illustration en full art ; null : celui de la carte normale (imageFrame).
@@ -87,6 +89,10 @@ model TcgCard {
   glowPoints     Json?     @map("glow_points")
   // Mise en page choisie pour afficher la carte (normale ou full art).
   layout         TcgCardLayout @default(normal)
+  // Versions qui existent pour la carte (au moins une) : chacune se tire et se collectionne à part.
+  // `layout` est la version montrée par défaut (planches de l'admin), toujours une version active.
+  hasNormal      Boolean   @default(true) @map("has_normal")
+  hasFullArt     Boolean   @default(false) @map("has_full_art")
   ideaId        String?   @map("idea_id")
   baseCardId     String?   @map("base_card_id")
   // Mise à la corbeille : hors set et hors des listes ; null, carte active.
@@ -142,13 +148,15 @@ model TcgCardVisualEffect {
 model TcgOwnedCard {
   userId    String   @map("user_id")
   cardId    String   @map("card_id")
+  // Version possédée : la normale et la full art d'une carte se collectionnent séparément.
+  version   TcgCardLayout @default(normal)
   count     Int
   firstAt   DateTime @default(now()) @map("first_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   card TcgCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
-  @@id([userId, cardId])
+  @@id([userId, cardId, version])
   @@index([cardId])
   @@map("owned_cards")
   @@schema("tcg")

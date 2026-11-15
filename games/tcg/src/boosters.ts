@@ -1,13 +1,23 @@
 import { db, type DbTx, withTx } from "@app/db";
 import { z } from "zod";
-import { CARD_RARITIES, type Card, type CardRarityId, type CardSet } from "./card-rules";
+import {
+  CARD_RARITIES,
+  type Card,
+  type CardLayout,
+  type CardRarityId,
+  type CardSet,
+  cardVersions,
+  drawVersion,
+  isAltArt,
+} from "./card-rules";
 import { type Admin, assertAdmin, CardInputError, toCard, withSet } from "./cards";
 
 /*
  * Boosters et Potodex, en test : seuls les admins ouvrent des paquets (gratuits, illimités) et
  * consultent leur Potodex. Un paquet donne 5 cartes d'un set, tirées selon la rareté de chaque
- * emplacement ; chaque carte tirée entre dans la collection du joueur (`owned_cards`), et le
- * paquet est noté dans le journal (`booster_openings`), qui sert aussi à la garantie de SSR.
+ * emplacement, puis sa version (normale, ou Alt Art plus rarement, voir `drawVersion`) ; chaque
+ * carte tirée entre dans la collection du joueur (`owned_cards`, une ligne par version), et le
+ * paquet est noté dans le journal (`booster_openings`), qui sert aussi aux garanties.
  */
 
 /** Joueur qui ouvre un paquet : son id (collection) et son id Discord (droits). */
@@ -296,22 +306,35 @@ export async function openBooster(
     const set = await findSet(tx, setCode);
     const pool = await tx.tcgCard.findMany({
       where: { setId: set.id, deletedAt: null },
-      select: { id: true, rarity: true },
+      select: { id: true, rarity: true, hasNormal: true, hasFullArt: true },
+      // ordre fixe : un même tirage aléatoire (`rnd`) donne le même paquet
+      orderBy: { id: "asc" },
     });
-    const drawn = test
+    const picked = test
       ? drawTestBooster(pool as PoolCard[], opts?.rnd)
       : drawBooster(
           pool as PoolCard[],
           { forced: await nextForced(tx, player.id, set.id) },
           opts?.rnd,
         );
+    // La version se tire après les raretés de tout le paquet : taux et garanties inchangés.
+    const byPool = new Map(pool.map((c) => [c.id, c]));
+    const drawn = picked.map((c) => {
+      const versions = byPool.get(c.id) ?? { hasNormal: true, hasFullArt: false };
+      return { ...c, version: drawVersion(versions, opts?.rnd) };
+    });
 
-    const counts = new Map<string, number>();
-    for (const c of drawn) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
-    for (const [cardId, n] of counts) {
+    const counts = new Map<string, { cardId: string; version: CardLayout; n: number }>();
+    for (const c of drawn) {
+      const key = `${c.id}:${c.version}`;
+      const seen = counts.get(key);
+      if (seen) seen.n += 1;
+      else counts.set(key, { cardId: c.id, version: c.version, n: 1 });
+    }
+    for (const { cardId, version, n } of counts.values()) {
       await tx.tcgOwnedCard.upsert({
-        where: { userId_cardId: { userId: player.id, cardId } },
-        create: { userId: player.id, cardId, count: n },
+        where: { userId_cardId_version: { userId: player.id, cardId, version } },
+        create: { userId: player.id, cardId, version, count: n },
         update: { count: { increment: n } },
       });
     }
@@ -327,27 +350,33 @@ export async function openBooster(
     });
 
     const rows = await tx.tcgCard.findMany({
-      where: { id: { in: [...counts.keys()] } },
+      where: { id: { in: [...new Set(drawn.map((c) => c.id))] } },
       include: withSet,
     });
     const byId = new Map(rows.map((r) => [r.id, toCard(r)]));
     return {
       set,
+      // chaque carte dans la version obtenue (`layout`)
       cards: drawn.flatMap((c) => {
         const card = byId.get(c.id);
-        return card ? [card] : [];
+        return card ? [{ ...card, layout: c.version }] : [];
       }),
     };
   }, opts);
 }
 
-/** Case du Potodex : la carte si elle a été trouvée, sinon seulement son numéro (en noir). */
+/**
+ * Case du Potodex : une version d'une carte (normale ou Alt Art). La carte (dans cette version,
+ * `layout`) si elle a été trouvée, sinon seulement son numéro et sa version (en noir).
+ */
 export type PotodexEntry =
-  { number: number; found: true; count: number; card: Card } | { number: number; found: false };
+  | { number: number; version: CardLayout; altArt: boolean; found: true; count: number; card: Card }
+  | { number: number; version: CardLayout; altArt: boolean; found: false };
 
 /**
- * Potodex d'un joueur pour un set : toutes les cartes du set dans l'ordre des numéros. Une carte
- * pas encore trouvée ne révèle que son numéro (ni nom, ni rareté, ni illustration).
+ * Potodex d'un joueur pour un set : chaque version active de chaque carte du set, dans l'ordre des
+ * numéros (la normale puis l'Alt Art). Une version pas encore trouvée ne révèle que son numéro et
+ * sa version (ni nom, ni rareté, ni illustration). `found` et `total` comptent les versions.
  */
 export async function getPotodex(
   player: Player,
@@ -355,8 +384,11 @@ export async function getPotodex(
 ): Promise<{
   set: CardSet;
   entries: PotodexEntry[];
+  /** Versions trouvées, et versions du set (chaque carte en compte une ou deux). */
   found: number;
   total: number;
+  /** Cartes numérotées du set (pour « 07/44 »). */
+  size: number;
   boosters: number;
 }> {
   assertAdmin(player);
@@ -370,22 +402,28 @@ export async function getPotodex(
     }),
     db.tcgOwnedCard.findMany({
       where: { userId: player.id, card: { setId: set.id } },
-      select: { cardId: true, count: true },
+      select: { cardId: true, version: true, count: true },
     }),
     db.tcgBoosterOpening.count({ where: { userId: player.id, setId: set.id } }),
   ]);
-  const counts = new Map(owned.map((o) => [o.cardId, o.count]));
-  const entries: PotodexEntry[] = rows.map((row) => {
-    const count = counts.get(row.id);
-    return count
-      ? { number: row.number ?? 0, found: true, count, card: toCard(row) }
-      : { number: row.number ?? 0, found: false };
-  });
+  const counts = new Map(owned.map((o) => [`${o.cardId}:${o.version}`, o.count]));
+  const entries: PotodexEntry[] = rows.flatMap((row) =>
+    cardVersions(row).map((version): PotodexEntry => {
+      const number = row.number ?? 0;
+      const count = counts.get(`${row.id}:${version}`);
+      // case « AA » : seulement pour la variante d'une carte qui a aussi sa normale
+      const altArt = isAltArt(row, version);
+      return count
+        ? { number, version, altArt, found: true, count, card: { ...toCard(row), layout: version } }
+        : { number, version, altArt, found: false };
+    }),
+  );
   return {
     set,
     entries,
     found: entries.filter((e) => e.found).length,
     total: entries.length,
+    size: rows.length,
     boosters,
   };
 }

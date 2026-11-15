@@ -435,6 +435,9 @@ describe("illustration", () => {
     });
     expect(res.status).toBe(200);
     expect((await setCardImage(ADMIN, card.id, key)).imageKey).toBe(key);
+    // la même image posée sur l'Alt Art : la normale garde la sienne
+    const alt = await setCardImage(ADMIN, card.id, key, { version: "fullart" });
+    expect(alt).toMatchObject({ imageKey: key, imageKeyFull: key });
   });
 
   it("refuse une clé jamais envoyée, inventée, ou un format autre que WebP", async () => {

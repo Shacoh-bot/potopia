@@ -1,4 +1,4 @@
-import { type Card, frameFor } from "../src/card-rules";
+import { type Card, frameFor, isAltArt } from "../src/card-rules";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
@@ -18,6 +18,8 @@ export type GameCardFields = Pick<
   imageFrameFull?: Card["imageFrameFull"];
   /** Mise en page enregistrée ; absente : normale. */
   layout?: Card["layout"];
+  /** La carte a sa version normale ; absent : oui (sa full art est alors une Alt Art). */
+  hasNormal?: Card["hasNormal"];
   /** Points lumineux sur l'illustration ; absents : aucun. */
   glowPoints?: Card["glowPoints"];
   /** Effets visuels (clés du catalogue), le premier en dessous ; absent : aucun. */
@@ -43,7 +45,9 @@ export function GameCardDefs() {
  * Une carte du jeu, dans le design retenu (n°70 : le 65 affiné, bandeau court), en carte normale
  * ou full art (la mise en page enregistrée sur la carte, sauf `layout` donné), dans sa version
  * affinée (`refined`) : sans plaques d'angle dorées ni gemmes, filet doré collé au cadre, full art
- * avec les textes sans encadrés et un contour. La rareté se voit à la bordure et en pied de carte.
+ * avec les textes sans encadrés et un contour. La rareté se voit à la bordure et en pied de carte ;
+ * en full art, la carte est dans sa version Alt Art : mention « AA » à côté de la rareté
+ * (`isAltArt`).
  */
 export function GameCard({
   card,
@@ -83,6 +87,7 @@ export function GameCard({
     imageUrl,
     imageFrame: frameFor(card, layout),
     glowPoints: card.glowPoints,
+    altArt: isAltArt(card, layout),
     author: author ?? undefined,
     // Hors set, pas de numéro : la carte est dans la réserve.
     serial:

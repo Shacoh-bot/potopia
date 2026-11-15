@@ -24,6 +24,8 @@ export type CardData = {
   imageFrame?: ImageFrame | null;
   /** Points lumineux sur l'illustration (cartes du jeu). */
   glowPoints?: GlowPoint[];
+  /** Version Alt Art (full art) d'une carte du jeu : mention « AA » en pied de carte. */
+  altArt?: boolean;
 };
 
 export const RARITY_LABELS: Record<CardRarity, string> = {

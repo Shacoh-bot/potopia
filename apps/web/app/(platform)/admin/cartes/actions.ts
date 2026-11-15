@@ -1,7 +1,9 @@
 "use server";
 
 import {
+  CARD_LAYOUTS,
   CardInputError,
+  type CardLayout,
   createCard,
   createSet,
   deleteCards,
@@ -100,14 +102,20 @@ export async function requestCardImageAction(
   }
 }
 
-/** Pose l'illustration envoyée sur la carte (liée à son id par la page). */
+/**
+ * Pose l'illustration envoyée sur une version de la carte (liée à son id par la page) : la normale
+ * par défaut, ou la full art (Alt Art).
+ */
 export async function confirmCardImageAction(
   id: string,
   key: string,
+  version?: CardLayout,
 ): Promise<{ error: string } | null> {
   const admin = await actionAdmin();
   try {
-    await setCardImage(admin, z.string().min(1).parse(id), key);
+    await setCardImage(admin, z.string().min(1).parse(id), key, {
+      version: z.enum(CARD_LAYOUTS).optional().parse(version),
+    });
   } catch (error) {
     const message = inputError(error);
     if (message === null) throw error;
