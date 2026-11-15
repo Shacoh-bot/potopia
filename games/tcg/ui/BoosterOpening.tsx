@@ -16,6 +16,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
 import { CardAura, hasAura } from "./CardAura";
 import { CardBack } from "./CardBack";
+import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { OPENING_BG, openingPlan } from "./opening";
 
@@ -186,6 +187,7 @@ function OpeningCard({
   to,
   setSize,
   onReveal,
+  fontClass,
 }: {
   /** null tant que le tirage n'est pas arrivé : la carte reste de dos. */
   opened: OpenedCard | null;
@@ -194,11 +196,15 @@ function OpeningCard({
   to: Rect;
   setSize?: number;
   onReveal: () => void;
+  /** Polices des cartes, reportées sur la carte ouverte en grand (rendue hors de l'écran). */
+  fontClass?: string;
 }) {
   const [placed, setPlaced] = useState(from === null);
   const [side, setSide] = useState<"back" | "face">("back");
   // Fin du demi-tour : la face suit la souris (inclinaison, reflets).
   const [settled, setSettled] = useState(false);
+  // Carte retournée : un clic l'ouvre en grand (avant d'être retournée, le clic la retourne).
+  const [zoomed, setZoomed] = useState(false);
 
   useEffect(() => {
     if (placed) return;
@@ -214,6 +220,10 @@ function OpeningCard({
       : "none";
 
   function reveal() {
+    if (side === "face" && settled) {
+      setZoomed(true);
+      return;
+    }
     if (side !== "back" || !opened) return;
     setSide("face");
     flipSound(opened.card.rarity);
@@ -238,7 +248,7 @@ function OpeningCard({
         data-settled={settled ? "" : undefined}
         data-rarity={opened?.card.rarity}
         aria-busy={!opened}
-        aria-label={faceUp && opened ? opened.card.name : "Retourner la carte"}
+        aria-label={faceUp && opened ? `Voir ${opened.card.name} en grand` : "Retourner la carte"}
         onClick={reveal}
       >
         <span className="tcg-opening-turn">
@@ -265,6 +275,11 @@ function OpeningCard({
           )}
         </span>
       </button>
+      {zoomed && opened && (
+        <CardZoom label={opened.card.name} fontClass={fontClass} onClose={() => setZoomed(false)}>
+          <GameCard card={opened.card} imageUrl={opened.imageUrl} setSize={setSize} />
+        </CardZoom>
+      )}
     </div>
   );
 }
@@ -486,6 +501,7 @@ export function BoosterOpening({
               to={slot}
               setSize={setSize}
               onReveal={() => setRevealed((n) => n + 1)}
+              fontClass={className}
             />
           );
         })}

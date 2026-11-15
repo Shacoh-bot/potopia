@@ -1,12 +1,7 @@
 "use client";
 
-import { CARD_HEIGHT, CARD_WIDTH, GameCard, type GameCardFields } from "@app/tcg/ui";
-import { cx } from "@app/ui";
-import { X } from "lucide-react";
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Scaled } from "./Scaled";
-import { zoomToFit } from "./zoom";
+import { CardZoom, GameCard, type GameCardFields } from "@app/tcg/ui";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 /**
  * Carte trouvée du Potodex : la miniature (rendue par le serveur, `children`) est un bouton ; un
@@ -55,89 +50,11 @@ export function PotodexCard({
           {children}
         </div>
       </button>
-      {open &&
-        createPortal(
-          <CardZoom
-            card={card}
-            imageUrl={imageUrl}
-            setSize={setSize}
-            fontClass={fontClass}
-            onClose={close}
-          />,
-          document.body,
-        )}
-    </>
-  );
-}
-
-function CardZoom({
-  card,
-  imageUrl,
-  setSize,
-  fontClass,
-  onClose,
-}: {
-  card: GameCardFields;
-  imageUrl: string | null;
-  setSize: number;
-  fontClass: string;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [zoom, setZoom] = useState<number | null>(null);
-
-  // Avant le premier affichage : taille adaptée à l'écran, dialogue modal (Échap, focus gardé
-  // dedans), page bloquée derrière.
-  useLayoutEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    const fit = () =>
-      setZoom(
-        zoomToFit(
-          { width: window.innerWidth, height: window.innerHeight },
-          { width: CARD_WIDTH, height: CARD_HEIGHT },
-        ),
-      );
-    fit();
-    if (!dialog.open) dialog.showModal();
-    window.addEventListener("resize", fit);
-    const root = document.documentElement;
-    const overflow = root.style.overflow;
-    root.style.overflow = "hidden";
-    // Pas de `close()` ici : son événement `close`, différé, refermerait la carte rouverte
-    // aussitôt (effets rejoués en développement). Retiré de la page, le dialogue se ferme seul.
-    return () => {
-      window.removeEventListener("resize", fit);
-      root.style.overflow = overflow;
-    };
-  }, []);
-
-  return (
-    <dialog
-      ref={ref}
-      aria-label={card.name}
-      onClose={onClose}
-      // Un clic sur le fond (le dialogue lui-même, pas la carte) ferme.
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      className={cx(
-        fontClass,
-        // `overflow-hidden` : la carte inclinée dépasse un peu de sa boîte, sans barre de défilement.
-        "potodex-zoom fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none flex-col items-center justify-center overflow-hidden border-0 bg-transparent p-4 open:flex",
-      )}
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Fermer"
-        className="fixed top-3 right-3 grid size-10 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-white"
-      >
-        <X size={22} aria-hidden />
-      </button>
-      {zoom !== null && (
-        <Scaled scale={zoom} className="potodex-zoom-card">
+      {open && (
+        <CardZoom label={card.name} fontClass={fontClass} onClose={close}>
           <GameCard card={card} imageUrl={imageUrl} setSize={setSize} />
-        </Scaled>
+        </CardZoom>
       )}
-    </dialog>
+    </>
   );
 }

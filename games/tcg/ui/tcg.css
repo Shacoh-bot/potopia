@@ -1507,8 +1507,9 @@
 .tcg-opening-card[data-side="face"]:not([data-settled]) {
   transform: translateY(-8px);
 }
+/* Carte retournée : un clic l'ouvre en grand. */
 .tcg-opening-card[data-side="face"] {
-  cursor: default;
+  cursor: zoom-in;
 }
 /* Vraie carte recto-verso : le dos et la face sont dos à dos dans un même volume, et toute la
    carte pivote d'un seul demi-tour. Chaque côté est à plat (la 3D interne de la face, inclinaison
