@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./cookies": "./src/auth/cookie-prefix.ts",
     "./testing": "./src/testing.ts",
     "./ui": "./ui/index.ts"
   },

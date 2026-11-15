@@ -57,6 +57,13 @@ local » (simple membre). `/login?discord` affiche la vraie page de connexion. F
 et sur Vercel (route `/api/auth/dev-login` en 404). Les variables Discord doivent quand même être
 remplies (Better Auth les lit au démarrage).
 
+**Plusieurs serveurs locaux en même temps.** Chaque serveur a son port (`pnpm exec next dev -p
+3001` dans `apps/web`) et son `BETTER_AUTH_URL` (`http://localhost:3001`) dans le `.env` de son
+dossier. En développement, le cookie de session porte le port dans son nom
+(`better-auth-3001.session_token`) : une connexion sur un port n'écrase plus celle des autres
+(sans cela, la page restait connectée mais l'enregistrement suivant répondait « Connexion
+requise »). En production, le nom ne change pas.
+
 ### Variables d'environnement
 
 Toutes sont décrites dans [.env.example](.env.example). En local, seules celles marquées « à

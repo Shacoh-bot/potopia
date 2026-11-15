@@ -6,6 +6,7 @@ import { APIError } from "better-auth/api";
 import type { OAuth2Tokens } from "better-auth/oauth2";
 import { roleOf } from "../access/admin";
 import { requireEnv } from "../env";
+import { sessionCookiePrefix } from "./cookie-prefix";
 import { checkGuildMembership, fetchDiscordProfile, mapProfileToUser } from "./discord";
 
 /** Recopie l'ID Discord du compte lié sur l'utilisateur et synchronise le miroir `role`. */
@@ -98,6 +99,9 @@ export function createAuth() {
       },
     },
     onAPIError: { errorURL: `${baseURL}/login` },
+    // En développement local, cookies propres au port (serveurs locaux en parallèle) ; ailleurs,
+    // le préfixe par défaut de Better Auth : même nom de cookie qu'avant en prod.
+    advanced: { cookiePrefix: sessionCookiePrefix(baseURL) },
     databaseHooks: {
       session: {
         create: {
