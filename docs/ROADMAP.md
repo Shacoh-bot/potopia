@@ -613,6 +613,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       colonne, calculée pour les paquets existants) ; dans l'admin, paquets de test avec une carte
       de chaque rareté haute, hors garanties.
 - [x] Potodex paginé (24 cases par page) et cartes plus grandes (220 px).
+- [x] Note admin sur une carte (« Doublon de … »), visible dans la liste et la corbeille, jamais
+      montrée aux joueurs ; migration `tcg_card_admin_note` (ajout d'une colonne).
 - [x] Stats liées à l'effet : coût et puissance des cartes Snap (`snap-cards.ts`), remplis et
       suivis dans la fiche, case « Stats manuelles », règle appliquée par le serveur ; migration
       `tcg_card_stats_manual` (ajout d'une colonne, aucune carte réécrite).

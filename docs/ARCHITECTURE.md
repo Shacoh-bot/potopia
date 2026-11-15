@@ -206,7 +206,9 @@ passe d'une partie à l'autre sans rechargement.
   numéro si et seulement si la carte est dans un set, sinon elle est dans la réserve), name, rarity (enum `TcgRarity` :
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power,
   statsManual (défaut false : avec un effet, cost et power suivent sa carte Snap), effectKey?,
-  effectParams? (JSON), effectText, flavor?, imageKey?, imageFrame? (JSON : cadrage de
+  effectParams? (JSON), effectText, flavor?, adminNote? (note de l'admin, 120 caractères :
+  « Doublon de … » ; jamais montrée aux joueurs, sans effet en jeu ; absente d'une modification,
+  elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
   rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
   l'illustration, voir plus bas ; null, aucun), layout
