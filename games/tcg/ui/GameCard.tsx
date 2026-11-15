@@ -1,9 +1,9 @@
-import { CardAura, hasAura } from "./CardAura";
 import { type Card, frameFor } from "../src/card-rules";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
 import type { TopLayout } from "./v4";
+import { CardAura, hasAura } from "./CardAura";
 import { FinalCard } from "./v5";
 
 /** Ce qu'il faut d'une carte pour l'afficher (la carte enregistrée, ou le formulaire en cours). */
