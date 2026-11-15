@@ -33,7 +33,7 @@ import { SonicRun } from "@/components/SonicRun";
 import { SpinOrb } from "@/components/SpinOrb";
 import { SpyroRun } from "@/components/SpyroRun";
 import { Ocarina } from "@/components/Ocarina";
-import { LATEST_PATCH_NOTE, PATCH_NOTES } from "@/content/patch-notes";
+import { latestPatchNote, notesFor, PATCH_NOTES } from "@/content/patch-notes";
 import { getActivityFeed } from "@/lib/activity";
 import { canSendTestNotification } from "@/lib/notifications";
 import { getCurrentMember } from "@/lib/session";
@@ -43,6 +43,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   // Seuls le nom, l'image et le rôle partent vers les composants (ProfileMenu est un composant
   // client : pas d'email ni d'identifiant Discord dans le HTML ni le bundle).
   const profile = { name: user.name, image: user.image };
+  // Nouveautés filtrées ici, côté serveur : les lignes admin ne partent pas vers un non-admin.
+  const patchNotes = notesFor(PATCH_NOTES, user.role === "admin");
   const theme = resolveTheme((await cookies()).get(THEME_COOKIE)?.value);
   const [notifications, unreadCount, balance, feed, items, trois, agentsGames] = await Promise.all([
     listNotifications(user.id, 15),
@@ -112,7 +114,7 @@ export default async function PlatformLayout({ children }: { children: ReactNode
             <LuffyRun />
             <SpinOrb />
             {/* nouveautés du site, juste à gauche du thème */}
-            <PatchNotes notes={PATCH_NOTES} latest={LATEST_PATCH_NOTE} />
+            <PatchNotes notes={patchNotes} latest={latestPatchNote(patchNotes)} />
             <ThemeSwitcher current={theme} />
             <NotificationBell
               notifications={notifications}

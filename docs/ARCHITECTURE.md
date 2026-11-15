@@ -638,8 +638,13 @@ droite : Sonic, Luffy, la boule musicale, nouveautés, thème, cloche, volume, m
 - Nouveautés (`components/PatchNotes.tsx`, juste à gauche du thème) : le bouton ouvre la liste des
   mises à jour du site, la plus récente en haut (date, titre, puces). Données dans
   `apps/web/content/patch-notes.ts`, une entrée par jour, validées par zod au chargement côté
-  serveur (`parsePatchNotes` : date AAAA-MM-JJ, au moins une ligne, pas deux entrées le même jour)
-  puis passées au bouton. Une pastille reste tant que la dernière entrée n'a pas été ouverte sur
+  serveur (`parsePatchNotes` : date AAAA-MM-JJ, au moins une ligne, pas deux entrées le même jour).
+  Chaque ligne a sa visibilité : texte simple pour tous, `{ text, admin: true }` pour les admins
+  seulement. Le layout (serveur) passe au bouton `notesFor(PATCH_NOTES, isAdmin)` : un non-admin
+  ne reçoit aucune ligne admin, ni une entrée qui n'aurait que des lignes admin (titre de
+  remplacement `publicTitle` si le titre en parle) ; rien d'admin dans le HTML ni les données du
+  navigateur. La pastille suit la dernière entrée visible par le compte (`latestPatchNote`) : une
+  nouveauté admin ne l'allume pas chez un non-admin. Une pastille reste tant que la dernière entrée n'a pas été ouverte sur
   l'appareil (`localStorage`, clé `potopia-patch-notes-vu` = date de la dernière lue), lue par
   `useSyncExternalStore` (aucune pastille au rendu serveur, puis celle du navigateur ; suit aussi les
   autres onglets). Fermeture : clic à côté, Échap ou le bouton.
