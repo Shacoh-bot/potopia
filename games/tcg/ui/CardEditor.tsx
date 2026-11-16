@@ -25,6 +25,7 @@ import {
   frameFor,
   type GlowPoint,
   type ImageFrame,
+  markDuplicateNote,
   type VisualEffect,
 } from "../src/card-rules";
 import {
@@ -666,11 +667,7 @@ export function CardEditor({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  const note = fields.adminNote.trim();
-                  if (/^doublon/i.test(note)) return;
-                  set("adminNote", note ? `Doublon — ${note}` : "Doublon");
-                }}
+                onClick={() => set("adminNote", markDuplicateNote(fields.adminNote))}
               >
                 Doublon
               </Button>

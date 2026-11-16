@@ -174,6 +174,17 @@ export function isDuplicateNote(note: string | null | undefined): boolean {
 }
 
 /**
+ * Note après un clic sur le bouton « Doublon » de l'éditeur : inchangée (sans les espaces autour)
+ * si elle marque déjà la carte en doublon (même règle que `isDuplicateNote`), sinon préfixée par
+ * « Doublon — », ou « Doublon » si elle est vide.
+ */
+export function markDuplicateNote(note: string): string {
+  const trimmed = note.trim();
+  if (isDuplicateNote(trimmed)) return trimmed;
+  return trimmed ? `Doublon — ${trimmed}` : "Doublon";
+}
+
+/**
  * État d'une idée d'après ses cartes : `cards`, les cartes du jeu (hors corbeille) qui ne sont pas
  * marquées doublon ; `duplicate`, l'idée n'a aucune de ces cartes et au moins une carte marquée
  * « Doublon », même à la corbeille. Elle ne compte alors plus comme idée à transformer en carte ;

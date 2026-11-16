@@ -63,6 +63,7 @@ export {
   ideaStateOf,
   type ImageFrame,
   isDuplicateNote,
+  markDuplicateNote,
   type VisualEffect,
 } from "./card-rules";
 

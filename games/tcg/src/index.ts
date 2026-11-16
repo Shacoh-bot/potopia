@@ -35,6 +35,7 @@ export {
   ideaStateOf,
   importCards,
   isDuplicateNote,
+  markDuplicateNote,
   updateCards,
   listCards,
   listSets,
