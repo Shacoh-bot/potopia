@@ -46,14 +46,49 @@ export const font = (name: string, fallback: string) => `var(--font-${name}), ${
 const W = 300;
 const H = 420;
 
-/** Placement d'une image selon son cadrage : point visé au centre, zoom autour de ce point. */
+/**
+ * Placement d'une image selon son cadrage : `object-position` au point de cadrage, puis zoom
+ * autour de ce même point. Sous 1 (dézoom), l'image passe devant son fond flou (`ArtBackdrop`).
+ */
 export function frameStyle(frame: ImageFrame | null | undefined): CSSProperties {
   if (!frame) return {};
   return {
     objectPosition: `${frame.x}% ${frame.y}%`,
-    transform: frame.zoom > 1 ? `scale(${frame.zoom})` : undefined,
+    transform: frame.zoom !== 1 ? `scale(${frame.zoom})` : undefined,
     transformOrigin: `${frame.x}% ${frame.y}%`,
+    ...(frame.zoom < 1 ? { position: "relative" } : {}),
   };
+}
+
+/** Image dézoomée (zoom sous 1) : il reste du vide autour d'elle dans la fenêtre. */
+export const isZoomedOut = (frame: ImageFrame | null | undefined) => !!frame && frame.zoom < 1;
+
+/**
+ * Fond d'une image dézoomée : la même image, floutée et assombrie, remplit la fenêtre derrière
+ * elle. Rien sans dézoom. Le parent doit être `position: relative` et `overflow: hidden`.
+ */
+export function ArtBackdrop({ src, frame }: { src: string; frame: ImageFrame | null | undefined }) {
+  if (!isZoomedOut(frame)) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden
+      draggable={false}
+      loading="lazy"
+      decoding="async"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        filter: "blur(10px) brightness(0.7)",
+        transform: "scale(1.15)",
+        pointerEvents: "none",
+      }}
+    />
+  );
 }
 
 /** Illustration de la carte, ou un nuage pixel quand l'idée n'a pas d'image. */
@@ -70,7 +105,15 @@ export function Art({
 }) {
   if (card.imageUrl) {
     return (
-      <div style={{ height, overflow: "hidden", ...style }}>
+      <div
+        style={{
+          height,
+          overflow: "hidden",
+          ...(isZoomedOut(card.imageFrame) ? { position: "relative" } : {}),
+          ...style,
+        }}
+      >
+        <ArtBackdrop src={card.imageUrl} frame={card.imageFrame} />
         <img
           src={card.imageUrl}
           alt={card.title}

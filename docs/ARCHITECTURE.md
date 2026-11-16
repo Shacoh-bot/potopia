@@ -220,8 +220,9 @@ passe d'une partie à l'autre sans rechargement.
   effectParams? (JSON), effectText, flavor?, adminNote? (note de l'admin, 120 caractères :
   « Doublon de … » ; jamais montrée aux joueurs, sans effet en jeu ; absente d'une modification,
   elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), imageKey?, imageFrame? (JSON : cadrage de
-  l'illustration en carte normale, point central x/y en % et zoom de 1 à 4 ; l'image n'est jamais
-  rognée), imageFrameFull? (JSON : cadrage en full art ; null, celui de la carte normale), glowPoints? (JSON : points lumineux posés sur
+  l'illustration en carte normale, point de cadrage x/y en % et zoom de 0,25 à 4 ; sous 1, l'image
+  rétrécit et sa copie floutée remplit le vide ; l'image n'est jamais rognée), imageFrameFull? (JSON :
+  cadrage en full art, zoom de 1 à 4 ; null, celui de la carte normale sans son dézoom), glowPoints? (JSON : points lumineux posés sur
   l'illustration, voir plus bas ; null, aucun), layout
   (enum `TcgCardLayout` : normal, fullart ; version dans laquelle la carte s'affiche sur les
   planches, toujours une version active), hasNormal (défaut true), hasFullArt (défaut false) :
@@ -1135,6 +1136,15 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   sans cadrage full art à elle (cadrée avant la séparation) garde en full art celui de la carte
   normale ; « Reprendre le cadrage de la carte normale » le recopie. Une mise à jour qui n'envoie
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
+  Dézoom de la carte normale (images pensées pour la full art) : le zoom descend jusqu'à
+  `FRAME_ZOOM.min` (0,25) ; « Image entière » règle le zoom qui fait tenir toute l'image dans la
+  fenêtre (`fitZoom`) et la recentre. Sous 1, `frameStyle` rétrécit l'image autour du point de
+  cadrage et `ArtBackdrop` (`ui/cards.tsx`) place derrière elle la même image floutée et
+  assombrie ; à 1 et plus, rien ne change. La full art ne descend jamais sous
+  `FRAME_ZOOM.fullMin` (1) : validation serveur, curseur, et `frameFor` qui retire le dézoom quand
+  elle reprend le cadrage de la normale. La fiche enregistre toujours les deux cadrages : régler
+  la normale ne déplace pas la full art. Le glisser suit la souris au pixel près, zoom comme dézoom
+  (`framePointShift`, `ui/frame-drag.ts`, testé) ; les points lumineux suivent (`glowPlacement`).
 - Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
   point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), arc électrique
   (`sparks` : arcs en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;

@@ -21,6 +21,7 @@ import {
   type Card,
   type CardSet,
   DEFAULT_FRAME,
+  FRAME_ZOOM,
   frameFor,
   type GlowPoint,
   type ImageFrame,
@@ -802,8 +803,9 @@ export function CardEditor({
                   {image && (
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-muted text-sm">
-                        Cadrage {layout === "normal" ? "de la version normale" : "de l'Alt Art"} :
-                        glisse l&apos;image, zoome, puis enregistre la carte.
+                        {layout === "normal"
+                          ? "Cadrage de la version normale : glisse l'image, zoome ou dézoome (« Image entière » la fait tenir toute), puis enregistre la carte. L'Alt Art n'est pas touchée."
+                          : "Cadrage de l'Alt Art : glisse l'image, zoome, puis enregistre la carte."}
                       </p>
                       <ImageFramer
                         // un cadrage par mise en page : changer de mise en page change de réglage
@@ -814,6 +816,8 @@ export function CardEditor({
                         // Proportions de la fenêtre d'illustration : carte normale (FINAL_ART) ou full art.
                         width={layout === "normal" ? FINAL_ART.width : 200}
                         height={layout === "normal" ? FINAL_ART.height : 280}
+                        // dézoom (image entière) : carte normale seulement
+                        minZoom={layout === "normal" ? FRAME_ZOOM.min : FRAME_ZOOM.fullMin}
                       />
                       {layout === "fullart" && !ownFull && (
                         <button
