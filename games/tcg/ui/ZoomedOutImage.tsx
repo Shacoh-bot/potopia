@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { ImageFrame } from "../src/card-rules";
+import { useSharpSrc } from "./SharpImage";
 import { zoomedOutStyle } from "./zoomed-out";
 
 /**
@@ -10,20 +11,28 @@ import { zoomedOutStyle } from "./zoomed-out";
  * invisible et seul le fond flou (`ArtBackdrop`) se voit.
  */
 export function ZoomedOutImage({
-  src,
+  src: small,
+  large,
   alt,
   frame,
 }: {
   src: string;
+  /** Grande version, chargée quand la carte s'affiche en grand (`useSharpSrc`). */
+  large?: string | null;
   alt: string;
   frame: ImageFrame;
 }) {
   const [ratio, setRatio] = useState<number | null>(null);
-  const read = useCallback((img: HTMLImageElement | null) => {
-    if (!img?.complete || !img.naturalWidth || !img.naturalHeight) return;
-    const next = img.naturalWidth / img.naturalHeight;
-    setRatio((r) => (r === next ? r : next));
-  }, []);
+  const { src, ref: sharpRef } = useSharpSrc(small, large);
+  const read = useCallback(
+    (img: HTMLImageElement | null) => {
+      sharpRef(img);
+      if (!img?.complete || !img.naturalWidth || !img.naturalHeight) return;
+      const next = img.naturalWidth / img.naturalHeight;
+      setRatio((r) => (r === next ? r : next));
+    },
+    [sharpRef],
+  );
   return (
     <img
       ref={read}

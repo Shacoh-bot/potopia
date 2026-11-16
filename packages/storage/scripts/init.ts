@@ -3,8 +3,15 @@ import { CreateBucketCommand, HeadBucketCommand, PutBucketCorsCommand } from "@a
 import { configFromEnv, createR2Client, type StorageConfig } from "../src/client";
 
 /**
+ * Sites locaux autorisés en plus : un port par agent (3000 à 3003), qui partagent le même stockage
+ * local. Sans eux, l'envoi d'une image échoue sur tous les ports sauf celui du dernier `storage:init`.
+ */
+const LOCAL_ORIGINS = [3000, 3001, 3002, 3003].map((port) => `http://localhost:${port}`);
+
+/**
  * Stockage local uniquement : crée le bucket s'il n'existe pas et autorise le PUT depuis
- * le navigateur (CORS). En prod, bucket et CORS se configurent dans le dashboard R2.
+ * le navigateur (CORS) pour `allowedOrigin` et les ports locaux. En prod, bucket et CORS se
+ * configurent dans le dashboard R2.
  */
 export async function initLocalBucket(config: StorageConfig, allowedOrigin: string): Promise<void> {
   if (!config.endpoint) throw new Error("storage:init ne sert qu'au stockage local (R2_ENDPOINT).");
@@ -20,7 +27,7 @@ export async function initLocalBucket(config: StorageConfig, allowedOrigin: stri
       CORSConfiguration: {
         CORSRules: [
           {
-            AllowedOrigins: [allowedOrigin],
+            AllowedOrigins: [...new Set([allowedOrigin, ...LOCAL_ORIGINS])],
             AllowedMethods: ["PUT", "GET"],
             AllowedHeaders: ["content-type"],
             MaxAgeSeconds: 3600,

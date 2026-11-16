@@ -38,6 +38,19 @@ export const CARD_LIMITS = {
   imageBytes: 5 * 1024 * 1024,
 } as const;
 
+/**
+ * Tailles des illustrations envoyées (côté le plus long, en px). `large` : l'illustration gardée,
+ * nette en carte agrandie (×2,5) sur écran haute densité ; `small` : sa version réduite, chargée
+ * par les petites cartes ; `sharp` : en dessous, l'admin est averti que l'image sera floue en grand
+ * (sans bloquer l'envoi).
+ */
+export const CARD_IMAGE_SIZES = { large: 2400, small: 800, sharp: 1600 } as const;
+
+/** Image trop petite pour rester nette en carte agrandie (`CARD_IMAGE_SIZES.sharp`). */
+export function isBlurryWhenZoomed(size: { width: number; height: number }): boolean {
+  return Math.max(size.width, size.height) < CARD_IMAGE_SIZES.sharp;
+}
+
 /** Illustrations de cartes : WebP uniquement (l'interface convertit avant l'envoi). */
 export const CARD_IMAGE_TYPES = {
   "image/webp": "webp",
@@ -206,6 +219,23 @@ export function imageKeyFor(
   return version === "fullart" ? (card.imageKeyFull ?? card.imageKey) : card.imageKey;
 }
 
+/**
+ * Clé de la version réduite de l'illustration d'une version (celle de l'illustration que montre
+ * `imageKeyFor`) ; null : pas de version réduite, la petite carte montre l'illustration elle-même.
+ */
+export function smallImageKeyFor(
+  card: {
+    imageKey: string | null;
+    imageKeyFull?: string | null;
+    imageKeySmall?: string | null;
+    imageKeyFullSmall?: string | null;
+  },
+  version: CardLayout,
+): string | null {
+  const ownFull = version === "fullart" && !!card.imageKeyFull;
+  return (ownFull ? card.imageKeyFullSmall : card.imageKeySmall) ?? null;
+}
+
 /** Types de lumière à placer sur l'illustration. */
 export const GLOW_KINDS = ["glow", "sparks", "rays", "line"] as const;
 export type GlowKind = (typeof GLOW_KINDS)[number];
@@ -272,6 +302,9 @@ export type Card = {
   imageKey: string | null;
   /** Illustration de la version full art ; null : celle de la normale (`imageKey`). */
   imageKeyFull: string | null;
+  /** Versions réduites (`CARD_IMAGE_SIZES.small`) ; null : aucune, envoyée avant leur arrivée. */
+  imageKeySmall: string | null;
+  imageKeyFullSmall: string | null;
   imageFrame: ImageFrame | null;
   /** Cadrage en full art ; null : celui de la carte normale (voir `frameFor`). */
   imageFrameFull: ImageFrame | null;

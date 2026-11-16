@@ -104,17 +104,19 @@ export async function requestCardImageAction(
 
 /**
  * Pose l'illustration envoyée sur une version de la carte (liée à son id par la page) : la normale
- * par défaut, ou la full art (Alt Art).
+ * par défaut, ou la full art (Alt Art), avec sa version réduite (`smallKey`) pour les petites cartes.
  */
 export async function confirmCardImageAction(
   id: string,
   key: string,
   version?: CardLayout,
+  smallKey?: string | null,
 ): Promise<{ error: string } | null> {
   const admin = await actionAdmin();
   try {
     await setCardImage(admin, z.string().min(1).parse(id), key, {
       version: z.enum(CARD_LAYOUTS).optional().parse(version),
+      smallKey: z.string().min(1).nullish().parse(smallKey),
     });
   } catch (error) {
     const message = inputError(error);

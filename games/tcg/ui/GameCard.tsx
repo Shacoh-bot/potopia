@@ -29,6 +29,11 @@ export type GameCardFields = Pick<
    * suit la carte sur tous les écrans, booster et Potodex compris.
    */
   author?: string | null;
+  /**
+   * Grande version de l'illustration, préparée avec la carte (`cardFaces`) : `imageUrl` est alors
+   * la version réduite, et la grande se charge quand la carte s'affiche en grand.
+   */
+  imageUrlLarge?: string | null;
 };
 
 /** Ligne de type affichée : « Instrument — Grenouilles », ou le type seul sans famille. */
@@ -96,6 +101,7 @@ export function GameCard({
     cost: card.cost,
     power: card.power,
     imageUrl,
+    imageUrlLarge: card.imageUrlLarge,
     imageFrame: frameFor(card, layout),
     glowPoints: card.glowPoints,
     altArt: isAltArt(card, layout),

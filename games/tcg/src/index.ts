@@ -10,6 +10,7 @@ export {
 } from "./designs";
 export { listDesignVotes, rateDesign, type DesignVote, type RateInput } from "./votes";
 export {
+  CARD_IMAGE_SIZES,
   CARD_IMAGE_TYPES,
   CARD_LIMITS,
   CARD_RARITIES,
@@ -78,6 +79,8 @@ export {
   cardVersions,
   drawVersion,
   imageKeyFor,
+  isBlurryWhenZoomed,
+  smallImageKeyFor,
   isAltArt,
   revealRarity,
   type CardLayout,

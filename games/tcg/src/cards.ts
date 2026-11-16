@@ -39,6 +39,7 @@ import {
  */
 
 export {
+  CARD_IMAGE_SIZES,
   CARD_IMAGE_TYPES,
   CARD_LAYOUT_LABELS,
   CARD_LAYOUTS,
@@ -718,12 +719,14 @@ export async function deleteCards(
     }
     const keys = await tx.tcgCard.findMany({
       where: { id: { in: unique } },
-      select: { imageKey: true, imageKeyFull: true },
+      select: { imageKey: true, imageKeyFull: true, imageKeySmall: true, imageKeyFullSmall: true },
     });
     const { count } = await tx.tcgCard.deleteMany({ where: { id: { in: unique } } });
-    // les deux illustrations (normale et full art)
+    // les deux illustrations (normale et full art) et leurs versions réduites
     const imageKeys = keys.flatMap((k) =>
-      [k.imageKey, k.imageKeyFull].filter((x): x is string => x !== null),
+      [k.imageKey, k.imageKeyFull, k.imageKeySmall, k.imageKeyFullSmall].filter(
+        (x): x is string => x !== null,
+      ),
     );
     return { deleted: count, imageKeys };
   }, opts);
@@ -773,26 +776,39 @@ export async function createCardImageUpload(
 
 const imageKey = z.string().regex(/^cards\/[0-9a-f-]{36}\.webp$/, "Clé d'image invalide.");
 
-/**
- * Pose l'illustration envoyée (vérifiée dans le stockage) sur une version de la carte : la normale
- * (`imageKey`, par défaut) ou la full art (`imageKeyFull`).
- */
-export async function setCardImage(
-  admin: Admin,
-  id: string,
-  key: string,
-  opts?: { tx?: DbTx; version?: CardLayout },
-): Promise<Card> {
-  assertAdmin(admin);
+/** Vérifie dans le stockage une illustration envoyée (présente, pas trop lourde). */
+async function checkUploaded(key: string): Promise<string> {
   const checked = imageKey.parse(key);
   const info = await headObject(checked);
   if (!info) throw new CardInputError("Image introuvable : l'envoi a échoué.");
   if (info.contentLength > CARD_LIMITS.imageBytes) {
     throw new CardInputError("Image trop lourde (5 Mo maximum).");
   }
+  return checked;
+}
+
+/**
+ * Pose l'illustration envoyée (vérifiée dans le stockage) sur une version de la carte : la normale
+ * (`imageKey`, par défaut) ou la full art (`imageKeyFull`), avec sa version réduite (`smallKey`,
+ * pour les petites cartes). Sans version réduite, l'ancienne est retirée : la petite carte montre
+ * alors l'illustration elle-même.
+ */
+export async function setCardImage(
+  admin: Admin,
+  id: string,
+  key: string,
+  opts?: { tx?: DbTx; version?: CardLayout; smallKey?: string | null },
+): Promise<Card> {
+  assertAdmin(admin);
+  const checked = await checkUploaded(key);
+  const small = opts?.smallKey ? await checkUploaded(opts.smallKey) : null;
+  if (small === checked) throw new CardInputError("Version réduite : même fichier que l'image.");
   const row = await (opts?.tx ?? db).tcgCard.update({
     where: { id },
-    data: opts?.version === "fullart" ? { imageKeyFull: checked } : { imageKey: checked },
+    data:
+      opts?.version === "fullart"
+        ? { imageKeyFull: checked, imageKeyFullSmall: small }
+        : { imageKey: checked, imageKeySmall: small },
     include: withSet,
   });
   return toCard(row);

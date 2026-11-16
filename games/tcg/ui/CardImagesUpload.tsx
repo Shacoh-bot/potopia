@@ -2,7 +2,7 @@
 
 import { Button, Input, Label } from "@app/ui";
 import { useState } from "react";
-import { toCardWebp } from "./toCardWebp";
+import { sendCardImages, sizeWarning, toCardImages } from "./toCardWebp";
 
 type Row = { file: string; status: string; ok: boolean | null };
 
@@ -14,8 +14,13 @@ type Props = {
     contentType: string,
     size: number,
   ) => Promise<{ key: string; url: string } | { error: string }>;
-  /** Pose l'image envoyée sur la carte (server action de l'app). */
-  confirm: (cardId: string, key: string) => Promise<{ error: string } | null>;
+  /** Pose l'image envoyée et sa version réduite sur la carte (server action de l'app). */
+  confirm: (
+    cardId: string,
+    key: string,
+    version?: "normal",
+    smallKey?: string | null,
+  ) => Promise<{ error: string } | null>;
 };
 
 /** Numéro de carte lu dans un nom de fichier : « 12.jpg », « 012.png », « 12 - Kazoo.webp ». */
@@ -51,29 +56,23 @@ export function CardImagesUpload({ cards, request, confirm }: Props) {
       }
       const label = `n°${card.number} · ${card.name}`;
       update(i, { file: file.name, status: `Envoi vers ${label}…`, ok: null });
-      let image: File;
+      let image: Awaited<ReturnType<typeof toCardImages>>;
       try {
-        image = await toCardWebp(file, file.name);
+        image = await toCardImages(file, file.name);
       } catch (error) {
         update(i, { file: file.name, status: (error as Error).message, ok: false });
         continue;
       }
-      const target = await request(image.type, image.size);
-      if ("error" in target) {
-        update(i, { file: file.name, status: target.error, ok: false });
-        continue;
-      }
-      const put = await fetch(target.url, {
-        method: "PUT",
-        body: image,
-        headers: { "content-type": image.type },
-      }).catch(() => null);
-      const failed = put?.ok ? await confirm(card.id, target.key) : { error: "L'envoi a échoué." };
+      const sent = await sendCardImages(image, request);
+      const failed =
+        "error" in sent ? sent : await confirm(card.id, sent.key, "normal", sent.smallKey);
+      // Image trop petite pour la carte agrandie : envoyée quand même, avec un avertissement.
+      const warning = sizeWarning(image);
       update(
         i,
         failed
           ? { file: file.name, status: failed.error, ok: false }
-          : { file: file.name, status: label, ok: true },
+          : { file: file.name, status: warning ? `${label} · ${warning}` : label, ok: true },
       );
     }
     setBusy(false);
