@@ -139,6 +139,28 @@ export function cardVersions(card: { hasNormal: boolean; hasFullArt: boolean }):
   return CARD_LAYOUTS.filter((v) => (v === "normal" ? card.hasNormal : card.hasFullArt));
 }
 
+/**
+ * Note admin qui marque une carte en doublon : celle qu'écrit le bouton « Doublon » de la fiche
+ * (« Doublon » ou « Doublon — gardée : … »), majuscules indifférentes.
+ */
+export function isDuplicateNote(note: string | null | undefined): boolean {
+  return /^\s*doublon(?![\p{L}\p{N}])/iu.test(note ?? "");
+}
+
+/**
+ * État d'une idée d'après ses cartes : `cards`, les cartes du jeu (hors corbeille) qui ne sont pas
+ * marquées doublon ; `duplicate`, l'idée n'a aucune de ces cartes et au moins une carte marquée
+ * « Doublon », même à la corbeille. Elle ne compte alors plus comme idée à transformer en carte ;
+ * retirer la marque la rend normale.
+ */
+export function ideaStateOf(cards: { adminNote: string | null; deletedAt: Date | null }[]): {
+  cards: number;
+  duplicate: boolean;
+} {
+  const kept = cards.filter((c) => !c.deletedAt && !isDuplicateNote(c.adminNote)).length;
+  return { cards: kept, duplicate: kept === 0 && cards.some((c) => isDuplicateNote(c.adminNote)) };
+}
+
 /** Clé de l'illustration d'une version : la full art reprend celle de la normale sans la sienne. */
 export function imageKeyFor(
   card: { imageKey: string | null; imageKeyFull?: string | null },

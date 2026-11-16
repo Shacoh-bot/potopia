@@ -99,6 +99,13 @@ export async function getIdeaAuthorIds(
   return new Map(rows.map((r) => [r.id, r.authorId]));
 }
 
+/** Ids de toutes les idées (compteurs de la liste admin). Lève ForbiddenError pour un non-admin. */
+export async function listIdeaIds(reader: Reader): Promise<string[]> {
+  assertAdmin(reader);
+  const rows = await db.idea.findMany({ select: { id: true } });
+  return rows.map((r) => r.id);
+}
+
 /** Auteurs ayant envoyé au moins une idée, pour le filtre de la liste admin. */
 export async function listIdeaAuthorIds(reader: Reader): Promise<string[]> {
   assertAdmin(reader);

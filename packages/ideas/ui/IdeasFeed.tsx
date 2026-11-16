@@ -15,6 +15,8 @@ export type IdeaListItem = {
   createdAt: Date;
   /** Cartes du jeu tirées de l'idée (fourni par l'app ; absent : non affiché). */
   cards?: number;
+  /** Idée en doublon (sa carte est marquée « Doublon ») : ni « Pas de carte » ni création. */
+  duplicate?: boolean;
 };
 
 export type IdeaPage = { items: IdeaListItem[]; nextCursor: string | null };
@@ -130,10 +132,12 @@ export function IdeasFeed({ initial, basePath, loadMore, newCardHref }: Props) {
                   {idea.cards > 1 ? `${idea.cards} cartes` : "Carte créée"}
                 </Badge>
               )}
-              {newCardHref && idea.cards === 0 && <Badge>Pas de carte</Badge>}
+              {/* Doublon : sa carte est marquée « Doublon », rien à créer. */}
+              {idea.duplicate && <Badge tone="danger">Doublon</Badge>}
+              {newCardHref && idea.cards === 0 && !idea.duplicate && <Badge>Pas de carte</Badge>}
             </AppLink>
             {/* Idée sans carte : création directe, pré-remplie depuis l'idée. */}
-            {newCardHref && idea.cards === 0 && (
+            {newCardHref && idea.cards === 0 && !idea.duplicate && (
               <AppLink
                 href={`${newCardHref}${encodeURIComponent(idea.id)}`}
                 className={buttonClasses({ size: "sm" })}

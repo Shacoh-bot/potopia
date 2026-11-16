@@ -16,6 +16,9 @@ import {
   frameFor,
   getCard,
   GLOW_LIMITS,
+  ideaCardStates,
+  ideaStateOf,
+  isDuplicateNote,
   importCards,
   listCards,
   listVisualEffects,
@@ -509,6 +512,69 @@ describe("réserve et sets", () => {
       skipped: 0,
     });
     expect(await listCards(ADMIN, { setId: null })).toHaveLength(1);
+  });
+});
+
+describe("idée en doublon", () => {
+  it("reconnaît la note écrite par le bouton « Doublon »", () => {
+    expect(isDuplicateNote("Doublon")).toBe(true);
+    expect(isDuplicateNote("Doublon — gardée : « Nae the Hutt »")).toBe(true);
+    expect(isDuplicateNote("  doublon de « … »")).toBe(true);
+    expect(isDuplicateNote("Doublons à revoir plus tard")).toBe(false);
+    expect(isDuplicateNote("Pas un doublon")).toBe(false);
+    expect(isDuplicateNote(null)).toBe(false);
+  });
+
+  it("une carte gardée l'emporte : l'idée n'est doublon que sans carte gardée", () => {
+    const trashedAt = new Date();
+    expect(ideaStateOf([])).toEqual({ cards: 0, duplicate: false });
+    expect(ideaStateOf([{ adminNote: "Doublon", deletedAt: trashedAt }])).toEqual({
+      cards: 0,
+      duplicate: true,
+    });
+    expect(
+      ideaStateOf([
+        { adminNote: "Doublon", deletedAt: trashedAt },
+        { adminNote: null, deletedAt: null },
+      ]),
+    ).toEqual({ cards: 1, duplicate: false });
+    // à la corbeille sans la marque (essai) : l'idée redevient à transformer
+    expect(ideaStateOf([{ adminNote: null, deletedAt: trashedAt }])).toEqual({
+      cards: 0,
+      duplicate: false,
+    });
+  });
+
+  it("suit la marque « Doublon » de la carte, à la corbeille ou non, et la retire avec elle", async () => {
+    const kept = await createCard(ADMIN, { ...BASE, name: "Gardée", setId, ideaId: "idea-kept" });
+    const dup = await createCard(ADMIN, { ...BASE, name: "Doublon", setId, ideaId: "idea-dup" });
+    await createCard(ADMIN, { ...BASE, name: "Sans idée", setId });
+    expect(await ideaCardStates(ADMIN)).toEqual(
+      new Map([
+        ["idea-kept", { cards: 1, duplicate: false }],
+        ["idea-dup", { cards: 1, duplicate: false }],
+      ]),
+    );
+
+    // marquée « Doublon » (encore dans le set) : l'idée est doublon, elle n'a plus de carte gardée
+    const marked = { ...BASE, adminNote: `Doublon — gardée : « Gardée » (${kept.id})` };
+    await updateCard(ADMIN, dup.id, marked);
+    expect((await ideaCardStates(ADMIN)).get("idea-dup")).toEqual({ cards: 0, duplicate: true });
+
+    // puis à la corbeille : toujours doublon ; l'idée gardée ne bouge pas
+    await trashCards(ADMIN, [dup.id]);
+    const states = await ideaCardStates(ADMIN);
+    expect(states.get("idea-dup")).toEqual({ cards: 0, duplicate: true });
+    expect(states.get("idea-kept")).toEqual({ cards: 1, duplicate: false });
+
+    // marque retirée : l'idée redevient normale (sa seule carte est à la corbeille)
+    await updateCard(ADMIN, dup.id, { ...BASE, adminNote: null });
+    expect((await ideaCardStates(ADMIN)).get("idea-dup")).toEqual({
+      cards: 0,
+      duplicate: false,
+    });
+
+    await expect(ideaCardStates(MEMBER)).rejects.toThrow("Réservé aux admins.");
   });
 });
 

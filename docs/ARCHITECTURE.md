@@ -907,9 +907,15 @@ et modifient les cartes.
   famille et la description pré-remplis et l'image de l'idée. Garde-fou : si l'idée a déjà des
   cartes, elles sont listées et il faut cocher « Créer quand même » (vérifié côté serveur).
   Dans la liste `/admin/ideas`, chaque idée indique si elle a déjà une carte (badge vert « Carte
-  créée » ou « N cartes », hors corbeille) ; sinon, badge « Pas de carte » et bouton « Créer la
-  carte » qui ouvre directement la création. Le module `ideas` ne connaît pas les cartes : l'app
-  lui passe le nombre de cartes de chaque idée (`cards`, calculé par `cardCountsByIdea`) et
+  créée » ou « N cartes », hors corbeille et hors doublons) ; sinon, badge « Pas de carte » et
+  bouton « Créer la carte » qui ouvre directement la création. Idée en doublon : sa carte porte la
+  note admin « Doublon… » (bouton « Doublon » de la fiche, `isDuplicateNote`), même à la
+  corbeille, et l'idée n'a aucune autre carte gardée (`ideaStateOf`) ; elle affiche le badge
+  rouge « Doublon », sans « Pas de carte » ni bouton de création (liste et page de l'idée).
+  Retirer la marque de la carte rend l'idée normale : l'état est calculé, rien n'est stocké côté
+  idées. En tête de liste, deux compteurs sur toute la boîte : idées à transformer en carte (ni
+  carte gardée, ni doublon) et doublons. Le module `ideas` ne connaît pas les cartes : l'app lui
+  passe l'état de chaque idée (`cards`, `duplicate`, calculés par `ideaCardStates` du TCG) et
   l'adresse de création (`newCardHref`).
 
 - Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 507 effets : un par carte de
