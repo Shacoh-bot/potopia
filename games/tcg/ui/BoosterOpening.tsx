@@ -124,7 +124,7 @@ function videoSource(base: string): string {
  * fichiers restent un jour en cache dans le navigateur ; sans elle, un joueur garderait l'ancien
  * modèle avec la nouvelle vidéo, et le relais sauterait.
  */
-const ASSETS_VERSION = 5;
+const ASSETS_VERSION = 6;
 
 /** Modèle 3D du paquet. */
 const packUrl = (base: string) => `${base}/paquet.glb?v=${ASSETS_VERSION}`;
@@ -335,9 +335,13 @@ export function BoosterOpening({
     setPlan(openingPlan(matchMedia("(prefers-reduced-motion: reduce)").matches));
   }, []);
 
-  // Échap ferme.
+  // Échap ferme l'écran, sauf quand une carte est ouverte en grand (`CardZoom`, dialogue) : Échap
+  // ne ferme alors que la carte, comme dans le Potodex.
   useEffect(() => {
-    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || root.current?.querySelector("dialog[open]")) return;
+      onClose();
+    };
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   }, [onClose]);
@@ -415,6 +419,8 @@ export function BoosterOpening({
       ref={root}
       role="region"
       aria-label="Ouverture d'un paquet"
+      // Les auras des cartes s'éteignent avant ce cadre, qui les découpe (`CardAura`).
+      data-aura-bounds=""
       className={`tcg-opening relative w-full overflow-hidden rounded-xl select-none ${className ?? ""}`}
       style={{ background: OPENING_BG }}
     >

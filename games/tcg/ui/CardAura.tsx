@@ -13,8 +13,10 @@ import { type CSSProperties, useEffect, useRef } from "react";
  * Gradation : rare = halo doux seul (CSS) ; épique discrète ; légendaire ; SR bien plus fournie ;
  * SSR débordante (arc-en-ciel). Lent et souple (3 fois moins vite que le premier prototype).
  *
- * Fluidité : une seule aura animée à la fois (la dernière apparue ou survolée), les autres
- * gardent leur dernière image ; arrêt hors écran ; « réduire les animations » : une image fixe.
+ * Toutes les auras tournent en continu, sans survol. Fluidité : tampon allégé (RESOLUTION),
+ * 30 im/s au plus, arrêt hors écran ; « réduire les animations » : une image fixe.
+ * La lueur remplit aussi l'arrière de la carte (rien de vide quand elle s'incline) et s'éteint
+ * tout à fait avant le bord du canevas (aucun bord droit visible).
  * Le dessin se fait dans le repère du prototype (carte de 360 × 504 au centre), mis à l'échelle.
  */
 
@@ -76,13 +78,44 @@ const HW = 180;
 const HH = 252;
 const RAD = 26;
 /** Marge autour de la carte où l'aura se dessine (fraction de la largeur de la carte). */
-export const AURA_MARGIN = 0.75;
+export const AURA_MARGIN = 0.65;
+/** La même marge, dans le repère du prototype (identique sur les 4 côtés). */
+const MARGIN_UNITS = Math.round(2 * HW * AURA_MARGIN);
+/**
+ * Extinction de l'aura vers l'extérieur (fractions de la place disponible) : pleine jusqu'à
+ * FADE_FROM, nulle à FADE_TO. Place : la marge du canevas, ou moins de chaque côté si le cadre
+ * qui découpe l'aura (`data-aura-bounds`, l'écran d'ouverture) est plus près. Lueur et
+ * étincelles suivent la même règle : aucun bord droit visible.
+ */
+const FADE_FROM = 0.5;
+const FADE_TO = 0.95;
+function fade(dist: number, room: number): number {
+  const x = Math.min(1, Math.max(0, (dist / room - FADE_FROM) / (FADE_TO - FADE_FROM)));
+  return 1 - x * x * (3 - 2 * x);
+}
+/** Place de chaque côté (gauche, droite, haut, bas), repère du prototype. */
+type Room = [number, number, number, number];
+/** Extinction d'un point (repère du prototype, carte au centre). */
+function outerFade(x: number, y: number, room: Room): number {
+  const ox = Math.max(0, Math.abs(x) - HW);
+  const oy = Math.max(0, Math.abs(y) - HH);
+  return (
+    fade(Math.hypot(ox, oy), MARGIN_UNITS) *
+    fade(ox, x < 0 ? room[0] : room[1]) *
+    fade(oy, y < 0 ? room[2] : room[3])
+  );
+}
+/** Taille du tampon par pixel CSS : la lueur est floue par nature, 5 auras tournent ensemble. */
+const RESOLUTION = 0.75;
+/** Au plus une image toutes les 33 ms (30 im/s) : le mouvement est lent. */
+const FRAME_MS = 33;
 
 const VS = "attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }";
 const FS = `
 precision highp float;
 uniform vec2 res; uniform float t; uniform float k;
 uniform vec3 cCore, cMid, cEdge; uniform float rainbow; uniform float power;
+uniform vec4 room;
 vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;}
 vec4 mod289(vec4 x){return x-floor(x*(1./289.))*289.;}
 vec4 permute(vec4 x){return mod289(((x*34.)+1.)*x);}
@@ -110,6 +143,11 @@ float snoise(vec3 v){
 float fbm(vec3 p){ float a=.5, s=0.; for(int i=0;i<5;i++){ s+=a*snoise(p); p*=2.03; a*=.5; } return s; }
 float fbm3(vec3 p){ float a=.55, s=0.; for(int i=0;i<3;i++){ s+=a*snoise(p); p*=1.9; a*=.45; } return s; }
 float sdBox(vec2 p, vec2 b, float r){ vec2 q=abs(p)-b+r; return length(max(q,0.))+min(max(q.x,q.y),0.)-r; }
+float fade(float d, float m){ return 1. - smoothstep(m*${FADE_FROM}, m*${FADE_TO}, d); }
+float outerFade(vec2 p, vec2 card, float dd){
+  float ox = max(abs(p.x)-card.x, 0.); float oy = max(abs(p.y)-card.y, 0.);
+  return fade(dd, ${MARGIN_UNITS}.) * fade(ox, p.x < 0. ? room.x : room.y) * fade(oy, p.y < 0. ? room.z : room.w);
+}
 void main(){
   // Repère du prototype : carte de 360 × 504 au centre, mis à l'échelle (k).
   vec2 p = (vec2(gl_FragCoord.x, res.y-gl_FragCoord.y) - res*0.5) / k;
@@ -129,8 +167,11 @@ void main(){
   float tendrils = pow(r1, ex)*1.1 + pow(r2, ex*1.3)*0.8;
   float halo = pow(r1, 2.5)*0.28 + pow(r2, 3.)*0.18;
   float body = smoothstep(.05, .75, fbm(vec3(cos(a1)*1.6, sin(a1)*1.6, dd*0.006 - t*0.7)));
-  float reach = (70. + 70.*(0.5+0.5*snoise(vec3(cos(ang)*1.2, sin(ang)*1.2, t*0.35)))) * (0.55 + 0.6*power);
+  // Portée un peu réduite (× 0,82, 16/11), gradation entre raretés inchangée.
+  float reach = (70. + 70.*(0.5+0.5*snoise(vec3(cos(ang)*1.2, sin(ang)*1.2, t*0.35)))) * (0.55 + 0.6*power) * 0.82;
   float fade = exp(-dd/reach*2.0) * smoothstep(-6., 6., d);
+  // Derrière la carte, la lueur remplit tout (dd = 0) : inclinée, la carte ne laisse jamais voir
+  // de vide derrière elle.
   float edgeGlow = (exp(-dd/12.)*0.9 + exp(-dd/45.)*0.3) * (0.6 + 0.5*power);
   float flames = (body*0.25 + halo + tendrils*1.2) * fade * (0.45 + 0.75*power);
   float I = edgeGlow + flames;
@@ -141,11 +182,9 @@ void main(){
     vec3 rb = 0.5+0.5*cos(6.2832*(h+vec3(0.,.33,.67)));
     col = mix(col, rb*1.2, .55*smoothstep(.2, 1.2, I));
   }
-  // Bord adouci du cadre du canevas : la lumière ne s'arrête jamais net.
-  vec2 lim = res*0.5/k;
-  float border = smoothstep(0., 40., min(lim.x-abs(p.x), lim.y-abs(p.y)));
-  float a = clamp(I, 0., 1.) * border;
-  if (d < -2.) a = 0.;
+  // La lumière s'éteint tout à fait avant le bord du canevas (même marge sur les 4 côtés) : aucun
+  // bord droit visible, même pour SR et SSR.
+  float a = clamp(I, 0., 1.) * outerFade(p, card, dd);
   gl_FragColor = vec4(col*a, a);
 }`;
 
@@ -169,7 +208,8 @@ function makeSparks(count: number): Spark[] {
     u: rnd(),
     life: 4 + rnd() * 3.5,
     offset: rnd() * 8,
-    speed: 17 + rnd() * 30,
+    // Un peu moins loin qu'avant (× 0,82, 16/11).
+    speed: (17 + rnd() * 30) * 0.82,
     swirl: (rnd() < 0.5 ? -1 : 1) * (0.5 + rnd() * 1.2),
     amp: 10 + rnd() * 22,
     freq: 0.6 + rnd() * 1.1,
@@ -193,7 +233,13 @@ function edgePoint(u: number): [number, number, number, number] {
   return [-HW, HH - s, -1, 0];
 }
 
-function drawSparks(ctx: CanvasRenderingContext2D, sparks: Spark[], pal: Palette, t: number) {
+function drawSparks(
+  ctx: CanvasRenderingContext2D,
+  sparks: Spark[],
+  pal: Palette,
+  t: number,
+  room: Room,
+) {
   const { width, height } = ctx.canvas;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, width, height);
@@ -217,7 +263,9 @@ function drawSparks(ctx: CanvasRenderingContext2D, sparks: Spark[], pal: Palette
       const wob = Math.sin(ag * s.freq + s.drift) * s.amp * kk + s.swirl * 40 * kk * kk;
       const x = x0 + nx * dist + tx * wob;
       const y = y0 + ny * dist + ty * wob - 25 * kk * kk;
-      const aj = a * (1 - j / 5);
+      // L'étincelle s'éteint avant le bord du canevas et du cadre.
+      const aj = a * (1 - j / 5) * outerFade(x, y, room);
+      if (aj <= 0.003) continue;
       const r = s.size * (j === 0 ? 1 : 0.7) * 3;
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, `rgba(255,255,235,${aj})`);
@@ -229,14 +277,6 @@ function drawSparks(ctx: CanvasRenderingContext2D, sparks: Spark[], pal: Palette
       ctx.fill();
     }
   }
-}
-
-/** Une seule aura animée à la fois : la dernière qui a demandé la main. */
-const animated = new Set<() => void>();
-let owner: (() => void) | null = null;
-function takeTurn(resume: () => void) {
-  owner = resume;
-  for (const r of animated) r();
 }
 
 /**
@@ -290,13 +330,15 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
     gl.uniform1f(U("rainbow"), pal.rainbow ? 1 : 0);
     gl.uniform1f(U("power"), pal.power);
     const sparks = makeSparks(pal.sparks);
+    // Cadre qui découpe l'aura (écran d'ouverture) : elle s'éteint avant lui.
+    const bounds = el.closest<HTMLElement>("[data-aura-bounds]");
+    const room: Room = [MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS];
 
-    // Taille du tampon : celle affichée (zoom et agrandissement compris), au plus ×1,5.
+    // Taille du tampon : celle affichée (zoom et agrandissement compris), allégée (RESOLUTION).
     const resize = () => {
       const r = el.getBoundingClientRect();
-      const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-      const w = Math.max(1, Math.round(r.width * dpr));
-      const h = Math.max(1, Math.round(r.height * dpr));
+      const w = Math.max(1, Math.round(r.width * RESOLUTION));
+      const h = Math.max(1, Math.round(r.height * RESOLUTION));
       for (const c of [c1, c2]) {
         if (c.width !== w || c.height !== h) {
           c.width = w;
@@ -306,37 +348,53 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
       gl.viewport(0, 0, w, h);
       gl.uniform2f(U("res"), w, h);
       gl.uniform1f(U("k"), w / (2 * HW * (1 + 2 * AURA_MARGIN)));
+      const card = el.parentElement?.getBoundingClientRect();
+      if (bounds && card && card.width > 0) {
+        const b = bounds.getBoundingClientRect();
+        const unit = card.width / (2 * HW);
+        const sides = [
+          card.left - b.left,
+          b.right - card.right,
+          card.top - b.top,
+          b.bottom - card.bottom,
+        ];
+        sides.forEach((v, i) => (room[i] = Math.min(MARGIN_UNITS, Math.max(1, v / unit))));
+      }
+      gl.uniform4f(U("room"), ...room);
     };
 
     const draw = (t: number) => {
       gl.uniform1f(U("t"), t);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      drawSparks(ctx, sparks, pal, t);
+      drawSparks(ctx, sparks, pal, t, room);
     };
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const start = performance.now() - 3000;
     let frame = 0;
+    let last = 0;
     let visible = true;
     const loop = (now: number) => {
-      draw((now - start) / 1000);
+      if (now - last >= FRAME_MS) {
+        last = now;
+        draw((now - start) / 1000);
+      }
       frame = requestAnimationFrame(loop);
     };
-    // Animée seulement si elle a la main, à l'écran, et sans « réduire les animations ».
+    // Toutes les auras tournent en continu, sans survol (16/11) ; arrêt hors écran et avec
+    // « réduire les animations ».
     const update = () => {
-      const run = !reduced && visible && owner === resume;
+      const run = !reduced && visible;
       if (run && !frame) frame = requestAnimationFrame(loop);
       if (!run && frame) {
         cancelAnimationFrame(frame);
         frame = 0;
       }
     };
-    const resume = update;
-    animated.add(resume);
 
     resize();
     draw(3);
-    takeTurn(resume);
+    update();
 
     const io = new IntersectionObserver(([entry]) => {
       visible = !!entry?.isIntersecting;
@@ -348,18 +406,12 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
       if (!frame) draw((performance.now() - start) / 1000);
     });
     ro.observe(el);
-    // Survolée : elle reprend la main.
-    const host = el.parentElement;
-    const claim = () => owner !== resume && takeTurn(resume);
-    host?.addEventListener("pointerenter", claim);
+    if (bounds) ro.observe(bounds);
 
     return () => {
       cancelAnimationFrame(frame);
       io.disconnect();
       ro.disconnect();
-      host?.removeEventListener("pointerenter", claim);
-      animated.delete(resume);
-      if (owner === resume) owner = null;
       // Pas de `loseContext()` : le canevas peut être réutilisé (effet rejoué en développement) ;
       // le navigateur libère le contexte quand le canevas quitte la page.
       gl.deleteProgram(prog);
