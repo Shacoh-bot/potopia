@@ -2630,6 +2630,14 @@ html.time-stop body > :not(.za-layer, .jojo-fx) *::after {
   transform: translateZ(0);
   animation: potodex-zoom-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards;
 }
+/* Calques à plat sur la carte agrandie : la carte s'incline toujours en perspective, mais ses
+   calques (`--z`) ne s'avancent pas. C'est ce que Chrome dessine déjà sous `zoom` (mesuré : rendu
+   identique avec ou sans cette règle, au repos comme incliné). Firefox, lui, les avançait :
+   pastilles de mana et de puissance grossies et sorties du cadre, image et zones de texte un peu
+   plus grandes. */
+.potodex-zoom-card .tcg-depth {
+  transform-style: flat;
+}
 
 @keyframes potodex-fade {
   from {
