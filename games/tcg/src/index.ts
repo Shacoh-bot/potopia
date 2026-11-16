@@ -20,6 +20,7 @@ export {
   DEFAULT_FRAME,
   deleteCards,
   FRAME_ZOOM,
+  fitZoom,
   frameFor,
   GLOW_KIND_LABELS,
   GLOW_KINDS,

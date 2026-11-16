@@ -13,6 +13,7 @@ import {
   effectStats,
   effectText,
   ensureSet,
+  fitZoom,
   frameFor,
   getCard,
   GLOW_LIMITS,
@@ -160,6 +161,42 @@ describe("createCard", () => {
     await expect(
       updateCard(ADMIN, card.id, { ...BASE, imageFrameFull: { x: 50, y: 50, zoom: 9 } }),
     ).rejects.toThrow(ZodError);
+  });
+
+  it("dézoome la version normale seulement, sans toucher la full art", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    // carte normale : l'image peut rétrécir jusqu'à tenir entière dans sa fenêtre
+    const whole = { x: 50, y: 20, zoom: 0.43 };
+    const framed = await updateCard(ADMIN, card.id, { ...BASE, imageFrame: whole });
+    expect(frameFor(framed, "normal")).toEqual(whole);
+    // full art sans cadrage à elle : celui de la normale, mais jamais dézoomée
+    expect(frameFor(framed, "fullart")).toEqual({ ...whole, zoom: 1 });
+    // la full art reste à 1 au moins ; sous le minimum, refusé partout
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, imageFrameFull: { x: 50, y: 50, zoom: 0.5 } }),
+    ).rejects.toThrow(ZodError);
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, imageFrame: { x: 50, y: 50, zoom: 0.1 } }),
+    ).rejects.toThrow(ZodError);
+    // full art cadrée à part (ce qu'enregistre la fiche) : le dézoom de la normale ne la change pas
+    const full = { x: 40, y: 60, zoom: 1.2 };
+    const both = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      imageFrame: { ...whole, x: 10 },
+      imageFrameFull: full,
+    });
+    expect(frameFor(both, "fullart")).toEqual(full);
+  });
+
+  it("fitZoom : le zoom qui fait tenir l'image entière dans la fenêtre", () => {
+    const normalBox = { width: 286, height: 186 };
+    // image portrait 2:3 (pensée pour la full art) : 186 / (286 × 1,5) ≈ 0,43
+    expect(fitZoom(normalBox, { width: 800, height: 1200 })).toBe(0.43);
+    // image aux proportions de la fenêtre : rien à dézoomer
+    expect(fitZoom(normalBox, { width: 286, height: 186 })).toBe(1);
+    // image très étroite : bornée au zoom minimum
+    expect(fitZoom(normalBox, { width: 100, height: 2000 })).toBe(0.25);
+    expect(fitZoom(normalBox, { width: 0, height: 0 })).toBe(1);
   });
 
   it("enregistre la mise en page affichée (normale par défaut, full art pour une variante)", async () => {

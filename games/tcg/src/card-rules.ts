@@ -47,14 +47,36 @@ export type CardImageType = keyof typeof CARD_IMAGE_TYPES;
 export type CardSet = { id: string; code: string; name: string };
 
 /**
- * Cadrage d'une illustration : le point de l'image placé au centre de la fenêtre (en % de la
- * largeur et de la hauteur) et le zoom (1 = l'image remplit juste la fenêtre). Le fichier n'est
- * jamais rogné : on peut recadrer à tout moment.
+ * Cadrage d'une illustration : le point de cadrage (en % de la largeur et de la hauteur) et le
+ * zoom (1 = l'image remplit juste la fenêtre). Sous 1 (carte normale seulement), l'image rétrécit
+ * jusqu'à tenir entière dans la fenêtre, et la même image floutée remplit le vide autour. Le
+ * fichier n'est jamais rogné : on peut recadrer à tout moment.
  */
 export type ImageFrame = { x: number; y: number; zoom: number };
 
 export const DEFAULT_FRAME: ImageFrame = { x: 50, y: 50, zoom: 1 };
-export const FRAME_ZOOM = { min: 1, max: 4 } as const;
+/**
+ * Bornes du zoom. `min` vaut pour la carte normale (une image portrait pensée pour la full art
+ * tient entière dans sa fenêtre vers 0,43) ; la full art, dont la fenêtre est toute la carte, ne
+ * descend pas sous `fullMin`.
+ */
+export const FRAME_ZOOM = { min: 0.25, fullMin: 1, max: 4 } as const;
+
+/**
+ * Zoom qui fait tenir l'image entière dans la fenêtre (1 si elle la remplit déjà juste), borné à
+ * `FRAME_ZOOM.min`. `box` : taille de la fenêtre ; `natural` : taille réelle de l'image.
+ */
+export function fitZoom(
+  box: { width: number; height: number },
+  natural: { width: number; height: number },
+): number {
+  if (natural.width <= 0 || natural.height <= 0) return 1;
+  const sx = box.width / natural.width;
+  const sy = box.height / natural.height;
+  // object-fit: cover agrandit selon le plus grand rapport ; l'image entière, selon le plus petit.
+  const fit = Math.min(sx, sy) / Math.max(sx, sy);
+  return Math.max(FRAME_ZOOM.min, Math.floor(fit * 100) / 100);
+}
 
 /** Mise en page d'une carte : illustration dans une fenêtre (normale) ou sur toute la carte. */
 export const CARD_LAYOUTS = ["normal", "fullart"] as const;
@@ -68,14 +90,18 @@ export const CARD_LAYOUT_LABELS: Record<CardLayout, string> = {
 /**
  * Cadrage à appliquer selon la mise en page : la carte normale et la full art ont chacune le leur.
  * Une carte sans cadrage full art à elle (cadrée avant qu'ils soient séparés) garde celui de la
- * carte normale.
+ * carte normale, sans son dézoom : la full art ne descend jamais sous `FRAME_ZOOM.fullMin`.
  */
 export function frameFor(
   card: { imageFrame?: ImageFrame | null; imageFrameFull?: ImageFrame | null },
   layout: CardLayout,
 ): ImageFrame | null {
   const normal = card.imageFrame ?? null;
-  return layout === "fullart" ? (card.imageFrameFull ?? normal) : normal;
+  if (layout !== "fullart") return normal;
+  if (card.imageFrameFull) return card.imageFrameFull;
+  return normal && normal.zoom < FRAME_ZOOM.fullMin
+    ? { ...normal, zoom: FRAME_ZOOM.fullMin }
+    : normal;
 }
 
 /**

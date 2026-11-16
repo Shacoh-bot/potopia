@@ -1,6 +1,8 @@
 import type { GlowPoint, ImageFrame } from "../src/card-rules";
 import { Children, type CSSProperties, Fragment, isValidElement, type ReactNode } from "react";
 import { Zoomable } from "./Zoomable";
+import { ZoomedOutImage } from "./ZoomedOutImage";
+import { ZOOMED_OUT_BOX } from "./zoomed-out";
 
 export type CardRarity = "common" | "uncommon" | "rare" | "legendary";
 
@@ -46,7 +48,11 @@ export const font = (name: string, fallback: string) => `var(--font-${name}), ${
 const W = 300;
 const H = 420;
 
-/** Placement d'une image selon son cadrage : point visé au centre, zoom autour de ce point. */
+/**
+ * Placement d'une image selon son cadrage, avec `object-fit: cover` : `object-position` au point de
+ * cadrage, puis zoom autour de ce même point. Zoom 1 et plus seulement : sous 1, l'image entière
+ * est placée par `ZoomedOutImage`.
+ */
 export function frameStyle(frame: ImageFrame | null | undefined): CSSProperties {
   if (!frame) return {};
   return {
@@ -54,6 +60,37 @@ export function frameStyle(frame: ImageFrame | null | undefined): CSSProperties 
     transform: frame.zoom > 1 ? `scale(${frame.zoom})` : undefined,
     transformOrigin: `${frame.x}% ${frame.y}%`,
   };
+}
+
+/** Image dézoomée (zoom sous 1) : il reste du vide autour d'elle dans la fenêtre. */
+export const isZoomedOut = (frame: ImageFrame | null | undefined) => !!frame && frame.zoom < 1;
+
+/**
+ * Fond d'une image dézoomée : la même image, floutée et assombrie, remplit la fenêtre derrière
+ * elle. Rien sans dézoom. Le parent doit être `position: relative` et `overflow: hidden`.
+ */
+export function ArtBackdrop({ src, frame }: { src: string; frame: ImageFrame | null | undefined }) {
+  if (!isZoomedOut(frame)) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden
+      draggable={false}
+      loading="lazy"
+      decoding="async"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        filter: "blur(10px) brightness(0.7)",
+        transform: "scale(1.15)",
+        pointerEvents: "none",
+      }}
+    />
+  );
 }
 
 /** Illustration de la carte, ou un nuage pixel quand l'idée n'a pas d'image. */
@@ -68,6 +105,15 @@ export function Art({
   style?: CSSProperties;
   placeholder?: string;
 }) {
+  if (card.imageUrl && card.imageFrame && isZoomedOut(card.imageFrame)) {
+    // Dézoom : image entière sur son fond flou.
+    return (
+      <div style={{ height, ...ZOOMED_OUT_BOX, ...style }}>
+        <ArtBackdrop src={card.imageUrl} frame={card.imageFrame} />
+        <ZoomedOutImage src={card.imageUrl} alt={card.title} frame={card.imageFrame} />
+      </div>
+    );
+  }
   if (card.imageUrl) {
     return (
       <div style={{ height, overflow: "hidden", ...style }}>

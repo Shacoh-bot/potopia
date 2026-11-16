@@ -51,6 +51,7 @@ export {
   type CardSet,
   DEFAULT_FRAME,
   FRAME_ZOOM,
+  fitZoom,
   frameFor,
   GLOW_KIND_LABELS,
   GLOW_KINDS,
@@ -96,15 +97,19 @@ const int = (label: string, min: number, max: number) =>
     .min(min, `${label} : ${min} minimum.`)
     .max(max, `${label} : ${max} maximum.`);
 
-/** Cadrage d'une illustration (`ImageFrame`). */
-const frameSchema = z.object({
-  x: z.coerce.number().min(0).max(100),
-  y: z.coerce.number().min(0).max(100),
-  zoom: z.coerce
-    .number()
-    .min(FRAME_ZOOM.min, "Zoom trop petit.")
-    .max(FRAME_ZOOM.max, "Zoom trop grand."),
-});
+/** Cadrage d'une illustration (`ImageFrame`), zoom à partir de `minZoom`. */
+const frameSchemaFrom = (minZoom: number) =>
+  z.object({
+    x: z.coerce.number().min(0).max(100),
+    y: z.coerce.number().min(0).max(100),
+    zoom: z.coerce
+      .number()
+      .min(minZoom, "Zoom trop petit.")
+      .max(FRAME_ZOOM.max, "Zoom trop grand."),
+  });
+// Carte normale : dézoom permis (image entière) ; full art : jamais sous `fullMin`.
+const frameSchema = frameSchemaFrom(FRAME_ZOOM.min);
+const frameSchemaFull = frameSchemaFrom(FRAME_ZOOM.fullMin);
 
 /** Point lumineux (`GlowPoint`). */
 const percent = z.coerce.number().min(0).max(100);
@@ -163,7 +168,7 @@ const cardFields = z.object({
   imageFrame: frameSchema.nullish().transform((v) => v ?? null),
   // Absent : le cadrage full art enregistré ne change pas (mise à jour en masse, anciens appels) ;
   // null : la full art reprend le cadrage de la carte normale.
-  imageFrameFull: frameSchema.nullish(),
+  imageFrameFull: frameSchemaFull.nullish(),
   // Points lumineux. Absent : ceux enregistrés ne changent pas ; liste vide : aucun.
   glowPoints: z
     .array(glowPointSchema, "Lumières : liste attendue.")
