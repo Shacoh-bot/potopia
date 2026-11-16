@@ -44,7 +44,7 @@ export const CARD_LIMITS = {
  * par les petites cartes ; `sharp` : en dessous, l'admin est averti que l'image sera floue en grand
  * (sans bloquer l'envoi).
  */
-export const CARD_IMAGE_SIZES = { large: 2400, small: 800, sharp: 1600 } as const;
+export const CARD_IMAGE_SIZES = { large: 2400, small: 800, sharp: 1500 } as const;
 
 /** Image trop petite pour rester nette en carte agrandie (`CARD_IMAGE_SIZES.sharp`). */
 export function isBlurryWhenZoomed(size: { width: number; height: number }): boolean {
