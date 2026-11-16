@@ -910,7 +910,8 @@ et modifient les cartes.
   Dans la liste `/admin/ideas`, chaque idée indique si elle a déjà une carte (badge vert « Carte
   créée » ou « N cartes », hors corbeille et hors doublons) ; sinon, badge « Pas de carte » et
   bouton « Créer la carte » qui ouvre directement la création. Idée en doublon : sa carte porte la
-  note admin « Doublon… » (bouton « Doublon » de la fiche, `isDuplicateNote`), même à la
+  note admin « Doublon… » (bouton « Doublon » de la fiche, `markDuplicateNote` ; une seule règle
+  de reconnaissance, `isDuplicateNote`, pour l'éditeur et les listes), même à la
   corbeille, et l'idée n'a aucune autre carte gardée (`ideaStateOf`) ; elle affiche le badge
   rouge « Doublon », sans « Pas de carte » ni bouton de création (liste et page de l'idée).
   Retirer la marque de la carte rend l'idée normale : l'état est calculé, rien n'est stocké côté

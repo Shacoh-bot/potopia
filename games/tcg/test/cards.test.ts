@@ -20,6 +20,7 @@ import {
   ideaCardStates,
   ideaStateOf,
   isDuplicateNote,
+  markDuplicateNote,
   importCards,
   listCards,
   listVisualEffects,
@@ -560,6 +561,19 @@ describe("idée en doublon", () => {
     expect(isDuplicateNote("Doublons à revoir plus tard")).toBe(false);
     expect(isDuplicateNote("Pas un doublon")).toBe(false);
     expect(isDuplicateNote(null)).toBe(false);
+  });
+
+  it("le bouton « Doublon » de l'éditeur suit la même règle que la liste des idées", () => {
+    expect(markDuplicateNote("")).toBe("Doublon");
+    expect(markDuplicateNote("  ")).toBe("Doublon");
+    expect(markDuplicateNote("Doublon")).toBe("Doublon");
+    expect(markDuplicateNote(" doublon de « Nae » ")).toBe("doublon de « Nae »");
+    expect(markDuplicateNote("Image à revoir")).toBe("Doublon — Image à revoir");
+    // Pas une marque de doublon pour la liste des idées : le bouton la préfixe.
+    expect(markDuplicateNote("Doublonnage à vérifier")).toBe("Doublon — Doublonnage à vérifier");
+    for (const note of ["", "Doublon", "Doublonnage à vérifier", "Pas un doublon"]) {
+      expect(isDuplicateNote(markDuplicateNote(note))).toBe(true);
+    }
   });
 
   it("une carte gardée l'emporte : l'idée n'est doublon que sans carte gardée", () => {
