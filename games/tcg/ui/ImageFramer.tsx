@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { DEFAULT_FRAME, FRAME_ZOOM, fitZoom, type ImageFrame } from "../src/card-rules";
 import { ArtBackdrop, frameStyle, isZoomedOut } from "./cards";
+import { ZOOMED_OUT_BOX, zoomedOutStyle } from "./zoomed-out";
 import { framePointShift } from "./frame-drag";
 
 type Props = {
@@ -40,6 +41,15 @@ export function ImageFramer({
   const drag = useRef<{ x: number; y: number; frame: ImageFrame } | null>(null);
   // Taille réelle de l'image, connue une fois chargée (pour suivre la souris au pixel près).
   const [natural, setNatural] = useState<Size | null>(null);
+  // Lue au chargement, ou dès le montage : une image déjà chargée avant l'hydratation (cache,
+  // rendu serveur) ne déclenche plus `onLoad`.
+  const readSize = useCallback((img: HTMLImageElement | null) => {
+    if (!img?.complete || !img.naturalWidth) return;
+    const { naturalWidth: width, naturalHeight: height } = img;
+    setNatural((n) => (n?.width === width && n.height === height ? n : { width, height }));
+  }, []);
+
+  const zoomedOut = isZoomedOut(frame);
 
   function move(clientX: number, clientY: number) {
     const start = drag.current;
@@ -76,7 +86,7 @@ export function ImageFramer({
         role="application"
         aria-label="Cadrage de l'illustration : glisser pour déplacer"
         className="border-border relative cursor-grab touch-none overflow-hidden rounded-lg border active:cursor-grabbing"
-        style={{ width, height }}
+        style={{ width, height, ...(zoomedOut ? ZOOMED_OUT_BOX : {}) }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           drag.current = { x: e.clientX, y: e.clientY, frame };
@@ -91,13 +101,13 @@ export function ImageFramer({
           alt=""
           draggable={false}
           className="pointer-events-none block size-full select-none"
-          style={{ objectFit: "cover", ...frameStyle(frame) }}
-          onLoad={(e) =>
-            setNatural({
-              width: e.currentTarget.naturalWidth,
-              height: e.currentTarget.naturalHeight,
-            })
+          style={
+            zoomedOut && natural
+              ? zoomedOutStyle(frame, natural.width / natural.height)
+              : { objectFit: "cover", ...frameStyle(frame) }
           }
+          ref={readSize}
+          onLoad={(e) => readSize(e.currentTarget)}
         />
       </div>
       <div className="flex w-full items-center gap-2 text-sm" style={{ maxWidth: width }}>
@@ -133,7 +143,7 @@ export function ImageFramer({
           >
             Image entière
           </button>
-          {isZoomedOut(frame) && (
+          {zoomedOut && (
             <span className="text-muted text-xs">
               Le vide autour est rempli par l&apos;image floutée.
             </span>

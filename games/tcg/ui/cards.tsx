@@ -1,6 +1,8 @@
 import type { GlowPoint, ImageFrame } from "../src/card-rules";
 import { Children, type CSSProperties, Fragment, isValidElement, type ReactNode } from "react";
 import { Zoomable } from "./Zoomable";
+import { ZoomedOutImage } from "./ZoomedOutImage";
+import { ZOOMED_OUT_BOX } from "./zoomed-out";
 
 export type CardRarity = "common" | "uncommon" | "rare" | "legendary";
 
@@ -47,16 +49,16 @@ const W = 300;
 const H = 420;
 
 /**
- * Placement d'une image selon son cadrage : `object-position` au point de cadrage, puis zoom
- * autour de ce même point. Sous 1 (dézoom), l'image passe devant son fond flou (`ArtBackdrop`).
+ * Placement d'une image selon son cadrage, avec `object-fit: cover` : `object-position` au point de
+ * cadrage, puis zoom autour de ce même point. Zoom 1 et plus seulement : sous 1, l'image entière
+ * est placée par `ZoomedOutImage`.
  */
 export function frameStyle(frame: ImageFrame | null | undefined): CSSProperties {
   if (!frame) return {};
   return {
     objectPosition: `${frame.x}% ${frame.y}%`,
-    transform: frame.zoom !== 1 ? `scale(${frame.zoom})` : undefined,
+    transform: frame.zoom > 1 ? `scale(${frame.zoom})` : undefined,
     transformOrigin: `${frame.x}% ${frame.y}%`,
-    ...(frame.zoom < 1 ? { position: "relative" } : {}),
   };
 }
 
@@ -103,17 +105,18 @@ export function Art({
   style?: CSSProperties;
   placeholder?: string;
 }) {
+  if (card.imageUrl && card.imageFrame && isZoomedOut(card.imageFrame)) {
+    // Dézoom : image entière sur son fond flou.
+    return (
+      <div style={{ height, ...ZOOMED_OUT_BOX, ...style }}>
+        <ArtBackdrop src={card.imageUrl} frame={card.imageFrame} />
+        <ZoomedOutImage src={card.imageUrl} alt={card.title} frame={card.imageFrame} />
+      </div>
+    );
+  }
   if (card.imageUrl) {
     return (
-      <div
-        style={{
-          height,
-          overflow: "hidden",
-          ...(isZoomedOut(card.imageFrame) ? { position: "relative" } : {}),
-          ...style,
-        }}
-      >
-        <ArtBackdrop src={card.imageUrl} frame={card.imageFrame} />
+      <div style={{ height, overflow: "hidden", ...style }}>
         <img
           src={card.imageUrl}
           alt={card.title}

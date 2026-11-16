@@ -1138,9 +1138,12 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   pas `imageFrameFull` (fichier `updates`) le laisse tel quel.
   Dézoom de la carte normale (images pensées pour la full art) : le zoom descend jusqu'à
   `FRAME_ZOOM.min` (0,25) ; « Image entière » règle le zoom qui fait tenir toute l'image dans la
-  fenêtre (`fitZoom`) et la recentre. Sous 1, `frameStyle` rétrécit l'image autour du point de
-  cadrage et `ArtBackdrop` (`ui/cards.tsx`) place derrière elle la même image floutée et
-  assombrie ; à 1 et plus, rien ne change. La full art ne descend jamais sous
+  fenêtre (`fitZoom`) et la recentre. Sous 1, `object-fit: cover` rognerait l'image avant le
+  zoom : `ZoomedOutImage` (client, lit les proportions de l'image une fois chargée) la place
+  entière, en unités de conteneur (`zoomedOutStyle`, `ui/zoomed-out.ts`, module sans « use
+  client » car `Art` est rendu côté serveur), au même endroit que le calcul de `glowPlacement` ;
+  `ArtBackdrop` (`ui/cards.tsx`) met derrière elle la même image floutée et assombrie. À 1 et
+  plus, rien ne change (`frameStyle`). La full art ne descend jamais sous
   `FRAME_ZOOM.fullMin` (1) : validation serveur, curseur, et `frameFor` qui retire le dézoom quand
   elle reprend le cadrage de la normale. La fiche enregistre toujours les deux cadrages : régler
   la normale ne déplace pas la full art. Le glisser suit la souris au pixel près, zoom comme dézoom
