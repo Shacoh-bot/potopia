@@ -24,6 +24,11 @@ export type GameCardFields = Pick<
   glowPoints?: Card["glowPoints"];
   /** Effets visuels (clés du catalogue), le premier en dessous ; absent : aucun. */
   visualEffectKeys?: string[];
+  /**
+   * Auteur de l'idée d'origine, préparé avec la carte (`cardFaces` de l'app) : le pied « idée de … »
+   * suit la carte sur tous les écrans, booster et Potodex compris.
+   */
+  author?: string | null;
 };
 
 /** Ligne de type affichée : « Instrument — Grenouilles », ou le type seul sans famille. */
@@ -66,7 +71,7 @@ export function GameCard({
   setSize?: number;
   /** Carte figée (sans 3D ni animation), pour les planches de nombreuses cartes. */
   still?: boolean;
-  /** Auteur de l'idée d'origine, en pied de carte (« idée de … »). */
+  /** Auteur de l'idée d'origine, en pied de carte (« idée de … ») ; absent : celui de `card`. */
   author?: string | null;
   /**
    * Halo doux de la couleur de la rareté au survol (par défaut). L'aura animée (`CardAura`) est
@@ -94,7 +99,7 @@ export function GameCard({
     imageFrame: frameFor(card, layout),
     glowPoints: card.glowPoints,
     altArt: isAltArt(card, layout),
-    author: author ?? undefined,
+    author: author ?? card.author ?? undefined,
     // Hors set, pas de numéro : la carte est dans la réserve.
     serial:
       card.number === null

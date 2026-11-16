@@ -1000,7 +1000,17 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).
   Pied des vraies cartes (`gameFooter` de `FinalCard`, les propositions notées gardent le leur) :
   numéro, rareté abrégée (C, PC, R, E, L, SR, SSR) avec ses étoiles, puis « idée de {auteur} »
-  (`getIdeaAuthorIds` + nom du membre, `cardAuthors`). Pour l'instant seuls les admins voient les
+  (`getIdeaAuthorIds` + nom du membre, `cardAuthors`), sur tous les écrans, booster et Potodex
+  compris. **Source unique de l'affichage** : chaque écran qui montre une carte (menu « Cartes »,
+  fiche, booster, Potodex) la prépare avec `cardFaces` (`admin/cartes/images.ts`) : image de la
+  version (`cardImageUrls`), auteur de l'idée (`card.author`, que `GameCard` lit quand l'écran ne
+  passe pas `author`) et taille du set (`countSetCards`, hors corbeille). `cardImageUrls` et
+  `cardAuthors` ne sont plus exportés : un écran ne peut pas oublier une de ces données. Tout ce qui
+  est dans la carte vient donc des mêmes règles ; seul l'autour reste propre à l'écran (aura et
+  halo du booster, ×N et légendes du Potodex, case à cocher et lien de l'admin), ainsi que les
+  options de `GameCard` qui ne masquent rien dans la carte : `still` (figée : planches, vignettes
+  du Potodex), `hoverHalo` (coupé au booster, où l'aura le remplace), `layout` (version tirée,
+  trouvée ou choisie). Pour l'instant seuls les admins voient les
   cartes ; quand les membres les verront, ce pied dira qui a proposé l'idée (à décider avec la
   règle de la boîte noire). Sur la planche, les cartes sont figées (`GameCard still`, classe
   `tcg-still`) : sans 3D, animation, reflet ni grande ombre floue, pour un défilement fluide ;
@@ -1204,7 +1214,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   Une mise à jour sans `hasNormal` / `hasFullArt` / `layout` (fichier `updates`, import) les
   laisse tels quels ; un `layout` envoyé seul active sa version.
 - Illustration : celle de la version de la carte (`layout`) ou, à défaut, celle de son idée
-  (`listIdeaImageUrls`). Les pages admin la signent directement (`cardImageUrls`, clé `imageId` :
+  (`listIdeaImageUrls`). Les pages admin la signent directement (`cardImageUrls`, via `cardFaces`, clé `imageId` :
   id et version, une même carte pouvant paraître dans ses deux versions) avec `presignGetStable` (`@app/storage`) : l'URL
   reste identique pendant une fenêtre de 5 min (signée au début de la fenêtre, valable 15 min) et
   autorise la mise en cache (`response-cache-control: private, max-age=600`), donc le navigateur

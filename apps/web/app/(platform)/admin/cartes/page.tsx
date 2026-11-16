@@ -7,7 +7,7 @@ import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { CardSearch, type MoveTarget, MoveCardsForm, NewSetForm, PlaceSelect } from "./forms";
-import { cardAuthors, cardImageUrls, imageId } from "./images";
+import { cardFaces } from "./images";
 import { Pagination } from "./Pagination";
 
 export const metadata: Metadata = { title: "Cartes" };
@@ -66,10 +66,10 @@ export default async function AdminCardsPage({
   const pageCount = Math.max(1, Math.ceil(cards.length / pageSize));
   const page = Math.min(Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1), pageCount);
   const shown = cards.slice((page - 1) * pageSize, page * pageSize);
-  const [images, authors] = await Promise.all([
-    list ? new Map<string, string | null>() : cardImageUrls(admin, shown),
-    list ? new Map<string, string>() : cardAuthors(admin, shown),
-  ]);
+  // Cartes prêtes à afficher (image, « idée de … », taille du set) : la vue liste n'en montre pas.
+  const faces = new Map(
+    (list ? [] : await cardFaces(admin, shown)).map((face) => [face.card.id, face]),
+  );
   const counts = CARD_RARITIES.map((r) => [r, cards.filter((c) => c.rarity === r).length] as const);
   const reserveCount = all.filter((c) => c.setId === null).length;
   const setSizes = new Map(sets.map((s) => [s.id, all.filter((c) => c.setId === s.id).length]));
@@ -367,10 +367,9 @@ export default async function AdminCardsPage({
                       {/* Aperçu agrandi d'un tiers (400 × 560) : la carte fait 300 × 420. */}
                       <div style={{ zoom: 4 / 3 }} className="pointer-events-none">
                         <GameCard
-                          card={card}
-                          imageUrl={images.get(imageId(card)) ?? null}
-                          setSize={card.setId ? setSizes.get(card.setId) : undefined}
-                          author={authors.get(card.id)}
+                          card={faces.get(card.id)?.card ?? card}
+                          imageUrl={faces.get(card.id)?.imageUrl ?? null}
+                          setSize={faces.get(card.id)?.setSize}
                           still
                         />
                       </div>

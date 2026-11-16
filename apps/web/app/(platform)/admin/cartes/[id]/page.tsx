@@ -8,7 +8,7 @@ import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../../cartes/fonts";
 import { confirmCardImageAction, requestCardImageAction, updateCardAction } from "../actions";
 import { MoveCardForm } from "../forms";
-import { cardAuthors, cardImageUrls, familiesOf, imageId } from "../images";
+import { cardFaces, familiesOf } from "../images";
 
 export const metadata: Metadata = { title: "Modifier une carte" };
 
@@ -22,14 +22,10 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
     listCards(admin),
     listVisualEffects(admin),
   ]);
-  const setCards = allCards.filter((c) => c.setId === card.setId);
-  const [images, authors] = await Promise.all([
-    // l'illustration de chaque version
-    cardImageUrls(admin, [
-      { ...card, layout: "normal" },
-      { ...card, layout: "fullart" },
-    ]),
-    cardAuthors(admin, [card]),
+  // la carte prête à afficher dans chaque version (image, « idée de … », taille du set)
+  const [normal, full] = await cardFaces(admin, [
+    { ...card, layout: "normal" },
+    { ...card, layout: "fullart" },
   ]);
   const base = card.baseCardId ? allCards.find((c) => c.id === card.baseCardId) : null;
   const variants = allCards.filter((c) => c.baseCardId === card.id);
@@ -131,10 +127,10 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
           sets={sets}
           families={familiesOf(allCards)}
           visualEffects={visualEffects}
-          imageUrl={images.get(imageId({ id: card.id, layout: "normal" })) ?? null}
-          imageUrlFull={images.get(imageId({ id: card.id, layout: "fullart" })) ?? null}
-          author={authors.get(card.id)}
-          setSize={setCards.length}
+          imageUrl={normal?.imageUrl ?? null}
+          imageUrlFull={full?.imageUrl ?? null}
+          author={normal?.card.author}
+          setSize={normal?.setSize}
           header={header}
           save={updateCardAction.bind(null, card.id)}
           upload={{

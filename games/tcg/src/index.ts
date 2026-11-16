@@ -27,6 +27,7 @@ export {
   GLOW_LIMITS,
   glowKind,
   glowPeriod,
+  countSetCards,
   createCardImageUpload,
   ensureSet,
   getCard,

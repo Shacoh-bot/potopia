@@ -346,6 +346,24 @@ export async function listSets(admin: Admin): Promise<CardSet[]> {
   });
 }
 
+/**
+ * Nombre de cartes de chacun de ces sets, par id de set : le « 44 » de « 07/44 ». Une carte à la
+ * corbeille n'est dans aucun set. Un set sans carte : 0.
+ */
+export async function countSetCards(admin: Admin, setIds: string[]): Promise<Map<string, number>> {
+  assertAdmin(admin);
+  const ids = [...new Set(setIds)];
+  if (ids.length === 0) return new Map();
+  const rows = await db.tcgCard.groupBy({
+    by: ["setId"],
+    where: { setId: { in: ids } },
+    _count: { _all: true },
+  });
+  const counts = new Map(ids.map((id) => [id, 0]));
+  for (const row of rows) if (row.setId) counts.set(row.setId, row._count._all);
+  return counts;
+}
+
 const setInput = z.object({
   code: z
     .string()
