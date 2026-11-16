@@ -1142,7 +1142,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   réduite, 800 px, chacune en WebP, envoyées chacune par son URL présignée (`sendCardImages`) ;
   un WebP déjà à la bonne taille et léger part tel quel ; refus avec message si le navigateur ne
   sait pas encoder le WebP), dans l'éditeur comme dans l'envoi en masse. Tailles :
-  `CARD_IMAGE_SIZES` (`large` 2 400, `small` 800, `sharp` 1 600). Sous 1 600 px de côté long,
+  `CARD_IMAGE_SIZES` (`large` 2 400, `small` 800, `sharp` 1 500). Sous 1 500 px de côté long,
   l'image est enregistrée avec un avertissement (« elle sera floue en carte agrandie », `sizeWarning`) ;
   l'envoi n'est jamais bloqué. `setCardImage(…, { version, smallKey })` pose la grande
   (`imageKey` / `imageKeyFull`) et la réduite (`imageKeySmall` / `imageKeyFullSmall`, migration

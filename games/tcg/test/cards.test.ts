@@ -524,10 +524,15 @@ describe("illustration", () => {
     );
   });
 
-  it("avertit sous 1 600 px de côté long (floue en carte agrandie)", () => {
+  it("avertit sous 1 500 px de côté long (floue en carte agrandie)", () => {
     expect(isBlurryWhenZoomed({ width: 418, height: 627 })).toBe(true);
+    expect(isBlurryWhenZoomed({ width: 800, height: 1200 })).toBe(true);
     expect(isBlurryWhenZoomed({ width: 849, height: 1200 })).toBe(true);
-    expect(isBlurryWhenZoomed({ width: 1067, height: 1600 })).toBe(false);
+    expect(isBlurryWhenZoomed({ width: 999, height: 1499 })).toBe(true);
+    expect(isBlurryWhenZoomed({ width: 1000, height: 1500 })).toBe(false);
+    // plein format 2:3 de ChatGPT : on ne peut pas faire mieux, plus signalé
+    expect(isBlurryWhenZoomed({ width: 1024, height: 1536 })).toBe(false);
+    expect(isBlurryWhenZoomed({ width: 1536, height: 1024 })).toBe(false);
     expect(isBlurryWhenZoomed({ width: 2000, height: 1333 })).toBe(false);
   });
 
