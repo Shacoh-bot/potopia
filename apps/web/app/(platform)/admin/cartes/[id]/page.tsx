@@ -127,8 +127,9 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
           sets={sets}
           families={familiesOf(allCards)}
           visualEffects={visualEffects}
-          imageUrl={normal?.imageUrl ?? null}
-          imageUrlFull={full?.imageUrl ?? null}
+          // l'éditeur cadre sur la grande illustration
+          imageUrl={normal?.card.imageUrlLarge ?? normal?.imageUrl ?? null}
+          imageUrlFull={full?.card.imageUrlLarge ?? full?.imageUrl ?? null}
           author={normal?.card.author}
           setSize={normal?.setSize}
           header={header}

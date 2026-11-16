@@ -1,6 +1,7 @@
 import type { GlowPoint, ImageFrame } from "../src/card-rules";
 import { Children, type CSSProperties, Fragment, isValidElement, type ReactNode } from "react";
 import { Zoomable } from "./Zoomable";
+import { SharpImage } from "./SharpImage";
 import { ZoomedOutImage } from "./ZoomedOutImage";
 import { ZOOMED_OUT_BOX } from "./zoomed-out";
 
@@ -18,6 +19,11 @@ export type CardData = {
   cost: number;
   power: number;
   imageUrl: string | null;
+  /**
+   * Grande version de l'illustration (cartes du jeu) : `imageUrl` est alors sa version réduite, et
+   * la grande ne se charge que si la carte s'affiche en grand (`SharpImage`).
+   */
+  imageUrlLarge?: string | null;
   /** Auteur de l'idée, affiché par certains designs. */
   author?: string;
   /** Numéro dans la série (« 07/18 »), affiché par certains designs. */
@@ -110,7 +116,31 @@ export function Art({
     return (
       <div style={{ height, ...ZOOMED_OUT_BOX, ...style }}>
         <ArtBackdrop src={card.imageUrl} frame={card.imageFrame} />
-        <ZoomedOutImage src={card.imageUrl} alt={card.title} frame={card.imageFrame} />
+        <ZoomedOutImage
+          src={card.imageUrl}
+          large={card.imageUrlLarge}
+          alt={card.title}
+          frame={card.imageFrame}
+        />
+      </div>
+    );
+  }
+  if (card.imageUrl && card.imageUrlLarge) {
+    // Version réduite, puis la grande si la carte s'affiche en grand.
+    return (
+      <div style={{ height, overflow: "hidden", ...style }}>
+        <SharpImage
+          small={card.imageUrl}
+          large={card.imageUrlLarge}
+          alt={card.title}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+            ...frameStyle(card.imageFrame),
+          }}
+        />
       </div>
     );
   }

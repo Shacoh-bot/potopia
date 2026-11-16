@@ -47,6 +47,24 @@ describe("cardFaces : la carte prête à afficher, la même sur tous les écrans
     expect(full?.card.layout).toBe("fullart");
   });
 
+  it("version réduite pour la petite carte, grande pour l'agrandie ; sans réduite, comme avant", async () => {
+    const card = await createCard(ADMIN, { ...BASE, name: "Illustrée", setId });
+    const large = `cards/${crypto.randomUUID()}.webp`;
+    const small = `cards/${crypto.randomUUID()}.webp`;
+    await db.tcgCard.update({ where: { id: card.id }, data: { imageKey: large } });
+    const before = (await getCard(ADMIN, card.id)) ?? card;
+    const [plain] = await cardFaces(ADMIN, [before]);
+    // illustration envoyée avant : la même qu'aujourd'hui, pas de grande à part
+    expect(plain?.imageUrl).toContain(large);
+    expect(plain?.card.imageUrlLarge).toBeNull();
+
+    await db.tcgCard.update({ where: { id: card.id }, data: { imageKeySmall: small } });
+    const after = (await getCard(ADMIN, card.id)) ?? card;
+    const [face] = await cardFaces(ADMIN, [after]);
+    expect(face?.imageUrl).toContain(small);
+    expect(face?.card.imageUrlLarge).toContain(large);
+  });
+
   it("carte hors set et sans idée : ni taille de set ni auteur", async () => {
     const reserve = await createCard(ADMIN, { ...BASE, name: "Réserve" });
     const [face] = await cardFaces(ADMIN, [reserve]);

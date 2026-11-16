@@ -376,7 +376,8 @@ retirées), puis contrôle la taille. S'il ne sait pas encoder le WebP, il envoi
    abandonnée ne reste donc pas dans le bucket.
 
 En base, on stocke la clé, jamais une URL. Le CORS du bucket n'autorise que le PUT et le GET depuis
-l'origine de l'app (`pnpm storage:init` en local, dashboard R2 en prod).
+l'origine de l'app (`pnpm storage:init` en local, dashboard R2 en prod). En local, `storage:init`
+autorise aussi les ports 3000 à 3003 (un port par agent, même stockage local).
 
 **Lecture d'image.** `GET /api/admin/ideas/[id]/image` exécute `requireAdmin()` puis redirige (302)
 vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
@@ -1137,9 +1138,16 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   figée) un clic ouvre toujours la fiche ; dans l'éditeur, le dos s'incline au survol comme la
   face et un bouton « Voir le dos » / « Voir la face » retourne la carte (clavier).
 - Illustrations en **WebP uniquement** : le navigateur convertit chaque image avant l'envoi
-  (`toCardWebp` : WebP, 1 200 px au plus de côté ; un WebP déjà petit part tel quel ; refus avec
-  message si le navigateur ne sait pas encoder le WebP), dans l'éditeur comme dans l'envoi en
-  masse, et le serveur refuse tout autre type (`CARD_IMAGE_TYPES`, clé `cards/<uuid>.webp`). Les
+  (`toCardImages`, `ui/toCardWebp.ts` : la grande, 2 400 px au plus de côté, et sa version
+  réduite, 800 px, chacune en WebP, envoyées chacune par son URL présignée (`sendCardImages`) ;
+  un WebP déjà à la bonne taille et léger part tel quel ; refus avec message si le navigateur ne
+  sait pas encoder le WebP), dans l'éditeur comme dans l'envoi en masse. Tailles :
+  `CARD_IMAGE_SIZES` (`large` 2 400, `small` 800, `sharp` 1 600). Sous 1 600 px de côté long,
+  l'image est enregistrée avec un avertissement (« elle sera floue en carte agrandie », `sizeWarning`) ;
+  l'envoi n'est jamais bloqué. `setCardImage(…, { version, smallKey })` pose la grande
+  (`imageKey` / `imageKeyFull`) et la réduite (`imageKeySmall` / `imageKeyFullSmall`, migration
+  `tcg_card_image_small`, ajout seul) ; sans réduite (image déjà sous 800 px), la réduite est
+  retirée. La suppression d'une carte efface aussi les réduites. Le serveur refuse tout autre type (`CARD_IMAGE_TYPES`, clé `cards/<uuid>.webp`). Les
   illustrations déjà posées dans un autre format restent lisibles. Dans l'éditeur, une image se
   colle aussi : Ctrl+V n'importe où sur l'éditeur, ou bouton « Coller une image » (lecture du
   presse-papiers, le navigateur peut demander l'accord).
@@ -1223,6 +1231,16 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   clé, donc une nouvelle URL. Sur les planches, les images se chargent à l'approche de l'écran
   (`loading="lazy"`) et les cartes hors de l'écran ne sont pas dessinées
   (`content-visibility: auto`).
+- Petite et grande image : quand l'illustration a une version réduite (`smallImageKeyFor`),
+  `cardFaces` donne la réduite en `imageUrl` et la grande en `card.imageUrlLarge`. La carte
+  charge d'abord la réduite ; `SharpImage` / `useSharpSrc` mesurent l'image à l'écran (zooms,
+  carte agrandie et densité de l'écran compris) au chargement, peu après et au redimensionnement,
+  et passent à la grande dès qu'un pixel d'image couvrirait plus d'un pixel écran (`needsLarger`,
+  `ui/sharp.ts`, testé) : planches, Potodex et booster restent sur la réduite, la carte agrandie
+  (`CardZoom`, ×2,5) charge la grande. L'éditeur cadre sur la grande. Une illustration envoyée
+  avant (sans réduite) s'affiche exactement comme avant. Liste des cartes dont l'image est trop
+  petite (relevé du 16/11) : `~/OpenBot/Shared/potopia/cartes/images-trop-petites-2026-11-16.md`
+  (hors dépôt).
 
 **Boosters et Potodex** (en test : admins seulement, `/admin/boosters` et `/admin/potodex`,
 module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :

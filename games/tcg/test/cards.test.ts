@@ -27,6 +27,8 @@ import {
   moveCards,
   paramsSchema,
   setCardImage,
+  smallImageKeyFor,
+  isBlurryWhenZoomed,
   SNAP_CARDS,
   trashCards,
   updateCard,
@@ -479,6 +481,54 @@ describe("illustration", () => {
     // la même image posée sur l'Alt Art : la normale garde la sienne
     const alt = await setCardImage(ADMIN, card.id, key, { version: "fullart" });
     expect(alt).toMatchObject({ imageKey: key, imageKeyFull: key });
+  });
+
+  it("garde la version réduite de chaque illustration, et la retire avec une image sans elle", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    const send = async () => {
+      const { key, url } = await createCardImageUpload(ADMIN, {
+        contentType: "image/webp",
+        size: webp.length,
+      });
+      await fetch(url, { method: "PUT", headers: { "content-type": "image/webp" }, body: webp });
+      return key;
+    };
+    const [large, small, fullLarge, fullSmall] = [
+      await send(),
+      await send(),
+      await send(),
+      await send(),
+    ];
+    const normal = await setCardImage(ADMIN, card.id, large, { smallKey: small });
+    expect(normal).toMatchObject({ imageKey: large, imageKeySmall: small });
+    // la full art sans image à elle : la version réduite de la normale
+    expect(smallImageKeyFor(normal, "fullart")).toBe(small);
+    const both = await setCardImage(ADMIN, card.id, fullLarge, {
+      version: "fullart",
+      smallKey: fullSmall,
+    });
+    expect(both).toMatchObject({ imageKeyFull: fullLarge, imageKeyFullSmall: fullSmall });
+    expect(smallImageKeyFor(both, "normal")).toBe(small);
+    expect(smallImageKeyFor(both, "fullart")).toBe(fullSmall);
+    // image envoyée sans version réduite (petite image, ancien envoi) : plus de version réduite
+    const plain = await setCardImage(ADMIN, card.id, large);
+    expect(plain.imageKeySmall).toBeNull();
+    expect(smallImageKeyFor(plain, "normal")).toBeNull();
+    // version réduite jamais envoyée : refusée
+    const { key: missing } = await createCardImageUpload(ADMIN, {
+      contentType: "image/webp",
+      size: 10,
+    });
+    await expect(setCardImage(ADMIN, card.id, large, { smallKey: missing })).rejects.toThrow(
+      CardInputError,
+    );
+  });
+
+  it("avertit sous 1 600 px de côté long (floue en carte agrandie)", () => {
+    expect(isBlurryWhenZoomed({ width: 418, height: 627 })).toBe(true);
+    expect(isBlurryWhenZoomed({ width: 849, height: 1200 })).toBe(true);
+    expect(isBlurryWhenZoomed({ width: 1067, height: 1600 })).toBe(false);
+    expect(isBlurryWhenZoomed({ width: 2000, height: 1333 })).toBe(false);
   });
 
   it("refuse une clé jamais envoyée, inventée, ou un format autre que WebP", async () => {

@@ -43,7 +43,7 @@ import { EffectPicker } from "./EffectPicker";
 import { GameCard, GameCardDefs } from "./GameCard";
 import { GlowPointsEditor } from "./GlowPointsEditor";
 import { ImageFramer } from "./ImageFramer";
-import { pastedImage, toCardWebp } from "./toCardWebp";
+import { pastedImage, sendCardImages, sizeWarning, toCardImages } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
@@ -127,15 +127,19 @@ type Props = {
   header?: ReactNode;
   /**
    * Envoi de l'illustration (carte existante seulement) : `request` donne une URL d'envoi
-   * présignée, le navigateur y envoie le fichier, puis `confirm` pose l'image sur la version
-   * réglée de la carte.
+   * présignée par fichier, le navigateur y envoie la grande image et sa version réduite, puis
+   * `confirm` les pose sur la version réglée de la carte.
    */
   upload?: {
     request: (
       contentType: string,
       size: number,
     ) => Promise<{ key: string; url: string } | { error: string }>;
-    confirm: (key: string, version: Layout) => Promise<{ error: string } | null>;
+    confirm: (
+      key: string,
+      version: Layout,
+      smallKey?: string | null,
+    ) => Promise<{ error: string } | null>;
   };
 };
 
@@ -341,24 +345,18 @@ export function CardEditor({
     if (!upload || !card) return;
     const version = layout;
     setUploadState("Conversion en WebP…");
-    let file: File;
+    let prepared: Awaited<ReturnType<typeof toCardImages>>;
     try {
-      file = await toCardWebp(original, name);
+      prepared = await toCardImages(original, name);
     } catch (error) {
       return setUploadState((error as Error).message);
     }
     setUploadState("Envoi…");
-    const target = await upload.request(file.type, file.size);
-    if ("error" in target) return setUploadState(target.error);
-    const put = await fetch(target.url, {
-      method: "PUT",
-      body: file,
-      headers: { "content-type": file.type },
-    }).catch(() => null);
-    if (!put?.ok) return setUploadState("L'envoi de l'image a échoué.");
-    const failed = await upload.confirm(target.key, version);
+    const sent = await sendCardImages(prepared, upload.request);
+    if ("error" in sent) return setUploadState(sent.error);
+    const failed = await upload.confirm(sent.key, version, sent.smallKey);
     if (failed) return setUploadState(failed.error);
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(prepared.large);
     // Nouvelle illustration de la normale : l'Alt Art sans la sienne la reprend (cadrage compris).
     const both = version === "normal" && !ownFull;
     setImages((i) => (both ? { normal: url, fullart: url } : { ...i, [version]: url }));
@@ -366,8 +364,11 @@ export function CardEditor({
       both ? { normal: DEFAULT_FRAME, fullart: DEFAULT_FRAME } : { ...f, [version]: DEFAULT_FRAME },
     );
     if (version === "fullart") setOwnFull(true);
+    // Image trop petite pour la carte agrandie : enregistrée quand même, avec un avertissement.
+    const warning = sizeWarning(prepared);
     setUploadState(
-      `Illustration ${version === "normal" ? "de la version normale" : "de l'Alt Art"} enregistrée.`,
+      `Illustration ${version === "normal" ? "de la version normale" : "de l'Alt Art"} enregistrée.` +
+        (warning ? ` ${warning}` : ""),
     );
   }
 

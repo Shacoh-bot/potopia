@@ -80,6 +80,11 @@ model TcgCard {
   imageKey       String?   @map("image_key")
   // Illustration propre à la version full art ; null : la full art reprend `imageKey`.
   imageKeyFull   String?   @map("image_key_full")
+  // Version réduite de chaque illustration (côté long `CARD_IMAGE_SIZES.small`), pour les petites
+  // cartes (planches, Potodex, booster) ; la grande ne se charge qu'agrandie. null : pas de version
+  // réduite (illustrations envoyées avant), la carte montre l'illustration elle-même, comme avant.
+  imageKeySmall     String? @map("image_key_small")
+  imageKeyFullSmall String? @map("image_key_full_small")
   // Cadrage de l'illustration (point central en % et zoom) : l'image n'est jamais rognée.
   imageFrame     Json?     @map("image_frame")
   // Cadrage de l'illustration en full art ; null : celui de la carte normale (imageFrame).
