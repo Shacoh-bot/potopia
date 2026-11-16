@@ -1,11 +1,11 @@
 "use server";
 
-import { CardInputError, listCards, openBooster, resetCollection } from "@app/tcg";
+import { CardInputError, openBooster, resetCollection } from "@app/tcg";
 import type { OpenedCard } from "@app/tcg/ui";
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { actionAdmin } from "@/lib/session";
-import { cardImageUrls, imageId } from "../cartes/images";
+import { cardFaces } from "../cartes/images";
 
 export type OpenResult =
   { ok: true; cards: OpenedCard[]; setSize: number } | { ok: false; error: string };
@@ -17,23 +17,17 @@ export type OpenResult =
 export async function openBoosterAction(setCode: string): Promise<OpenResult> {
   const admin = await actionAdmin();
   try {
-    const { set, cards } = await openBooster(admin, { setCode }, { test: true });
-    const [images, setCards] = await Promise.all([
-      cardImageUrls(admin, cards),
-      listCards(admin, { setId: set.id }),
-    ]);
+    const { cards } = await openBooster(admin, { setCode }, { test: true });
+    // mêmes données que le menu « Cartes » : image, « idée de … », taille du set
+    const faces = await cardFaces(admin, cards);
     revalidatePath("/admin/potodex");
     // compteur des garanties sous le paquet
     revalidatePath("/admin/boosters");
     return {
       ok: true,
-      setSize: setCards.length,
+      setSize: faces[0]?.setSize ?? 0,
       // chaque carte dans sa version tirée (`layout`), Alt Art comprise
-      cards: cards.map((card) => ({
-        id: card.id,
-        card,
-        imageUrl: images.get(imageId(card)) ?? null,
-      })),
+      cards: faces.map(({ card, imageUrl }) => ({ id: card.id, card, imageUrl })),
     };
   } catch (error) {
     if (error instanceof CardInputError) return { ok: false, error: error.message };

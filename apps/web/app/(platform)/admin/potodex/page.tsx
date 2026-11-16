@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { Pagination } from "../cartes/Pagination";
-import { cardImageUrls, imageId } from "../cartes/images";
+import { cardFaces, imageId } from "../cartes/images";
 import { paginate } from "./paginate";
 import { PotodexCard } from "./PotodexCard";
 import { ResetCollectionButton } from "./ResetCollectionButton";
@@ -48,7 +48,8 @@ export default async function AdminPotodexPage({
   const dex = await getPotodex(admin, { setCode: current.code });
   const { page, pageCount, shown } = paginate(dex.entries, pageParam, PAGE_SIZE);
   const found = shown.flatMap((e) => (e.found ? [e.card] : []));
-  const images = await cardImageUrls(admin, found);
+  // mêmes données que le menu « Cartes » : image, « idée de … », taille du set
+  const faces = new Map((await cardFaces(admin, found)).map((f) => [imageId(f.card), f]));
   const pageHref = (p: number) => `/admin/potodex?set=${current.code}${p > 1 ? `&page=${p}` : ""}`;
   const pager = <Pagination page={page} count={pageCount} href={pageHref} />;
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -126,16 +127,16 @@ export default async function AdminPotodexPage({
                 >
                   {entry.found ? (
                     <PotodexCard
-                      card={entry.card}
-                      imageUrl={images.get(imageId(entry.card)) ?? null}
-                      setSize={dex.size}
+                      card={faces.get(imageId(entry.card))?.card ?? entry.card}
+                      imageUrl={faces.get(imageId(entry.card))?.imageUrl ?? null}
+                      setSize={faces.get(imageId(entry.card))?.setSize ?? dex.size}
                       fontClass={designFonts}
                     >
                       <Scaled scale={SLOT / CARD_WIDTH}>
                         <GameCard
-                          card={entry.card}
-                          imageUrl={images.get(imageId(entry.card)) ?? null}
-                          setSize={dex.size}
+                          card={faces.get(imageId(entry.card))?.card ?? entry.card}
+                          imageUrl={faces.get(imageId(entry.card))?.imageUrl ?? null}
+                          setSize={faces.get(imageId(entry.card))?.setSize ?? dex.size}
                           still
                         />
                       </Scaled>
