@@ -12,6 +12,7 @@ import {
   SHOWCASE_IDEA_ID,
   InvalidImageError,
   getIdeaAuthorIds,
+  listIdeaIds,
   listIdeaImageUrls,
   listIdeas,
   purgeStaleUploads,
@@ -302,6 +303,8 @@ describe("lecture réservée aux admins", () => {
     await expect(getIdea(MEMBER, id)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(getIdeaImageUrl(MEMBER, id)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(listIdeas({ discordId: null })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(listIdeaIds(MEMBER)).rejects.toBeInstanceOf(ForbiddenError);
+    expect(await listIdeaIds(ADMIN)).toEqual([id]);
   });
 
   it("filtre par auteur et par rareté, et pagine", async () => {

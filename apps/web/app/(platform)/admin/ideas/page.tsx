@@ -5,7 +5,7 @@ import { buttonClasses, Card } from "@app/ui";
 import type { Metadata } from "next";
 import { getCurrentAdmin } from "@/lib/session";
 import { loadMoreIdeas } from "./actions";
-import { cardCountsByIdea, NEW_CARD_HREF } from "./card-counts";
+import { cardStatesByIdea, ideaCounters, NEW_CARD_HREF } from "./card-counts";
 
 export const metadata: Metadata = { title: "Boîte à idées" };
 
@@ -22,11 +22,12 @@ export default async function AdminIdeasPage({
   const params = await searchParams;
   const filters = { authorId: params.author || undefined, rarity: asRarity(params.rarity) };
 
-  const [{ items, nextCursor }, authorIds, cardCounts] = await Promise.all([
+  const [{ items, nextCursor }, authorIds, stateOf] = await Promise.all([
     listIdeas(admin, filters),
     listIdeaAuthorIds(admin),
-    cardCountsByIdea(admin),
+    cardStatesByIdea(admin),
   ]);
+  const { toCreate, duplicates } = await ideaCounters(admin, stateOf);
   const authors = await getUsersByIds([...authorIds, ...items.map((i) => i.authorId)]);
   const names = new Map(authors.map((u) => [u.id, u.name]));
 
@@ -44,6 +45,10 @@ export default async function AdminIdeasPage({
         </a>
       }
     >
+      <p className="text-muted mb-3 text-sm">
+        {toCreate} idée{toCreate > 1 ? "s" : ""} à transformer en carte · {duplicates} doublon
+        {duplicates > 1 ? "s" : ""} (toutes les idées, sans filtre)
+      </p>
       <IdeasAdminList
         basePath="/admin/ideas"
         filters={filters}
@@ -62,7 +67,7 @@ export default async function AdminIdeasPage({
             rarity: idea.suggestedRarity,
             hasImage: Boolean(idea.imageKey),
             createdAt: idea.createdAt,
-            cards: cardCounts.get(idea.id) ?? 0,
+            ...stateOf(idea.id),
           })),
         }}
       />

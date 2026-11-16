@@ -17,6 +17,7 @@ import {
   type CardRarityId,
   type CardSet,
   type GlowPoint,
+  ideaStateOf,
   type ImageFrame,
   type VisualEffect,
 } from "./card-rules";
@@ -58,7 +59,9 @@ export {
   glowPeriod,
   type GlowKind,
   type GlowPoint,
+  ideaStateOf,
   type ImageFrame,
+  isDuplicateNote,
   type VisualEffect,
 } from "./card-rules";
 
@@ -400,6 +403,26 @@ export async function listCards(
     include: withSet,
   });
   return rows.map(toCard);
+}
+
+/**
+ * État de chaque idée qui a donné au moins une carte, corbeille comprise, par id d'idée (voir
+ * `ideaStateOf`) : nombre de cartes gardées, idée en doublon. Une idée absente n'a aucune carte.
+ */
+export async function ideaCardStates(
+  admin: Admin,
+): Promise<Map<string, { cards: number; duplicate: boolean }>> {
+  assertAdmin(admin);
+  const rows = await db.tcgCard.findMany({
+    where: { ideaId: { not: null } },
+    select: { ideaId: true, adminNote: true, deletedAt: true },
+  });
+  const byIdea = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const id = row.ideaId ?? "";
+    byIdea.set(id, [...(byIdea.get(id) ?? []), row]);
+  }
+  return new Map([...byIdea].map(([id, cards]) => [id, ideaStateOf(cards)]));
 }
 
 export async function getCard(admin: Admin, id: string): Promise<Card | null> {
