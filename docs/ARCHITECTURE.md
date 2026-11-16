@@ -1260,8 +1260,12 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   (étincelles indépendantes qui tourbillonnent). Gradation par rareté (`PALETTES`) : rare = halo
   doux seul (CSS `tcg-aura-rare`), épique discrète, légendaire, SR bien plus fournie, SSR
   débordante (arc-en-ciel) ; commune et peu commune : rien. Une Alt Art prend l'aura de sa
-  rareté. Une seule aura animée à la fois (la dernière apparue ou survolée), arrêt hors écran ;
-  « réduire les animations » : aura présente mais immobile. Partout ailleurs (planches, Potodex,
+  rareté. Toutes les auras tournent en continu, sans survol (tampon à 0,75 px par pixel CSS,
+  30 im/s au plus), arrêt hors écran ; « réduire les animations » : aura présente mais immobile.
+  La lueur remplit aussi l'arrière de la carte (inclinée, la carte ne laisse voir aucun vide) et
+  s'éteint tout à fait avant le bord du canevas et avant celui de l'écran d'ouverture, qui la
+  découpe (`outerFade`, `data-aura-bounds` ; lueur et étincelles : aucun bord droit visible). À l'ouverture, les lumières des cartes (clignotements, arcs, rayons) tournent
+  aussi sans survol (`.tcg-opening-face` exclu des règles « au calme »). Partout ailleurs (planches, Potodex,
   carte agrandie, fiche), `GameCard` n'a qu'un halo doux de la couleur de la rareté au survol
   (`hoverHalo`, `.tcg-hover-halo`, plus fort pour les hautes raretés, sans particules, rien sans
   survol) ; l'ouverture le coupe (`hoverHalo={false}`).
@@ -1302,6 +1306,12 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   vue de départ ne change pas. Modèle et vidéo doivent toujours venir du même
   rendu, sinon le relais saute : leurs URL portent `?v=` (`ASSETS_VERSION` de `BoosterOpening`),
   à augmenter à chaque nouveau rendu pour que le cache d'un jour ne garde pas l'ancien modèle.
+  Encodage de `ouverture.webm` (depuis la séquence PNG du rendu) : une image clé toutes les
+  6 images (0,2 s), donc une à 1,4 s (`VIDEO_START`). Avec des images clés à 0 et 3,7 s
+  seulement, Firefox sautait directement à 3,7 s (cartes posées) : plus d'animation entre la
+  découpe et les cartes. Commande : `ffmpeg -framerate 30 -i img_%04d.png -c:v libvpx-vp9
+-pix_fmt yuva420p -crf 28 -b:v 0 -g 6 -keyint_min 6 -auto-alt-ref 0 -row-mt 1
+-metadata:s:v:0 alpha_mode=1 ouverture.webm`.
 - Bruitages synthétisés dans le navigateur (`ui/booster-sounds.ts`, Web Audio, aucun fichier) :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.

@@ -1110,9 +1110,10 @@
 .tcg-line[data-blink] {
   animation: tcg-glow-blink var(--blink) ease-in-out infinite;
 }
-/* Sans pointeur sur la carte : immobile, au plus faible du clignotement. */
-.tcg-tilt:not([data-active]) .tcg-glow[data-blink],
-.tcg-tilt:not([data-active]) .tcg-line[data-blink] {
+/* Sans pointeur sur la carte : immobile, au plus faible du clignotement. Sauf à l'ouverture d'un
+   booster, où les effets des cartes révélées tournent en continu. */
+.tcg-tilt:not([data-active], .tcg-opening-face .tcg-tilt) .tcg-glow[data-blink],
+.tcg-tilt:not([data-active], .tcg-opening-face .tcg-tilt) .tcg-line[data-blink] {
   animation: none;
   opacity: 0.15;
 }
@@ -1222,8 +1223,9 @@
   mix-blend-mode: screen;
 }
 
-/* Lumières à placer : elles ne bougent que sous le pointeur ; sinon, au calme. */
-.tcg-tilt:not([data-active]) .tcg-lt-anim {
+/* Lumières à placer : elles ne bougent que sous le pointeur ; sinon, au calme (sauf à l'ouverture
+   d'un booster : en continu). */
+.tcg-tilt:not([data-active], .tcg-opening-face .tcg-tilt) .tcg-lt-anim {
   animation: none;
 }
 .tcg-arc[data-still] {
@@ -1668,12 +1670,12 @@
 /* Rare : un halo doux seul, sans vrilles ni étincelles. */
 .tcg-aura-rare {
   position: absolute;
-  inset: -4%;
+  inset: -3%;
   z-index: -1;
   border-radius: 9%;
   pointer-events: none;
   background: rgb(96 165 250 / 0.55);
-  filter: blur(22px);
+  filter: blur(18px);
 }
 
 /* Halo de survol des cartes (hors ouverture des boosters) : une lumière douce de la couleur de la

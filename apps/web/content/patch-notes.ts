@@ -64,6 +64,20 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-16",
+    title: "Ouverture des boosters plus vivante",
+    items: [
+      {
+        admin: true,
+        text: "Boosters : les auras de toutes les cartes révélées tournent en continu, un peu moins étendues, sans bord visible et toujours présentes derrière la carte quand elle bouge.",
+      },
+      {
+        admin: true,
+        text: "Boosters : sous Firefox, l'animation entre la découpe et les cartes s'affiche enfin. Échap sur une carte ouverte en grand ne ferme plus que la carte.",
+      },
+    ],
+  },
+  {
     date: "2026-11-15",
     title: "Des cartes qui brillent à l'ouverture",
     items: [
