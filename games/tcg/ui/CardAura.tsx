@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 /*
  * Aura d'une carte (validée par l'utilisateur, prototype v3) : quelque chose brille derrière la
@@ -9,7 +9,7 @@ import { type CSSProperties, useEffect, useRef } from "react";
  * 2. des vrilles d'énergie (bruit simplex « ridged », WebGL) qui tournent en sens contraire,
  *    se tordent et filent vers l'extérieur en s'effaçant ;
  * 3. des étincelles indépendantes, nées sur le bord, qui tourbillonnent en s'éloignant et
- *    s'éteignent (canvas 2D, trajectoires calculées : rien n'est stocké d'une image à l'autre).
+ *    s'éteignent (trajectoires calculées : rien n'est stocké d'une image à l'autre).
  * Gradation : rare = halo doux seul (CSS) ; épique discrète ; légendaire ; SR bien plus fournie ;
  * SSR débordante (arc-en-ciel). Lent et souple (3 fois moins vite que le premier prototype).
  *
@@ -80,7 +80,7 @@ const RAD = 26;
 /** Marge autour de la carte où l'aura se dessine (fraction de la largeur de la carte). */
 export const AURA_MARGIN = 0.65;
 /** La même marge, dans le repère du prototype (identique sur les 4 côtés). */
-const MARGIN_UNITS = Math.round(2 * HW * AURA_MARGIN);
+export const MARGIN_UNITS = Math.round(2 * HW * AURA_MARGIN);
 /**
  * Extinction de l'aura vers l'extérieur (fractions de la place disponible) : pleine jusqu'à
  * FADE_FROM, nulle à FADE_TO. Place : la marge du canevas, ou moins de chaque côté si le cadre
@@ -94,7 +94,7 @@ function fade(dist: number, room: number): number {
   return 1 - x * x * (3 - 2 * x);
 }
 /** Place de chaque côté (gauche, droite, haut, bas), repère du prototype. */
-type Room = [number, number, number, number];
+export type Room = [number, number, number, number];
 /** Extinction d'un point (repère du prototype, carte au centre). */
 function outerFade(x: number, y: number, room: Room): number {
   const ox = Math.max(0, Math.abs(x) - HW);
@@ -201,7 +201,7 @@ type Spark = {
 };
 
 /** Étincelles tirées une fois (graine fixe) : même aura à chaque affichage. */
-function makeSparks(count: number): Spark[] {
+export function makeSparks(count: number): Spark[] {
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
   return Array.from({ length: count }, () => ({
@@ -233,20 +233,25 @@ function edgePoint(u: number): [number, number, number, number] {
   return [-HW, HH - s, -1, 0];
 }
 
-function drawSparks(
-  ctx: CanvasRenderingContext2D,
+/** Données d'un point d'étincelle pour WebGL : centre (x, y, pixels du canevas), rayon, éclat. */
+const POINT_FLOATS = 4;
+
+/**
+ * Points des étincelles à l'instant `t` (pixels du canevas, origine en haut à gauche), écrits dans
+ * `out` ; renvoie leur nombre. Chaque étincelle laisse une traînée de 5 points.
+ */
+export function sparkPoints(
   sparks: Spark[],
-  pal: Palette,
   t: number,
   room: Room,
-) {
-  const { width, height } = ctx.canvas;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, width, height);
+  width: number,
+  height: number,
+  out: Float32Array,
+): number {
   const k = width / (2 * HW * (1 + 2 * AURA_MARGIN));
-  ctx.setTransform(k, 0, 0, k, width / 2, height / 2);
-  ctx.globalCompositeOperation = "lighter";
-  const [cr, cg, cb] = pal.mid.map((v) => Math.round(v * 255));
+  const cx = width / 2;
+  const cy = height / 2;
+  let n = 0;
   for (const s of sparks) {
     const age = (t + s.offset) % s.life;
     const k1 = age / s.life;
@@ -267,16 +272,389 @@ function drawSparks(
       const aj = a * (1 - j / 5) * outerFade(x, y, room);
       if (aj <= 0.003) continue;
       const r = s.size * (j === 0 ? 1 : 0.7) * 3;
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, `rgba(255,255,235,${aj})`);
-      g.addColorStop(0.35, `rgba(${cr},${cg},${cb},${aj * 0.7})`);
-      g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, 6.283);
-      ctx.fill();
+      const o = n * POINT_FLOATS;
+      out[o] = cx + x * k;
+      out[o + 1] = cy + y * k;
+      out[o + 2] = r * k;
+      out[o + 3] = Math.min(1, aj);
+      n++;
     }
   }
+  return n;
+}
+
+/*
+ * Étincelles en WebGL (fluidité, 16/11) : avant, un dégradé radial du canevas 2D par point et par
+ * image (des milliers) faisait tomber Firefox sous 20 im/s. Même dessin, calculé par pixel :
+ * - chaque point est un disque de rayon r, rempli du même dégradé radial qu'un canevas 2D (arrêts
+ *   0 : blanc chaud, 0,35 : couleur de la rareté à 0,7, 1 : transparent ; interpolation sans
+ *   prémultiplier, comme le canevas), multiplié par l'éclat du point ;
+ * - les points s'additionnent (« lighter » du canevas 2D) dans une texture à part ;
+ * - cette texture est posée par-dessus les vrilles (« source-over »), comme l'était le canevas des
+ *   étincelles au-dessus de celui des vrilles.
+ */
+const SPARK_VS = `
+attribute vec4 pt; uniform vec2 res;
+varying vec2 c; varying float r; varying float a;
+void main(){
+  c = pt.xy; r = pt.z; a = pt.w;
+  gl_Position = vec4(pt.x/res.x*2.-1., 1.-pt.y/res.y*2., 0., 1.);
+  gl_PointSize = ceil(2.*pt.z + 2.);
+}`;
+const SPARK_FS = `
+precision highp float;
+uniform vec2 res; uniform vec3 mid; uniform float grow;
+varying vec2 c; varying float r; varying float a;
+void main(){
+  float dist = length(vec2(gl_FragCoord.x, res.y-gl_FragCoord.y) - c);
+  // Bord du disque, adouci sur un pixel comme le canevas 2D.
+  float cover = clamp(r + .5 - dist, 0., 1.);
+  float d = dist / (r + grow);
+  if (cover <= 0. || d >= 1.) discard;
+  vec4 col = d < .35
+    ? mix(vec4(1., 1., 235./255., 1.), vec4(mid, .7), d/.35)
+    : mix(vec4(mid, .7), vec4(mid, 0.), (d-.35)/.65);
+  float al = col.a * a * cover;
+  gl_FragColor = vec4(col.rgb*al, al);
+}`;
+
+let gradientGrowth: number | null = null;
+/**
+ * Comment ce navigateur peint un dégradé radial du canevas 2D : Firefox l'évalue au rayon du
+ * disque, Chrome comme si le rayon était plus grand d'environ un demi-pixel (ses petites étincelles
+ * sont un peu plus vives). On le mesure une fois sur un dégradé témoin (blanc opaque au centre,
+ * transparent au rayon 16) pour que les étincelles WebGL restent identiques aux anciennes dans
+ * chaque navigateur. Renvoie l'agrandissement du rayon, en pixels.
+ */
+function measureGradientGrowth(): number {
+  if (gradientGrowth !== null) return gradientGrowth;
+  gradientGrowth = 0;
+  // Gardé par navigateur : la mesure ne se refait pas à chaque visite.
+  const key = `potopia:aura-gradient:${navigator.userAgent}`;
+  try {
+    const saved = Number.parseFloat(localStorage.getItem(key) ?? "");
+    if (Number.isFinite(saved)) return (gradientGrowth = saved);
+  } catch {
+    // stockage indisponible (navigation privée stricte) : on mesure
+  }
+  const c = document.createElement("canvas");
+  c.width = c.height = 300;
+  // Canevas comme celui des anciennes étincelles (accéléré si le navigateur le fait) : Chrome ne
+  // peint pas pareil en mémoire. Sa lecture attend la carte graphique (≈ 0,25 s dans Chrome) :
+  // faite une fois, au chargement de la page des boosters (`warmUpAuras`), pas au retournement.
+  const ctx = c.getContext("2d");
+  if (!ctx) return gradientGrowth;
+  const R = 16;
+  const x = 150.5;
+  const g = ctx.createRadialGradient(x, x, 0, x, x, R);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, x, R, 0, 6.283);
+  ctx.fill();
+  // Valeur affichée (couleur × opacité) à 6, 8 et 10 pixels du centre : 1 − d / (R + agrandissement).
+  const row = ctx.getImageData(150, 150, 12, 1).data;
+  const found = [6, 8, 10].map((d) => {
+    const v = ((row[d * 4] ?? 0) * (row[d * 4 + 3] ?? 0)) / 255 / 255;
+    return v < 1 ? d / (1 - v) - R : 0;
+  });
+  const mean = found.reduce((s, v) => s + v, 0) / found.length;
+  gradientGrowth = Number.isFinite(mean) ? Math.min(1, Math.max(-1, mean)) : 0;
+  try {
+    localStorage.setItem(key, String(gradientGrowth));
+  } catch {
+    // stockage indisponible : la mesure se refera à la prochaine visite
+  }
+  return gradientGrowth;
+}
+const COPY_FS = `
+precision highp float;
+uniform sampler2D tex; uniform vec2 res;
+void main(){ gl_FragColor = texture2D(tex, gl_FragCoord.xy/res); }`;
+
+/** Plus grande étincelle à l'écran (pixels du tampon) que les points WebGL doivent pouvoir couvrir. */
+const MIN_POINT_SIZE = 64;
+
+/**
+ * Repli : les étincelles au canevas 2D, comme avant (un dégradé radial par point), quand WebGL ne
+ * peut pas les dessiner (programme refusé, points trop petits). Même rendu, plus lent.
+ */
+function drawSparks2d(
+  ctx: CanvasRenderingContext2D,
+  points: Float32Array,
+  n: number,
+  mid: Palette["mid"],
+) {
+  const { width, height } = ctx.canvas;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  // Repère du prototype, mis à l'échelle (comme avant).
+  const k = width / (2 * HW * (1 + 2 * AURA_MARGIN));
+  const cx = width / 2;
+  const cy = height / 2;
+  ctx.setTransform(k, 0, 0, k, cx, cy);
+  ctx.globalCompositeOperation = "lighter";
+  const [cr, cg, cb] = mid.map((v) => Math.round(v * 255));
+  for (let i = 0; i < n; i++) {
+    const o = i * POINT_FLOATS;
+    const x = ((points[o] ?? 0) - cx) / k;
+    const y = ((points[o + 1] ?? 0) - cy) / k;
+    const r = (points[o + 2] ?? 0) / k;
+    const aj = points[o + 3] ?? 0;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,255,235,${aj})`);
+    g.addColorStop(0.35, `rgba(${cr},${cg},${cb},${aj * 0.7})`);
+    g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 6.283);
+    ctx.fill();
+  }
+}
+
+/*
+ * Un seul contexte WebGL pour toutes les auras (fluidité, 17/11). Compiler le dessin des vrilles
+ * prend 0,5 à 1,5 s (Chrome, Firefox) et Firefox ne le garde pas d'un contexte à l'autre : avec un
+ * contexte par aura, chaque carte épique ou mieux figeait la page à son retournement. Le contexte
+ * partagé, hors de la page (OffscreenCanvas), compile une fois, sans attendre (extension
+ * KHR_parallel_shader_compile), dès l'arrivée sur la page des boosters (`warmUpAuras`). Chaque
+ * aura y est dessinée à sa taille, puis l'image passe sans copie dans son propre canevas
+ * (`transferToImageBitmap`) : les calques de la page restent les mêmes qu'avant.
+ */
+type Renderer = {
+  canvas: OffscreenCanvas;
+  gl: WebGLRenderingContext;
+  prog: WebGLProgram;
+  sparkProg: WebGLProgram | null;
+  copyProg: WebGLProgram | null;
+  quad: WebGLBuffer | null;
+  pointBuf: WebGLBuffer | null;
+  tex: WebGLTexture | null;
+  fbo: WebGLFramebuffer | null;
+  parallel: { COMPLETION_STATUS_KHR: number } | null;
+  /** Programmes vérifiés (compilés et liés). */
+  checked: boolean;
+  /** Étincelles en WebGL (sinon repli au canevas 2D). */
+  webglSparks: boolean;
+  texW: number;
+  texH: number;
+  lost: boolean;
+};
+
+let shared: Renderer | null | undefined;
+/** Auras à remonter quand le contexte partagé revient après une perte. */
+const onRestore = new Set<() => void>();
+
+function createRenderer(): Renderer | null {
+  if (typeof OffscreenCanvas === "undefined") return null;
+  const canvas = new OffscreenCanvas(1, 1);
+  const gl = canvas.getContext("webgl", {
+    premultipliedAlpha: true,
+    preserveDrawingBuffer: true,
+  }) as WebGLRenderingContext | null;
+  if (!gl) return null;
+  const shader = (type: number, src: string) => {
+    const s = gl.createShader(type);
+    if (!s) return null;
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  };
+  // Lien lancé sans attendre son résultat : la compilation se fait à côté (`rendererReady`).
+  const program = (vs: string, fs: string) => {
+    const p = gl.createProgram();
+    const v = shader(gl.VERTEX_SHADER, vs);
+    const f = shader(gl.FRAGMENT_SHADER, fs);
+    if (!p || !v || !f) return null;
+    gl.attachShader(p, v);
+    gl.attachShader(p, f);
+    gl.linkProgram(p);
+    return p;
+  };
+  const parallel = gl.getExtension("KHR_parallel_shader_compile") as {
+    COMPLETION_STATUS_KHR: number;
+  } | null;
+  const prog = program(VS, FS);
+  if (!prog) return null;
+  // Points WebGL assez grands pour la plus grosse étincelle, sinon repli au canevas 2D.
+  const range = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) as Float32Array | null;
+  const pointsOk = (range?.[1] ?? 0) >= MIN_POINT_SIZE;
+  const sparkProg = pointsOk ? program(SPARK_VS, SPARK_FS) : null;
+  const copyProg = pointsOk ? program(VS, COPY_FS) : null;
+  const quad = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const r: Renderer = {
+    canvas,
+    gl,
+    prog,
+    sparkProg,
+    copyProg,
+    quad,
+    pointBuf: gl.createBuffer(),
+    tex: gl.createTexture(),
+    fbo: gl.createFramebuffer(),
+    parallel,
+    checked: false,
+    webglSparks: false,
+    texW: 0,
+    texH: 0,
+    lost: false,
+  };
+  gl.bindTexture(gl.TEXTURE_2D, r.tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  // Contexte perdu (pilote, mémoire) : on le rend au navigateur ; revenu, tout est recréé.
+  canvas.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault();
+    r.lost = true;
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    if (shared === r) shared = undefined;
+    for (const fn of onRestore) fn();
+  });
+  return r;
+}
+
+function getRenderer(): Renderer | null {
+  if (shared === undefined) shared = createRenderer();
+  return shared && !shared.lost ? shared : null;
+}
+
+/**
+ * Programmes prêts ? Sans attendre tant que la compilation tourne (si le navigateur sait le dire),
+ * puis une fois pour toutes : lien réussi, étincelles en WebGL ou en repli.
+ */
+function rendererReady(r: Renderer): boolean {
+  if (r.checked) return true;
+  const { gl } = r;
+  const programs = [r.prog, r.sparkProg, r.copyProg].filter((p): p is WebGLProgram => !!p);
+  if (r.parallel) {
+    const status = r.parallel.COMPLETION_STATUS_KHR;
+    if (!programs.every((p) => gl.getProgramParameter(p, status))) return false;
+  }
+  if (!gl.getProgramParameter(r.prog, gl.LINK_STATUS)) {
+    r.lost = true; // aucune aura animée possible (comme sans WebGL)
+    return false;
+  }
+  r.webglSparks =
+    !!r.sparkProg &&
+    !!r.copyProg &&
+    !!gl.getProgramParameter(r.sparkProg, gl.LINK_STATUS) &&
+    !!gl.getProgramParameter(r.copyProg, gl.LINK_STATUS);
+  r.checked = true;
+  return true;
+}
+
+/**
+ * À l'arrivée sur la page des boosters, pendant son chargement : contexte partagé créé, dessins
+ * compilés et dégradé mesuré, pour que la première aura s'affiche sans attente. Avec l'extension
+ * KHR_parallel_shader_compile (Chrome), la compilation se fait à côté, sans bloquer ; sans elle
+ * (Firefox), elle ne se fait qu'à la première question : on la pose ici, une fois (≈ 0,5 à 1 s),
+ * plutôt qu'au retournement d'une carte.
+ */
+export function warmUpAuras() {
+  if (typeof window === "undefined") return;
+  measureGradientGrowth();
+  const r = getRenderer();
+  if (!r) return;
+  const poll = () => {
+    if (!r.lost && !rendererReady(r)) setTimeout(poll, 100);
+  };
+  poll();
+}
+
+type AuraFrame = {
+  pal: Palette;
+  sparks: Spark[];
+  points: Float32Array;
+  room: Room;
+  w: number;
+  h: number;
+  t: number;
+};
+
+/** Dessine une aura dans le contexte partagé ; renvoie le nombre de points d'étincelles. */
+function renderAura(r: Renderer, f: AuraFrame): number {
+  const { gl, canvas } = r;
+  const U = (p: WebGLProgram, n: string) => gl.getUniformLocation(p, n);
+  if (canvas.width !== f.w || canvas.height !== f.h) {
+    canvas.width = f.w;
+    canvas.height = f.h;
+  }
+  gl.viewport(0, 0, f.w, f.h);
+  const n = sparkPoints(f.sparks, f.t, f.room, f.w, f.h, f.points);
+  // 1. Étincelles, additionnées dans leur texture (« lighter »).
+  const sparkProg = r.webglSparks ? r.sparkProg : null;
+  if (sparkProg && n > 0) {
+    if (r.texW !== f.w || r.texH !== f.h) {
+      gl.bindTexture(gl.TEXTURE_2D, r.tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, f.w, f.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, r.fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.tex, 0);
+      r.texW = f.w;
+      r.texH = f.h;
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, r.fbo);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(sparkProg);
+    gl.uniform2f(U(sparkProg, "res"), f.w, f.h);
+    // Couleur des étincelles : celle de la rareté, arrondie comme une couleur CSS (0 à 255).
+    gl.uniform3fv(
+      U(sparkProg, "mid"),
+      f.pal.mid.map((v) => Math.round(v * 255) / 255),
+    );
+    gl.uniform1f(U(sparkProg, "grow"), measureGradientGrowth());
+    gl.bindBuffer(gl.ARRAY_BUFFER, r.pointBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, f.points.subarray(0, n * POINT_FLOATS), gl.DYNAMIC_DRAW);
+    const loc = gl.getAttribLocation(sparkProg, "pt");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, 0, 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.drawArrays(gl.POINTS, 0, n);
+    gl.disableVertexAttribArray(loc);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  // 2. Lueur et vrilles : tout le canevas.
+  gl.disable(gl.BLEND);
+  const { prog } = r;
+  gl.useProgram(prog);
+  gl.uniform3fv(U(prog, "cCore"), f.pal.core);
+  gl.uniform3fv(U(prog, "cMid"), f.pal.mid);
+  gl.uniform3fv(U(prog, "cEdge"), f.pal.edge);
+  gl.uniform1f(U(prog, "rainbow"), f.pal.rainbow ? 1 : 0);
+  gl.uniform1f(U(prog, "power"), f.pal.power);
+  gl.uniform2f(U(prog, "res"), f.w, f.h);
+  gl.uniform1f(U(prog, "k"), f.w / (2 * HW * (1 + 2 * AURA_MARGIN)));
+  gl.uniform4f(U(prog, "room"), ...f.room);
+  gl.uniform1f(U(prog, "t"), f.t);
+  gl.bindBuffer(gl.ARRAY_BUFFER, r.quad);
+  const locQuad = gl.getAttribLocation(prog, "p");
+  gl.enableVertexAttribArray(locQuad);
+  gl.vertexAttribPointer(locQuad, 2, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.disableVertexAttribArray(locQuad);
+  // 3. Étincelles par-dessus (« source-over », couleurs prémultipliées).
+  const copyProg = r.webglSparks ? r.copyProg : null;
+  if (copyProg && n > 0) {
+    gl.useProgram(copyProg);
+    gl.uniform2f(U(copyProg, "res"), f.w, f.h);
+    gl.bindTexture(gl.TEXTURE_2D, r.tex);
+    const loc = gl.getAttribLocation(copyProg, "p");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.disable(gl.BLEND);
+    gl.disableVertexAttribArray(loc);
+  }
+  return n;
 }
 
 /**
@@ -295,59 +673,38 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const glCanvas = useRef<HTMLCanvasElement>(null);
   const fxCanvas = useRef<HTMLCanvasElement>(null);
+  // Contexte partagé revenu après une perte : on remonte l'aura.
+  const [restored, setRestored] = useState(0);
 
   useEffect(() => {
     const el = box.current;
     const c1 = glCanvas.current;
     const c2 = fxCanvas.current;
     if (!el || !c1 || !c2) return;
-    const gl = c1.getContext("webgl", { premultipliedAlpha: true, preserveDrawingBuffer: true });
-    const ctx = c2.getContext("2d");
-    if (!gl || !ctx) return;
-    const shader = (type: number, src: string) => {
-      const s = gl.createShader(type);
-      if (!s) throw new Error("shader");
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      return s;
-    };
-    const prog = gl.createProgram();
-    if (!prog) return;
-    gl.attachShader(prog, shader(gl.VERTEX_SHADER, VS));
-    gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FS));
-    gl.linkProgram(prog);
-    gl.useProgram(prog);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, "p");
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = (n: string) => gl.getUniformLocation(prog, n);
-    gl.uniform3fv(U("cCore"), pal.core);
-    gl.uniform3fv(U("cMid"), pal.mid);
-    gl.uniform3fv(U("cEdge"), pal.edge);
-    gl.uniform1f(U("rainbow"), pal.rainbow ? 1 : 0);
-    gl.uniform1f(U("power"), pal.power);
+    const onRestored = () => setRestored((n) => n + 1);
+    onRestore.add(onRestored);
+    // Sans WebGL (ni OffscreenCanvas) : pas d'aura animée, comme avant.
+    const out = getRenderer() ? c1.getContext("bitmaprenderer") : null;
     const sparks = makeSparks(pal.sparks);
+    const points = new Float32Array(sparks.length * 5 * POINT_FLOATS);
+    let ctx2d: CanvasRenderingContext2D | null = null;
     // Cadre qui découpe l'aura (écran d'ouverture) : elle s'éteint avant lui.
     const bounds = el.closest<HTMLElement>("[data-aura-bounds]");
     const room: Room = [MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS];
+    let w = 1;
+    let h = 1;
 
     // Taille du tampon : celle affichée (zoom et agrandissement compris), allégée (RESOLUTION).
     const resize = () => {
       const r = el.getBoundingClientRect();
-      const w = Math.max(1, Math.round(r.width * RESOLUTION));
-      const h = Math.max(1, Math.round(r.height * RESOLUTION));
+      w = Math.max(1, Math.round(r.width * RESOLUTION));
+      h = Math.max(1, Math.round(r.height * RESOLUTION));
       for (const c of [c1, c2]) {
         if (c.width !== w || c.height !== h) {
           c.width = w;
           c.height = h;
         }
       }
-      gl.viewport(0, 0, w, h);
-      gl.uniform2f(U("res"), w, h);
-      gl.uniform1f(U("k"), w / (2 * HW * (1 + 2 * AURA_MARGIN)));
       const card = el.parentElement?.getBoundingClientRect();
       if (bounds && card && card.width > 0) {
         const b = bounds.getBoundingClientRect();
@@ -360,13 +717,20 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
         ];
         sides.forEach((v, i) => (room[i] = Math.min(MARGIN_UNITS, Math.max(1, v / unit))));
       }
-      gl.uniform4f(U("room"), ...room);
     };
 
-    const draw = (t: number) => {
-      gl.uniform1f(U("t"), t);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      drawSparks(ctx, sparks, pal, t, room);
+    /** Dessine l'instant `t` ; faux si le contexte partagé n'est pas encore prêt. */
+    const draw = (t: number): boolean => {
+      const r = getRenderer();
+      if (!r || !out || !rendererReady(r)) return false;
+      const n = renderAura(r, { pal, sparks, points, room, w, h, t });
+      out.transferFromImageBitmap(r.canvas.transferToImageBitmap());
+      // Repli : étincelles au canevas 2D, par-dessus (comme avant).
+      if (!r.webglSparks) {
+        ctx2d ??= c2.getContext("2d");
+        if (ctx2d) drawSparks2d(ctx2d, points, n, pal.mid);
+      }
+      return true;
     };
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -374,11 +738,10 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
     let frame = 0;
     let last = 0;
     let visible = true;
+    let waiting = 0;
     const loop = (now: number) => {
-      if (now - last >= FRAME_MS) {
-        last = now;
-        draw((now - start) / 1000);
-      }
+      // Tant que le contexte partagé compile, on réessaie à l'image suivante.
+      if (now - last >= FRAME_MS && draw((now - start) / 1000)) last = now;
       frame = requestAnimationFrame(loop);
     };
     // Toutes les auras tournent en continu, sans survol (16/11) ; arrêt hors écran et avec
@@ -391,9 +754,15 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
         frame = 0;
       }
     };
+    // Image fixe (animations réduites, ou carte arrêtée puis redimensionnée) : dessinée dès que le
+    // contexte partagé est prêt.
+    const drawStill = (t: number) => {
+      window.clearTimeout(waiting);
+      if (!draw(t) && getRenderer()) waiting = window.setTimeout(() => drawStill(t), 50);
+    };
 
     resize();
-    draw(3);
+    drawStill(3);
     update();
 
     const io = new IntersectionObserver(([entry]) => {
@@ -403,21 +772,19 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
     io.observe(el);
     const ro = new ResizeObserver(() => {
       resize();
-      if (!frame) draw((performance.now() - start) / 1000);
+      if (!frame) drawStill((performance.now() - start) / 1000);
     });
     ro.observe(el);
     if (bounds) ro.observe(bounds);
 
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(waiting);
       io.disconnect();
       ro.disconnect();
-      // Pas de `loseContext()` : le canevas peut être réutilisé (effet rejoué en développement) ;
-      // le navigateur libère le contexte quand le canevas quitte la page.
-      gl.deleteProgram(prog);
-      gl.deleteBuffer(buf);
+      onRestore.delete(onRestored);
     };
-  }, [pal]);
+  }, [pal, restored]);
 
   // Boîte = carte + marge (fraction de la largeur) de chaque côté : largeur en % de la carte,
   // hauteur par le rapport d'aspect, centrée verticalement.
@@ -428,6 +795,7 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
     transform: "translateY(-50%)",
     aspectRatio: `${2 * HW * (1 + 2 * AURA_MARGIN)} / ${2 * HH + 4 * HW * AURA_MARGIN}`,
   };
+  // Second canevas : étincelles au canevas 2D, seulement en repli (sinon vide, sans contexte).
   return (
     <div ref={box} aria-hidden className={`tcg-aura ${className ?? ""}`} style={style}>
       <canvas ref={glCanvas} />

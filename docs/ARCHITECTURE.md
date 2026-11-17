@@ -1303,9 +1303,18 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   relais vidéo), seuls les mouvements secondaires sont adoucis (`openingPlan` de `ui/opening.ts` :
   pas de flottement du paquet ; cartes rangées et retournées sans transition).
 - Aura des cartes (`ui/CardAura.tsx`, validée par l'utilisateur), réservée à l'ouverture des
-  boosters : derrière chaque carte révélée, jamais ailleurs. Rendu WebGL (bruit simplex, vrilles
-  qui tournent en sens contraire et s'éloignent en s'effaçant, lueur contre le bord) et canvas 2D
-  (étincelles indépendantes qui tourbillonnent). Gradation par rareté (`PALETTES`) : rare = halo
+  boosters : derrière chaque carte révélée, jamais ailleurs. Rendu WebGL : bruit simplex (vrilles
+  qui tournent en sens contraire et s'éloignent en s'effaçant, lueur contre le bord) et étincelles
+  indépendantes qui tourbillonnent (points WebGL au même dégradé radial que le canevas 2D d'avant,
+  additionnés puis posés par-dessus ; l'écart de Chrome sur ce dégradé est mesuré une fois,
+  `measureGradientGrowth`). Fluidité (17/11) : un seul contexte WebGL hors de la page
+  (`OffscreenCanvas`) pour toutes les auras, compilé au chargement de la page des boosters
+  (`warmUpAuras`, appelé par `preloadBoosterOpening`) ; chaque aura reçoit son image sans copie
+  (`transferToImageBitmap`, canevas `bitmaprenderer`). Avant, un dégradé 2D par étincelle et par
+  image (Firefox sous 20 im/s) et une compilation par aura (page figée 0,5 à 1,5 s à chaque
+  retournement). Repli : étincelles au canevas 2D si les points WebGL ne suffisent pas ; contexte
+  perdu : auras recréées à son retour ; sans WebGL ni `OffscreenCanvas` : pas d'aura animée,
+  comme avant. Gradation par rareté (`PALETTES`) : rare = halo
   doux seul (CSS `tcg-aura-rare`), épique discrète, légendaire, SR bien plus fournie, SSR
   débordante (arc-en-ciel) ; commune et peu commune : rien. Une Alt Art prend l'aura de sa
   rareté. Toutes les auras tournent en continu, sans survol (tampon à 0,75 px par pixel CSS,
