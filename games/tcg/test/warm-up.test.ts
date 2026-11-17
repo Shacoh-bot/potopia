@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import type { Card } from "../src/card-rules";
+import { warmUpCard, warmUpLooks } from "../ui/warm-up";
+
+type Fields = Pick<Card, "rarity" | "hasNormal" | "hasFullArt" | "visualEffectKeys" | "glowPoints">;
+const card = (over: Partial<Fields>): Fields => ({
+  rarity: "common",
+  hasNormal: true,
+  hasFullArt: false,
+  visualEffectKeys: [],
+  glowPoints: [],
+  ...over,
+});
+
+describe("préchauffage de l'ouverture d'un booster", () => {
+  it("une carte par allure : les cartes de même allure ne comptent qu'une fois", () => {
+    const looks = warmUpLooks([card({}), card({}), card({ rarity: "ssr" })]);
+    expect(looks).toEqual([
+      { rarity: "common", layout: "normal", effects: [], glow: [] },
+      { rarity: "ssr", layout: "normal", effects: [], glow: [] },
+    ]);
+  });
+
+  it("couvre chaque rareté × mise en page, chaque effet et chaque sorte de lumière, en peu de cartes", () => {
+    const looks = warmUpLooks([
+      card({ rarity: "rare", visualEffectKeys: ["holo"] }),
+      card({ rarity: "rare", visualEffectKeys: ["holo", "eclair"] }),
+      card({ rarity: "sr", hasFullArt: true, visualEffectKeys: ["eclair"] }),
+      card({
+        rarity: "rare",
+        glowPoints: [{ kind: "sparks", x: 1, y: 1, size: 1, color: "#fff", speed: 1 }],
+      }),
+    ]);
+    const covered = new Set(
+      looks.flatMap((l) => [`${l.rarity}|${l.layout}`, ...l.effects, ...l.glow]),
+    );
+    expect(covered).toEqual(
+      new Set(["rare|normal", "sr|normal", "sr|fullart", "holo", "eclair", "sparks"]),
+    );
+    // « holo » seul est couvert par « holo + éclair » : sa carte n'est pas dessinée en plus
+    expect(looks).not.toContainEqual({
+      rarity: "rare",
+      layout: "normal",
+      effects: ["holo"],
+      glow: [],
+    });
+    expect(looks.length).toBeLessThanOrEqual(4);
+  });
+
+  it("set vide : rien à dessiner", () => {
+    expect(warmUpLooks([])).toEqual([]);
+  });
+
+  it("carte fictive : l'allure demandée, rien d'une vraie carte", () => {
+    const fake = warmUpCard({
+      rarity: "ssr",
+      layout: "fullart",
+      effects: ["holo"],
+      glow: ["line"],
+    });
+    expect(fake).toMatchObject({
+      name: "Préchauffage",
+      rarity: "ssr",
+      layout: "fullart",
+      visualEffectKeys: ["holo"],
+    });
+    expect(fake.glowPoints).toHaveLength(1);
+    expect(fake.glowPoints?.[0]).toMatchObject({ kind: "line" });
+  });
+});

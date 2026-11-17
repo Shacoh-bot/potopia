@@ -278,8 +278,22 @@ function Pack({
   }, [camera, cut, gl, project, surface]);
 
   const target = useMemo(() => new THREE.Vector3(), []);
+  // Variante du film sans vernis compilée d'avance : à la fin de l'approche, le vernis tombe à 0
+  // (`clearcoat`), ce qui est pour three.js un autre programme ; compilé sur le moment, il figeait
+  // l'image 0,3 s juste avant le relais vidéo. Compilée en tâche de fond à la 1re image (décor et
+  // lumières en place), puis gardée par chaque matériau ; le rendu ne change pas.
+  const precompiled = useRef(false);
 
   useFrame((state, dt) => {
+    if (!precompiled.current && state.scene.environment) {
+      precompiled.current = true;
+      const coats = materials.map((m) => m.clearcoat);
+      for (const m of materials) m.clearcoat = 0;
+      void state.gl.compileAsync(state.scene, state.camera).catch(() => {});
+      materials.forEach((m, i) => {
+        m.clearcoat = coats[i] ?? m.clearcoat;
+      });
+    }
     const g = group.current;
     const m = motion.current;
     const c = cut.current;

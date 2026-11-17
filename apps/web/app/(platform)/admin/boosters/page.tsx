@@ -5,10 +5,12 @@ import {
   type CardRarityId,
   CHANCE_RATES,
   getPotodex,
+  listCards,
   listSets,
   SR_PITY,
   SSR_PITY,
 } from "@app/tcg";
+import { warmUpLooks } from "@app/tcg/ui";
 import { buttonClasses, Card, cx, EmptyState } from "@app/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -55,10 +57,14 @@ export default async function AdminBoostersPage({
       </Card>
     );
   }
-  const [dex, pity] = await Promise.all([
+  const [dex, pity, setCards] = await Promise.all([
     getPotodex(admin, { setCode: current.code }),
     boosterPity(admin, { setCode: current.code }),
+    listCards(admin, { setId: current.id }),
   ]);
+  // Préchauffage de la 1re ouverture : l'allure des cartes du set (rareté, mise en page, effets),
+  // jamais leur contenu.
+  const looks = warmUpLooks(setCards.filter((c) => c.number !== null));
   const [base, , , fourth] = BOOSTER_SLOTS;
   const chance = Object.entries(CHANCE_RATES) as [CardRarityId, number][];
 
@@ -99,7 +105,7 @@ export default async function AdminBoostersPage({
         {dex.total === 0 ? (
           <EmptyState title="Set vide" description="Ce set n'a encore aucune carte numérotée." />
         ) : (
-          <BoosterOpener setCode={current.code} fonts={designFonts} />
+          <BoosterOpener setCode={current.code} fonts={designFonts} looks={looks} />
         )}
         <p className="text-accent text-sm">
           Mode test (admin) : chaque paquet contient une carte de chaque rareté, de rare à SSR, pour

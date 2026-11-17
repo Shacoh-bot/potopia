@@ -1337,6 +1337,16 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
   (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
+- Préchauffage (17/11) : Chrome (Skia Graphite) compile un programme GPU la première fois qu'il
+  dessine chaque sorte de calque ; sans rien de plus, la 1re ouverture se figeait 0,3 à 1,2 s à
+  l'arrivée des cartes et aux retournements. Dès la page affichée, `BoosterOpener` monte
+  `BoosterWarmUp` (2,6 s, arrêté par le clic) : la vidéo, les cartes de dos qui en sortent et une
+  carte fictive de chaque allure du set (`warmUpLooks` : rareté × mise en page, chaque effet
+  visuel et chaque sorte de lumière ; aucun contenu de carte), qui se retournent et se posent avec
+  leur aura, au format et à la place de l'écran d'ouverture. Rendu `filter: opacity(0.0019)` :
+  dessiné et composé en entier, mais chaque pixel bouge de moins d'un demi-niveau et garde sa
+  valeur (0 pixel changé, Chrome et Firefox). Le film du paquet compile aussi d'avance sa variante
+  sans vernis (fin de l'approche) ; les faces des cartes se montent une par image.
 - Bruitages : vrais sons de Pokémon TCG Pocket (`public/audio/tcg/`, liste dans
   `ui/booster-sound-files.ts`, sources dans `TCG assets/sons/sources.csv` hors dépôt), joués par
   `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains

@@ -1471,6 +1471,15 @@
   max-height: calc(100dvh - 9rem);
   min-height: 340px;
 }
+/* Préchauffage de l'ouverture (BoosterWarmUp) : dessiné vraiment, pour que Chrome compile ses
+   programmes GPU avant le clic, sans changer un seul pixel. Le filtre (et non `opacity`, que
+   Chrome ne dessine pas sous 1/255) le fait peindre puis composer en entier ; son opacité, sous
+   1/510, laisse chaque pixel à moins d'un demi-niveau sur 255 : il retombe sur sa valeur. */
+.tcg-warm-up {
+  position: fixed;
+  pointer-events: none;
+  filter: opacity(0.0019);
+}
 /* La vidéo s'efface quand les vraies cartes prennent le relais. */
 .tcg-opening-video {
   transition: opacity 0.45s ease;
@@ -1501,7 +1510,8 @@
 }
 /* De dos : la carte se soulève et s'éclaire au survol, sans pivoter (rien ne passe au travers). */
 .tcg-opening-card[data-side="back"]:hover,
-.tcg-opening-card[data-side="back"]:focus-visible {
+.tcg-opening-card[data-side="back"]:focus-visible,
+.tcg-opening-card[data-side="back"][data-hover] {
   transform: translateY(-8px);
   filter: drop-shadow(0 0 18px rgb(255 122 246 / 0.55));
 }
