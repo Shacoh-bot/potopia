@@ -15,7 +15,7 @@ import {
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { revealRarity } from "../src/card-rules";
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
-import { CardAura, hasAura } from "./CardAura";
+import { CardAura, hasAura, warmUpAuras } from "./CardAura";
 import { CardBack } from "./CardBack";
 import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
@@ -136,6 +136,8 @@ const packUrl = (base: string) => `${base}/paquet.glb?v=${ASSETS_VERSION}`;
 export function preloadBoosterOpening(assetsBase = "/tcg/ouverture") {
   void loadScene().then((m) => m.preloadPack(packUrl(assetsBase)));
   void fetch(videoSource(assetsBase)).catch(() => {});
+  // Dessin des auras compilé d'avance : aucun arrêt au retournement des cartes.
+  warmUpAuras();
 }
 
 /** Gestes du paquet 3D, à la souris et au doigt : un appareil, un geste, un mot. */
