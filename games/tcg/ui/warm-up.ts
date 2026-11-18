@@ -110,13 +110,17 @@ export function warmUpCard(look: WarmUpLook): GameCardFields {
 
 /*
  * Étapes et barre du préchauffage. Le préchauffage avance par étapes (la vidéo et les cartes de dos,
- * puis une allure de plus par étape, puis la pose) ; le bouton « Ouvrir un paquet » montre une barre
+ * puis les allures par paquets, puis la pose) ; le bouton « Ouvrir un paquet » montre une barre
  * qui avance d'un cran par étape et reste désactivé jusqu'à la fin, ou jusqu'au délai de garde.
  */
 
-/** Étapes du préchauffage pour `looks` allures : vidéo et dos, une par allure, la pose. */
-export function warmUpSteps(looks: number): number {
-  return looks + 2;
+/**
+ * Étapes du préchauffage pour `looks` allures : la vidéo et les dos, les allures par paquets de
+ * `perStep` (une par place de carte, comme un vrai paquet : Chrome compile alors leurs programmes en
+ * même temps), puis la pose.
+ */
+export function warmUpSteps(looks: number, perStep: number): number {
+  return Math.ceil(looks / Math.max(1, perStep)) + 2;
 }
 
 /**

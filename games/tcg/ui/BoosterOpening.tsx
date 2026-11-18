@@ -382,8 +382,8 @@ function afterFrames(n: number, fn: () => void): () => void {
  * arrondis, aide sous le paquet, vidéo qui s'efface). Le tout est dessiné vraiment, mais sans
  * changer un seul pixel (voir `.tcg-warm-up`), sans clic ni focus possible.
  *
- * Par étapes (`warmUpSteps`) : la vidéo et les dos, puis une allure de plus à chaque étape, puis la
- * pose. Chaque étape est montée, dessinée (deux images : ses programmes GPU sont compilés), puis
+ * Par étapes (`warmUpSteps`) : la vidéo et les dos, puis les allures par paquets (une par place de
+ * carte, comme un vrai paquet), puis la pose. Chaque étape est montée, dessinée (deux images : ses programmes GPU sont compilés), puis
  * annoncée (`onProgress`) une image avant la suivante : la page garde la main pour repeindre la
  * barre du bouton entre deux compilations. Aucune attente ajoutée en dehors des animations.
  */
@@ -417,7 +417,8 @@ export function BoosterWarmUp({
   }, [assetsBase]);
   const callbacks = useRef({ onDone, onProgress });
   callbacks.current = { onDone, onProgress };
-  // Étapes montées : 0 rien, 1 la vidéo et les dos, 1 + n les n premières allures.
+  // Étapes montées : 0 rien, 1 la vidéo et les dos, 1 + n les n premiers paquets d'allures (une par
+  // place de carte).
   const [shown, setShown] = useState(0);
   const started = useRef(0);
   const live = shown >= 1;
@@ -438,7 +439,8 @@ export function BoosterWarmUp({
   const frame = ready && videoFrame(ready);
   const slots = ready && cardSlots(ready);
   const measured = Boolean(slots);
-  const total = warmUpSteps(looks.length);
+  const perStep = slots ? slots.length : 1;
+  const total = warmUpSteps(looks.length, perStep);
   useEffect(() => {
     if (!measured) return;
     if (shown === 0) {
@@ -522,7 +524,7 @@ export function BoosterWarmUp({
             />
           ))}
         {slots &&
-          looks.slice(0, Math.max(0, shown - 1)).map((look, i) => {
+          looks.slice(0, Math.max(0, shown - 1) * perStep).map((look, i) => {
             const slot = slots[i % slots.length];
             return (
               slot && (

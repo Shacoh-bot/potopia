@@ -1340,14 +1340,15 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
 - Préchauffage (17/11) : Chrome (Skia Graphite) compile un programme GPU la première fois qu'il
   dessine chaque sorte de calque ; sans rien de plus, la 1re ouverture se figeait 0,3 à 1,2 s à
   l'arrivée des cartes et aux retournements. Dès la page affichée, `BoosterOpener` monte
-  `BoosterWarmUp`, par étapes (`warmUpSteps`) : la vidéo, les cartes de dos qui en sortent, puis une
-  carte fictive de plus par étape, une par allure du set (`warmUpLooks` : rareté × mise en page,
-  chaque effet visuel et chaque sorte de lumière ; aucun contenu de carte), qui se retourne et se
-  pose avec son aura, au format et à la place de l'écran d'ouverture. Chaque étape est dessinée
-  (2 images), annoncée, et la suivante attend une image : la page repeint entre deux compilations. Rendu `filter: opacity(0.0019)` :
-  dessiné et composé en entier, mais chaque pixel bouge de moins d'un demi-niveau et garde sa
-  valeur (0 pixel changé, Chrome et Firefox). Le film du paquet compile aussi d'avance sa variante
-  sans vernis (fin de l'approche) ; les faces des cartes se montent une par image.
+  `BoosterWarmUp`, par étapes (`warmUpSteps`) : la vidéo, les cartes de dos qui en sortent, puis des
+  cartes fictives par paquets de 5 (une par place, comme un vrai paquet), une par allure du set
+  (`warmUpLooks` : rareté × mise en page, chaque effet visuel et chaque sorte de lumière ; aucun
+  contenu de carte), qui se retournent et se posent avec leur aura, au format et à la place de
+  l'écran d'ouverture. Chaque étape est dessinée (2 images), annoncée, et la suivante attend une
+  image : la page repeint entre deux compilations. Rendu `filter: opacity(0.0019)` : dessiné et
+  composé en entier, mais chaque pixel bouge de moins d'un demi-niveau et garde sa valeur (0 pixel
+  changé, Chrome et Firefox). Le film du paquet compile aussi d'avance sa variante sans vernis (fin
+  de l'approche) ; les faces des cartes se montent une par image.
   Le rebond de la boule de l'en-tête (`SpinOrb`, reflet `.orb-glint`) a le même souci (~0,5 s à
   sa 1re compilation) : la page occupée par ce préchauffage la repoussait au rebond qui suit le
   clic, pendant le paquet. `BoosterOpener` monte donc aussi `OrbWarmUp` (même voile,

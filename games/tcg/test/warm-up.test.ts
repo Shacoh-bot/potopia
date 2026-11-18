@@ -77,13 +77,15 @@ describe("préchauffage de l'ouverture d'un booster", () => {
 });
 
 describe("barre du préchauffage sur le bouton", () => {
-  it("une étape pour la vidéo et les dos, une par allure, une pour la pose", () => {
-    expect(warmUpSteps(0)).toBe(2);
-    expect(warmUpSteps(7)).toBe(9);
+  it("une étape pour la vidéo et les dos, une par paquet d'allures, une pour la pose", () => {
+    expect(warmUpSteps(0, 5)).toBe(2);
+    expect(warmUpSteps(5, 5)).toBe(3);
+    expect(warmUpSteps(9, 5)).toBe(4);
+    expect(warmUpSteps(3, 1)).toBe(5);
   });
 
   it("la barre avance d'un cran par étape et n'est pleine que quand tout est fini", () => {
-    const total = warmUpSteps(3);
+    const total = warmUpSteps(3, 1);
     const crans = [0, 1, 2, 3, 4, 5].map((done) => warmUpProgress({ done, total }, false));
     expect(crans[0]).toBe(0);
     for (let i = 1; i < crans.length; i++) expect(crans[i]).toBeGreaterThan(crans[i - 1] ?? 0);
