@@ -1347,6 +1347,12 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   dessiné et composé en entier, mais chaque pixel bouge de moins d'un demi-niveau et garde sa
   valeur (0 pixel changé, Chrome et Firefox). Le film du paquet compile aussi d'avance sa variante
   sans vernis (fin de l'approche) ; les faces des cartes se montent une par image.
+  Le rebond de la boule de l'en-tête (`SpinOrb`, reflet `.orb-glint`) a le même souci (~0,5 s à
+  sa 1re compilation) : la page occupée par ce préchauffage la repoussait au rebond qui suit le
+  clic, pendant le paquet. `BoosterOpener` monte donc aussi `OrbWarmUp` (même voile,
+  `.orb-warm-up`) : les effets du rebond, à sa cadence, jusqu'à deux rebonds de suite sans image
+  de plus de 50 ms (au plus 10, `components/orbWarmUp.ts`), indépendamment du clic. Rien sur les
+  autres pages.
 - Bruitages : vrais sons de Pokémon TCG Pocket (`public/audio/tcg/`, liste dans
   `ui/booster-sound-files.ts`, sources dans `TCG assets/sons/sources.csv` hors dépôt), joués par
   `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains
