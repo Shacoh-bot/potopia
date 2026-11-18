@@ -11,35 +11,26 @@ import {
   warmUpProgress,
 } from "@app/tcg/ui";
 import { buttonClasses } from "@app/ui";
-import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Component,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
+  isBoosterWarm as isWarm,
+  prewarmScript,
+  rememberBoosterWarm as rememberWarm,
+} from "@/components/boosterWarmMemory";
 import { OrbWarmUp } from "@/components/SpinOrb";
 import { openBoosterAction } from "./actions";
 
 type Opened = { n: number; cards: OpenedCard[] | null; setSize?: number };
 
-/**
- * Sets déjà préchauffés dans cet onglet : les programmes GPU compilés restent jusqu'à la fermeture
- * du navigateur. En mémoire pour un retour sur la page, et dans l'onglet (`sessionStorage`) pour un
- * rechargement : pas de barre la fois suivante.
- */
-const warmSets = new Set<string>();
-const warmKey = (setCode: string) => `potopia:booster-prechauffe:${setCode}`;
-function isWarm(setCode: string): boolean {
-  if (warmSets.has(setCode)) return true;
-  try {
-    return window.sessionStorage.getItem(warmKey(setCode)) === "1";
-  } catch {
-    return false;
-  }
-}
-function rememberWarm(setCode: string) {
-  warmSets.add(setCode);
-  try {
-    window.sessionStorage.setItem(warmKey(setCode), "1");
-  } catch {
-    // stockage refusé : la mémoire de la page suffit
-  }
-}
+const noSubscribe = () => () => {};
 
 /** Un préchauffage qui plante ne casse pas la page : il est retiré et la suite continue. */
 class WarmUpGuard extends Component<
@@ -83,8 +74,21 @@ export function BoosterOpener({
 }) {
   const [opened, setOpened] = useState<Opened | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Au retour sur la page (navigation dans l'application), déjà chaud : pas de barre.
-  const [warm, setWarm] = useState<Warm>(() => (warmSets.has(setCode) ? "warm" : "waiting"));
+  const [warm, setWarm] = useState<Warm>("waiting");
+  // Déjà chaud dans l'onglet : lu dès le 1er rendu client (retour par navigation interne) ; au
+  // rendu serveur et à l'hydratation, `false`, et c'est le script en ligne qui s'en charge.
+  const knownWarm = useSyncExternalStore(
+    noSubscribe,
+    () => isWarm(setCode),
+    () => false,
+  );
+  // Script en ligne seulement dans le HTML du serveur (et son hydratation) : un rendu client ne
+  // l'exécuterait pas.
+  const fromServer = useSyncExternalStore(
+    noSubscribe,
+    () => false,
+    () => true,
+  );
   const [steps, setSteps] = useState({ done: 0, total: 1 });
   const [cardsDone, setCardsDone] = useState(false);
   const [orbDone, setOrbDone] = useState(false);
@@ -120,7 +124,7 @@ export function BoosterOpener({
   const cardsWarmed = useCallback(() => setCardsDone(true), []);
   const cardsFailed = useCallback(() => setWarm("ready"), []);
   const orbWarmed = useCallback(() => setOrbDone(true), []);
-  const preparing = (warm === "waiting" || warm === "running") && !finished;
+  const preparing = !knownWarm && (warm === "waiting" || warm === "running") && !finished;
 
   function open() {
     setError(null);
@@ -138,7 +142,12 @@ export function BoosterOpener({
   }
 
   return (
-    <div ref={column} className="flex flex-col gap-3">
+    // `data-prewarmed` (posé par le script en ligne) n'est pas rendu par React : pas d'alerte.
+    <div ref={column} className="booster-opener flex flex-col gap-3" suppressHydrationWarning>
+      {fromServer && (
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: script fixe, code du set échappé (prewarmScript)
+        <script dangerouslySetInnerHTML={{ __html: prewarmScript(setCode) }} />
+      )}
       {warm === "running" && !cardsDone && (
         <WarmUpGuard onError={cardsFailed}>
           <BoosterWarmUp
@@ -174,13 +183,15 @@ export function BoosterOpener({
           onClick={open}
           disabled={preparing}
           aria-busy={preparing || undefined}
+          data-preparing={preparing ? "" : undefined}
         >
           {/* les deux textes dans la même case : le bouton garde sa largeur */}
           <span className="grid">
-            <span className={`[grid-area:1/1] ${preparing ? "invisible" : ""}`}>
+            <span data-label="ready" className={`[grid-area:1/1] ${preparing ? "invisible" : ""}`}>
               Ouvrir un paquet
             </span>
             <span
+              data-label="busy"
               className={`[grid-area:1/1] ${preparing ? "" : "invisible"}`}
               aria-hidden={!preparing}
             >
@@ -188,7 +199,7 @@ export function BoosterOpener({
             </span>
           </span>
           {preparing && (
-            <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-current/25">
+            <span aria-hidden data-bar="" className="absolute inset-x-0 bottom-0 h-1 bg-current/25">
               <span
                 className="block h-full bg-current"
                 style={{ width: `${warmUpProgress(steps, orbDone) * 100}%` }}

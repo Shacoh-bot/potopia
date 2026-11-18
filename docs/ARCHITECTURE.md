@@ -1359,7 +1359,11 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   texte du thème, qui avance d'un cran par étape, plus un pour la boule (`warmUpProgress`). Il
   redevient cliquable à la fin, ou après `WARM_UP_GUARD_MS` (12 s) ou un préchauffage planté
   (le rebond continue alors seul). Set déjà préchauffé dans l'onglet (retour sur la page,
-  rechargement : `sessionStorage`), « Ouvrir un autre paquet » : pas de barre.
+  rechargement : `sessionStorage`), « Ouvrir un autre paquet » : pas de barre. Au rechargement
+  complet, le HTML du serveur ne sait pas que le set est chaud : un script en ligne
+  (`prewarmScript`, `components/boosterWarmMemory.ts`) lit `sessionStorage` avant la 1re image et
+  pose `data-prewarmed` sur le bloc du bouton ; `globals.css` garde alors l'allure normale jusqu'à
+  l'hydratation (même principe qu'un anti-flash de thème). Arrivée à froid : barre dès la 1re image.
 - Bruitages : vrais sons de Pokémon TCG Pocket (`public/audio/tcg/`, liste dans
   `ui/booster-sound-files.ts`, sources dans `TCG assets/sons/sources.csv` hors dépôt), joués par
   `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains
