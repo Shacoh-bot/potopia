@@ -1337,6 +1337,33 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   modèle et la vidéo (gardés un jour par le navigateur, `headers()` de `next.config.ts`) ; les
   illustrations des 5 cartes se chargent dès le tirage. Fichiers : `public/tcg/ouverture/`
   (`paquet.glb`, `ouverture.webm` avec transparence, `ouverture.mp4` sur fond `#0b0b2a`).
+- Préchauffage (17/11) : Chrome (Skia Graphite) compile un programme GPU la première fois qu'il
+  dessine chaque sorte de calque ; sans rien de plus, la 1re ouverture se figeait 0,3 à 1,2 s à
+  l'arrivée des cartes et aux retournements. Dès la page affichée, `BoosterOpener` monte
+  `BoosterWarmUp`, par étapes (`warmUpSteps`) : la vidéo, les cartes de dos qui en sortent, puis des
+  cartes fictives par paquets de 5 (une par place, comme un vrai paquet), une par allure du set
+  (`warmUpLooks` : rareté × mise en page, chaque effet visuel et chaque sorte de lumière ; aucun
+  contenu de carte), qui se retournent et se posent avec leur aura, au format et à la place de
+  l'écran d'ouverture. Chaque étape est dessinée (2 images), annoncée, et la suivante attend une
+  image : la page repeint entre deux compilations. Rendu `filter: opacity(0.0019)` : dessiné et
+  composé en entier, mais chaque pixel bouge de moins d'un demi-niveau et garde sa valeur (0 pixel
+  changé, Chrome et Firefox). Le film du paquet compile aussi d'avance sa variante sans vernis (fin
+  de l'approche) ; les faces des cartes se montent une par image.
+  Le rebond de la boule de l'en-tête (`SpinOrb`, reflet `.orb-glint`) a le même souci (~0,5 s à
+  sa 1re compilation) : la page occupée par ce préchauffage la repoussait au rebond qui suit le
+  clic, pendant le paquet. `BoosterOpener` monte donc aussi `OrbWarmUp` (même voile,
+  `.orb-warm-up`) : les effets du rebond, à sa cadence, jusqu'à deux rebonds de suite sans image
+  de plus de 50 ms (au plus 10, `components/orbWarmUp.ts`). Rien sur les autres pages.
+  Barre (18/11) : pendant le préchauffage, le bouton « Ouvrir un paquet » est désactivé
+  (`aria-busy`), affiche « Préparation… » (même largeur) et une barre au bas du bouton, couleur du
+  texte du thème, qui avance d'un cran par étape, plus un pour la boule (`warmUpProgress`). Il
+  redevient cliquable à la fin, ou après `WARM_UP_GUARD_MS` (12 s) ou un préchauffage planté
+  (le rebond continue alors seul). Set déjà préchauffé dans l'onglet (retour sur la page,
+  rechargement : `sessionStorage`), « Ouvrir un autre paquet » : pas de barre. Au rechargement
+  complet, le HTML du serveur ne sait pas que le set est chaud : un script en ligne
+  (`prewarmScript`, `components/boosterWarmMemory.ts`) lit `sessionStorage` avant la 1re image et
+  pose `data-prewarmed` sur le bloc du bouton ; `globals.css` garde alors l'allure normale jusqu'à
+  l'hydratation (même principe qu'un anti-flash de thème). Arrivée à froid : barre dès la 1re image.
 - Bruitages : vrais sons de Pokémon TCG Pocket (`public/audio/tcg/`, liste dans
   `ui/booster-sound-files.ts`, sources dans `TCG assets/sons/sources.csv` hors dépôt), joués par
   `ui/booster-sounds.ts` (Web Audio) : prise en main du paquet, déchirure jouée par petits grains

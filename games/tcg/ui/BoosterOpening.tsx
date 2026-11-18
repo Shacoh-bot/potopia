@@ -20,6 +20,7 @@ import { CardBack } from "./CardBack";
 import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { OPENING_BG, openingPlan } from "./opening";
+import { type WarmUpLook, warmUpCard, warmUpRest, warmUpSteps } from "./warm-up";
 
 // three.js et le modèle ne se chargent que pour cet écran (préchargés par `preloadBoosterOpening`).
 const loadScene = () => import("./PackScene");
@@ -62,6 +63,10 @@ const CARD_WIDTH = 300;
 const CARD_RATIO = 360 / 504;
 /** Durée du demi-tour d'une carte (ms), comme l'animation tcg-flip-over de tcg.css. */
 const FLIP_MS = 620;
+/** Fondu d'arrivée de l'aura d'une carte posée (`tcg-aura-in`). */
+const AURA_IN_MS = 700;
+/** Effacement de la vidéo quand les cartes prennent le relais (`.tcg-opening-video`). */
+const VIDEO_FADE_MS = 450;
 
 type Phase = "pack" | "zoom" | "video" | "cards";
 type Size = { width: number; height: number };
@@ -180,6 +185,23 @@ function PackHelp() {
   );
 }
 
+/** Sous le paquet 3D : l'aide aux gestes (une fois le paquet prêt) et la phrase d'invite. */
+function PackHints({ ready }: { ready: boolean }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 px-4">
+      {ready && <PackHelp />}
+      <p
+        className="tcg-opening-hint text-center text-xs text-white/85 sm:text-sm"
+        aria-live="polite"
+      >
+        {ready
+          ? "Glisse le long de la ligne pointillée pour découper le paquet."
+          : "Chargement du paquet…"}
+      </p>
+    </div>
+  );
+}
+
 /**
  * Une carte du paquet, vraie carte recto-verso : le dos et la face (`GameCard`) sont montés
  * ensemble, dos à dos, et le clic la fait pivoter d'un seul demi-tour (une seule fois).
@@ -191,6 +213,8 @@ function OpeningCard({
   setSize,
   onReveal,
   fontClass,
+  warm,
+  faceDelay = 0,
 }: {
   /** null tant que le tirage n'est pas arrivé : la carte reste de dos. */
   opened: OpenedCard | null;
@@ -201,6 +225,13 @@ function OpeningCard({
   onReveal: () => void;
   /** Polices des cartes, reportées sur la carte ouverte en grand (rendue hors de l'écran). */
   fontClass?: string;
+  /**
+   * Préchauffage (`BoosterWarmUp`) : « hover », le dos tel qu'au survol ; « reveal », la carte se
+   * retourne seule, sans son, et se pose avec son aura.
+   */
+  warm?: "hover" | "reveal";
+  /** Images à attendre avant de monter la face, une fois le tirage là (voir `faceMounted`). */
+  faceDelay?: number;
 }) {
   const [placed, setPlaced] = useState(from === null);
   const [side, setSide] = useState<"back" | "face">("back");
@@ -215,6 +246,29 @@ function OpeningCard({
     return () => cancelAnimationFrame(frame);
   }, [placed]);
 
+  // Face montée juste après l'arrivée du tirage, une carte par image (`faceDelay`) : monter les
+  // cinq faces d'un coup (styles, mise en page) figeait l'image à l'arrivée des cartes. Elle reste
+  // cachée jusqu'au retournement ; un clic plus tôt la monte aussitôt.
+  const [faceMounted, setFaceMounted] = useState(false);
+  useEffect(() => {
+    if (!opened || faceMounted) return;
+    let wait = faceDelay;
+    let frame = 0;
+    const step = () => {
+      if (wait-- <= 0) setFaceMounted(true);
+      else frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [opened, faceMounted, faceDelay]);
+
+  useEffect(() => {
+    if (warm !== "reveal" || !opened) return;
+    setSide("face");
+    const timer = window.setTimeout(() => setSettled(true), FLIP_MS);
+    return () => window.clearTimeout(timer);
+  }, [warm, opened]);
+
   // La carte est dessinée à sa taille finale ; au départ, une transformation la pose sur celle de
   // la vidéo, puis elle glisse à sa place.
   const start =
@@ -228,6 +282,7 @@ function OpeningCard({
       return;
     }
     if (side !== "back" || !opened) return;
+    setFaceMounted(true);
     setSide("face");
     // une Alt Art se révèle avec le son de la SSR ; le halo reste celui de sa rareté
     flipSound(revealRarity(opened.card));
@@ -250,6 +305,7 @@ function OpeningCard({
         className="tcg-opening-card"
         data-side={side}
         data-settled={settled ? "" : undefined}
+        data-hover={warm === "hover" ? "" : undefined}
         data-rarity={opened?.card.rarity}
         aria-busy={!opened}
         aria-label={faceUp && opened ? `Voir ${opened.card.name} en grand` : "Retourner la carte"}
@@ -259,8 +315,8 @@ function OpeningCard({
           <span className="tcg-opening-side" aria-hidden={faceUp || undefined}>
             <CardBack />
           </span>
-          {/* Face montée dès l'arrivée du tirage, de l'autre côté : rien ne s'échange en route. */}
-          {opened && (
+          {/* Face montée avant le retournement, de l'autre côté : rien ne s'échange en route. */}
+          {opened && faceMounted && (
             <span
               className="tcg-opening-side tcg-opening-face"
               aria-hidden={!faceUp || undefined}
@@ -284,6 +340,212 @@ function OpeningCard({
           <GameCard card={opened.card} imageUrl={opened.imageUrl} setSize={setSize} />
         </CardZoom>
       )}
+    </div>
+  );
+}
+
+/** Où la carte n°`i` est sur la vidéo, une fois posée (cadre `frame`). */
+function videoCard(frame: ReturnType<typeof videoFrame>, i: number): Rect | null {
+  const v = VIDEO_CARDS[i];
+  return v
+    ? {
+        left: frame.left + v.x * frame.scale,
+        top: frame.top + v.y * frame.scale,
+        width: v.width * frame.scale,
+        height: v.height * frame.scale,
+      }
+    : null;
+}
+
+/** Moment (ms) où la vidéo du préchauffage s'efface, comme au relais aux vraies cartes. */
+const WARM_UP_VIDEO_OUT = 1200;
+/** Illustration neutre des cartes fictives du préchauffage (jamais affichée). */
+const WARM_UP_IMAGE = "prechauffage.webp";
+const ignore = () => {};
+
+/** Appelle `fn` après `n` images (`requestAnimationFrame`) ; renvoie de quoi l'annuler. */
+function afterFrames(n: number, fn: () => void): () => void {
+  let frame = 0;
+  const step = () => {
+    if (n-- <= 0) fn();
+    else frame = requestAnimationFrame(step);
+  };
+  frame = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(frame);
+}
+
+/**
+ * Préchauffage de l'ouverture (voir `warm-up.ts`) : à monter sur la page des boosters, avant le
+ * clic, puis à retirer à la fin (`onDone`). Il dessine ce que l'ouverture va dessiner, aux mêmes
+ * tailles : la vidéo, les cartes de dos qui en sortent (une survolée), et une carte fictive de
+ * chaque allure (`looks`) qui se retourne et se pose avec son aura, dans le même cadre (coins
+ * arrondis, aide sous le paquet, vidéo qui s'efface). Le tout est dessiné vraiment, mais sans
+ * changer un seul pixel (voir `.tcg-warm-up`), sans clic ni focus possible.
+ *
+ * Par étapes (`warmUpSteps`) : la vidéo et les dos, puis les allures par paquets (une par place de
+ * carte, comme un vrai paquet), puis la pose. Chaque étape est montée, dessinée (deux images : ses programmes GPU sont compilés), puis
+ * annoncée (`onProgress`) une image avant la suivante : la page garde la main pour repeindre la
+ * barre du bouton entre deux compilations. Aucune attente ajoutée en dehors des animations.
+ */
+export function BoosterWarmUp({
+  looks,
+  within,
+  onDone,
+  onProgress,
+  assetsBase = "/tcg/ouverture",
+  className,
+}: {
+  looks: WarmUpLook[];
+  /**
+   * Colonne où l'écran d'ouverture va s'afficher : le préchauffage prend sa largeur et sa place,
+   * centré dans la fenêtre comme l'écran une fois amené au centre. Mêmes tailles, mêmes bords
+   * arrondis autour des cartes : sinon Chrome compile encore des variantes à l'ouverture.
+   */
+  within: React.RefObject<HTMLElement | null>;
+  onDone: () => void;
+  /** Étapes finies sur le total (`warmUpSteps`), à chaque étape. */
+  onProgress?: (done: number, total: number) => void;
+  assetsBase?: string;
+  /** Polices des cartes, comme pour `BoosterOpening`. */
+  className?: string;
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  const view = useSize(root);
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    setSrc(videoSource(assetsBase));
+  }, [assetsBase]);
+  const callbacks = useRef({ onDone, onProgress });
+  callbacks.current = { onDone, onProgress };
+  // Étapes montées : 0 rien, 1 la vidéo et les dos, 1 + n les n premiers paquets d'allures (une par
+  // place de carte).
+  const [shown, setShown] = useState(0);
+  const started = useRef(0);
+  const live = shown >= 1;
+  const [videoOut, setVideoOut] = useState(false);
+  useEffect(() => {
+    if (!live) return;
+    const timer = window.setTimeout(() => setVideoOut(true), WARM_UP_VIDEO_OUT);
+    return () => window.clearTimeout(timer);
+  }, [live]);
+  const [box, setBox] = useState<{ left: number; width: number } | null>(null);
+  useEffect(() => {
+    const el = within.current;
+    if (!el) return;
+    const { left, width } = el.getBoundingClientRect();
+    setBox({ left, width });
+  }, [within]);
+  const ready = box && view && view.width > 0 ? view : null;
+  const frame = ready && videoFrame(ready);
+  const slots = ready && cardSlots(ready);
+  const measured = Boolean(slots);
+  const perStep = slots ? slots.length : 1;
+  const total = warmUpSteps(looks.length, perStep);
+  useEffect(() => {
+    if (!measured) return;
+    if (shown === 0) {
+      started.current = performance.now();
+      setShown(1);
+      return;
+    }
+    // L'étape `shown` vient d'être montée : deux images pour la dessiner, la barre, puis la suivante.
+    let cancel = afterFrames(2, () => {
+      callbacks.current.onProgress?.(shown, total);
+      if (shown < total - 1) {
+        cancel = afterFrames(1, () => setShown(shown + 1));
+        return;
+      }
+      // Tout est monté : reste la pose (demi-tour, aura en fondu) et l'effacement de la vidéo.
+      const timer = window.setTimeout(
+        () => {
+          callbacks.current.onProgress?.(total, total);
+          callbacks.current.onDone();
+        },
+        warmUpRest(performance.now() - started.current, {
+          videoGoneAt: WARM_UP_VIDEO_OUT + VIDEO_FADE_MS,
+          settleMs: FLIP_MS + AURA_IN_MS,
+        }),
+      );
+      cancel = () => window.clearTimeout(timer);
+    });
+    return () => cancel();
+  }, [measured, shown, total]);
+  return (
+    <div
+      aria-hidden
+      inert
+      className="tcg-warm-up"
+      style={{
+        // largeur nulle tant que la colonne n'est pas mesurée : rien n'est dessiné
+        left: box?.left ?? 0,
+        width: box?.width ?? 0,
+        top: view ? Math.max(0, (window.innerHeight - view.height) / 2) : 0,
+      }}
+    >
+      <div
+        ref={root}
+        data-aura-bounds=""
+        className={`tcg-opening relative w-full overflow-hidden rounded-xl ${className ?? ""}`}
+        style={{ background: OPENING_BG }}
+      >
+        <GameCardDefs />
+        {live && src && frame && (
+          <video
+            src={src}
+            muted
+            playsInline
+            autoPlay
+            preload="auto"
+            className="tcg-opening-video absolute"
+            data-hidden={videoOut ? "" : undefined}
+            onLoadedMetadata={(e) => {
+              e.currentTarget.currentTime = VIDEO_START;
+              e.currentTarget.playbackRate = VIDEO_RATE;
+            }}
+            style={{
+              left: frame.left,
+              top: frame.top,
+              width: frame.width,
+              height: frame.height,
+              objectFit: "fill",
+            }}
+          />
+        )}
+        {live &&
+          frame &&
+          slots?.map((slot, i) => (
+            <OpeningCard
+              key={`dos-${i}`}
+              opened={null}
+              from={videoCard(frame, i)}
+              to={slot}
+              onReveal={ignore}
+              warm={i === 0 ? "hover" : undefined}
+            />
+          ))}
+        {slots &&
+          looks.slice(0, Math.max(0, shown - 1) * perStep).map((look, i) => {
+            const slot = slots[i % slots.length];
+            return (
+              slot && (
+                <OpeningCard
+                  key={`face-${i}`}
+                  opened={{
+                    id: `prechauffage-${i}`,
+                    card: warmUpCard(look),
+                    imageUrl: `${assetsBase}/${WARM_UP_IMAGE}`,
+                  }}
+                  from={null}
+                  to={slot}
+                  onReveal={ignore}
+                  warm="reveal"
+                />
+              )
+            );
+          })}
+        <PackHints ready />
+        <span className="tcg-opening-button absolute top-3 right-3">Fermer</span>
+      </div>
     </div>
   );
 }
@@ -475,34 +737,14 @@ export function BoosterOpening({
         </div>
       )}
 
-      {phase === "pack" && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 px-4">
-          {packReady && <PackHelp />}
-          <p
-            className="tcg-opening-hint text-center text-xs text-white/85 sm:text-sm"
-            aria-live="polite"
-          >
-            {packReady
-              ? "Glisse le long de la ligne pointillée pour découper le paquet."
-              : "Chargement du paquet…"}
-          </p>
-        </div>
-      )}
+      {phase === "pack" && <PackHints ready={packReady} />}
 
       {phase === "cards" &&
         frame &&
         slots &&
         slots.map((slot, i) => {
-          const v = VIDEO_CARDS[i];
-          if (!v) return null;
-          const from = plan.fromVideo
-            ? {
-                left: frame.left + v.x * frame.scale,
-                top: frame.top + v.y * frame.scale,
-                width: v.width * frame.scale,
-                height: v.height * frame.scale,
-              }
-            : null;
+          if (!VIDEO_CARDS[i]) return null;
+          const from = plan.fromVideo ? videoCard(frame, i) : null;
           return (
             <OpeningCard
               key={i}
@@ -511,6 +753,7 @@ export function BoosterOpening({
               to={slot}
               setSize={setSize}
               onReveal={() => setRevealed((n) => n + 1)}
+              faceDelay={i}
               fontClass={className}
             />
           );

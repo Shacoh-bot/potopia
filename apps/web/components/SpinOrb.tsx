@@ -4,6 +4,7 @@ import { cx, effectiveVolume, onVolumeChange, timeNow } from "@app/ui";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Square } from "lucide-react";
 import { COMBO_CHARGE_MS, fadeAudio, onComboChange, setStage, useHeaderStage } from "./headerStage";
+import { afterWarmUpHop } from "./orbWarmUp";
 
 const FRAMES = 48;
 const FRAME_PX = 32;
@@ -46,6 +47,79 @@ function sheet(src: string, frames: number, px: number, frame = 0): CSSPropertie
     backgroundPosition: `${-frame * px}px 0`,
     imageRendering: "pixelated",
   };
+}
+
+/** Au contact du rebond : le reflet qui balaie la boule et les étincelles dorées. */
+function HopEffects() {
+  return (
+    <>
+      <span className="orb-glint absolute inset-0 rounded-full" />
+      {HOP_SPARKS.map((spark, i) => (
+        <span
+          key={i}
+          className="orb-spark absolute block"
+          style={
+            {
+              left: SIZE / 2 - 3,
+              bottom: -3,
+              "--spark-x": `${spark.x}px`,
+              "--spark-y": `${spark.y}px`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Préchauffage du rebond, invisible (voir `.orb-warm-up`). Chrome compile un programme GPU
+ * (~0,5 s d'arrêt) la première fois qu'il dessine le reflet de la boule, et une variante quand il
+ * ne redessine qu'une partie de l'écran : sur la page des boosters, la page occupée par le
+ * préchauffage des cartes repoussait cette compilation au rebond qui suit le clic, en pleine
+ * ouverture du paquet. Ici, les effets du rebond sont dessinés à la cadence des vrais rebonds
+ * jusqu'à ce que deux passent sans image longue (`afterWarmUpHop`), puis retirés. Rien ne change
+ * à l'écran ni dans l'en-tête.
+ */
+export function OrbWarmUp({ onDone }: { onDone?: () => void } = {}) {
+  const [hop, setHop] = useState(0);
+  const [done, setDone] = useState(false);
+  const streak = useRef(0);
+  const finished = useRef(onDone);
+  finished.current = onDone;
+  useEffect(() => {
+    if (done) finished.current?.();
+  }, [done]);
+  useEffect(() => {
+    if (done) return;
+    let last = performance.now();
+    let worst = 0;
+    let raf = requestAnimationFrame(function frame() {
+      const now = performance.now();
+      worst = Math.max(worst, now - last);
+      last = now;
+      raf = requestAnimationFrame(frame);
+    });
+    const timer = window.setTimeout(() => {
+      const next = afterWarmUpHop(hop, streak.current, worst);
+      streak.current = next.cleanStreak;
+      if (next.done) setDone(true);
+      else setHop(hop + 1);
+    }, HOP_MS);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [hop, done]);
+  if (done) return null;
+  return (
+    <span aria-hidden className="orb-warm-up">
+      {/* nouvelle clé à chaque rebond : les animations repartent de zéro */}
+      <span key={hop} className="relative block" style={{ width: SIZE, height: SIZE }}>
+        <HopEffects />
+      </span>
+    </span>
+  );
 }
 
 /**
@@ -261,26 +335,7 @@ export function SpinOrb() {
           className="absolute inset-0 opacity-0"
           style={sheet("/orb/orb-blur-2.png", FRAMES, SIZE, REST_FRAME)}
         />
-        {!playing && hopping && (
-          <>
-            {/* reflet qui balaie la boule au contact */}
-            <span className="orb-glint absolute inset-0 rounded-full" />
-            {HOP_SPARKS.map((spark, i) => (
-              <span
-                key={i}
-                className="orb-spark absolute block"
-                style={
-                  {
-                    left: SIZE / 2 - 3,
-                    bottom: -3,
-                    "--spark-x": `${spark.x}px`,
-                    "--spark-y": `${spark.y}px`,
-                  } as CSSProperties
-                }
-              />
-            ))}
-          </>
-        )}
+        {!playing && hopping && <HopEffects />}
         <span
           ref={windRef}
           className="pointer-events-none absolute opacity-0"

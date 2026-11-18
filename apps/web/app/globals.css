@@ -2152,6 +2152,33 @@ html.time-stop body > :not(.za-layer, .jojo-fx) *::after {
   }
 }
 
+/* Préchauffage du rebond (OrbWarmUp, page des boosters) : dessiné vraiment, pour que Chrome compile
+   ses programmes GPU avant le clic, sans changer un seul pixel. Même voile que le préchauffage des
+   boosters (`.tcg-warm-up`) : le filtre le fait peindre et composer ; son opacité, sous 1/510,
+   laisse chaque pixel à moins d'un demi-niveau sur 255. */
+.orb-warm-up {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  filter: opacity(0.0019);
+}
+
+/* Bouton « Ouvrir un paquet » (BoosterOpener) au rechargement d'un set déjà préchauffé : le HTML du
+   serveur le rend « Préparation… », mais le script en ligne a posé `data-prewarmed` avant la 1re
+   image ; il garde donc son allure normale jusqu'à l'hydratation (hors couche : passe devant les
+   utilitaires `invisible` et `disabled:opacity-50`). */
+.booster-opener[data-prewarmed] [data-preparing] {
+  opacity: 1;
+}
+.booster-opener[data-prewarmed] [data-preparing] [data-label="ready"] {
+  visibility: visible;
+}
+.booster-opener[data-prewarmed] [data-preparing] [data-label="busy"],
+.booster-opener[data-prewarmed] [data-preparing] [data-bar] {
+  visibility: hidden;
+}
+
 /* …et des étincelles dorées qui partent du liseré. */
 .orb-spark {
   width: 6px;
