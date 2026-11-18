@@ -7,6 +7,7 @@ import {
   getPotodex,
   listCards,
   listSets,
+  peekBooster,
   SR_PITY,
   SSR_PITY,
 } from "@app/tcg";
@@ -17,6 +18,7 @@ import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { BoosterOpener } from "./BoosterOpener";
+import { packOf } from "./pack";
 
 export const metadata: Metadata = { title: "Boosters" };
 
@@ -62,6 +64,15 @@ export default async function AdminBoostersPage({
     boosterPity(admin, { setCode: current.code }),
     listCards(admin, { setId: current.id }),
   ]);
+  // Prochain paquet, déjà tiré : ses illustrations se préchargent avant le clic. Il part au
+  // navigateur AVANT l'ouverture : le joueur peut lire son prochain paquet (voir `packOf`).
+  const next =
+    dex.total === 0
+      ? null
+      : await packOf(
+          admin,
+          (await peekBooster(admin, { setCode: current.code }, { test: true })).cards,
+        );
   // Préchauffage de la 1re ouverture : l'allure des cartes du set (rareté, mise en page, effets),
   // jamais leur contenu.
   const looks = warmUpLooks(setCards.filter((c) => c.number !== null));
@@ -105,7 +116,14 @@ export default async function AdminBoostersPage({
         {dex.total === 0 ? (
           <EmptyState title="Set vide" description="Ce set n'a encore aucune carte numérotée." />
         ) : (
-          <BoosterOpener setCode={current.code} fonts={designFonts} looks={looks} />
+          <BoosterOpener
+            // un autre set repart de zéro (son prochain paquet, ses illustrations)
+            key={current.code}
+            setCode={current.code}
+            fonts={designFonts}
+            looks={looks}
+            next={next}
+          />
         )}
         <p className="text-accent text-sm">
           Mode test (admin) : chaque paquet contient une carte de chaque rareté, de rare à SSR, pour

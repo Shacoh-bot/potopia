@@ -1,6 +1,8 @@
+import { createHash } from "node:crypto";
 import { db, type DbTx, withTx } from "@app/db";
 import { z } from "zod";
 import {
+  CARD_LAYOUTS,
   CARD_RARITIES,
   type Card,
   type CardLayout,
@@ -18,6 +20,10 @@ import { type Admin, assertAdmin, CardInputError, toCard, withSet } from "./card
  * emplacement, puis sa version (normale, ou Alt Art plus rarement, voir `drawVersion`) ; chaque
  * carte tirée entre dans la collection du joueur (`owned_cards`, une ligne par version), et le
  * paquet est noté dans le journal (`booster_openings`), qui sert aussi aux garanties.
+ *
+ * Le prochain paquet est tiré d'avance (`pending_boosters`, un par joueur, set et type de paquet) :
+ * la page des boosters connaît ses cartes avant le clic et précharge leurs illustrations ;
+ * l'ouverture le consomme et tire aussitôt le suivant (`peekBooster`, `openBooster`).
  */
 
 /** Joueur qui ouvre un paquet : son id (collection) et son id Discord (droits). */
@@ -288,41 +294,159 @@ export async function boosterPity(
   };
 }
 
+/** Carte tirable du set, avec ses versions (pour tirer la version obtenue). */
+type PoolEntry = PoolCard & { hasNormal: boolean; hasFullArt: boolean };
+
+/** Cartes d'un paquet tiré : id, rareté au tirage et version obtenue, dans l'ordre du paquet. */
+const drawnSchema = z
+  .array(
+    z.object({
+      id: z.string(),
+      rarity: z.enum(CARD_RARITIES),
+      version: z.enum(CARD_LAYOUTS),
+    }),
+  )
+  .min(1);
+type Drawn = z.infer<typeof drawnSchema>;
+
+async function loadPool(tx: DbTx, setId: string): Promise<PoolEntry[]> {
+  const pool = await tx.tcgCard.findMany({
+    where: { setId, deletedAt: null },
+    select: { id: true, rarity: true, hasNormal: true, hasFullArt: true },
+    // ordre fixe : un même tirage aléatoire (`rnd`) donne le même paquet
+    orderBy: { id: "asc" },
+  });
+  return pool as PoolEntry[];
+}
+
 /**
- * Ouvre un paquet du set : tire 5 cartes, les ajoute à la collection du joueur et note le paquet.
- * Renvoie les cartes dans l'ordre du paquet (la carte chance en dernier).
+ * Empreinte d'un tirage : les cartes tirables du set (id, rareté, versions) et la garantie
+ * appliquée (ou « test »). Un paquet tiré d'avance dont l'empreinte ne correspond plus (carte
+ * supprimée, déplacée, rareté ou versions changées, carte ajoutée, garanties changées) est tiré à
+ * nouveau : il suit toujours les chances et les garanties du moment.
  */
-export async function openBooster(
+export function poolKey(pool: readonly PoolEntry[], forced: Forced | "test"): string {
+  const hash = createHash("sha256");
+  for (const c of pool) hash.update(`${c.id}:${c.rarity}:${+c.hasNormal}${+c.hasFullArt}|`);
+  return `${forced ?? "-"}:${hash.digest("base64url")}`;
+}
+
+/** Tire un paquet (raretés, puis versions) : paquet normal, garanties comprises, ou de test. */
+function drawPack(
+  pool: PoolEntry[],
+  forced: Forced | "test",
+  rnd: (() => number) | undefined,
+): Drawn {
+  const picked =
+    forced === "test" ? drawTestBooster(pool, rnd) : drawBooster(pool, { forced }, rnd);
+  // La version se tire après les raretés de tout le paquet : taux et garanties inchangés.
+  const byPool = new Map(pool.map((c) => [c.id, c]));
+  return picked.map((c) => ({
+    id: c.id,
+    rarity: c.rarity,
+    version: drawVersion(byPool.get(c.id) ?? { hasNormal: true, hasFullArt: false }, rnd),
+  }));
+}
+
+/** Clé du paquet tiré d'avance d'un joueur, pour un set et un type de paquet. */
+const pendingWhere = (userId: string, setId: string, isTest: boolean) => ({
+  userId_setId_isTest: { userId, setId, isTest },
+});
+
+async function savePending(
+  tx: DbTx,
+  userId: string,
+  setId: string,
+  isTest: boolean,
+  cards: Drawn,
+  key: string,
+) {
+  await tx.tcgPendingBooster.upsert({
+    where: pendingWhere(userId, setId, isTest),
+    create: { userId, setId, isTest, cards, poolKey: key },
+    update: { cards, poolKey: key, createdAt: new Date() },
+  });
+}
+
+/**
+ * Prochain paquet du joueur, tiré d'avance : celui qui attend s'il suit encore le set et les
+ * garanties du moment (`poolKey`), sinon un nouveau tirage, enregistré. À appeler sous le verrou
+ * du joueur (`lockPlayer`).
+ */
+async function pendingPack(
+  tx: DbTx,
+  userId: string,
+  setId: string,
+  test: boolean,
+  rnd: (() => number) | undefined,
+): Promise<{ pool: PoolEntry[]; drawn: Drawn }> {
+  const pool = await loadPool(tx, setId);
+  const forced = test ? "test" : await nextForced(tx, userId, setId);
+  const key = poolKey(pool, forced);
+  const row = await tx.tcgPendingBooster.findUnique({ where: pendingWhere(userId, setId, test) });
+  const kept = row?.poolKey === key ? drawnSchema.safeParse(row.cards) : null;
+  if (kept?.success) return { pool, drawn: kept.data };
+  const drawn = drawPack(pool, forced, rnd);
+  await savePending(tx, userId, setId, test, drawn, key);
+  return { pool, drawn };
+}
+
+/** Les cartes d'un paquet tiré, chacune dans sa version (`layout`), dans l'ordre du paquet. */
+async function cardsOf(tx: DbTx, drawn: Drawn): Promise<Card[]> {
+  const rows = await tx.tcgCard.findMany({
+    where: { id: { in: [...new Set(drawn.map((c) => c.id))] } },
+    include: withSet,
+  });
+  const byId = new Map(rows.map((r) => [r.id, toCard(r)]));
+  return drawn.flatMap((c) => {
+    const card = byId.get(c.id);
+    return card ? [{ ...card, layout: c.version }] : [];
+  });
+}
+
+/** Un paquet à la fois par joueur : les garanties comptent les paquets précédents. */
+async function lockPlayer(tx: DbTx, userId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tcg-booster-${userId}`}))`;
+}
+
+/**
+ * Prochain paquet du joueur dans ce set, déjà tiré (le tire s'il n'y en a pas) : les cartes qu'il
+ * aura en l'ouvrant, pour précharger leurs illustrations. Il reste le même jusqu'à son ouverture
+ * (recharger la page ne le change pas), sauf si le set ou les garanties changent entre-temps.
+ */
+export async function peekBooster(
   player: Player,
   input: z.input<typeof setInput>,
   opts?: { tx?: DbTx; rnd?: () => number; test?: boolean },
 ): Promise<{ set: CardSet; cards: Card[] }> {
   assertAdmin(player);
   const { setCode } = setInput.parse(input);
+  return withTx(async (tx) => {
+    await lockPlayer(tx, player.id);
+    const set = await findSet(tx, setCode);
+    const { drawn } = await pendingPack(tx, player.id, set.id, opts?.test ?? false, opts?.rnd);
+    return { set, cards: await cardsOf(tx, drawn) };
+  }, opts);
+}
+
+/**
+ * Ouvre un paquet du set : consomme le paquet tiré d'avance (`peekBooster` ; tiré sur le moment
+ * s'il n'y en a pas), ajoute ses cartes à la collection du joueur, note le paquet, puis tire le
+ * suivant. Renvoie les cartes dans l'ordre du paquet (la carte chance en dernier) et celles du
+ * paquet suivant (`next`), à précharger.
+ */
+export async function openBooster(
+  player: Player,
+  input: z.input<typeof setInput>,
+  opts?: { tx?: DbTx; rnd?: () => number; test?: boolean },
+): Promise<{ set: CardSet; cards: Card[]; next: Card[] }> {
+  assertAdmin(player);
+  const { setCode } = setInput.parse(input);
   const test = opts?.test ?? false;
   return withTx(async (tx) => {
-    // Un paquet à la fois par joueur : les garanties comptent les paquets précédents.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tcg-booster-${player.id}`}))`;
+    await lockPlayer(tx, player.id);
     const set = await findSet(tx, setCode);
-    const pool = await tx.tcgCard.findMany({
-      where: { setId: set.id, deletedAt: null },
-      select: { id: true, rarity: true, hasNormal: true, hasFullArt: true },
-      // ordre fixe : un même tirage aléatoire (`rnd`) donne le même paquet
-      orderBy: { id: "asc" },
-    });
-    const picked = test
-      ? drawTestBooster(pool as PoolCard[], opts?.rnd)
-      : drawBooster(
-          pool as PoolCard[],
-          { forced: await nextForced(tx, player.id, set.id) },
-          opts?.rnd,
-        );
-    // La version se tire après les raretés de tout le paquet : taux et garanties inchangés.
-    const byPool = new Map(pool.map((c) => [c.id, c]));
-    const drawn = picked.map((c) => {
-      const versions = byPool.get(c.id) ?? { hasNormal: true, hasFullArt: false };
-      return { ...c, version: drawVersion(versions, opts?.rnd) };
-    });
+    const { pool, drawn } = await pendingPack(tx, player.id, set.id, test, opts?.rnd);
 
     const counts = new Map<string, { cardId: string; version: CardLayout; n: number }>();
     for (const c of drawn) {
@@ -349,19 +473,13 @@ export async function openBooster(
       },
     });
 
-    const rows = await tx.tcgCard.findMany({
-      where: { id: { in: [...new Set(drawn.map((c) => c.id))] } },
-      include: withSet,
-    });
-    const byId = new Map(rows.map((r) => [r.id, toCard(r)]));
-    return {
-      set,
-      // chaque carte dans la version obtenue (`layout`)
-      cards: drawn.flatMap((c) => {
-        const card = byId.get(c.id);
-        return card ? [{ ...card, layout: c.version }] : [];
-      }),
-    };
+    // Paquet consommé : le suivant le remplace aussitôt, garanties à jour (ce paquet compte déjà).
+    const forced = test ? "test" : await nextForced(tx, player.id, set.id);
+    const next = drawPack(pool, forced, opts?.rnd);
+    await savePending(tx, player.id, set.id, test, next, poolKey(pool, forced));
+
+    const [cards, nextCards] = await Promise.all([cardsOf(tx, drawn), cardsOf(tx, next)]);
+    return { set, cards, next: nextCards };
   }, opts);
 }
 
@@ -428,11 +546,16 @@ export async function getPotodex(
   };
 }
 
-/** Vide la collection de test du joueur : cartes trouvées et paquets ouverts (garantie comprise). */
+/**
+ * Vide la collection de test du joueur : cartes trouvées, paquets ouverts (garantie comprise) et
+ * paquets tirés d'avance.
+ */
 export async function resetCollection(player: Player, opts?: { tx?: DbTx }): Promise<void> {
   assertAdmin(player);
   await withTx(async (tx) => {
     await tx.tcgOwnedCard.deleteMany({ where: { userId: player.id } });
     await tx.tcgBoosterOpening.deleteMany({ where: { userId: player.id } });
+    // les paquets tirés d'avance suivaient les anciennes garanties
+    await tx.tcgPendingBooster.deleteMany({ where: { userId: player.id } });
   }, opts);
 }

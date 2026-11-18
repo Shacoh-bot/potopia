@@ -96,6 +96,8 @@ export {
   forcedChance,
   getPotodex,
   openBooster,
+  peekBooster,
+  poolKey,
   resetCollection,
   simulateChance,
   SR_PITY,

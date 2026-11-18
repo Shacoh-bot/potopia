@@ -11,6 +11,7 @@ import {
   forcedChance,
   getPotodex,
   openBooster,
+  peekBooster,
   resetCollection,
   simulateChance,
   SR_PITY,
@@ -191,6 +192,108 @@ describe("openBooster", () => {
       });
     },
   );
+});
+
+describe("paquet tiré d'avance", () => {
+  /** Ids des cartes d'un paquet, dans l'ordre, avec leur version. */
+  const ids = (cards: { id: string; layout: string }[]) => cards.map((c) => `${c.id}:${c.layout}`);
+
+  it("même tirage qu'à l'ouverture directe : même fonction, mêmes chances", async () => {
+    await addCards("common", 3);
+    await addCards("uncommon", 2);
+    await addCards("rare", 2);
+    const values = [0.9, 0.1, 0.5, 0.3, 0.7, 0.2, 0.95, 0.4, 0.6, 0.05, 0.8, 0.35, 0.15];
+    const { cards } = await peekBooster(ADMIN, { setCode: "S1" }, { rnd: sequence(...values) });
+    const pool = await db.tcgCard.findMany({
+      where: { setId, deletedAt: null },
+      select: { id: true, rarity: true },
+      orderBy: { id: "asc" },
+    });
+    const direct = drawBooster(pool as never, {}, sequence(...values));
+    expect(cards.map((c) => c.id)).toEqual(direct.map((c) => c.id));
+  });
+
+  it("stable : recharger la page ne change pas le prochain paquet, l'ouverture donne celui-là", async () => {
+    await addCards("common", 5);
+    await addCards("uncommon", 5);
+    await addCards("rare", 5);
+    const first = await peekBooster(ADMIN, { setCode: "S1" });
+    for (let i = 0; i < 3; i++) {
+      expect(ids((await peekBooster(ADMIN, { setCode: "S1" })).cards)).toEqual(ids(first.cards));
+    }
+    const opened = await openBooster(ADMIN, { setCode: "S1" });
+    expect(ids(opened.cards)).toEqual(ids(first.cards));
+    // le suivant est déjà tiré, et c'est lui que la page montre ensuite
+    expect(ids((await peekBooster(ADMIN, { setCode: "S1" })).cards)).toEqual(ids(opened.next));
+    expect(await db.tcgPendingBooster.count()).toBe(1);
+  });
+
+  it("consommé une seule fois : deux ouvertures donnent deux paquets, le 2e est le suivant annoncé", async () => {
+    await addCards("common", 5);
+    await addCards("rare", 5);
+    const peeked = await peekBooster(ADMIN, { setCode: "S1" });
+    const [a, b] = await Promise.all([
+      openBooster(ADMIN, { setCode: "S1" }),
+      openBooster(ADMIN, { setCode: "S1" }),
+    ]);
+    if (!a || !b) throw new Error("ouvertures manquantes");
+    // une seule des deux reçoit le paquet annoncé ; l'autre reçoit le suivant, tiré par la 1re
+    const [firstOpen, secondOpen] =
+      ids(a.cards).join() === ids(peeked.cards).join() ? [a, b] : [b, a];
+    expect(ids(firstOpen.cards)).toEqual(ids(peeked.cards));
+    expect(ids(secondOpen.cards)).toEqual(ids(firstOpen.next));
+    expect(await db.tcgBoosterOpening.count()).toBe(2);
+    const owned = await db.tcgOwnedCard.aggregate({ _sum: { count: true } });
+    expect(owned._sum.count).toBe(10);
+  });
+
+  it("tiré à nouveau si une de ses cartes est supprimée ou si le set change", async () => {
+    await addCards("common", 1);
+    await addCards("rare", 1);
+    const before = await peekBooster(ADMIN, { setCode: "S1" });
+    const gone = before.cards[0]?.id ?? "";
+    await db.tcgCard.update({ where: { id: gone }, data: { deletedAt: new Date() } });
+    await addCards("common", 1);
+    const after = await peekBooster(ADMIN, { setCode: "S1" });
+    expect(after.cards.map((c) => c.id)).not.toContain(gone);
+    const opened = await openBooster(ADMIN, { setCode: "S1" });
+    expect(ids(opened.cards)).toEqual(ids(after.cards));
+  });
+
+  it("suit les garanties : tiré à nouveau quand elles changent, garanti au bon paquet", async () => {
+    await addCards("rare", 1);
+    await addCards("sr", 1);
+    const set = await db.tcgSet.findUniqueOrThrow({ where: { code: "S1" } });
+    await peekBooster(ADMIN, { setCode: "S1" }, { rnd: sequence() });
+    // paquets ouverts sans SR depuis (hors de ce tirage) : la garantie tombe au prochain
+    await db.tcgBoosterOpening.createMany({
+      data: Array.from({ length: SR_PITY - 1 }, () => ({
+        userId: ADMIN.id,
+        setId: set.id,
+        cardIds: [],
+        hasSsr: false,
+        hasSrPlus: false,
+      })),
+    });
+    const { cards } = await peekBooster(ADMIN, { setCode: "S1" }, { rnd: sequence() });
+    expect(cards[4]?.rarity).toBe("sr");
+  });
+
+  it("paquets de test et paquets normaux tirés à part ; la remise à zéro les efface", async () => {
+    for (const rarity of TEST_PACK_RARITIES) await addCards(rarity, 1);
+    await addCards("common", 1);
+    const test = await peekBooster(ADMIN, { setCode: "S1" }, { test: true });
+    expect(test.cards.map((c) => c.rarity)).toEqual([...TEST_PACK_RARITIES]);
+    await peekBooster(ADMIN, { setCode: "S1" });
+    expect(await db.tcgPendingBooster.count()).toBe(2);
+    await resetCollection(ADMIN);
+    expect(await db.tcgPendingBooster.count()).toBe(0);
+  });
+
+  it("réservé aux admins", async () => {
+    await addCards("common", 1);
+    await expect(peekBooster(MEMBER, { setCode: "S1" })).rejects.toThrow("Réservé aux admins.");
+  });
 });
 
 describe("paquets de test de l'admin", () => {
