@@ -381,7 +381,24 @@ export type PotodexEntry =
 export async function getPotodex(
   player: Player,
   input: z.input<typeof setInput>,
-): Promise<{
+): Promise<Potodex> {
+  return readPotodex(player, input, false);
+}
+
+/**
+ * Aperçu admin « tout débloqué » : le Potodex d'un set tel que le verrait un joueur qui possède
+ * chaque version de chaque carte (un exemplaire chacune). Lecture seule : la vraie collection (cartes
+ * trouvées, paquets ouverts) n'est ni lue ni modifiée.
+ */
+export async function getCompletePotodex(
+  player: Player,
+  input: z.input<typeof setInput>,
+): Promise<Potodex> {
+  return readPotodex(player, input, true);
+}
+
+/** Potodex d'un set : ses cases, et les compteurs (versions trouvées, paquets ouverts). */
+export type Potodex = {
   set: CardSet;
   entries: PotodexEntry[];
   /** Versions trouvées, et versions du set (chaque carte en compte une ou deux). */
@@ -390,7 +407,13 @@ export async function getPotodex(
   /** Cartes numérotées du set (pour « 07/44 »). */
   size: number;
   boosters: number;
-}> {
+};
+
+async function readPotodex(
+  player: Player,
+  input: z.input<typeof setInput>,
+  complete: boolean,
+): Promise<Potodex> {
   assertAdmin(player);
   const { setCode } = setInput.parse(input);
   const set = await findSet(db, setCode);
@@ -400,17 +423,19 @@ export async function getPotodex(
       orderBy: { number: "asc" },
       include: withSet,
     }),
-    db.tcgOwnedCard.findMany({
-      where: { userId: player.id, card: { setId: set.id } },
-      select: { cardId: true, version: true, count: true },
-    }),
-    db.tcgBoosterOpening.count({ where: { userId: player.id, setId: set.id } }),
+    complete
+      ? []
+      : db.tcgOwnedCard.findMany({
+          where: { userId: player.id, card: { setId: set.id } },
+          select: { cardId: true, version: true, count: true },
+        }),
+    complete ? 0 : db.tcgBoosterOpening.count({ where: { userId: player.id, setId: set.id } }),
   ]);
   const counts = new Map(owned.map((o) => [`${o.cardId}:${o.version}`, o.count]));
   const entries: PotodexEntry[] = rows.flatMap((row) =>
     cardVersions(row).map((version): PotodexEntry => {
       const number = row.number ?? 0;
-      const count = counts.get(`${row.id}:${version}`);
+      const count = complete ? 1 : counts.get(`${row.id}:${version}`);
       // case « AA » : seulement pour la variante d'une carte qui a aussi sa normale
       const altArt = isAltArt(row, version);
       return count

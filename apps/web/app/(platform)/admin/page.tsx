@@ -3,7 +3,16 @@ import { BRAND } from "@app/config/brand";
 import { isGotyEnabled } from "@app/config/features";
 import { Card } from "@app/ui";
 import { countIdeas } from "@app/ideas";
-import { BookOpen, Coins, Layers, Lightbulb, Package, Smile, Trophy } from "lucide-react";
+import {
+  BookOpen,
+  BookOpenCheck,
+  Coins,
+  Layers,
+  Lightbulb,
+  Package,
+  Smile,
+  Trophy,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { getCurrentAdmin } from "@/lib/session";
 
@@ -45,6 +54,12 @@ const SECTIONS = (ideasCount: number) => [
     title: "Potodex (test)",
     description: "Les cartes trouvées dans tes paquets, set par set.",
     icon: BookOpen,
+  },
+  {
+    href: "/admin/potodex?complet=1",
+    title: "Potodex complet",
+    description: "Aperçu du Potodex avec toutes les cartes débloquées (lecture seule).",
+    icon: BookOpenCheck,
   },
   {
     href: "/admin/mascotte",
