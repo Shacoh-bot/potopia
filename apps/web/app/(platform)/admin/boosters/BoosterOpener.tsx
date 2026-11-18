@@ -10,6 +10,7 @@ import {
 } from "@app/tcg/ui";
 import { buttonClasses } from "@app/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { OrbWarmUp } from "@/components/SpinOrb";
 import { openBoosterAction } from "./actions";
 
 type Opened = { n: number; cards: OpenedCard[] | null; setSize?: number };
@@ -68,6 +69,9 @@ export function BoosterOpener({
       {warm === "running" && (
         <BoosterWarmUp looks={looks} within={column} onDone={warmed} className={fonts} />
       )}
+      {/* le rebond de la boule de l'en-tête aussi, sinon sa 1re compilation peut tomber pendant le
+          paquet ; indépendant du clic, il se retire seul */}
+      {warm !== "waiting" && <OrbWarmUp />}
       {opened ? (
         <BoosterOpening
           // Un nouveau paquet repart de zéro (paquet 3D, vidéo, cartes de dos).
