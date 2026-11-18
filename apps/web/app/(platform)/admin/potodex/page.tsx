@@ -1,4 +1,4 @@
-import { CARD_VERSION_LABELS, getPotodex, listSets } from "@app/tcg";
+import { CARD_VERSION_LABELS, getCompletePotodex, getPotodex, listSets } from "@app/tcg";
 import { CARD_HEIGHT, CARD_WIDTH, GameCard, GameCardDefs } from "@app/tcg/ui";
 import { buttonClasses, Card, cx, EmptyState } from "@app/ui";
 import type { Metadata } from "next";
@@ -28,15 +28,20 @@ const PAGE_SIZE = 24;
  * d'exemplaires ; une version pas encore tirée reste noire, avec seulement son numéro et, pour
  * l'Alt Art, la mention AA (le serveur n'envoie rien d'autre). Une carte trouvée s'ouvre en grand au clic.
  * Paginé (`?page=`), `PAGE_SIZE` cases par page.
+ *
+ * `?complet=1` : aperçu « tout débloqué » (lien « Potodex complet » de l'admin), le même Potodex
+ * comme si chaque version était trouvée. Lecture seule (`getCompletePotodex`) : la vraie collection
+ * n'est ni lue ni modifiée ; pas de remise à zéro. Admin seulement, comme toute la page.
  */
 export default async function AdminPotodexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ set?: string; page?: string }>;
+  searchParams: Promise<{ set?: string; page?: string; complet?: string }>;
 }) {
   const admin = await getCurrentAdmin();
   const sets = await listSets(admin);
-  const { set: code, page: pageParam } = await searchParams;
+  const { set: code, page: pageParam, complet } = await searchParams;
+  const complete = complet === "1";
   const current = sets.find((s) => s.code === code) ?? sets[0];
   if (!current) {
     return (
@@ -45,19 +50,24 @@ export default async function AdminPotodexPage({
       </Card>
     );
   }
-  const dex = await getPotodex(admin, { setCode: current.code });
+  const dex = complete
+    ? await getCompletePotodex(admin, { setCode: current.code })
+    : await getPotodex(admin, { setCode: current.code });
+  // le mode (vrai Potodex ou aperçu complet) suit les liens des sets et des pages
+  const mode = complete ? "&complet=1" : "";
   const { page, pageCount, shown } = paginate(dex.entries, pageParam, PAGE_SIZE);
   const found = shown.flatMap((e) => (e.found ? [e.card] : []));
   // mêmes données que le menu « Cartes » : image, « idée de … », taille du set
   const faces = new Map((await cardFaces(admin, found)).map((f) => [imageId(f.card), f]));
-  const pageHref = (p: number) => `/admin/potodex?set=${current.code}${p > 1 ? `&page=${p}` : ""}`;
+  const pageHref = (p: number) =>
+    `/admin/potodex?set=${current.code}${mode}${p > 1 ? `&page=${p}` : ""}`;
   const pager = <Pagination page={page} count={pageCount} href={pageHref} />;
   const pad = (n: number) => String(n).padStart(2, "0");
   const percent = dex.total ? Math.round((dex.found / dex.total) * 100) : 0;
 
   return (
     <Card
-      title={`Potodex · ${current.code} (test)`}
+      title={`Potodex · ${current.code} ${complete ? "(complet)" : "(test)"}`}
       action={
         <Link
           href={`/admin/boosters?set=${current.code}`}
@@ -68,12 +78,23 @@ export default async function AdminPotodexPage({
       }
     >
       <div className={`${designFonts} flex flex-col gap-4`}>
+        {complete && (
+          <p
+            role="status"
+            className="border-accent/40 bg-accent/10 text-accent rounded-lg border px-3 py-2 text-sm"
+          >
+            Aperçu admin : tout débloqué. Ta vraie collection n&apos;est pas touchée ·{" "}
+            <Link href={`/admin/potodex?set=${current.code}`} className="underline">
+              revenir à mon Potodex
+            </Link>
+          </p>
+        )}
         {sets.length > 1 && (
           <nav className="flex flex-wrap gap-2" aria-label="Sets">
             {sets.map((s) => (
               <Link
                 key={s.id}
-                href={`/admin/potodex?set=${s.code}`}
+                href={`/admin/potodex?set=${s.code}${mode}`}
                 className={cx(
                   "rounded-full border px-3 py-1 text-sm",
                   s.id === current.id ? "border-accent text-accent" : "border-border text-muted",
@@ -101,7 +122,7 @@ export default async function AdminPotodexPage({
               <div className="bg-accent h-full rounded-full" style={{ width: `${percent}%` }} />
             </div>
           </div>
-          <ResetCollectionButton disabled={dex.boosters === 0 && dex.found === 0} />
+          {!complete && <ResetCollectionButton disabled={dex.boosters === 0 && dex.found === 0} />}
         </div>
 
         {dex.total === 0 ? (

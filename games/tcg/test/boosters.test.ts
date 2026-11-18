@@ -9,6 +9,7 @@ import {
   drawBooster,
   ensureSet,
   forcedChance,
+  getCompletePotodex,
   getPotodex,
   openBooster,
   resetCollection,
@@ -238,5 +239,26 @@ describe("Potodex", () => {
     await openBooster(ADMIN, { setCode: "S1" });
     await resetCollection(ADMIN);
     expect(await getPotodex(ADMIN, { setCode: "S1" })).toMatchObject({ found: 0, boosters: 0 });
+  });
+
+  it("aperçu admin « tout débloqué » : tout trouvé, sans lire ni écrire la vraie collection", async () => {
+    await addCards("common", 1);
+    await addCards("legendary", 1);
+    await openBooster(ADMIN, { setCode: "S1" }, { rnd: sequence() });
+    const owned = await db.tcgOwnedCard.findMany({ orderBy: { cardId: "asc" } });
+    const dex = await getCompletePotodex(ADMIN, { setCode: "S1" });
+    expect(dex).toMatchObject({ found: 2, total: 2, size: 2, boosters: 0 });
+    expect(dex.entries.every((e) => e.found && e.count === 1)).toBe(true);
+    // rien d'écrit : collection et paquets ouverts inchangés
+    expect(await db.tcgOwnedCard.findMany({ orderBy: { cardId: "asc" } })).toEqual(owned);
+    expect(await db.tcgBoosterOpening.count()).toBe(1);
+    expect(await getPotodex(ADMIN, { setCode: "S1" })).toMatchObject({ found: 1, boosters: 1 });
+  });
+
+  it("aperçu « tout débloqué » refusé à un membre non admin", async () => {
+    await addCards("common", 1);
+    await expect(getCompletePotodex(MEMBER, { setCode: "S1" })).rejects.toThrow(
+      "Réservé aux admins.",
+    );
   });
 });

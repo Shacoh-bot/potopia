@@ -94,6 +94,7 @@ export {
   drawBooster,
   drawTestBooster,
   forcedChance,
+  getCompletePotodex,
   getPotodex,
   openBooster,
   resetCollection,

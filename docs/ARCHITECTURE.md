@@ -1272,7 +1272,10 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   note le paquet ; un paquet à la fois par joueur, sous verrou ; cartes renvoyées dans leur version
   tirée, `layout`), `getPotodex` (chaque version active de chaque carte du set, dans l'ordre des
   numéros, la normale puis l'Alt Art ; une version pas encore trouvée ne renvoie que son numéro et
-  sa version ; `found` et `total` comptent les versions, `size` les cartes), `resetCollection`
+  sa version ; `found` et `total` comptent les versions, `size` les cartes), `getCompletePotodex`
+  (même Potodex, chaque version trouvée en un exemplaire, sans lire ni écrire la collection ; sert
+  l'aperçu admin « Potodex complet », `/admin/potodex?complet=1`, avec un bandeau et sans remise à
+  zéro), `resetCollection`
   (vide la collection de test et le journal, garanties comprises), `boosterPity` (paquets au
   plus avant la SR ou mieux et la SSR garanties, affichés sous le paquet). Toutes vérifient l'admin tant que
   c'est un test ; les paquets sont gratuits et illimités.
