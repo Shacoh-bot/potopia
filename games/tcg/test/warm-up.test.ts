@@ -86,13 +86,16 @@ describe("barre du préchauffage sur le bouton", () => {
 
   it("la barre avance d'un cran par étape et n'est pleine que quand tout est fini", () => {
     const total = warmUpSteps(3, 1);
-    const crans = [0, 1, 2, 3, 4, 5].map((done) => warmUpProgress({ done, total }, false));
+    const crans = [0, 1, 2, 3, 4, 5].map((done) => warmUpProgress({ done, total }, [false, false]));
     expect(crans[0]).toBe(0);
     for (let i = 1; i < crans.length; i++) expect(crans[i]).toBeGreaterThan(crans[i - 1] ?? 0);
-    // cartes finies, boule pas encore : pas plein
-    expect(warmUpProgress({ done: total, total }, false)).toBeLessThan(1);
-    expect(warmUpProgress({ done: 0, total }, true)).toBeLessThan(1);
-    expect(warmUpProgress({ done: total, total }, true)).toBe(1);
+    // cartes finies, boule ou images du prochain paquet pas encore : pas plein
+    expect(warmUpProgress({ done: total, total }, [false, true])).toBeLessThan(1);
+    expect(warmUpProgress({ done: total, total }, [true, false])).toBeLessThan(1);
+    expect(warmUpProgress({ done: 0, total }, [true, true])).toBeLessThan(1);
+    // chaque préparation à côté vaut un cran
+    expect(warmUpProgress({ done: 0, total }, [true, false])).toBe(1 / (total + 2));
+    expect(warmUpProgress({ done: total, total }, [true, true])).toBe(1);
   });
 
   it("après la dernière allure : juste le temps de la pose ou de l'effacement de la vidéo", () => {

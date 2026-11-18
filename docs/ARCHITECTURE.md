@@ -247,6 +247,10 @@ passe d'une partie à l'autre sans rechargement.
 created_at)`, supprimé avec le set. Journal des paquets ouverts, qui sert aussi aux garanties
   (SR ou mieux, SSR). Migration `tcg_booster_sr_pity` : ajout de `has_sr_plus`, calculé pour
   les paquets déjà ouverts.
+- `TcgPendingBooster` (`pending_boosters`) : le prochain paquet d'un joueur, déjà tiré. userId,
+  setId, isTest, cards (JSON : `[{ id, rarity, version }]`, dans l'ordre du paquet), poolKey
+  (empreinte du tirage, `poolKey`), createdAt. Unique `(user_id, set_id, is_test)`, supprimé avec
+  le set. Migration `tcg_pending_boosters` : ajout seul (nouvelle table).
 
 ### goty
 
@@ -1268,9 +1272,21 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   (`ALT_ART_CHANCE`, choix de l'utilisateur du 2026-11-15), sinon en normale ; une carte à une seule
   version sort dans celle-ci (`drawVersion`). Tirée après la rareté, la version ne change ni les
   taux ni les garanties (vérifié par test : mêmes cartes qu'un tirage sans versions).
-- `drawBooster` (tirage pur, testable), `openBooster` (tire, ajoute les cartes à la collection,
-  note le paquet ; un paquet à la fois par joueur, sous verrou ; cartes renvoyées dans leur version
-  tirée, `layout`), `getPotodex` (chaque version active de chaque carte du set, dans l'ordre des
+- **Paquet tiré d'avance** (demande de l'utilisateur du 2026-11-18 : tout est prêt avant le clic) :
+  le prochain paquet de chaque joueur, par set et type de paquet (test ou normal), est tiré par la
+  même fonction, aux mêmes chances et garanties, et rangé dans `pending_boosters`. `peekBooster` le
+  renvoie (le tire s'il n'existe pas) : recharger la page ne le change pas. `openBooster` le
+  consomme (sous le verrou du joueur : jamais deux fois le même) puis tire aussitôt le suivant,
+  renvoyé avec le paquet (`next`). Son empreinte (`poolKey` : id, rareté et versions des cartes
+  tirables du set, et la garantie appliquée) est vérifiée à chaque lecture : carte supprimée,
+  déplacée ou modifiée, carte ajoutée ou garanties changées, il est tiré à nouveau.
+  `resetCollection` les efface. **Pas d'anti-triche** (choix de l'utilisateur du 2026-11-18,
+  « on sera entre potes ») : le navigateur reçoit le prochain paquet avant de l'ouvrir (noms,
+  raretés, versions, liens des illustrations) ; commentaire à `packOf`
+  (`admin/boosters/pack.ts`), à fermer si le site s'ouvre au-delà des amis.
+- `drawBooster` (tirage pur, testable), `openBooster` (ouvre le paquet tiré d'avance, ajoute les
+  cartes à la collection, note le paquet, tire le suivant ; un paquet à la fois par joueur, sous
+  verrou ; cartes renvoyées dans leur version tirée, `layout`), `getPotodex` (chaque version active de chaque carte du set, dans l'ordre des
   numéros, la normale puis l'Alt Art ; une version pas encore trouvée ne renvoie que son numéro et
   sa version ; `found` et `total` comptent les versions, `size` les cartes), `getCompletePotodex`
   (même Potodex, chaque version trouvée en un exemplaire, sans lire ni écrire la collection ; sert
@@ -1279,9 +1295,17 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   (vide la collection de test et le journal, garanties comprises), `boosterPity` (paquets au
   plus avant la SR ou mieux et la SSR garanties, affichés sous le paquet). Toutes vérifient l'admin tant que
   c'est un test ; les paquets sont gratuits et illimités.
-- `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». L'écran d'ouverture
-  (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur tire les
-  cartes (`openBoosterAction`) : 1) le paquet en 3D (`PackScene`, three.js et React Three Fiber,
+- `/admin/boosters` : choix du set, bouton « Ouvrir un paquet ». La page reçoit le prochain
+  paquet (`peekBooster`) ; ses illustrations sont téléchargées puis décodées dès l'arrivée
+  (`ui/card-preload.ts` : `decode()`, images gardées en mémoire), un cran de la barre
+  « Préparation… » (délai de garde inchangé). Au clic, les cartes reprennent ces illustrations
+  (même lien) : aucune requête d'image après le clic. Le paquet suivant, arrivé avec le tirage, est
+  téléchargé aussitôt en basse priorité et décodé une fois toutes les cartes retournées (ou
+  l'écran fermé). Filet : une carte tirée n'est montrée qu'avec son illustration décodée, au plus
+  3 s d'attente (« Tirage des cartes… »). Rien n'est préchargé sur les autres pages (vidéo 5,2 Mo,
+  modèle 1,1 Mo, code 3D : trop lourd pour chaque arrivée sur le site). L'écran d'ouverture
+  (`BoosterOpening`, `ui/`) s'affiche aussitôt dans la fenêtre, pendant que le serveur ouvre le
+  paquet (`openBoosterAction`) : 1) le paquet en 3D (`PackScene`, three.js et React Three Fiber,
   chargés à la demande), reflets irisés : clic gauche ou un doigt pour le tourner, clic droit ou
   deux doigts pour le déplacer, molette ou pincement pour zoomer (bornés, la page ne défile pas) ;
   petites icônes d'aide sous le paquet (version tactile sur écran tactile) ; 2) glisser le long de

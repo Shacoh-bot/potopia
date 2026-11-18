@@ -17,6 +17,7 @@ import { revealRarity } from "../src/card-rules";
 import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
 import { CardAura, hasAura, warmUpAuras } from "./CardAura";
 import { CardBack } from "./CardBack";
+import { cardImagesReady } from "./card-preload";
 import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { OPENING_BG, openingPlan } from "./opening";
@@ -67,6 +68,8 @@ const FLIP_MS = 620;
 const AURA_IN_MS = 700;
 /** Effacement de la vidéo quand les cartes prennent le relais (`.tcg-opening-video`). */
 const VIDEO_FADE_MS = 450;
+/** Attente maximale (ms) des illustrations des cartes tirées, avant de les afficher quand même. */
+const CARD_IMAGES_WAIT_MS = 3000;
 
 type Phase = "pack" | "zoom" | "video" | "cards";
 type Size = { width: number; height: number };
@@ -555,6 +558,7 @@ export function BoosterOpening({
   setSize,
   onClose,
   onAgain,
+  onDone,
   assetsBase = "/tcg/ouverture",
   className,
 }: {
@@ -565,6 +569,8 @@ export function BoosterOpening({
   onClose: () => void;
   /** Ouvrir un autre paquet (bouton à la fin). */
   onAgain?: () => void;
+  /** Toutes les cartes sont retournées : le temps mort où préparer le paquet suivant. */
+  onDone?: () => void;
   /** Dossier public du modèle 3D et des vidéos. */
   assetsBase?: string;
   className?: string;
@@ -587,9 +593,22 @@ export function BoosterOpening({
     root.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, []);
 
-  // Illustrations téléchargées dès l'arrivée du tirage : chaque carte se retourne sans attente.
+  // Cartes tirées montrées une fois leurs illustrations décodées : préchargées avant le clic
+  // (`card-preload`), elles sont déjà prêtes ; sinon « Tirage des cartes… » au plus
+  // CARD_IMAGES_WAIT_MS, puis elles s'affichent quand même. Aucun retournement n'attend une image.
+  const [shown, setShown] = useState<OpenedCard[] | null>(null);
   useEffect(() => {
-    for (const c of cards ?? []) if (c.imageUrl) new Image().src = c.imageUrl;
+    if (!cards) return;
+    let live = true;
+    void cardImagesReady(
+      cards.map((c) => c.imageUrl),
+      CARD_IMAGES_WAIT_MS,
+    ).then(() => {
+      if (live) setShown(cards);
+    });
+    return () => {
+      live = false;
+    };
   }, [cards]);
 
   // Animations réduites : l'ouverture se joue quand même (paquet, découpe, vidéo) ; seuls les
@@ -676,7 +695,12 @@ export function BoosterOpening({
 
   const frame = view && videoFrame(view);
   const slots = view && cardSlots(view);
-  const done = cards !== null && revealed >= cards.length;
+  const done = shown !== null && revealed >= shown.length;
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
+  useEffect(() => {
+    if (done) doneRef.current?.();
+  }, [done]);
 
   return (
     <div
@@ -748,7 +772,7 @@ export function BoosterOpening({
           return (
             <OpeningCard
               key={i}
-              opened={cards?.[i] ?? null}
+              opened={shown?.[i] ?? null}
               from={from}
               to={slot}
               setSize={setSize}
@@ -780,7 +804,7 @@ export function BoosterOpening({
             )
           ) : (
             <p className="text-sm text-white/85">
-              {cards ? "Clique sur une carte pour la retourner." : "Tirage des cartes…"}
+              {shown ? "Clique sur une carte pour la retourner." : "Tirage des cartes…"}
             </p>
           )}
         </div>

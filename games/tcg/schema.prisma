@@ -47,6 +47,7 @@ model TcgSet {
 
   cards    TcgCard[]
   openings TcgBoosterOpening[]
+  pending  TcgPendingBooster[]
 
   @@map("sets")
   @@schema("tcg")
@@ -58,59 +59,59 @@ model TcgSet {
 // (une idée peut donner plusieurs cartes), sans effet en jeu. Une variante full art pointe vers sa
 // carte de base et en reprend toujours les stats.
 model TcgCard {
-  id             String    @id @default(uuid(7))
-  setId          String?   @map("set_id")
-  number         Int?
-  name           String
-  rarity         TcgRarity
-  type           String
-  family         String?
-  cost           Int
-  power          Int
+  id                String        @id @default(uuid(7))
+  setId             String?       @map("set_id")
+  number            Int?
+  name              String
+  rarity            TcgRarity
+  type              String
+  family            String?
+  cost              Int
+  power             Int
   // Cochée : coût et puissance saisis à la main. Sinon, une carte avec effet prend ceux de la
   // carte Snap de l'effet (`effectStats`), appliqués à chaque enregistrement.
-  statsManual    Boolean   @default(false) @map("stats_manual")
-  effectKey      String?   @map("effect_key")
-  effectParams   Json?     @map("effect_params")
-  effectText     String    @default("") @map("effect_text")
-  flavor         String?
+  statsManual       Boolean       @default(false) @map("stats_manual")
+  effectKey         String?       @map("effect_key")
+  effectParams      Json?         @map("effect_params")
+  effectText        String        @default("") @map("effect_text")
+  flavor            String?
   // Note de l'admin (« Doublon de … ») : jamais montrée aux joueurs, sans effet en jeu.
-  adminNote      String?   @map("admin_note")
+  adminNote         String?       @map("admin_note")
   // Clé de l'illustration dans le stockage (jamais une URL) ; sans elle, l'image de l'idée.
-  imageKey       String?   @map("image_key")
+  imageKey          String?       @map("image_key")
   // Illustration propre à la version full art ; null : la full art reprend `imageKey`.
-  imageKeyFull   String?   @map("image_key_full")
+  imageKeyFull      String?       @map("image_key_full")
   // Version réduite de chaque illustration (côté long `CARD_IMAGE_SIZES.small`), pour les petites
   // cartes (planches, Potodex, booster) ; la grande ne se charge qu'agrandie. null : pas de version
   // réduite (illustrations envoyées avant), la carte montre l'illustration elle-même, comme avant.
-  imageKeySmall     String? @map("image_key_small")
-  imageKeyFullSmall String? @map("image_key_full_small")
+  imageKeySmall     String?       @map("image_key_small")
+  imageKeyFullSmall String?       @map("image_key_full_small")
   // Cadrage de l'illustration (point central en % et zoom) : l'image n'est jamais rognée.
-  imageFrame     Json?     @map("image_frame")
+  imageFrame        Json?         @map("image_frame")
   // Cadrage de l'illustration en full art ; null : celui de la carte normale (imageFrame).
-  imageFrameFull Json?     @map("image_frame_full")
+  imageFrameFull    Json?         @map("image_frame_full")
   // Points lumineux posés sur l'illustration (JSON : position en % de l'image, taille, couleur,
   // vitesse de clignotement) ; null : aucun.
-  glowPoints     Json?     @map("glow_points")
+  glowPoints        Json?         @map("glow_points")
   // Mise en page choisie pour afficher la carte (normale ou full art).
-  layout         TcgCardLayout @default(normal)
+  layout            TcgCardLayout @default(normal)
   // Versions qui existent pour la carte (au moins une) : chacune se tire et se collectionne à part.
   // `layout` est la version montrée par défaut (planches de l'admin), toujours une version active.
-  hasNormal      Boolean   @default(true) @map("has_normal")
-  hasFullArt     Boolean   @default(false) @map("has_full_art")
-  ideaId        String?   @map("idea_id")
-  baseCardId     String?   @map("base_card_id")
+  hasNormal         Boolean       @default(true) @map("has_normal")
+  hasFullArt        Boolean       @default(false) @map("has_full_art")
+  ideaId            String?       @map("idea_id")
+  baseCardId        String?       @map("base_card_id")
   // Mise à la corbeille : hors set et hors des listes ; null, carte active.
-  deletedAt      DateTime? @map("deleted_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime?     @map("deleted_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  set      TcgSet?   @relation(fields: [setId], references: [id])
-  base     TcgCard?  @relation("TcgCardVariant", fields: [baseCardId], references: [id])
+  set           TcgSet?               @relation(fields: [setId], references: [id])
+  base          TcgCard?              @relation("TcgCardVariant", fields: [baseCardId], references: [id])
   // Effets visuels de la carte, dans l'ordre des calques.
   visualEffects TcgCardVisualEffect[]
-  variants TcgCard[] @relation("TcgCardVariant")
-  owners   TcgOwnedCard[]
+  variants      TcgCard[]             @relation("TcgCardVariant")
+  owners        TcgOwnedCard[]
 
   @@unique([setId, number])
   @@index([ideaId])
@@ -151,13 +152,13 @@ model TcgCardVisualEffect {
 // Carte trouvée par un membre (Potodex) : une ligne par carte, `count` exemplaires tirés.
 // Supprimer la carte la retire des collections.
 model TcgOwnedCard {
-  userId    String   @map("user_id")
-  cardId    String   @map("card_id")
+  userId    String        @map("user_id")
+  cardId    String        @map("card_id")
   // Version possédée : la normale et la full art d'une carte se collectionnent séparément.
   version   TcgCardLayout @default(normal)
   count     Int
-  firstAt   DateTime @default(now()) @map("first_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  firstAt   DateTime      @default(now()) @map("first_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
   card TcgCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
@@ -185,5 +186,27 @@ model TcgBoosterOpening {
 
   @@index([userId, setId, createdAt])
   @@map("booster_openings")
+  @@schema("tcg")
+}
+
+// Prochain paquet d'un joueur, déjà tiré (même tirage, mêmes chances, garanties comprises) : ses
+// illustrations se préchargent avant le clic, et l'ouverture le consomme puis tire le suivant. Un
+// par joueur, par set et par type de paquet (test de l'admin ou normal).
+model TcgPendingBooster {
+  id        String   @id @default(uuid(7))
+  userId    String   @map("user_id")
+  setId     String   @map("set_id")
+  isTest    Boolean  @map("is_test")
+  // Les cartes dans l'ordre du paquet : [{ id, rarity, version }].
+  cards     Json
+  // Empreinte du tirage (cartes tirables du set et garantie appliquée) : si elle change, le
+  // paquet est tiré à nouveau (voir `poolKey`).
+  poolKey   String   @map("pool_key")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  set TcgSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, setId, isTest])
+  @@map("pending_boosters")
   @@schema("tcg")
 }

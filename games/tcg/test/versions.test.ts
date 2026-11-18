@@ -150,6 +150,8 @@ describe("tirage de la version", () => {
     ).map((c) => ({ id: c.id, rarity: c.rarity as "common" }));
     for (const seed of [1, 2, 3, 4, 5]) {
       const expected = drawBooster(pool, {}, lcg(seed)).map((c) => c.id);
+      // sans le paquet tiré d'avance par l'ouverture précédente : celle-ci tire avec `lcg(seed)`
+      await db.tcgPendingBooster.deleteMany();
       const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { rnd: lcg(seed) });
       expect(cards.map((c) => c.id)).toEqual(expected);
     }

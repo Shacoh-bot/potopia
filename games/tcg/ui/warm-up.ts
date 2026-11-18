@@ -140,12 +140,14 @@ export const WARM_UP_GUARD_MS = 12_000;
 
 /**
  * Part de la barre (0 à 1) : les étapes du préchauffage des cartes (`done` sur `total`), plus un
- * cran pour le rebond de la boule de l'en-tête (`orbDone`). 1 seulement quand tout est fini.
+ * cran par préparation à côté (`extras` : le rebond de la boule de l'en-tête, les illustrations du
+ * prochain paquet), finie ou non. 1 seulement quand tout est fini.
  */
 export function warmUpProgress(
   { done, total }: { done: number; total: number },
-  orbDone: boolean,
+  extras: readonly boolean[],
 ): number {
-  const steps = Math.min(Math.max(done, 0), total) + (orbDone ? 1 : 0);
-  return total + 1 > 0 ? steps / (total + 1) : 1;
+  const steps = Math.min(Math.max(done, 0), total) + extras.filter(Boolean).length;
+  const all = total + extras.length;
+  return all > 0 ? steps / all : 1;
 }

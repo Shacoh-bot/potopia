@@ -339,6 +339,8 @@ sous le paquet : SR ou mieux au 20e paquet, SSR au 90e ; réglage dans `BOOSTER_
 `games/tcg/src/boosters.ts`, calibrage par `pnpm booster:rates`) ouvre des paquets gratuits du
 set choisi, **Administration › Potodex** montre les cartes trouvées (un clic en ouvre une en grand)
 et remet la collection de test à zéro. Seules les cartes rangées dans le set sont tirées : un set vide ne donne rien.
+Le prochain paquet est tiré d'avance (recharger la page ne le change pas) : ses illustrations sont
+préchargées avant le clic.
 
 Chaque carte a deux versions, chacune activable dans sa fiche (boutons sous l'aperçu, case « active », illustration et cadrage propres) : la normale et l'**Alt Art** (« AA », en full art). Quand une carte tirée a les deux, elle sort en Alt Art à 10 % (`ALT_ART_CHANCE`, `games/tcg/src/card-rules.ts`), avec le son de révélation de la SSR ; le Potodex compte les deux versions à part. Toute carte en full art est une Alt Art (badge AA, son de la SSR), même une carte qui n'existe qu'en full art.
 
