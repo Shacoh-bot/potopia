@@ -120,10 +120,18 @@ export default async function AdminPotodexPage({
             )}
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] justify-items-center gap-5">
               {shown.map((entry) => (
+                // `content-visibility: auto` rogne la case à ses bords (contention du dessin). La
+                // carte survolée s'incline et Firefox avance ses calques en perspective : pastilles
+                // de mana et de puissance (et halo) dépassent de la case et étaient coupées.
+                // `overflowClipMargin` élargit la zone dessinée sans toucher à la mise en page.
                 <li
                   key={`${entry.number}:${entry.version}`}
                   className="flex flex-col items-center gap-1"
-                  style={{ contentVisibility: "auto", containIntrinsicSize: "auto 330px" }}
+                  style={{
+                    contentVisibility: "auto",
+                    containIntrinsicSize: "auto 330px",
+                    overflowClipMargin: "40px",
+                  }}
                 >
                   {entry.found ? (
                     <PotodexCard
