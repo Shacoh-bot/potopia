@@ -247,6 +247,31 @@ describe("paquet tiré d'avance", () => {
     expect(owned._sum.count).toBe(10);
   });
 
+  it.each([
+    ["paquet normal", false],
+    ["paquet de test de l'admin", true],
+  ])(
+    "%s : l'ouverture remplace le paquet prévu par un nouveau tirage, jamais servi deux fois",
+    async (_, test) => {
+      for (const rarity of TEST_PACK_RARITIES) await addCards(rarity, 2);
+      // tirage prévu : la 1re carte de chaque rareté ; le suivant : la 2e (aucune carte en commun)
+      const peeked = await peekBooster(ADMIN, { setCode: "S1" }, { test, rnd: () => 0 });
+      const before = await db.tcgPendingBooster.findFirstOrThrow({ where: { isTest: test } });
+      const opened = await openBooster(ADMIN, { setCode: "S1" }, { test, rnd: () => 0.99 });
+      expect(ids(opened.cards)).toEqual(ids(peeked.cards));
+      const nextIds = opened.next.map((c) => c.id);
+      for (const c of opened.cards) expect(nextIds).not.toContain(c.id);
+      // la ligne du paquet prévu porte le nouveau tirage, plus l'ancien
+      const after = await db.tcgPendingBooster.findFirstOrThrow({ where: { isTest: test } });
+      expect((after.cards as { id: string }[]).map((c) => c.id)).toEqual(nextIds);
+      expect(after.createdAt.getTime()).toBeGreaterThanOrEqual(before.createdAt.getTime());
+      expect(await db.tcgPendingBooster.count()).toBe(1);
+      // l'ouverture suivante sert ce nouveau tirage
+      const second = await openBooster(ADMIN, { setCode: "S1" }, { test });
+      expect(ids(second.cards)).toEqual(ids(opened.next));
+    },
+  );
+
   it("tiré à nouveau si une de ses cartes est supprimée ou si le set change", async () => {
     await addCards("common", 1);
     await addCards("rare", 1);
