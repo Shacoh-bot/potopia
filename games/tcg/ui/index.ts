@@ -12,7 +12,7 @@ export {
   type OpenedCard,
   preloadBoosterOpening,
 } from "./BoosterOpening";
-export { type WarmUpLook, warmUpLooks } from "./warm-up";
+export { WARM_UP_GUARD_MS, type WarmUpLook, warmUpLooks, warmUpProgress } from "./warm-up";
 export { preloadBoosterSounds } from "./booster-sounds";
 export { CardFlip } from "./CardFlip";
 export { CardZoom, zoomToFit } from "./CardZoom";

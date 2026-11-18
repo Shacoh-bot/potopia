@@ -81,10 +81,15 @@ function HopEffects() {
  * jusqu'à ce que deux passent sans image longue (`afterWarmUpHop`), puis retirés. Rien ne change
  * à l'écran ni dans l'en-tête.
  */
-export function OrbWarmUp() {
+export function OrbWarmUp({ onDone }: { onDone?: () => void } = {}) {
   const [hop, setHop] = useState(0);
   const [done, setDone] = useState(false);
   const streak = useRef(0);
+  const finished = useRef(onDone);
+  finished.current = onDone;
+  useEffect(() => {
+    if (done) finished.current?.();
+  }, [done]);
   useEffect(() => {
     if (done) return;
     let last = performance.now();

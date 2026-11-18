@@ -107,3 +107,41 @@ export function warmUpCard(look: WarmUpLook): GameCardFields {
     visualEffectKeys: look.effects,
   };
 }
+
+/*
+ * Étapes et barre du préchauffage. Le préchauffage avance par étapes (la vidéo et les cartes de dos,
+ * puis une allure de plus par étape, puis la pose) ; le bouton « Ouvrir un paquet » montre une barre
+ * qui avance d'un cran par étape et reste désactivé jusqu'à la fin, ou jusqu'au délai de garde.
+ */
+
+/** Étapes du préchauffage pour `looks` allures : vidéo et dos, une par allure, la pose. */
+export function warmUpSteps(looks: number): number {
+  return looks + 2;
+}
+
+/**
+ * Attente (ms) entre la dernière allure montée et la fin, `elapsedMs` après le début : le temps
+ * que la dernière carte se pose avec son aura (`settleMs`) et que la vidéo s'efface (`videoGoneAt`,
+ * depuis le début). Rien de plus : ce sont les animations à dessiner, pas une pause.
+ */
+export function warmUpRest(
+  elapsedMs: number,
+  { videoGoneAt, settleMs }: { videoGoneAt: number; settleMs: number },
+): number {
+  return Math.max(settleMs, videoGoneAt - elapsedMs);
+}
+
+/** Délai de garde (ms) : passé ce temps, le bouton redevient cliquable même si rien n'a fini. */
+export const WARM_UP_GUARD_MS = 12_000;
+
+/**
+ * Part de la barre (0 à 1) : les étapes du préchauffage des cartes (`done` sur `total`), plus un
+ * cran pour le rebond de la boule de l'en-tête (`orbDone`). 1 seulement quand tout est fini.
+ */
+export function warmUpProgress(
+  { done, total }: { done: number; total: number },
+  orbDone: boolean,
+): number {
+  const steps = Math.min(Math.max(done, 0), total) + (orbDone ? 1 : 0);
+  return total + 1 > 0 ? steps / (total + 1) : 1;
+}

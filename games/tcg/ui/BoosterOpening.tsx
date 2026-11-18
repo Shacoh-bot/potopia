@@ -20,7 +20,7 @@ import { CardBack } from "./CardBack";
 import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { OPENING_BG, openingPlan } from "./opening";
-import { type WarmUpLook, warmUpCard } from "./warm-up";
+import { type WarmUpLook, warmUpCard, warmUpRest, warmUpSteps } from "./warm-up";
 
 // three.js et le modèle ne se chargent que pour cet écran (préchargés par `preloadBoosterOpening`).
 const loadScene = () => import("./PackScene");
@@ -63,6 +63,10 @@ const CARD_WIDTH = 300;
 const CARD_RATIO = 360 / 504;
 /** Durée du demi-tour d'une carte (ms), comme l'animation tcg-flip-over de tcg.css. */
 const FLIP_MS = 620;
+/** Fondu d'arrivée de l'aura d'une carte posée (`tcg-aura-in`). */
+const AURA_IN_MS = 700;
+/** Effacement de la vidéo quand les cartes prennent le relais (`.tcg-opening-video`). */
+const VIDEO_FADE_MS = 450;
 
 type Phase = "pack" | "zoom" | "video" | "cards";
 type Size = { width: number; height: number };
@@ -353,26 +357,41 @@ function videoCard(frame: ReturnType<typeof videoFrame>, i: number): Rect | null
     : null;
 }
 
-/** Durée du préchauffage (ms) : cartes qui quittent la vidéo, demi-tour, pose et aura en fondu. */
-export const WARM_UP_MS = 2600;
 /** Moment (ms) où la vidéo du préchauffage s'efface, comme au relais aux vraies cartes. */
 const WARM_UP_VIDEO_OUT = 1200;
 /** Illustration neutre des cartes fictives du préchauffage (jamais affichée). */
 const WARM_UP_IMAGE = "prechauffage.webp";
 const ignore = () => {};
 
+/** Appelle `fn` après `n` images (`requestAnimationFrame`) ; renvoie de quoi l'annuler. */
+function afterFrames(n: number, fn: () => void): () => void {
+  let frame = 0;
+  const step = () => {
+    if (n-- <= 0) fn();
+    else frame = requestAnimationFrame(step);
+  };
+  frame = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(frame);
+}
+
 /**
  * Préchauffage de l'ouverture (voir `warm-up.ts`) : à monter sur la page des boosters, avant le
- * clic, le temps de `WARM_UP_MS`, puis à retirer (`onDone`). Il dessine ce que l'ouverture va
- * dessiner, aux mêmes tailles : la vidéo, les cartes de dos qui en sortent (une survolée), et une
- * carte fictive de chaque allure (`looks`) qui se retourne et se pose avec son aura, dans le même
- * cadre (coins arrondis, aide sous le paquet, vidéo qui s'efface). Le tout est dessiné vraiment,
- * mais sans changer un seul pixel (voir `.tcg-warm-up`), sans clic ni focus possible.
+ * clic, puis à retirer à la fin (`onDone`). Il dessine ce que l'ouverture va dessiner, aux mêmes
+ * tailles : la vidéo, les cartes de dos qui en sortent (une survolée), et une carte fictive de
+ * chaque allure (`looks`) qui se retourne et se pose avec son aura, dans le même cadre (coins
+ * arrondis, aide sous le paquet, vidéo qui s'efface). Le tout est dessiné vraiment, mais sans
+ * changer un seul pixel (voir `.tcg-warm-up`), sans clic ni focus possible.
+ *
+ * Par étapes (`warmUpSteps`) : la vidéo et les dos, puis une allure de plus à chaque étape, puis la
+ * pose. Chaque étape est montée, dessinée (deux images : ses programmes GPU sont compilés), puis
+ * annoncée (`onProgress`) une image avant la suivante : la page garde la main pour repeindre la
+ * barre du bouton entre deux compilations. Aucune attente ajoutée en dehors des animations.
  */
 export function BoosterWarmUp({
   looks,
   within,
   onDone,
+  onProgress,
   assetsBase = "/tcg/ouverture",
   className,
 }: {
@@ -384,6 +403,8 @@ export function BoosterWarmUp({
    */
   within: React.RefObject<HTMLElement | null>;
   onDone: () => void;
+  /** Étapes finies sur le total (`warmUpSteps`), à chaque étape. */
+  onProgress?: (done: number, total: number) => void;
   assetsBase?: string;
   /** Polices des cartes, comme pour `BoosterOpening`. */
   className?: string;
@@ -394,16 +415,18 @@ export function BoosterWarmUp({
   useEffect(() => {
     setSrc(videoSource(assetsBase));
   }, [assetsBase]);
+  const callbacks = useRef({ onDone, onProgress });
+  callbacks.current = { onDone, onProgress };
+  // Étapes montées : 0 rien, 1 la vidéo et les dos, 1 + n les n premières allures.
+  const [shown, setShown] = useState(0);
+  const started = useRef(0);
+  const live = shown >= 1;
   const [videoOut, setVideoOut] = useState(false);
   useEffect(() => {
-    const timers = [
-      window.setTimeout(() => setVideoOut(true), WARM_UP_VIDEO_OUT),
-      window.setTimeout(onDone, WARM_UP_MS),
-    ];
-    return () => {
-      for (const timer of timers) window.clearTimeout(timer);
-    };
-  }, [onDone]);
+    if (!live) return;
+    const timer = window.setTimeout(() => setVideoOut(true), WARM_UP_VIDEO_OUT);
+    return () => window.clearTimeout(timer);
+  }, [live]);
   const [box, setBox] = useState<{ left: number; width: number } | null>(null);
   useEffect(() => {
     const el = within.current;
@@ -414,6 +437,37 @@ export function BoosterWarmUp({
   const ready = box && view && view.width > 0 ? view : null;
   const frame = ready && videoFrame(ready);
   const slots = ready && cardSlots(ready);
+  const measured = Boolean(slots);
+  const total = warmUpSteps(looks.length);
+  useEffect(() => {
+    if (!measured) return;
+    if (shown === 0) {
+      started.current = performance.now();
+      setShown(1);
+      return;
+    }
+    // L'étape `shown` vient d'être montée : deux images pour la dessiner, la barre, puis la suivante.
+    let cancel = afterFrames(2, () => {
+      callbacks.current.onProgress?.(shown, total);
+      if (shown < total - 1) {
+        cancel = afterFrames(1, () => setShown(shown + 1));
+        return;
+      }
+      // Tout est monté : reste la pose (demi-tour, aura en fondu) et l'effacement de la vidéo.
+      const timer = window.setTimeout(
+        () => {
+          callbacks.current.onProgress?.(total, total);
+          callbacks.current.onDone();
+        },
+        warmUpRest(performance.now() - started.current, {
+          videoGoneAt: WARM_UP_VIDEO_OUT + VIDEO_FADE_MS,
+          settleMs: FLIP_MS + AURA_IN_MS,
+        }),
+      );
+      cancel = () => window.clearTimeout(timer);
+    });
+    return () => cancel();
+  }, [measured, shown, total]);
   return (
     <div
       aria-hidden
@@ -433,7 +487,7 @@ export function BoosterWarmUp({
         style={{ background: OPENING_BG }}
       >
         <GameCardDefs />
-        {src && frame && (
+        {live && src && frame && (
           <video
             src={src}
             muted
@@ -455,7 +509,8 @@ export function BoosterWarmUp({
             }}
           />
         )}
-        {frame &&
+        {live &&
+          frame &&
           slots?.map((slot, i) => (
             <OpeningCard
               key={`dos-${i}`}
@@ -467,7 +522,7 @@ export function BoosterWarmUp({
             />
           ))}
         {slots &&
-          looks.map((look, i) => {
+          looks.slice(0, Math.max(0, shown - 1)).map((look, i) => {
             const slot = slots[i % slots.length];
             return (
               slot && (

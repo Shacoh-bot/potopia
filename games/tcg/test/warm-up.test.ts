@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../src/card-rules";
-import { warmUpCard, warmUpLooks } from "../ui/warm-up";
+import {
+  WARM_UP_GUARD_MS,
+  warmUpCard,
+  warmUpLooks,
+  warmUpProgress,
+  warmUpRest,
+  warmUpSteps,
+} from "../ui/warm-up";
 
 type Fields = Pick<Card, "rarity" | "hasNormal" | "hasFullArt" | "visualEffectKeys" | "glowPoints">;
 const card = (over: Partial<Fields>): Fields => ({
@@ -66,5 +73,36 @@ describe("préchauffage de l'ouverture d'un booster", () => {
     });
     expect(fake.glowPoints).toHaveLength(1);
     expect(fake.glowPoints?.[0]).toMatchObject({ kind: "line" });
+  });
+});
+
+describe("barre du préchauffage sur le bouton", () => {
+  it("une étape pour la vidéo et les dos, une par allure, une pour la pose", () => {
+    expect(warmUpSteps(0)).toBe(2);
+    expect(warmUpSteps(7)).toBe(9);
+  });
+
+  it("la barre avance d'un cran par étape et n'est pleine que quand tout est fini", () => {
+    const total = warmUpSteps(3);
+    const crans = [0, 1, 2, 3, 4, 5].map((done) => warmUpProgress({ done, total }, false));
+    expect(crans[0]).toBe(0);
+    for (let i = 1; i < crans.length; i++) expect(crans[i]).toBeGreaterThan(crans[i - 1] ?? 0);
+    // cartes finies, boule pas encore : pas plein
+    expect(warmUpProgress({ done: total, total }, false)).toBeLessThan(1);
+    expect(warmUpProgress({ done: 0, total }, true)).toBeLessThan(1);
+    expect(warmUpProgress({ done: total, total }, true)).toBe(1);
+  });
+
+  it("après la dernière allure : juste le temps de la pose ou de l'effacement de la vidéo", () => {
+    const timeline = { videoGoneAt: 1650, settleMs: 1320 };
+    // allures montées vite : la vidéo n'a pas fini de s'effacer
+    expect(warmUpRest(100, timeline)).toBe(1550);
+    // allures montées tard : seulement la pose de la dernière carte
+    expect(warmUpRest(4000, timeline)).toBe(1320);
+  });
+
+  it("délai de garde de l'ordre de 10 à 12 s", () => {
+    expect(WARM_UP_GUARD_MS).toBeGreaterThanOrEqual(10_000);
+    expect(WARM_UP_GUARD_MS).toBeLessThanOrEqual(12_000);
   });
 });
