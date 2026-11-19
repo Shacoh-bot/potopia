@@ -745,18 +745,22 @@ export function CardEditor({
                   </button>
                 ))}
               </div>
-              <label className="text-text flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={versions[layout]}
-                  // au moins une version : la dernière active ne se décoche pas
-                  disabled={
-                    versions[layout] && !versions[layout === "normal" ? "fullart" : "normal"]
-                  }
-                  onChange={(e) => setVersions((v) => ({ ...v, [layout]: e.target.checked }))}
-                />
-                Version {layout === "normal" ? "normale" : "Alt Art"} active
-              </label>
+              {/* Les deux coches côte à côte, quelle que soit la version montrée : chacune
+                  s'active ou se désactive en un clic, sans changer d'onglet. */}
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+                {CARD_LAYOUTS.map((l) => (
+                  <label key={l} className="text-text flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={versions[l]}
+                      // au moins une version : la dernière active ne se décoche pas
+                      disabled={versions[l] && !versions[l === "normal" ? "fullart" : "normal"]}
+                      onChange={(e) => setVersions((v) => ({ ...v, [l]: e.target.checked }))}
+                    />
+                    {CARD_VERSION_LABELS[l]} active
+                  </label>
+                ))}
+              </div>
               <p className="text-muted max-w-[300px] text-center text-xs">
                 {versions[layout]
                   ? layout === "fullart" && versions.normal

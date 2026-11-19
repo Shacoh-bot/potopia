@@ -92,17 +92,19 @@ export function fitZoom(
 }
 
 /**
- * Étapes de préparation d'une carte de la réserve, dans l'ordre : on fait l'illustration, puis la
- * description et l'effet ; à la dernière, elle attend d'être rangée dans son set (ce rangement,
- * `moveCards`, lui donne son numéro). Repère d'admin seulement : sans effet en jeu.
+ * Étapes de préparation d'une carte, dans l'ordre : elle arrive « à traiter », puis son
+ * illustration est faite, puis sa description et son effet ; à la dernière, elle attend d'être
+ * rangée dans un set (ce rangement, `moveCards`, lui donne son numéro). Une carte déjà dans un set
+ * garde aussi son étape. Repère d'admin seulement : sans effet en jeu.
  */
-export const CARD_PREP_STAGES = ["illustration", "effect", "integration"] as const;
+export const CARD_PREP_STAGES = ["todo", "illustrated", "described", "integration"] as const;
 export type CardPrepStage = (typeof CARD_PREP_STAGES)[number];
 
 export const CARD_PREP_STAGE_LABELS: Record<CardPrepStage, string> = {
-  illustration: "Illustration",
-  effect: "Description et effet",
-  integration: "Intégration finale",
+  todo: "À traiter",
+  illustrated: "Illustration ok",
+  described: "Description et effet ok",
+  integration: "À intégrer à un set",
 };
 
 /** Mise en page d'une carte : illustration dans une fenêtre (normale) ou sur toute la carte. */

@@ -220,8 +220,10 @@ passe d'une partie à l'autre sans rechargement.
   effectParams? (JSON), effectText, flavor?, adminNote? (note de l'admin, 120 caractères :
   « Doublon de … » ; jamais montrée aux joueurs, sans effet en jeu ; absente d'une modification,
   elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), prepStage (étape de préparation
-  dans la réserve, `CARD_PREP_STAGES` : illustration par défaut, effect, integration ; repère d'admin sans effet en
-  jeu ; migration `tcg_card_prep_stage`, ajout seul), imageKey?, imageFrame? (JSON : cadrage de
+  d'une carte, `CARD_PREP_STAGES` : todo par défaut (À traiter), illustrated, described, integration ;
+  repère d'admin sans effet en jeu ; migration `tcg_card_prep_stage`, ajout seul, puis
+  `tcg_card_prep_stage_v2`, qui reclasse une fois les cartes existantes : celles du set S1 en
+  illustrated, ancienne étape illustration en todo, effect en illustrated, integration inchangée), imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point de cadrage x/y en % et zoom de 0,25 à 4 ; sous 1, l'image
   rétrécit et sa copie floutée remplit le vide ; l'image n'est jamais rognée), imageFrameFull? (JSON :
   cadrage en full art, zoom de 1 à 4 ; null, celui de la carte normale sans son dézoom), glowPoints? (JSON : points lumineux posés sur
@@ -900,12 +902,12 @@ et modifient les cartes.
   lui ; hors set, elle attend dans la réserve, sans numéro. `moveCards` déplace une ou plusieurs
   cartes vers un set (à la suite) ou la réserve, et renumérote de 1 à N le set qu'elles quittent ;
   `createSet` crée un set (code unique).
-- Étapes de préparation (réserve) : chaque carte porte une étape (`prepStage`) : illustration, puis
-  description et effet, puis intégration finale dans un set. `setCardStage` la change sans toucher
-  à la place ni au numéro de la carte (l'étape est gardée quand elle change de place). Dans
-  /admin/cartes, la réserve a un onglet par étape plus « Toutes » (filtres, `?etape=`), et des
-  coches sous chaque carte de la réserve la classent en un clic ; à la dernière étape, un bouton
-  par set l'y range (`moveCards`). Sous chaque carte de la planche (miniatures), les boutons
+- Étapes de préparation : chaque carte porte une étape (`prepStage`) : 1. À traiter (nouvelle
+  carte), 2. Illustration ok, 3. Description et effet ok, 4. À intégrer à un set. `setCardStage` la
+  change sans toucher à la place ni au numéro de la carte (l'étape est gardée quand elle change de
+  place). Dans /admin/cartes, la réserve et chaque set ont un onglet par étape plus « Toutes »
+  (filtres, `?etape=`), et des coches sous chaque carte (hors corbeille) la classent en un clic ;
+  à la dernière étape, pour une carte de la réserve, un bouton par set l'y range (`moveCards`). Sous chaque carte de la planche (miniatures), les boutons
   « Normale » et « Full art » la montrent sur place dans cette version (`CardVersionSwitch`, les deux
   versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
   « Tout cocher », dans la barre de déplacement, coche les cartes affichées (miniatures et liste).
@@ -1232,8 +1234,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   d'alors, et ses exemplaires possédés sont rangés dans cette version (valeurs calculées). Les
   points lumineux restent communs aux deux versions.
 - Éditeur : sous l'aperçu, les boutons « Normale » / « Alt Art (AA) » choisissent la version
-  montrée et réglée (barrée si inactive) ; la case « Version … active » l'active ou non (la
-  dernière active ne se décoche pas). À droite, le cadrage et l'envoi d'illustration portent sur
+  montrée et réglée (barrée si inactive) ; dessous, deux cases côte à côte, « Normale active » et
+  « Alt Art (AA) active », toujours visibles, activent chacune sa version en un clic, quelle que
+  soit la version montrée (la dernière active ne se décoche pas). À droite, le cadrage et l'envoi d'illustration portent sur
   cette version (`confirmCardImageAction(id, key, version)`, `setCardImage(…, { version })`).
   Une mise à jour sans `hasNormal` / `hasFullArt` / `layout` (fichier `updates`, import) les
   laisse tels quels ; un `layout` envoyé seul active sa version.
