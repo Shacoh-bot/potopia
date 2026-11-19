@@ -1,0 +1,1 @@
+export { SurvivorsGame } from "./Game";

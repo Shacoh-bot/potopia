@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
     "@app/pose",
     "@app/morpion",
     "@app/storage",
+    "@app/survivors",
     "@app/tcg",
     "@app/trois",
     "@app/ui",

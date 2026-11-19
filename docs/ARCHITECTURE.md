@@ -38,6 +38,7 @@ Pourquoi Better Auth plutôt qu'Auth.js :
 ```
 apps/web/            app Next mince : routes, layouts, server actions, route handlers
 games/
+  survivors/         Sacrebleu Survivors : simulation solo TypeScript, rendu Canvas et UI React
   agents/            Agents Doubles, jeu d'espions coopératif à deux (règles de Codenames Duet)
   douze/             DOUZE : douze épreuves par jour autour du 12, notées sur 12 chacune
   goty/              GOTY Party : services, imports, IGDB, UI React, cérémonie et TV
@@ -64,6 +65,12 @@ Chaque module (`core`, `economy`, `ideas`, plus tard chaque jeu) contient :
 - son `schema.prisma`, sous la forme d'un schéma Postgres à son nom ;
 - son code serveur ;
 - son dossier `ui/`, en React pur sans import Next.
+
+Exception sans persistance : `games/survivors` ne possède ni schéma Prisma ni code serveur.
+La page `/survivors` contrôle l'accès membre et monte le jeu client. Simulation à pas fixe dans
+un Canvas 2D, menus React ; aucun appel serveur pendant une partie, aucune récompense ni score
+enregistré. Un aperçu Vite local (`pnpm --filter @app/survivors preview`) utilise le même composant
+sans démarrer la plateforme ; il n'introduit pas de contournement de ses contrôles d'accès.
 
 Les server actions vivent dans `apps/web` : elles appellent les fonctions des modules et passent les
 actions aux composants en props.

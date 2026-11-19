@@ -139,6 +139,17 @@ plus), classement du jour, de la semaine et du mois. Voir
 [le module](games/douze/README.md). La migration additive `20261113190000_douze` crée le schéma
 du jeu (`pnpm db:deploy` en local).
 
+## Sacrebleu Survivors
+
+La tuile **Sacrebleu Survivors** ouvre `/survivors` : une partie solo de dix minutes en pixel art
+original, avec un paladin, trois armes automatiques à améliorer, des hordes et un boss final.
+Clavier (ZQSD, WASD, flèches) ou joystick tactile, pause, bruitages et plein écran. Prototype sans
+sauvegarde ni récompense en monnaie ; aucune migration. Aperçu local sans base ni Discord :
+`pnpm --filter @app/survivors preview` (`http://127.0.0.1:4173`). Voir [le module](games/survivors/README.md).
+
+La [direction artistique du jeu](games/survivors/DIRECTION_ARTISTIQUE.md) décrit son univers de
+chevalerie française de comédie et les noms grandiloquents à jeux de mots de ses personnages.
+
 ## Commandes
 
 | Commande                | Effet                                                                     |
@@ -182,6 +193,7 @@ packages/
   storage/       client S3/R2 et URLs présignées
   ui/            thèmes et composants de base
 games/
+  survivors/     Sacrebleu Survivors : paladin, hordes et boss, partie solo de dix minutes en Canvas
   agents/        Agents Doubles, le jeu d'espions coopératif à deux
   douze/         DOUZE, douze épreuves par jour autour du 12
   goty/          GOTY Party : préparation, pronostics, cérémonie, archives et interface React/TV

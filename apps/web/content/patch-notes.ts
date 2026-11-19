@@ -64,6 +64,15 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-19",
+    title: "Fierfeuille ouvre ses sentiers",
+    items: [
+      "Sacrebleu Survivors : incarnez un paladin, repoussez les hordes pendant dix minutes et affrontez le Baron de Croquebotte. Trois armes à améliorer, commandes clavier ou joystick tactile, pause et plein écran.",
+      "Le Bois de Fierfeuille remplace les anciens jardins : une forêt lumineuse, des grands chênes, des chemins de terre et une clairière à défendre.",
+      "Huit familles peuplent Fierfeuille : bandits, loups, sangliers, amphibiens, araignées, gnolls, kobolds et ours. Découvrez leurs silhouettes et leurs habitudes dans le guide illustré sous le jeu. Gare aux charges annoncées des sangliers !",
+    ],
+  },
+  {
     date: "2026-11-16",
     title: "Ouverture des boosters plus vivante",
     items: [

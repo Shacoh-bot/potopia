@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" shape-rendering="crispEdges">
+  <defs><radialGradient id="bg"><stop stop-color="#35483c"/><stop offset="1" stop-color="#111e24"/></radialGradient></defs>
+  <path fill="url(#bg)" d="M0 0h640v400H0z"/>
+  <g fill="none" stroke="#bd9a4f" opacity=".35"><circle cx="320" cy="185" r="122"/><circle cx="320" cy="185" r="112"/><path d="M320 44v28m0 226v28M180 185h28m224 0h28"/></g>
+  <path fill="#253c59" d="M259 172h122l32 156H227z"/>
+  <path fill="#1a2634" d="M286 244h25v102h-35v-27h10zm42 0h25v75h10v27h-35z"/>
+  <path fill="#718894" d="M281 250h29v66h-29zm48 0h29v66h-29z"/>
+  <path fill="#d6b16a" d="M276 311h35v12h-35zm52 0h36v12h-36z"/>
+  <path fill="#bbcbd0" d="M289 80h63v62h-63z"/>
+  <path fill="#e2bd98" d="M297 98h47v36h-47z"/>
+  <path fill="#28343c" d="M301 108h9v6h-9zm28 0h9v6h-9z"/>
+  <path fill="#e2e5cf" d="M287 80h67v15h-67zm9 44h12v9h25v-9h12v18h-10v10h-29v-10h-10z"/>
+  <path fill="#7f97a0" d="M280 150h80v100h-80z"/>
+  <path fill="#c4d2cf" d="M289 158h62v28h-62z"/>
+  <path fill="#d9b362" d="M242 148h41v44h-41zm114 0h42v44h-42z"/>
+  <path fill="#f2d998" d="M250 154h25v12h-25zm114 0h26v12h-26z"/>
+  <path fill="#6a838f" d="M247 193h28v44h-28zm117 0h28v44h-28z"/>
+  <path fill="#dfb88a" d="M250 235h22v19h-22zm115 0h24v19h-24z"/>
+  <path fill="#bd914e" d="M281 236h79v13h-79z"/>
+  <path fill="#d9b362" d="m320 182 23 24-23 24-23-24z"/><path fill="#fff0af" d="M316 193h8v26h-8zm-9 9h26v8h-26z"/>
+  <path fill="#88633d" d="M400 152h10v128h-10z"/>
+  <path fill="#b9ced0" d="M372 135h66v39h-66z"/>
+  <path fill="#dfb86a" d="M365 132h12v45h-12zm68 0h12v45h-12z"/>
+  <path fill="#fff0af" d="m405 142 12 12-12 12-12-12z"/>
+  <path fill="#a2a979" opacity=".3" d="M44 242h26v35H44zm9-10h9v10h-9zm509-10h28v42h-28zm-84 84h18v22h-18z"/>
+  <path fill="#112026" d="M0 355h640v45H0z"/>
+  <text fill="#e7c17d" text-anchor="middle" font-family="Georgia,serif" font-size="17" letter-spacing="3"><tspan x="320" y="373">SACREBLEU</tspan><tspan x="320" y="392">SURVIVORS</tspan></text>
+</svg>

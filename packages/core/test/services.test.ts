@@ -47,6 +47,7 @@ describe("registre des apps", () => {
   });
   it("getVisibleApps filtre par rôle", () => {
     expect(getVisibleApps({ role: "member" }).map((a) => a.id)).toEqual([
+      "survivors",
       "goty",
       "trois",
       "agents",
@@ -57,6 +58,7 @@ describe("registre des apps", () => {
       "cards",
     ]);
     expect(getVisibleApps({ role: "admin" }).map((a) => a.id)).toEqual([
+      "survivors",
       "goty",
       "trois",
       "agents",

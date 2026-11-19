@@ -756,3 +756,27 @@ en haut, avec une pastille tant que la dernière n'a pas été lue.
 **Fini quand**
 
 - Les membres voient les nouveautés de chaque mise à jour.
+
+---
+
+## Étape 18 : Sacrebleu Survivors (prototype)
+
+Survivors-like solo original, paladin et magie sacrée, intégré à `/survivors`.
+Détails : [games/survivors/README.md](../games/survivors/README.md).
+
+- [x] Direction artistique documentée : chevalerie française de comédie, prénoms anciens et noms
+      de famille grandiloquents à jeux de mots, sans restriction régionale ; Gontran de
+      Sainte-Bafferie comme référence du paladin.
+- [x] Premier terrain : Bois de Fierfeuille, forêt pastorale lumineuse inspirée de l'ambiance
+      d'Elwynn, décor original en pixel art et cache de terrain borné.
+
+- [x] Simulation de dix minutes : déplacements, attaques automatiques, huit familles d'ennemis,
+      élites, boss à neuf minutes, victoire ou défaite et nouvelle partie.
+- [x] Bestiaire forestier : bandits, loups, sangliers, amphibiens, araignées, gnolls, kobolds et
+      ours, sprites originaux, comportements différenciés et guide illustré. Élites Sire
+      Grincecroc et Dame Griffepoil ; boss Baron de Croquebotte.
+- [x] Trois armes et quatre dons passifs à cinq rangs, expérience à ramasser et choix de niveau.
+- [x] Pixel art original, tuile, accès membre, menus, clavier/tactile, pause et plein écran.
+- [x] Bruitages de synthèse respectant le volume global ; aperçu local autonome.
+- [ ] Recette terrain : plaisir de jeu, équilibrage, appareils mobiles et grosses hordes.
+- [ ] Définir ensuite la progression persistante et les contrôles serveur avant classement ou monnaie.

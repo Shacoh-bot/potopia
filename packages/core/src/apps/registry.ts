@@ -20,6 +20,14 @@ export type AppEntry = {
 /** Apps de la plateforme, dans l'ordre d'affichage des tuiles. */
 export const apps: readonly AppEntry[] = [
   {
+    id: "survivors",
+    name: "Sacrebleu Survivors",
+    icon: "shield",
+    route: "/survivors",
+    requiredRole: "member",
+    art: "/apps/survivors.svg",
+  },
+  {
     id: "goty",
     name: "GOTY Party",
     icon: "trophy",
