@@ -1,8 +1,11 @@
 import {
+  CARD_LAYOUTS,
   CARD_PREP_STAGE_LABELS,
   CARD_PREP_STAGES,
   CARD_RARITIES,
   CARD_RARITY_LABELS,
+  type Card as TcgCard,
+  cardVersions,
   listCards,
   listSets,
 } from "@app/tcg";
@@ -15,16 +18,20 @@ import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import {
   CardSearch,
+  CardVersionSwitch,
   type MoveTarget,
   MoveCardsForm,
   NewSetForm,
   PlaceSelect,
   StageButtons,
 } from "./forms";
-import { cardFaces } from "./images";
+import { type CardFace, cardFaces, imageId } from "./images";
 import { Pagination } from "./Pagination";
 
 export const metadata: Metadata = { title: "Cartes" };
+
+/** Boutons de version sous chaque carte (les mots de l'admin, pas la mention « AA » du jeu). */
+const VERSION_BUTTONS = { normal: "Normale", fullart: "Full art" } as const;
 
 /** Valeur de `?set=` pour la réserve (cartes hors set). */
 const RESERVE = "reserve";
@@ -83,9 +90,16 @@ export default async function AdminCardsPage({
   const pageCount = Math.max(1, Math.ceil(cards.length / pageSize));
   const page = Math.min(Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1), pageCount);
   const shown = cards.slice((page - 1) * pageSize, page * pageSize);
-  // Cartes prêtes à afficher (image, « idée de … », taille du set) : la vue liste n'en montre pas.
+  // Cartes prêtes à afficher (image, « idée de … », taille du set), dans chacune de leurs versions
+  // (normale, full art) : la vue liste n'en montre pas.
   const faces = new Map(
-    (list ? [] : await cardFaces(admin, shown)).map((face) => [face.card.id, face]),
+    (list
+      ? []
+      : await cardFaces(
+          admin,
+          shown.flatMap((c) => cardVersions(c).map((layout) => ({ ...c, layout }))),
+        )
+    ).map((face) => [imageId(face.card), face]),
   );
   const counts = CARD_RARITIES.map((r) => [r, cards.filter((c) => c.rarity === r).length] as const);
   const reserve = all.filter((c) => c.setId === null);
@@ -220,6 +234,29 @@ export default async function AdminCardsPage({
       />
     ) : null;
 
+  /** Une carte de la planche, dans une version ; glisser la retourne, un clic ouvre sa fiche. */
+  const cardView = (card: TcgCard, face: CardFace) => (
+    <CardFlip still>
+      <Link
+        href={`/admin/cartes/${card.id}`}
+        aria-label={`Modifier ${card.name}`}
+        className="flex flex-col items-center"
+        draggable={false}
+      >
+        {/* Aperçu agrandi d'un tiers (400 × 560) : la carte fait 300 × 420. */}
+        <div style={{ zoom: 4 / 3 }} className="pointer-events-none">
+          <GameCard card={face.card} imageUrl={face.imageUrl} setSize={face.setSize} still />
+        </div>
+      </Link>
+    </CardFlip>
+  );
+  /** Ses deux versions ; null pour celle que la carte n'a pas (bouton grisé). */
+  const versionFaces = (card: TcgCard) =>
+    CARD_LAYOUTS.map((v) => {
+      const face = faces.get(imageId({ id: card.id, layout: v }));
+      return { id: v, label: VERSION_BUTTONS[v], face: face ? cardView(card, face) : null };
+    });
+
   return (
     <div className={`${designFonts} flex flex-col gap-4`}>
       <Card
@@ -258,8 +295,9 @@ export default async function AdminCardsPage({
           <p className="text-muted">
             Dans la réserve, une carte se prépare en trois étapes : son illustration, puis sa
             description et son effet, puis son intégration finale dans un set. Les onglets
-            d&apos;étape filtrent la réserve ; les pastilles sous chaque carte la classent en un
-            clic.
+            d&apos;étape filtrent la réserve ; les coches sous chaque carte la classent en un clic.
+            Les boutons « Normale » et « Full art » sous une carte la montrent dans cette version
+            (grisé : la carte ne l&apos;a pas).
           </p>
           <nav className="flex flex-wrap gap-2" aria-label="Sets, réserve et corbeille">
             {tabs.map((t) => (
@@ -438,25 +476,12 @@ export default async function AdminCardsPage({
                   // Le navigateur ne dessine pas les cartes hors de l'écran (défilement fluide).
                   style={{ contentVisibility: "auto", containIntrinsicSize: "auto 585px" }}
                 >
-                  {/* Glisser la carte à l'horizontale la retourne ; un clic ouvre sa fiche. */}
-                  <CardFlip still>
-                    <Link
-                      href={`/admin/cartes/${card.id}`}
-                      aria-label={`Modifier ${card.name}`}
-                      className="flex flex-col items-center"
-                      draggable={false}
-                    >
-                      {/* Aperçu agrandi d'un tiers (400 × 560) : la carte fait 300 × 420. */}
-                      <div style={{ zoom: 4 / 3 }} className="pointer-events-none">
-                        <GameCard
-                          card={faces.get(card.id)?.card ?? card}
-                          imageUrl={faces.get(card.id)?.imageUrl ?? null}
-                          setSize={faces.get(card.id)?.setSize}
-                          still
-                        />
-                      </div>
-                    </Link>
-                  </CardFlip>
+                  {/* La carte et ses boutons « Normale » / « Full art », qui la montrent sur place. */}
+                  <CardVersionSwitch
+                    cardName={card.name}
+                    versions={versionFaces(card)}
+                    initial={card.layout}
+                  />
                   <label className="text-muted flex items-center gap-1.5 text-xs">
                     <input type="checkbox" name="ids" value={card.id} />
                     {card.number ?? "—"} · {CARD_RARITY_LABELS[card.rarity]}

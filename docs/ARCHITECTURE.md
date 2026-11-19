@@ -904,8 +904,11 @@ et modifient les cartes.
   description et effet, puis intégration finale dans un set. `setCardStage` la change sans toucher
   à la place ni au numéro de la carte (l'étape est gardée quand elle change de place). Dans
   /admin/cartes, la réserve a un onglet par étape plus « Toutes » (filtres, `?etape=`), et des
-  pastilles sous chaque carte de la réserve la classent en un clic ; à la dernière étape, un bouton
-  par set l'y range (`moveCards`).
+  coches sous chaque carte de la réserve la classent en un clic ; à la dernière étape, un bouton
+  par set l'y range (`moveCards`). Sous chaque carte de la planche (miniatures), les boutons
+  « Normale » et « Full art » la montrent sur place dans cette version (`CardVersionSwitch`, les deux
+  versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
+  « Tout cocher », dans la barre de déplacement, coche les cartes affichées (miniatures et liste).
 - Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
   (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
   les rend qu'avec `trashed: true`, la mise à jour en masse les ignore), mais restent en base.

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cx, Input, Label, Select } from "@app/ui";
-import { Search, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   type ChangeEvent,
@@ -232,8 +232,59 @@ export function PlaceSelect({
 }
 
 /**
- * Étape de préparation d'une carte de la réserve, en un clic : une pastille par étape (la sienne
- * allumée) ; à la dernière, un bouton par set pour l'y ranger, où elle prend son numéro. Tout
+ * Une version de carte que la planche peut montrer : son id (`normal`, `fullart`), son nom et la
+ * carte dessinée dans cette version ; `face` null : la carte n'a pas cette version.
+ */
+export type CardVersionFace = { id: string; label: string; face: ReactNode | null };
+
+/**
+ * Carte de la planche et ses versions (normale, full art) : un bouton par version la montre sur
+ * place, sans ouvrir la fiche ; le bouton d'une version que la carte n'a pas est grisé. La page
+ * dessine chaque version ; seule celle choisie est affichée.
+ */
+export function CardVersionSwitch({
+  cardName,
+  versions,
+  initial,
+}: {
+  cardName: string;
+  versions: CardVersionFace[];
+  /** Version montrée d'abord (celle de la carte) ; une autre si la carte ne l'a pas. */
+  initial: string;
+}) {
+  const [shown, setShown] = useState(initial);
+  const current =
+    versions.find((v) => v.id === shown && v.face) ?? versions.find((v) => v.face) ?? null;
+  return (
+    <>
+      {current?.face}
+      <span role="group" aria-label={`Version de ${cardName}`} className="flex gap-1">
+        {versions.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            disabled={!v.face}
+            aria-pressed={v.id === current?.id}
+            title={v.face ? undefined : `Pas de version ${v.label.toLowerCase()}`}
+            onClick={() => setShown(v.id)}
+            className={cx(
+              "rounded-full border px-2.5 py-0.5 text-xs disabled:cursor-not-allowed disabled:opacity-35",
+              v.id === current?.id
+                ? "border-accent bg-accent/15 text-text"
+                : "border-border text-muted enabled:hover:text-text",
+            )}
+          >
+            {v.label}
+          </button>
+        ))}
+      </span>
+    </>
+  );
+}
+
+/**
+ * Étape de préparation d'une carte de la réserve, en un clic : une coche par étape (la sienne
+ * cochée) ; à la dernière, un bouton par set pour l'y ranger, où elle prend son numéro. Tout
  * s'enregistre tout de suite ; la page se redessine avec la nouvelle étape.
  */
 export function StageButtons({
@@ -273,12 +324,21 @@ export function StageButtons({
             aria-pressed={s.id === stage}
             onClick={() => s.id !== stage && run(() => stageCardAction(cardId, s.id))}
             className={cx(
-              "rounded-full border px-2 py-0.5 text-xs disabled:opacity-60",
+              "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs disabled:opacity-60",
               s.id === stage
                 ? "border-accent bg-accent/15 text-text"
                 : "border-border text-muted hover:text-text",
             )}
           >
+            <span
+              aria-hidden
+              className={cx(
+                "flex size-3.5 items-center justify-center rounded-sm border",
+                s.id === stage ? "border-accent bg-accent text-bg" : "border-border",
+              )}
+            >
+              {s.id === stage && <Check size={11} strokeWidth={3} />}
+            </span>
             {i + 1}. {s.label}
           </button>
         ))}
@@ -297,6 +357,53 @@ export function StageButtons({
       </span>
       {error && <span className="text-danger text-xs">{error}</span>}
     </span>
+  );
+}
+
+/** Cases de cartes à cocher d'un formulaire (`name="ids"`). */
+function cardBoxes(form: HTMLFormElement | null | undefined): HTMLInputElement[] {
+  return form
+    ? [...form.querySelectorAll<HTMLInputElement>('input[type="checkbox"][name="ids"]')]
+    : [];
+}
+
+/** Cases de cartes cochées : toutes, une partie ou aucune (aucune aussi sans case). */
+export function selectionState(boxes: readonly { checked: boolean }[]): "all" | "some" | "none" {
+  const checked = boxes.filter((b) => b.checked).length;
+  return checked === 0 ? "none" : checked === boxes.length ? "all" : "some";
+}
+
+/**
+ * « Tout cocher » : coche ou décoche toutes les cartes affichées (la page en cours, après le filtre
+ * d'onglet) ; elle se coche seule quand toutes le sont, à moitié (tiret) quand une partie l'est.
+ */
+function SelectAllBox() {
+  const ref = useRef<HTMLInputElement>(null);
+  const sync = () => {
+    const box = ref.current;
+    if (!box) return;
+    const state = selectionState(cardBoxes(box.form));
+    box.checked = state === "all";
+    box.indeterminate = state === "some";
+  };
+  // À chaque rendu (nouvelle page, nouvel onglet), puis à chaque case cochée à la main.
+  useEffect(sync);
+  useEffect(() => {
+    const form = ref.current?.form;
+    form?.addEventListener("change", sync);
+    return () => form?.removeEventListener("change", sync);
+  });
+  return (
+    <label className="flex items-center gap-1.5">
+      <input
+        ref={ref}
+        type="checkbox"
+        onChange={(e) => {
+          for (const box of cardBoxes(e.currentTarget.form)) box.checked = e.currentTarget.checked;
+        }}
+      />
+      Tout cocher
+    </label>
   );
 }
 
@@ -329,6 +436,7 @@ export function MoveCardsForm({
   return (
     <form action={action} onSubmit={confirmDelete} className="flex flex-col gap-4">
       <div className="bg-surface border-border sticky top-2 z-10 flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
+        <SelectAllBox />
         <span className="text-muted">Cartes cochées :</span>
         <TargetSelect targets={targets} />
         <Button type="submit" size="sm" disabled={pending}>
