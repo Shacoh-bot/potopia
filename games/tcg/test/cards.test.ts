@@ -686,14 +686,14 @@ describe("idée en doublon", () => {
 });
 
 describe("étapes de préparation", () => {
-  it("commence à l'illustration ; changer d'étape ne touche ni à la place ni au numéro", async () => {
+  it("commence « à traiter » ; changer d'étape ne touche ni à la place ni au numéro", async () => {
     const a = await createCard(ADMIN, { ...BASE, name: "A" });
     const b = await createCard(ADMIN, { ...BASE, name: "B", setId });
-    expect(a.prepStage).toBe("illustration");
-    expect(await setCardStage(ADMIN, [a.id, b.id], "effect")).toEqual({ staged: 2 });
-    expect(await setCardStage(ADMIN, [a.id], "effect")).toEqual({ staged: 0 });
-    expect(await getCard(ADMIN, a.id)).toMatchObject({ prepStage: "effect", setId: null });
-    expect(await getCard(ADMIN, b.id)).toMatchObject({ prepStage: "effect", setId, number: 1 });
+    expect(a.prepStage).toBe("todo");
+    expect(await setCardStage(ADMIN, [a.id, b.id], "described")).toEqual({ staged: 2 });
+    expect(await setCardStage(ADMIN, [a.id], "described")).toEqual({ staged: 0 });
+    expect(await getCard(ADMIN, a.id)).toMatchObject({ prepStage: "described", setId: null });
+    expect(await getCard(ADMIN, b.id)).toMatchObject({ prepStage: "described", setId, number: 1 });
   });
 
   it("garde l'étape quand la carte est rangée dans un set, puis en revient", async () => {
@@ -708,7 +708,7 @@ describe("étapes de préparation", () => {
   it("refuse une étape inconnue", async () => {
     const a = await createCard(ADMIN, { ...BASE });
     await expect(setCardStage(ADMIN, [a.id], "finie")).rejects.toThrow(CardInputError);
-    expect((await getCard(ADMIN, a.id))?.prepStage).toBe("illustration");
+    expect((await getCard(ADMIN, a.id))?.prepStage).toBe("todo");
   });
 });
 

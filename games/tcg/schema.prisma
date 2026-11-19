@@ -79,7 +79,7 @@ model TcgCard {
   adminNote         String?       @map("admin_note")
   // Étape de préparation dans la réserve (`CARD_PREP_STAGES`) : illustration, effet, intégration.
   // Repère d'admin seulement, sans effet en jeu.
-  prepStage         String        @default("illustration") @map("prep_stage")
+  prepStage         String        @default("todo") @map("prep_stage")
   // Clé de l'illustration dans le stockage (jamais une URL) ; sans elle, l'image de l'idée.
   imageKey          String?       @map("image_key")
   // Illustration propre à la version full art ; null : la full art reprend `imageKey`.

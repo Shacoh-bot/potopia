@@ -70,9 +70,9 @@ export default async function AdminCardsPage({
   // La réserve par défaut : les cartes y attendent avant d'être rangées dans un set.
   const current = trashView ? null : (sets.find((s) => s.code === code) ?? null);
   const reserveView = !trashView && current === null;
-  // Dans la réserve, l'onglet d'une étape de préparation ne montre que ses cartes ; « Toutes »
-  // (pas d'étape) les montre toutes.
-  const stage = (reserveView && !query && CARD_PREP_STAGES.find((s) => s === etape)) || null;
+  // Dans la réserve ou un set, l'onglet d'une étape de préparation ne montre que ses cartes ;
+  // « Toutes » (pas d'étape) les montre toutes.
+  const stage = (!trashView && !query && CARD_PREP_STAGES.find((s) => s === etape)) || null;
   // Une recherche porte sur toutes les cartes (sets et réserve, ou la corbeille quand on y est) :
   // nom, type, famille, textes.
   const words = fold(query).split(/\s+/).filter(Boolean);
@@ -104,12 +104,14 @@ export default async function AdminCardsPage({
   const counts = CARD_RARITIES.map((r) => [r, cards.filter((c) => c.rarity === r).length] as const);
   const reserve = all.filter((c) => c.setId === null);
   const reserveCount = reserve.length;
+  // Cartes de la vue (réserve ou set), toutes étapes : compteurs des onglets d'étape.
+  const placeCards = trashView ? [] : all.filter((c) => c.setId === (current?.id ?? null));
   const setSizes = new Map(sets.map((s) => [s.id, all.filter((c) => c.setId === s.id).length]));
 
   const setParam = trashView ? TRASH : current ? current.code : RESERVE;
   /**
-   * Adresse de la planche ; la vue (miniatures ou liste) et l'étape (réserve) sont gardées sauf si
-   * on les change.
+   * Adresse de la planche ; la vue (miniatures ou liste) et l'étape (réserve ou set ; « Toutes »
+   * quand on change de place) sont gardées sauf si on les change.
    */
   const href = (o: {
     set?: string;
@@ -120,7 +122,7 @@ export default async function AdminCardsPage({
   }) => {
     const params = new URLSearchParams({ set: o.set ?? setParam });
     const st = o.stage === undefined ? stage : o.stage;
-    if (st && !o.q && params.get("set") === RESERVE) params.set("etape", st);
+    if (st && !o.q && params.get("set") !== TRASH) params.set("etape", st);
     if (o.q) params.set("q", o.q);
     if (o.list ?? list) params.set("vue", "liste");
     if (o.page && o.page > 1) params.set("page", String(o.page));
@@ -168,7 +170,7 @@ export default async function AdminCardsPage({
 
   const tabs = [
     ...sets.map((s) => ({
-      href: href({ set: s.code }),
+      href: href({ set: s.code, stage: null }),
       label: `${s.code} · ${s.name} (${setSizes.get(s.id) ?? 0})`,
       active: !query && s.id === current?.id,
     })),
@@ -178,7 +180,7 @@ export default async function AdminCardsPage({
       active: !query && reserveView,
     },
     {
-      href: href({ set: TRASH }),
+      href: href({ set: TRASH, stage: null }),
       label: `Corbeille (${trash.length})`,
       active: trashView,
     },
@@ -214,23 +216,26 @@ export default async function AdminCardsPage({
     label: CARD_PREP_STAGE_LABELS[s],
   }));
   const stageTabs = [
-    { href: href({ stage: null }), label: `Toutes (${reserveCount})`, active: stage === null },
+    { href: href({ stage: null }), label: `Toutes (${placeCards.length})`, active: stage === null },
     ...CARD_PREP_STAGES.map((s, i) => ({
       href: href({ stage: s }),
-      label: `${i + 1}. ${CARD_PREP_STAGE_LABELS[s]} (${reserve.filter((c) => c.prepStage === s).length})`,
+      label: `${i + 1}. ${CARD_PREP_STAGE_LABELS[s]} (${placeCards.filter((c) => c.prepStage === s).length})`,
       active: stage === s,
     })),
   ];
   const setButtons: MoveTarget[] = sets.map((s) => ({ id: s.id, label: s.code }));
-  /** Pastilles d'étape, pour une carte de la réserve seulement. */
+  /**
+   * Coches d'étape, pour une carte de la réserve ou d'un set (pas de la corbeille) ; les boutons
+   * « Ranger dans <set> » de la dernière étape, pour une carte de la réserve seulement.
+   */
   const stageButtons = (c: (typeof cards)[number]) =>
-    c.setId === null && !c.deletedAt ? (
+    !c.deletedAt ? (
       <StageButtons
         cardId={c.id}
         cardName={c.name}
         stage={c.prepStage}
         stages={stageOptions}
-        sets={setButtons}
+        sets={c.setId === null ? setButtons : []}
       />
     ) : null;
 
@@ -293,11 +298,11 @@ export default async function AdminCardsPage({
             Coche des cartes pour les déplacer d&apos;un coup.
           </p>
           <p className="text-muted">
-            Dans la réserve, une carte se prépare en trois étapes : son illustration, puis sa
-            description et son effet, puis son intégration finale dans un set. Les onglets
-            d&apos;étape filtrent la réserve ; les coches sous chaque carte la classent en un clic.
-            Les boutons « Normale » et « Full art » sous une carte la montrent dans cette version
-            (grisé : la carte ne l&apos;a pas).
+            Une carte se prépare en quatre étapes : à traiter, illustration ok, description et effet
+            ok, puis à intégrer à un set (un bouton par set l&apos;y range, depuis la réserve). Les
+            onglets d&apos;étape filtrent la réserve ou le set ; les coches sous chaque carte la
+            classent en un clic. Les boutons « Normale » et « Full art » sous une carte la montrent
+            dans cette version (grisé : la carte ne l&apos;a pas).
           </p>
           <nav className="flex flex-wrap gap-2" aria-label="Sets, réserve et corbeille">
             {tabs.map((t) => (
@@ -314,7 +319,7 @@ export default async function AdminCardsPage({
               </Link>
             ))}
           </nav>
-          {reserveView && !query && (
+          {!trashView && !query && (
             <nav className="flex flex-wrap gap-2 text-xs" aria-label="Étapes de préparation">
               {stageTabs.map((t) => (
                 <Link
