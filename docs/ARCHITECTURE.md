@@ -219,7 +219,9 @@ passe d'une partie à l'autre sans rechargement.
   version Alt Art ; null, elle reprend `imageKey`), imageFrame? (JSON : cadrage de
   effectParams? (JSON), effectText, flavor?, adminNote? (note de l'admin, 120 caractères :
   « Doublon de … » ; jamais montrée aux joueurs, sans effet en jeu ; absente d'une modification,
-  elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), imageKey?, imageFrame? (JSON : cadrage de
+  elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), prepStage (étape de préparation
+  dans la réserve, `CARD_PREP_STAGES` : illustration par défaut, effect, integration ; repère d'admin sans effet en
+  jeu ; migration `tcg_card_prep_stage`, ajout seul), imageKey?, imageFrame? (JSON : cadrage de
   l'illustration en carte normale, point de cadrage x/y en % et zoom de 0,25 à 4 ; sous 1, l'image
   rétrécit et sa copie floutée remplit le vide ; l'image n'est jamais rognée), imageFrameFull? (JSON :
   cadrage en full art, zoom de 1 à 4 ; null, celui de la carte normale sans son dézoom), glowPoints? (JSON : points lumineux posés sur
@@ -898,6 +900,12 @@ et modifient les cartes.
   lui ; hors set, elle attend dans la réserve, sans numéro. `moveCards` déplace une ou plusieurs
   cartes vers un set (à la suite) ou la réserve, et renumérote de 1 à N le set qu'elles quittent ;
   `createSet` crée un set (code unique).
+- Étapes de préparation (réserve) : chaque carte porte une étape (`prepStage`) : illustration, puis
+  description et effet, puis intégration finale dans un set. `setCardStage` la change sans toucher
+  à la place ni au numéro de la carte (l'étape est gardée quand elle change de place). Dans
+  /admin/cartes, la réserve a un onglet par étape plus « Toutes » (filtres, `?etape=`), et des
+  pastilles sous chaque carte de la réserve la classent en un clic ; à la dernière étape, un bouton
+  par set l'y range (`moveCards`).
 - Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
   (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
   les rend qu'avec `trashed: true`, la mise à jour en masse les ignore), mais restent en base.

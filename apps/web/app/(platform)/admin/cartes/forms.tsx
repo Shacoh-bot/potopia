@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Label, Select } from "@app/ui";
+import { Button, cx, Input, Label, Select } from "@app/ui";
 import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +13,13 @@ import {
   useState,
   useTransition,
 } from "react";
-import { createSetAction, type FormState, moveCardsAction, placeCardAction } from "./actions";
+import {
+  createSetAction,
+  type FormState,
+  moveCardsAction,
+  placeCardAction,
+  stageCardAction,
+} from "./actions";
 
 function Status({ state }: { state: FormState }) {
   if (state.status === "idle") return null;
@@ -220,6 +226,75 @@ export function PlaceSelect({
           </option>
         ))}
       </Select>
+      {error && <span className="text-danger text-xs">{error}</span>}
+    </span>
+  );
+}
+
+/**
+ * Étape de préparation d'une carte de la réserve, en un clic : une pastille par étape (la sienne
+ * allumée) ; à la dernière, un bouton par set pour l'y ranger, où elle prend son numéro. Tout
+ * s'enregistre tout de suite ; la page se redessine avec la nouvelle étape.
+ */
+export function StageButtons({
+  cardId,
+  cardName,
+  stage,
+  stages,
+  sets,
+}: {
+  cardId: string;
+  cardName: string;
+  /** Étape actuelle de la carte. */
+  stage: string;
+  /** Les étapes, dans l'ordre (id et nom). */
+  stages: MoveTarget[];
+  /** Les sets où ranger une carte arrivée à la dernière étape (id et code). */
+  sets: MoveTarget[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const run = (action: () => Promise<{ error: string } | null>) =>
+    startTransition(async () => setError((await action())?.error ?? null));
+  const last = stages.at(-1)?.id;
+  return (
+    <span className="flex flex-col items-center gap-1">
+      <span
+        role="group"
+        aria-label={`Étape de ${cardName}`}
+        aria-busy={pending}
+        className="flex flex-wrap justify-center gap-1"
+      >
+        {stages.map((s, i) => (
+          <button
+            key={s.id}
+            type="button"
+            disabled={pending}
+            aria-pressed={s.id === stage}
+            onClick={() => s.id !== stage && run(() => stageCardAction(cardId, s.id))}
+            className={cx(
+              "rounded-full border px-2 py-0.5 text-xs disabled:opacity-60",
+              s.id === stage
+                ? "border-accent bg-accent/15 text-text"
+                : "border-border text-muted hover:text-text",
+            )}
+          >
+            {i + 1}. {s.label}
+          </button>
+        ))}
+        {stage === last &&
+          sets.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              disabled={pending}
+              onClick={() => run(() => placeCardAction(cardId, t.id))}
+              className="border-accent text-accent hover:bg-accent/15 rounded-full border px-2 py-0.5 text-xs disabled:opacity-60"
+            >
+              Ranger dans {t.label}
+            </button>
+          ))}
+      </span>
       {error && <span className="text-danger text-xs">{error}</span>}
     </span>
   );

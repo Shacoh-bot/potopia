@@ -42,6 +42,7 @@ export {
   listSets,
   listVisualEffects,
   moveCards,
+  setCardStage,
   setCardImage,
   trashCards,
   updateCard,
@@ -75,6 +76,8 @@ export {
   ALT_ART_CHANCE,
   ALT_ART_NEEDS_NORMAL,
   CARD_LAYOUTS,
+  CARD_PREP_STAGE_LABELS,
+  CARD_PREP_STAGES,
   CARD_VERSION_LABELS,
   cardVersions,
   drawVersion,
@@ -84,6 +87,7 @@ export {
   isAltArt,
   revealRarity,
   type CardLayout,
+  type CardPrepStage,
 } from "./card-rules";
 export { SNAP_CARDS, type SnapStats } from "./snap-cards";
 export {
