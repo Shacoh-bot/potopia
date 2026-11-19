@@ -20,6 +20,8 @@ import {
   ideaStateOf,
   type ImageFrame,
   type VisualEffect,
+  CARD_PREP_STAGES,
+  type CardPrepStage,
 } from "./card-rules";
 import {
   EFFECT_KEYS,
@@ -253,8 +255,10 @@ type CardRow = Omit<
   | "imageFrame"
   | "imageFrameFull"
   | "visualEffectKeys"
+  | "prepStage"
 > & {
   rarity: string;
+  prepStage: string;
   layout: string;
   glowPoints: unknown;
   visualEffects: { effectKey: string }[];
@@ -271,6 +275,7 @@ export function toCard(row: CardRow): Card {
     visualEffectKeys: visualEffects.map((e) => e.effectKey),
     rarity: row.rarity as CardRarityId,
     layout: row.layout as CardLayout,
+    prepStage: row.prepStage as CardPrepStage,
     glowPoints: (row.glowPoints as GlowPoint[] | null) ?? [],
     effectParams: (row.effectParams as EffectParams | null) ?? null,
     imageFrame: (row.imageFrame as ImageFrame | null) ?? null,
@@ -648,6 +653,30 @@ export async function moveCards(
       }
     }
     return { moved: moving.length };
+  }, opts);
+}
+
+/**
+ * Classe des cartes à une étape de préparation (`CARD_PREP_STAGES`), sans toucher à leur place
+ * (set, réserve, corbeille) ni à leur numéro. Renvoie le nombre de cartes qui changent d'étape.
+ */
+export async function setCardStage(
+  admin: Admin,
+  ids: string[],
+  stage: string,
+  opts?: { tx?: DbTx },
+): Promise<{ staged: number }> {
+  assertAdmin(admin);
+  const unique = [...new Set(idsInput.parse(ids))];
+  if (!(CARD_PREP_STAGES as readonly string[]).includes(stage)) {
+    throw new CardInputError("Étape de préparation inconnue.");
+  }
+  return withTx(async (tx) => {
+    const { count } = await tx.tcgCard.updateMany({
+      where: { id: { in: unique }, prepStage: { not: stage } },
+      data: { prepStage: stage },
+    });
+    return { staged: count };
   }, opts);
 }
 

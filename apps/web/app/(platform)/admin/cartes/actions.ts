@@ -10,6 +10,7 @@ import {
   listCards,
   trashCards,
   moveCards,
+  setCardStage,
   createCardImageUpload,
   importCards,
   setCardImage,
@@ -200,6 +201,26 @@ export async function placeCardAction(
     const to = z.string().min(1).parse(target);
     if (to === "trash") await trashCards(admin, [cardId]);
     else await moveCards(admin, [cardId], to === "reserve" ? null : to);
+  } catch (error) {
+    const message = inputError(error);
+    if (message === null) throw error;
+    return { error: message };
+  }
+  revalidatePath("/admin/cartes", "layout");
+  return null;
+}
+
+/**
+ * Classe une carte à une étape de préparation (pastilles sous la carte), sans la déplacer.
+ * Renvoie l'erreur lisible, ou null.
+ */
+export async function stageCardAction(
+  id: string,
+  stage: string,
+): Promise<{ error: string } | null> {
+  const admin = await actionAdmin();
+  try {
+    await setCardStage(admin, [z.string().min(1).parse(id)], stage);
   } catch (error) {
     const message = inputError(error);
     if (message === null) throw error;

@@ -91,6 +91,20 @@ export function fitZoom(
   return Math.max(FRAME_ZOOM.min, Math.floor(fit * 100) / 100);
 }
 
+/**
+ * Étapes de préparation d'une carte de la réserve, dans l'ordre : on fait l'illustration, puis la
+ * description et l'effet ; à la dernière, elle attend d'être rangée dans son set (ce rangement,
+ * `moveCards`, lui donne son numéro). Repère d'admin seulement : sans effet en jeu.
+ */
+export const CARD_PREP_STAGES = ["illustration", "effect", "integration"] as const;
+export type CardPrepStage = (typeof CARD_PREP_STAGES)[number];
+
+export const CARD_PREP_STAGE_LABELS: Record<CardPrepStage, string> = {
+  illustration: "Illustration",
+  effect: "Description et effet",
+  integration: "Intégration finale",
+};
+
 /** Mise en page d'une carte : illustration dans une fenêtre (normale) ou sur toute la carte. */
 export const CARD_LAYOUTS = ["normal", "fullart"] as const;
 export type CardLayout = (typeof CARD_LAYOUTS)[number];
@@ -299,6 +313,8 @@ export type Card = {
   flavor: string | null;
   /** Note de l'admin (« Doublon de … ») : jamais montrée aux joueurs, sans effet en jeu. */
   adminNote: string | null;
+  /** Étape de préparation (réserve) : repère d'admin, gardé quand la carte change de place. */
+  prepStage: CardPrepStage;
   imageKey: string | null;
   /** Illustration de la version full art ; null : celle de la normale (`imageKey`). */
   imageKeyFull: string | null;

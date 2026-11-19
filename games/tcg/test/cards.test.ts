@@ -26,6 +26,7 @@ import {
   listVisualEffects,
   moveCards,
   paramsSchema,
+  setCardStage,
   setCardImage,
   smallImageKeyFor,
   isBlurryWhenZoomed,
@@ -681,6 +682,33 @@ describe("idée en doublon", () => {
     });
 
     await expect(ideaCardStates(MEMBER)).rejects.toThrow("Réservé aux admins.");
+  });
+});
+
+describe("étapes de préparation", () => {
+  it("commence à l'illustration ; changer d'étape ne touche ni à la place ni au numéro", async () => {
+    const a = await createCard(ADMIN, { ...BASE, name: "A" });
+    const b = await createCard(ADMIN, { ...BASE, name: "B", setId });
+    expect(a.prepStage).toBe("illustration");
+    expect(await setCardStage(ADMIN, [a.id, b.id], "effect")).toEqual({ staged: 2 });
+    expect(await setCardStage(ADMIN, [a.id], "effect")).toEqual({ staged: 0 });
+    expect(await getCard(ADMIN, a.id)).toMatchObject({ prepStage: "effect", setId: null });
+    expect(await getCard(ADMIN, b.id)).toMatchObject({ prepStage: "effect", setId, number: 1 });
+  });
+
+  it("garde l'étape quand la carte est rangée dans un set, puis en revient", async () => {
+    const a = await createCard(ADMIN, { ...BASE });
+    await setCardStage(ADMIN, [a.id], "integration");
+    await moveCards(ADMIN, [a.id], setId);
+    expect(await getCard(ADMIN, a.id)).toMatchObject({ prepStage: "integration", number: 1 });
+    await moveCards(ADMIN, [a.id], null);
+    expect(await getCard(ADMIN, a.id)).toMatchObject({ prepStage: "integration", setId: null });
+  });
+
+  it("refuse une étape inconnue", async () => {
+    const a = await createCard(ADMIN, { ...BASE });
+    await expect(setCardStage(ADMIN, [a.id], "finie")).rejects.toThrow(CardInputError);
+    expect((await getCard(ADMIN, a.id))?.prepStage).toBe("illustration");
   });
 });
 
