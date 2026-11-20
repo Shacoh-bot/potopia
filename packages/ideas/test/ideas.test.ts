@@ -12,6 +12,7 @@ import {
   SHOWCASE_IDEA_ID,
   InvalidImageError,
   getIdeaAuthorIds,
+  getIdeaLabels,
   listIdeaIds,
   listIdeaImageUrls,
   listIdeas,
@@ -351,5 +352,27 @@ describe("idée exemple du vote des designs", () => {
       total: 3,
     });
     expect(await getShowcaseImageUrl()).toBeNull();
+  });
+});
+
+describe("onglets et libellés de la liste admin", () => {
+  it("filtre par ids (seulement / sauf) et donne titre et auteur", async () => {
+    await submitIdea(MEMBER.id, idea(1));
+    await submitIdea(OTHER.id, idea(2));
+    const all = (await listIdeas(ADMIN)).items;
+    const [first, second] = all.map((i) => i.id);
+    const ids = async (f: Parameters<typeof listIdeas>[1]) =>
+      (await listIdeas(ADMIN, f)).items.map((i) => i.id);
+    expect(await ids({ onlyIds: [first ?? ""] })).toEqual([first]);
+    expect(await ids({ exceptIds: [first ?? ""] })).toEqual([second]);
+    expect(await ids({ onlyIds: [] })).toEqual([]);
+    expect(await ids({ exceptIds: [] })).toHaveLength(2);
+
+    const labels = await getIdeaLabels(ADMIN, [first ?? ""]);
+    expect(labels.get(first ?? "")).toEqual({
+      title: all[0]?.title,
+      authorId: all[0]?.authorId,
+    });
+    await expect(getIdeaLabels(MEMBER, [])).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

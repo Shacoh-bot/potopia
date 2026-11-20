@@ -188,8 +188,8 @@ export async function createSetAction(_prev: FormState, formData: FormData): Pro
 }
 
 /**
- * Range une carte depuis la liste (menu de sa ligne) : un set (id), la réserve (« reserve ») ou la
- * corbeille (« trash »). Renvoie l'erreur lisible, ou null.
+ * Range une carte depuis la liste (menu de sa ligne) : un set (id), la réserve (« reserve »), la
+ * corbeille (« trash ») ou le doublon (« duplicate »). Renvoie l'erreur lisible, ou null.
  */
 export async function placeCardAction(
   id: string,
@@ -199,8 +199,9 @@ export async function placeCardAction(
   try {
     const cardId = z.string().min(1).parse(id);
     const to = z.string().min(1).parse(target);
-    if (to === "trash") await trashCards(admin, [cardId]);
-    else await moveCards(admin, [cardId], to === "reserve" ? null : to);
+    if (to === "trash" || to === "duplicate") {
+      await trashCards(admin, [cardId], { duplicate: to === "duplicate" });
+    } else await moveCards(admin, [cardId], to === "reserve" ? null : to);
   } catch (error) {
     const message = inputError(error);
     if (message === null) throw error;
@@ -235,8 +236,8 @@ const plural = (n: number, word: string) =>
 
 /**
  * Range les cartes cochées (`ids`) dans un set ou dans la réserve (`target` = « reserve »), ce qui
- * les sort de la corbeille ; `target` = « trash » les met à la corbeille, « delete » supprime pour
- * de bon celles de la corbeille.
+ * les sort de la corbeille ; `target` = « trash » les met à la corbeille, « duplicate » au doublon
+ * (corbeille, marquées « Doublon »), « delete » supprime pour de bon celles de la corbeille.
  */
 export async function moveCardsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const admin = await actionAdmin();
@@ -244,10 +245,15 @@ export async function moveCardsAction(_prev: FormState, formData: FormData): Pro
   const ids = formData.getAll("ids").map(String);
   if (ids.length === 0) return { status: "error", message: "Coche au moins une carte." };
   try {
-    if (target === "trash") {
-      const { trashed } = await trashCards(admin, ids);
+    if (target === "trash" || target === "duplicate") {
+      const duplicate = target === "duplicate";
+      await trashCards(admin, ids, { duplicate });
       revalidatePath("/admin/cartes", "layout");
-      return { status: "ok", message: `${plural(trashed, "mise")} à la corbeille.` };
+      const n = new Set(ids).size;
+      return {
+        status: "ok",
+        message: `${plural(n, "mise")} ${duplicate ? "en doublon" : "à la corbeille"}.`,
+      };
     }
     if (target === "delete") {
       const { deleted } = await deleteCards(admin, ids);

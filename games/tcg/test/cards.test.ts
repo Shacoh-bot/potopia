@@ -32,6 +32,7 @@ import {
   isBlurryWhenZoomed,
   SNAP_CARDS,
   trashCards,
+  unmarkDuplicateNote,
   updateCard,
   updateCards,
 } from "../src/index";
@@ -634,9 +635,10 @@ describe("idée en doublon", () => {
 
   it("une carte gardée l'emporte : l'idée n'est doublon que sans carte gardée", () => {
     const trashedAt = new Date();
-    expect(ideaStateOf([])).toEqual({ cards: 0, duplicate: false });
+    const none = { cards: 0, duplicate: false, trashed: false };
+    expect(ideaStateOf([])).toEqual(none);
     expect(ideaStateOf([{ adminNote: "Doublon", deletedAt: trashedAt }])).toEqual({
-      cards: 0,
+      ...none,
       duplicate: true,
     });
     expect(
@@ -644,44 +646,77 @@ describe("idée en doublon", () => {
         { adminNote: "Doublon", deletedAt: trashedAt },
         { adminNote: null, deletedAt: null },
       ]),
-    ).toEqual({ cards: 1, duplicate: false });
-    // à la corbeille sans la marque (essai) : l'idée redevient à transformer
+    ).toEqual({ ...none, cards: 1 });
+    // à la corbeille sans la marque (essai) : l'idée suit sa carte à la corbeille
     expect(ideaStateOf([{ adminNote: null, deletedAt: trashedAt }])).toEqual({
-      cards: 0,
-      duplicate: false,
+      ...none,
+      trashed: true,
     });
+  });
+
+  it("retire la marque « Doublon » d'une note et garde le reste", () => {
+    expect(unmarkDuplicateNote("Doublon")).toBeNull();
+    expect(unmarkDuplicateNote("Doublon — gardée : « X »")).toBe("gardée : « X »");
+    expect(unmarkDuplicateNote("Essai")).toBe("Essai");
+    expect(unmarkDuplicateNote(null)).toBeNull();
   });
 
   it("suit la marque « Doublon » de la carte, à la corbeille ou non, et la retire avec elle", async () => {
     const kept = await createCard(ADMIN, { ...BASE, name: "Gardée", setId, ideaId: "idea-kept" });
     const dup = await createCard(ADMIN, { ...BASE, name: "Doublon", setId, ideaId: "idea-dup" });
     await createCard(ADMIN, { ...BASE, name: "Sans idée", setId });
+    const live = { cards: 1, duplicate: false, trashed: false };
     expect(await ideaCardStates(ADMIN)).toEqual(
       new Map([
-        ["idea-kept", { cards: 1, duplicate: false }],
-        ["idea-dup", { cards: 1, duplicate: false }],
+        ["idea-kept", live],
+        ["idea-dup", live],
       ]),
     );
 
     // marquée « Doublon » (encore dans le set) : l'idée est doublon, elle n'a plus de carte gardée
     const marked = { ...BASE, adminNote: `Doublon — gardée : « Gardée » (${kept.id})` };
     await updateCard(ADMIN, dup.id, marked);
-    expect((await ideaCardStates(ADMIN)).get("idea-dup")).toEqual({ cards: 0, duplicate: true });
+    const dupState = { cards: 0, duplicate: true, trashed: false };
+    expect((await ideaCardStates(ADMIN)).get("idea-dup")).toEqual(dupState);
 
     // puis à la corbeille : toujours doublon ; l'idée gardée ne bouge pas
     await trashCards(ADMIN, [dup.id]);
     const states = await ideaCardStates(ADMIN);
-    expect(states.get("idea-dup")).toEqual({ cards: 0, duplicate: true });
-    expect(states.get("idea-kept")).toEqual({ cards: 1, duplicate: false });
+    expect(states.get("idea-dup")).toEqual(dupState);
+    expect(states.get("idea-kept")).toEqual(live);
 
-    // marque retirée : l'idée redevient normale (sa seule carte est à la corbeille)
+    // marque retirée : l'idée suit sa seule carte, à la corbeille
     await updateCard(ADMIN, dup.id, { ...BASE, adminNote: null });
     expect((await ideaCardStates(ADMIN)).get("idea-dup")).toEqual({
       cards: 0,
       duplicate: false,
+      trashed: true,
     });
 
     await expect(ideaCardStates(MEMBER)).rejects.toThrow("Réservé aux admins.");
+  });
+
+  it("« Doublon » : la carte va à la corbeille marquée ; Corbeille ou sortie retirent la marque", async () => {
+    const card = await createCard(ADMIN, { ...BASE, name: "Copie", setId, ideaId: "idea-copy" });
+    await updateCard(ADMIN, card.id, { ...BASE, name: "Copie", adminNote: "vue en double" });
+    const state = async () => (await ideaCardStates(ADMIN)).get("idea-copy");
+    const note = async () => (await getCard(ADMIN, card.id))?.adminNote;
+
+    await trashCards(ADMIN, [card.id], { duplicate: true });
+    expect(await note()).toBe("Doublon — vue en double");
+    expect((await getCard(ADMIN, card.id))?.deletedAt).not.toBeNull();
+    expect(await state()).toEqual({ cards: 0, duplicate: true, trashed: false });
+
+    // du Doublon à la Corbeille : la marque part, l'idée suit à la corbeille
+    await trashCards(ADMIN, [card.id]);
+    expect(await note()).toBe("vue en double");
+    expect(await state()).toEqual({ cards: 0, duplicate: false, trashed: true });
+
+    // retour au Doublon, puis sortie dans la réserve : l'idée revient
+    await trashCards(ADMIN, [card.id], { duplicate: true });
+    await moveCards(ADMIN, [card.id], null);
+    expect(await note()).toBe("vue en double");
+    expect(await state()).toEqual({ cards: 1, duplicate: false, trashed: false });
   });
 });
 

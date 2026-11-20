@@ -26,6 +26,9 @@ function assertAdmin(reader: Reader): void {
 const listFilters = z.object({
   authorId: z.string().min(1).optional(),
   rarity: z.enum(RARITIES).optional(),
+  /** Seulement ces idées (`onlyIds`), ou toutes sauf celles-ci (`exceptIds`). */
+  onlyIds: z.array(z.string()).optional(),
+  exceptIds: z.array(z.string()).optional(),
   cursor: z.string().min(1).optional(),
   limit: z.number().int().min(1).max(100).default(20),
 });
@@ -36,9 +39,10 @@ export async function listIdeas(
   filters: z.input<typeof listFilters> = {},
 ): Promise<{ items: Idea[]; nextCursor: string | null }> {
   assertAdmin(reader);
-  const { authorId, rarity, cursor, limit } = listFilters.parse(filters);
+  const { authorId, rarity, onlyIds, exceptIds, cursor, limit } = listFilters.parse(filters);
+  const id = onlyIds ? { in: onlyIds } : exceptIds?.length ? { notIn: exceptIds } : undefined;
   const rows = await db.idea.findMany({
-    where: { authorId, suggestedRarity: rarity },
+    where: { id, authorId, suggestedRarity: rarity },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -97,6 +101,23 @@ export async function getIdeaAuthorIds(
     select: { id: true, authorId: true },
   });
   return new Map(rows.map((r) => [r.id, r.authorId]));
+}
+
+/**
+ * Titre et auteur (id) de chacune de ces idées, par id d'idée : la liste admin des cartes affiche
+ * « Lié à l'idée : titre — auteur ». Lève ForbiddenError pour un non-admin.
+ */
+export async function getIdeaLabels(
+  reader: Reader,
+  ids: string[],
+): Promise<Map<string, { title: string; authorId: string }>> {
+  assertAdmin(reader);
+  if (ids.length === 0) return new Map();
+  const rows = await db.idea.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, title: true, authorId: true },
+  });
+  return new Map(rows.map((r) => [r.id, { title: r.title, authorId: r.authorId }]));
 }
 
 /** Ids de toutes les idées (compteurs de la liste admin). Lève ForbiddenError pour un non-admin. */
