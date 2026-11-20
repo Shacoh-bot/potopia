@@ -22,6 +22,8 @@ import {
   type VisualEffect,
   CARD_PREP_STAGES,
   type CardPrepStage,
+  markDuplicateNote,
+  unmarkDuplicateNote,
 } from "./card-rules";
 import {
   EFFECT_KEYS,
@@ -67,6 +69,7 @@ export {
   type ImageFrame,
   isDuplicateNote,
   markDuplicateNote,
+  unmarkDuplicateNote,
   type VisualEffect,
 } from "./card-rules";
 
@@ -441,7 +444,7 @@ export async function listCards(
  */
 export async function ideaCardStates(
   admin: Admin,
-): Promise<Map<string, { cards: number; duplicate: boolean }>> {
+): Promise<Map<string, { cards: number; duplicate: boolean; trashed: boolean }>> {
   assertAdmin(admin);
   const rows = await db.tcgCard.findMany({
     where: { ideaId: { not: null } },
@@ -582,10 +585,31 @@ const idsInput = z.array(z.string().min(1)).min(1, "Aucune carte choisie.");
 async function findCards(tx: DbTx, ids: string[]) {
   const cards = await tx.tcgCard.findMany({
     where: { id: { in: ids } },
-    select: { id: true, name: true, setId: true, baseCardId: true, deletedAt: true },
+    select: {
+      id: true,
+      name: true,
+      setId: true,
+      baseCardId: true,
+      deletedAt: true,
+      adminNote: true,
+    },
   });
   if (cards.length !== ids.length) throw new CardInputError("Carte introuvable.");
   return cards;
+}
+
+/** Réécrit la note admin des cartes dont `note` la change (marque « Doublon » posée ou retirée). */
+async function rewriteNotes(
+  tx: DbTx,
+  cards: { id: string; adminNote: string | null }[],
+  note: (current: string | null) => string | null,
+): Promise<void> {
+  for (const card of cards) {
+    const next = note(card.adminNote);
+    if (next !== card.adminNote) {
+      await tx.tcgCard.update({ where: { id: card.id }, data: { adminNote: next } });
+    }
+  }
 }
 
 /**
@@ -642,6 +666,12 @@ export async function moveCards(
       return card && (card.deletedAt || card.setId !== setId) ? [card] : [];
     });
     await leaveSets(tx, moving);
+    // Une carte qui sort du « Doublon » perd sa marque (son idée redevient normale).
+    await rewriteNotes(
+      tx,
+      moving.filter((c) => c.deletedAt),
+      unmarkDuplicateNote,
+    );
     await tx.tcgCard.updateMany({
       where: { id: { in: moving.map((c) => c.id) }, deletedAt: { not: null } },
       data: { deletedAt: null },
@@ -683,17 +713,27 @@ export async function setCardStage(
 /**
  * Met des cartes à la corbeille (doublons, essais…) : elles sortent de leur set (renuméroté) et
  * des listes, mais restent en base ; `moveCards` les en sort. Une carte de base n'y va qu'avec
- * ses variantes. Une carte déjà à la corbeille est laissée telle quelle.
+ * ses variantes. Avec `duplicate`, les cartes vont au « Doublon » : la corbeille, avec la marque
+ * « Doublon » dans leur note (`markDuplicateNote`). Sans, une carte déjà à la corbeille perd cette
+ * marque (du « Doublon » à la « Corbeille ») ; une carte qui arrive garde sa note.
  */
 export async function trashCards(
   admin: Admin,
   ids: string[],
-  opts?: { tx?: DbTx },
+  opts?: { tx?: DbTx; duplicate?: boolean },
 ): Promise<{ trashed: number }> {
   assertAdmin(admin);
   const unique = [...new Set(idsInput.parse(ids))];
   return withTx(async (tx) => {
-    const fresh = (await findCards(tx, unique)).filter((c) => !c.deletedAt);
+    const found = await findCards(tx, unique);
+    if (opts?.duplicate) await rewriteNotes(tx, found, (n) => markDuplicateNote(n ?? ""));
+    else
+      await rewriteNotes(
+        tx,
+        found.filter((c) => c.deletedAt),
+        unmarkDuplicateNote,
+      );
+    const fresh = found.filter((c) => !c.deletedAt);
     const left = await tx.tcgCard.findFirst({
       where: {
         baseCardId: { in: fresh.map((c) => c.id) },

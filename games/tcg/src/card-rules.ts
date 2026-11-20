@@ -214,17 +214,30 @@ export function markDuplicateNote(note: string): string {
 }
 
 /**
+ * Note sans la marque « Doublon » (inverse de `markDuplicateNote`) : « Doublon — gardée : X »
+ * devient « gardée : X », « Doublon » seul devient null. Une note sans marque est rendue telle quelle.
+ */
+export function unmarkDuplicateNote(note: string | null): string | null {
+  if (!isDuplicateNote(note)) return note;
+  const rest = (note ?? "").replace(/^\s*doublon(?![\p{L}\p{N}])\s*(?:[—–:-]\s*)?/iu, "").trim();
+  return rest || null;
+}
+
+/**
  * État d'une idée d'après ses cartes : `cards`, les cartes du jeu (hors corbeille) qui ne sont pas
  * marquées doublon ; `duplicate`, l'idée n'a aucune de ces cartes et au moins une carte marquée
- * « Doublon », même à la corbeille. Elle ne compte alors plus comme idée à transformer en carte ;
- * retirer la marque la rend normale.
+ * « Doublon », même à la corbeille ; `trashed`, toutes ses cartes sont à la corbeille, sans marque
+ * « Doublon ». Dans ces deux cas elle ne compte plus comme idée à transformer en carte et suit ses
+ * cartes (onglets « Doublon », « Corbeille » des idées) ; une carte qui en sort la ramène.
  */
 export function ideaStateOf(cards: { adminNote: string | null; deletedAt: Date | null }[]): {
   cards: number;
   duplicate: boolean;
+  trashed: boolean;
 } {
   const kept = cards.filter((c) => !c.deletedAt && !isDuplicateNote(c.adminNote)).length;
-  return { cards: kept, duplicate: kept === 0 && cards.some((c) => isDuplicateNote(c.adminNote)) };
+  const duplicate = kept === 0 && cards.some((c) => isDuplicateNote(c.adminNote));
+  return { cards: kept, duplicate, trashed: kept === 0 && !duplicate && cards.length > 0 };
 }
 
 /** Clé de l'illustration d'une version : la full art reprend celle de la normale sans la sienne. */

@@ -45,6 +45,7 @@ export {
   setCardStage,
   setCardImage,
   trashCards,
+  unmarkDuplicateNote,
   updateCard,
   type Card,
   type CardImport,

@@ -5,6 +5,7 @@ export {
   listIdeaAuthorIds,
   listIdeaIds,
   getIdeaAuthorIds,
+  getIdeaLabels,
   listIdeaImageUrls,
   listIdeas,
   type ExportedIdea,

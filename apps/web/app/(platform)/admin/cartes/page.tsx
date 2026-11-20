@@ -6,6 +6,7 @@ import {
   CARD_RARITY_LABELS,
   type Card as TcgCard,
   cardVersions,
+  isDuplicateNote,
   listCards,
   listSets,
 } from "@app/tcg";
@@ -14,6 +15,8 @@ import { buttonClasses, Card, cx, EmptyState } from "@app/ui";
 import { LayoutGrid, List } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getUsersByIds } from "@app/core";
+import { getIdeaLabels } from "@app/ideas";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import {
@@ -27,6 +30,7 @@ import {
 } from "./forms";
 import { type CardFace, cardFaces, imageId } from "./images";
 import { Pagination } from "./Pagination";
+import { inPreparation, placeCards } from "./stages";
 
 export const metadata: Metadata = { title: "Cartes" };
 
@@ -37,6 +41,8 @@ const VERSION_BUTTONS = { normal: "Normale", fullart: "Full art" } as const;
 const RESERVE = "reserve";
 /** Valeur de `?set=` pour la corbeille. */
 const TRASH = "corbeille";
+/** Valeur de `?set=` pour le doublon : les cartes de la corbeille marquées « Doublon ». */
+const DUPLICATE = "doublon";
 
 /**
  * Cartes par page : au-delà, la planche devient lourde à afficher et à faire défiler. La liste
@@ -57,7 +63,7 @@ export default async function AdminCardsPage({
   searchParams: Promise<{ set?: string; page?: string; q?: string; vue?: string; etape?: string }>;
 }) {
   const admin = await getCurrentAdmin();
-  const [sets, all, trash] = await Promise.all([
+  const [sets, all, binned] = await Promise.all([
     listSets(admin),
     listCards(admin),
     listCards(admin, { trashed: true }),
@@ -66,17 +72,23 @@ export default async function AdminCardsPage({
   const query = (rawQuery ?? "").trim().slice(0, 60);
   const list = vue === "liste";
   const pageSize = PAGE_SIZE[list ? "list" : "grid"];
-  const trashView = code === TRASH;
+  // Cartes écartées : le « Doublon » (marquées « Doublon ») et la « Corbeille » (les autres).
+  const duplicates = binned.filter((c) => isDuplicateNote(c.adminNote));
+  const trash = binned.filter((c) => !isDuplicateNote(c.adminNote));
+  const duplicateView = code === DUPLICATE;
+  const trashView = code === TRASH || duplicateView;
+  const bin = duplicateView ? duplicates : trash;
+  const binName = duplicateView ? "Doublon" : "Corbeille";
   // La réserve par défaut : les cartes y attendent avant d'être rangées dans un set.
   const current = trashView ? null : (sets.find((s) => s.code === code) ?? null);
   const reserveView = !trashView && current === null;
-  // Dans la réserve ou un set, l'onglet d'une étape de préparation ne montre que ses cartes ;
-  // « Toutes » (pas d'étape) les montre toutes.
-  const stage = (!trashView && !query && CARD_PREP_STAGES.find((s) => s === etape)) || null;
+  // Dans la réserve seulement (les cartes en préparation), l'onglet d'une étape ne montre que ses
+  // cartes ; « Toutes » (pas d'étape) les montre toutes. Un set montre toutes ses cartes.
+  const stage = (reserveView && !query && CARD_PREP_STAGES.find((s) => s === etape)) || null;
   // Une recherche porte sur toutes les cartes (sets et réserve, ou la corbeille quand on y est) :
   // nom, type, famille, textes.
   const words = fold(query).split(/\s+/).filter(Boolean);
-  const pool = trashView ? trash : all;
+  const pool = trashView ? bin : all;
   const cards = words.length
     ? pool.filter((c) => {
         const text = fold(
@@ -85,8 +97,8 @@ export default async function AdminCardsPage({
         return words.every((w) => text.includes(w));
       })
     : trashView
-      ? trash
-      : all.filter((c) => c.setId === (current?.id ?? null) && (!stage || c.prepStage === stage));
+      ? bin
+      : placeCards(all, current?.id ?? null, stage);
   const pageCount = Math.max(1, Math.ceil(cards.length / pageSize));
   const page = Math.min(Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1), pageCount);
   const shown = cards.slice((page - 1) * pageSize, page * pageSize);
@@ -101,14 +113,41 @@ export default async function AdminCardsPage({
         )
     ).map((face) => [imageId(face.card), face]),
   );
+  // « Lié à l'idée : titre — auteur » de chaque carte affichée tirée d'une idée.
+  const ideaLabels = await getIdeaLabels(
+    admin,
+    shown.flatMap((c) => (c.ideaId ? [c.ideaId] : [])),
+  );
+  const ideaAuthors = new Map(
+    (await getUsersByIds([...new Set([...ideaLabels.values()].map((i) => i.authorId))])).map(
+      (u) => [u.id, u.name],
+    ),
+  );
+  const ideaLink = (c: (typeof cards)[number]) => {
+    const idea = c.ideaId ? ideaLabels.get(c.ideaId) : undefined;
+    return idea ? (
+      <Link
+        href={`/admin/ideas/${c.ideaId}`}
+        className="text-muted hover:text-accent block text-xs hover:underline"
+      >
+        Lié à l&apos;idée : {idea.title} — {ideaAuthors.get(idea.authorId) ?? "membre inconnu"}
+      </Link>
+    ) : null;
+  };
   const counts = CARD_RARITIES.map((r) => [r, cards.filter((c) => c.rarity === r).length] as const);
   const reserve = all.filter((c) => c.setId === null);
   const reserveCount = reserve.length;
-  // Cartes de la vue (réserve ou set), toutes étapes : compteurs des onglets d'étape.
-  const placeCards = trashView ? [] : all.filter((c) => c.setId === (current?.id ?? null));
+  // Cartes de la réserve, toutes étapes : compteurs des onglets d'étape.
+  const stageCards = reserveView ? reserve : [];
   const setSizes = new Map(sets.map((s) => [s.id, all.filter((c) => c.setId === s.id).length]));
 
-  const setParam = trashView ? TRASH : current ? current.code : RESERVE;
+  const setParam = trashView
+    ? duplicateView
+      ? DUPLICATE
+      : TRASH
+    : current
+      ? current.code
+      : RESERVE;
   /**
    * Adresse de la planche ; la vue (miniatures ou liste) et l'étape (réserve ou set ; « Toutes »
    * quand on change de place) sont gardées sauf si on les change.
@@ -122,7 +161,8 @@ export default async function AdminCardsPage({
   }) => {
     const params = new URLSearchParams({ set: o.set ?? setParam });
     const st = o.stage === undefined ? stage : o.stage;
-    if (st && !o.q && params.get("set") !== TRASH) params.set("etape", st);
+    if (st && !o.q && ![TRASH, DUPLICATE].includes(params.get("set") ?? ""))
+      params.set("etape", st);
     if (o.q) params.set("q", o.q);
     if (o.list ?? list) params.set("vue", "liste");
     if (o.page && o.page > 1) params.set("page", String(o.page));
@@ -180,9 +220,14 @@ export default async function AdminCardsPage({
       active: !query && reserveView,
     },
     {
+      href: href({ set: DUPLICATE, stage: null }),
+      label: `Doublon (${duplicates.length})`,
+      active: duplicateView,
+    },
+    {
       href: href({ set: TRASH, stage: null }),
       label: `Corbeille (${trash.length})`,
-      active: trashView,
+      active: trashView && !duplicateView,
     },
   ];
   const setTargets: MoveTarget[] = sets
@@ -193,11 +238,13 @@ export default async function AdminCardsPage({
     ? [
         { id: "", label: "Réserve (restaurer)" },
         ...setTargets,
+        duplicateView ? { id: "trash", label: "Corbeille" } : { id: "duplicate", label: "Doublon" },
         { id: "delete", label: "Supprimer définitivement" },
       ]
     : [
         ...(reserveView && !query ? [] : [{ id: "", label: "Réserve (hors set)" }]),
         ...setTargets,
+        { id: "duplicate", label: "Doublon" },
         { id: "trash", label: "Corbeille" },
       ];
   const hint = trashView
@@ -207,35 +254,37 @@ export default async function AdminCardsPage({
   const placeTargets: MoveTarget[] = [
     ...sets.map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` })),
     { id: "reserve", label: "Réserve" },
+    { id: "duplicate", label: "Doublon" },
     { id: "trash", label: "Corbeille" },
   ];
-  const placeOf = (c: (typeof cards)[number]) => (c.deletedAt ? "trash" : (c.setId ?? "reserve"));
+  const placeOf = (c: (typeof cards)[number]) =>
+    c.deletedAt ? (isDuplicateNote(c.adminNote) ? "duplicate" : "trash") : (c.setId ?? "reserve");
   // Étapes de préparation : onglets (filtres) de la réserve et pastilles sous chaque carte.
   const stageOptions: MoveTarget[] = CARD_PREP_STAGES.map((s) => ({
     id: s,
     label: CARD_PREP_STAGE_LABELS[s],
   }));
   const stageTabs = [
-    { href: href({ stage: null }), label: `Toutes (${placeCards.length})`, active: stage === null },
+    { href: href({ stage: null }), label: `Toutes (${stageCards.length})`, active: stage === null },
     ...CARD_PREP_STAGES.map((s, i) => ({
       href: href({ stage: s }),
-      label: `${i + 1}. ${CARD_PREP_STAGE_LABELS[s]} (${placeCards.filter((c) => c.prepStage === s).length})`,
+      label: `${i + 1}. ${CARD_PREP_STAGE_LABELS[s]} (${stageCards.filter((c) => c.prepStage === s).length})`,
       active: stage === s,
     })),
   ];
   const setButtons: MoveTarget[] = sets.map((s) => ({ id: s.id, label: s.code }));
   /**
-   * Coches d'étape, pour une carte de la réserve ou d'un set (pas de la corbeille) ; les boutons
-   * « Ranger dans <set> » de la dernière étape, pour une carte de la réserve seulement.
+   * Coches d'étape et boutons « Ranger dans <set> » de la dernière étape, pour une carte en
+   * préparation seulement (réserve, hors corbeille) : une carte de set n'en a plus.
    */
   const stageButtons = (c: (typeof cards)[number]) =>
-    !c.deletedAt ? (
+    inPreparation(c) ? (
       <StageButtons
         cardId={c.id}
         cardName={c.name}
         stage={c.prepStage}
         stages={stageOptions}
-        sets={c.setId === null ? setButtons : []}
+        sets={setButtons}
       />
     ) : null;
 
@@ -294,15 +343,16 @@ export default async function AdminCardsPage({
         <div className="flex flex-col gap-3 text-sm">
           <p className="text-muted">
             Une carte rangée dans un set y prend un numéro et ira en prod avec lui ; la réserve
-            garde les cartes en attente, la corbeille celles qu&apos;on écarte (doublons, essais).
-            Coche des cartes pour les déplacer d&apos;un coup.
+            garde les cartes en attente, le doublon et la corbeille celles qu&apos;on écarte (avec
+            leur idée). Coche des cartes pour les déplacer d&apos;un coup.
           </p>
           <p className="text-muted">
             Une carte se prépare en quatre étapes : à traiter, illustration ok, description et effet
             ok, puis à intégrer à un set (un bouton par set l&apos;y range, depuis la réserve). Les
-            onglets d&apos;étape filtrent la réserve ou le set ; les coches sous chaque carte la
-            classent en un clic. Les boutons « Normale » et « Full art » sous une carte la montrent
-            dans cette version (grisé : la carte ne l&apos;a pas).
+            onglets d&apos;étape filtrent la réserve (l&apos;espace de travail) ; les coches sous
+            chaque carte la classent en un clic. Un set ne montre que ses cartes finalisées, sans
+            étape. Les boutons « Normale » et « Full art » sous une carte la montrent dans cette
+            version (grisé : la carte ne l&apos;a pas).
           </p>
           <nav className="flex flex-wrap gap-2" aria-label="Sets, réserve et corbeille">
             {tabs.map((t) => (
@@ -319,7 +369,7 @@ export default async function AdminCardsPage({
               </Link>
             ))}
           </nav>
-          {!trashView && !query && (
+          {reserveView && !query && (
             <nav className="flex flex-wrap gap-2 text-xs" aria-label="Étapes de préparation">
               {stageTabs.map((t) => (
                 <Link
@@ -339,9 +389,9 @@ export default async function AdminCardsPage({
           {cards.length > 0 && (
             <p className="text-muted">
               {query
-                ? `Recherche « ${query} », ${trashView ? "dans la corbeille" : "tous sets et réserve"}`
+                ? `Recherche « ${query} », ${trashView ? `dans « ${binName} »` : "tous sets et réserve"}`
                 : trashView
-                  ? "Corbeille"
+                  ? binName
                   : current
                     ? `${current.code} · ${current.name}`
                     : stage
@@ -377,7 +427,7 @@ export default async function AdminCardsPage({
                 query
                   ? `Aucune carte pour « ${query} »`
                   : trashView
-                    ? "La corbeille est vide"
+                    ? `${binName} : vide`
                     : current
                       ? "Aucune carte dans ce set"
                       : stage
@@ -388,7 +438,9 @@ export default async function AdminCardsPage({
                 query
                   ? "La recherche porte sur le nom, le type, la famille, l'effet et la description."
                   : trashView
-                    ? "Les cartes mises à la corbeille (doublons, essais) attendent ici."
+                    ? duplicateView
+                      ? "Les cartes mises en doublon attendent ici, avec leur idée."
+                      : "Les cartes mises à la corbeille (essais…) attendent ici, avec leur idée."
                     : "Crée une carte, importe un fichier (JSON) ou déplace des cartes ici."
               }
             />
@@ -451,6 +503,7 @@ export default async function AdminCardsPage({
                             {card.adminNote}
                           </span>
                         )}
+                        {ideaLink(card)}
                       </td>
                       <td className="text-muted px-3 py-1.5 whitespace-nowrap">
                         {CARD_RARITY_LABELS[card.rarity]}
@@ -498,6 +551,7 @@ export default async function AdminCardsPage({
                       </span>
                     )}
                   </label>
+                  {ideaLink(card)}
                   {stageButtons(card)}
                 </li>
               ))}

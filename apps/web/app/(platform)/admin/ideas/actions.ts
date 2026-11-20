@@ -5,11 +5,12 @@ import { listIdeas, RARITIES } from "@app/ideas";
 import type { IdeaPage } from "@app/ideas/ui";
 import { z } from "zod";
 import { actionAdmin } from "@/lib/session";
-import { cardStatesByIdea } from "./card-counts";
+import { cardStatesByIdea, IDEA_TABS } from "./card-counts";
 
 const filtersInput = z.object({
   authorId: z.string().min(1).optional(),
   rarity: z.enum(RARITIES).optional(),
+  tab: z.enum(IDEA_TABS).optional(),
 });
 
 /**
@@ -21,12 +22,10 @@ export async function loadMoreIdeas(
   cursor: string,
 ): Promise<IdeaPage> {
   const admin = await actionAdmin();
-  const { authorId, rarity } = filtersInput.parse(filters);
+  const { authorId, rarity, tab } = filtersInput.parse(filters);
   z.string().min(1).parse(cursor);
-  const [{ items, nextCursor }, stateOf] = await Promise.all([
-    listIdeas(admin, { authorId, rarity, cursor }),
-    cardStatesByIdea(admin),
-  ]);
+  const { stateOf, filter } = await cardStatesByIdea(admin, tab);
+  const { items, nextCursor } = await listIdeas(admin, { authorId, rarity, ...filter, cursor });
   const authors = await getUsersByIds([...new Set(items.map((i) => i.authorId))]);
   const names = new Map(authors.map((u) => [u.id, u.name]));
   return {

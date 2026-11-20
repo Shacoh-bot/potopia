@@ -13,6 +13,8 @@ type Props = {
   loadMore: (cursor: string) => Promise<IdeaPage>;
   /** Adresse de création d'une carte, suivie de l'id de l'idée (voir `IdeasFeed`). */
   newCardHref?: string;
+  /** Paramètres gardés par le formulaire de filtres (l'onglet de la liste, par exemple). */
+  keep?: Record<string, string>;
 };
 
 export function IdeasAdminList({
@@ -22,10 +24,14 @@ export function IdeasAdminList({
   basePath,
   loadMore,
   newCardHref,
+  keep = {},
 }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <form method="get" action={basePath} className="flex flex-wrap items-end gap-2">
+        {Object.entries(keep).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
         <Select name="author" defaultValue={filters.authorId ?? ""} className="w-auto">
           <option value="">Tous les auteurs</option>
           {authors.map((a) => (

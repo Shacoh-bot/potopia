@@ -905,9 +905,11 @@ et modifient les cartes.
 - Étapes de préparation : chaque carte porte une étape (`prepStage`) : 1. À traiter (nouvelle
   carte), 2. Illustration ok, 3. Description et effet ok, 4. À intégrer à un set. `setCardStage` la
   change sans toucher à la place ni au numéro de la carte (l'étape est gardée quand elle change de
-  place). Dans /admin/cartes, la réserve et chaque set ont un onglet par étape plus « Toutes »
-  (filtres, `?etape=`), et des coches sous chaque carte (hors corbeille) la classent en un clic ;
-  à la dernière étape, pour une carte de la réserve, un bouton par set l'y range (`moveCards`). Sous chaque carte de la planche (miniatures), les boutons
+  place). Les étapes ne concernent que les cartes en préparation, dans la réserve : dans
+  /admin/cartes, la réserve a un onglet par étape plus « Toutes » (filtres, `?etape=`), et des
+  coches sous chacune de ses cartes la classent en un clic ; à la dernière étape, un bouton par set
+  l'y range (`moveCards`). Un set montre toutes ses cartes, sans onglet d'étape ni coches (l'étape
+  reste en base, sans effet ; `placeCards`, `inPreparation` dans `admin/cartes/stages.ts`). Sous chaque carte de la planche (miniatures), les boutons
   « Normale » et « Full art » la montrent sur place dans cette version (`CardVersionSwitch`, les deux
   versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
   « Tout cocher », dans la barre de déplacement, coche les cartes affichées (miniatures et liste).
@@ -920,6 +922,13 @@ et modifient les cartes.
   base, sinon refus), puis retire leurs illustrations du stockage après la transaction (sans
   bloquer si l'une échoue ; dans une transaction appelante, elle renvoie les clés à retirer). Un
   import ne recrée pas la carte d'une idée dont la carte est à la corbeille.
+- Doublon : dans /admin/cartes, l'onglet « Doublon » (`?set=doublon`), à côté de « Corbeille »,
+  montre les cartes de la corbeille marquées « Doublon » (`isDuplicateNote`) ; « Corbeille »
+  montre les autres. Ranger une carte au « Doublon » (`trashCards` avec `duplicate`) la met à la
+  corbeille et pose la marque (`markDuplicateNote`) ; la passer du Doublon à la Corbeille retire
+  la marque (`unmarkDuplicateNote`), tout comme l'en sortir (`moveCards`). Pas de colonne : la
+  marque est la note admin. Sous chaque carte tirée d'une idée (liste et miniatures) : « Lié à
+  l'idée : titre — auteur » (`getIdeaLabels` du module `ideas`), lien vers la page de l'idée.
 - Lien avec une idée (`ideaId`) : seulement pour la gestion (retrouver la description et l'image
   proposées), aucun effet en jeu ; une idée peut donner plusieurs cartes. Depuis la page admin d'une
   idée, « Créer une carte » ouvre `/admin/cartes/nouvelle?idee=<id>` avec le nom, la rareté, la
@@ -933,10 +942,14 @@ et modifient les cartes.
   corbeille, et l'idée n'a aucune autre carte gardée (`ideaStateOf`) ; elle affiche le badge
   rouge « Doublon », sans « Pas de carte » ni bouton de création (liste et page de l'idée).
   Retirer la marque de la carte rend l'idée normale : l'état est calculé, rien n'est stocké côté
-  idées. En tête de liste, deux compteurs sur toute la boîte : idées à transformer en carte (ni
-  carte gardée, ni doublon) et doublons. Le module `ideas` ne connaît pas les cartes : l'app lui
-  passe l'état de chaque idée (`cards`, `duplicate`, calculés par `ideaCardStates` du TCG) et
-  l'adresse de création (`newCardHref`).
+  idées. Idée à la corbeille : toutes ses cartes sont à la corbeille sans marque « Doublon »
+  (`trashed` de `ideaStateOf`). La liste a trois onglets (`?onglet=`) : « Idées » (les autres),
+  « Doublon », « Corbeille » ; une idée suit ainsi ses cartes et revient quand une carte en sort
+  (`cardStatesByIdea` donne le filtre `onlyIds` / `exceptIds` de `listIdeas`). En tête, le
+  compteur des idées à transformer en carte (ni carte gardée, ni doublon, ni corbeille). Le
+  module `ideas` ne connaît pas les cartes : l'app lui passe l'état de chaque idée (`cards`,
+  `duplicate`, `trashed`, calculés par `ideaCardStates` du TCG) et l'adresse de création
+  (`newCardHref`).
 
 - Catalogue d'effets (`games/tcg/src/effects.ts`, `EFFECTS`, 507 effets : un par carte de
   collection de Marvel Snap) : chaque effet reprend
