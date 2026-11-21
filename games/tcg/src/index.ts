@@ -83,6 +83,7 @@ export {
   cardVersions,
   drawVersion,
   imageKeyFor,
+  visualEffectsFor,
   isBlurryWhenZoomed,
   smallImageKeyFor,
   isAltArt,

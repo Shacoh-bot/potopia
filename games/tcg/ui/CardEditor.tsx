@@ -85,8 +85,10 @@ type Fields = {
   flavor: string;
   /** Note de l'admin, jamais montrée aux joueurs. */
   adminNote: string;
-  /** Effets visuels cochés, dans l'ordre des calques (le premier en dessous). */
+  /** Effets visuels cochés de la normale, dans l'ordre des calques (le premier en dessous). */
   visualEffectKeys: string[];
+  /** Effets visuels cochés de la full art, réglés à part de la normale. */
+  visualEffectKeysFull: string[];
 };
 
 type Props = {
@@ -164,6 +166,7 @@ function defaults(card: Card | null): Fields {
     flavor: card?.flavor ?? "",
     adminNote: card?.adminNote ?? "",
     visualEffectKeys: card?.visualEffectKeys ?? [],
+    visualEffectKeysFull: card?.visualEffectKeysFull ?? card?.visualEffectKeys ?? [],
   };
 }
 
@@ -392,9 +395,19 @@ export function CardEditor({
   const belowColumns = Math.min(fitColumns, Math.ceil(below.length / Math.max(1, baseRows)) + 2);
   const belowRows = Math.ceil(below.length / belowColumns);
 
-  /** Une case d'effet visuel. */
+  // Les effets cochés sont ceux de la version montrée sur l'aperçu : chaque version a les siens.
+  const effectsField = layout === "fullart" ? "visualEffectKeysFull" : "visualEffectKeys";
+  const otherLayout: Layout = layout === "fullart" ? "normal" : "fullart";
+  const shownEffects = fields[effectsField];
+  const otherEffects =
+    fields[otherLayout === "fullart" ? "visualEffectKeysFull" : "visualEffectKeys"];
+  const sameEffects =
+    shownEffects.length === otherEffects.length &&
+    shownEffects.every((k, i) => k === otherEffects[i]);
+
+  /** Une case d'effet visuel (de la version montrée). */
   const effectRow = (v: VisualEffect) => {
-    const rank = fields.visualEffectKeys.indexOf(v.key);
+    const rank = shownEffects.indexOf(v.key);
     return (
       <label
         key={v.key}
@@ -407,10 +420,8 @@ export function CardEditor({
           checked={rank >= 0}
           onChange={(e) =>
             set(
-              "visualEffectKeys",
-              e.target.checked
-                ? [...fields.visualEffectKeys, v.key]
-                : fields.visualEffectKeys.filter((k) => k !== v.key),
+              effectsField,
+              e.target.checked ? [...shownEffects, v.key] : shownEffects.filter((k) => k !== v.key),
             )
           }
         />
@@ -867,12 +878,24 @@ export function CardEditor({
         >
           <div ref={effectsHead}>
             <p id="tcg-visual-effects" className="text-text mb-1 text-sm font-medium">
-              Effets visuels
+              Effets visuels — {CARD_VERSION_LABELS[layout]}
             </p>
             <p className="text-muted text-xs">
-              Plusieurs à la fois : empilés dans l&apos;ordre où on les coche (le premier en
-              dessous). Nouveaux effets : ajoutés par migration.
+              Réglés à part pour chaque version : ceux de la version montrée sur la carte (onglets{" "}
+              {CARD_VERSION_LABELS.normal} / {CARD_VERSION_LABELS.fullart}). Plusieurs à la fois :
+              empilés dans l&apos;ordre où on les coche (le premier en dessous). Nouveaux effets :
+              ajoutés par migration.
             </p>
+            {!sameEffects && (
+              <button
+                type="button"
+                data-copy-effects
+                className="text-accent self-start text-xs underline"
+                onClick={() => set(effectsField, [...otherEffects])}
+              >
+                Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
+              </button>
+            )}
             {visualEffects.length === 0 && (
               <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
             )}

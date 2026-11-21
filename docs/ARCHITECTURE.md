@@ -237,10 +237,14 @@ passe d'une partie à l'autre sans rechargement.
   d'un effet du catalogue et ses réglages.
 - `TcgVisualEffect` (`visual_effects`) : key (clé primaire, `holo`), name (affiché dans la fiche),
   createdAt. Catalogue des effets visuels, rempli par migration ; le rendu est dans le code.
-- `TcgCardVisualEffect` (`card_visual_effects`) : cardId, effectKey, position (ordre des calques,
-  0 en dessous). Clé primaire `(card_id, effect_key)`, index sur `effect_key`, suppression en
-  cascade des deux côtés. Les effets visuels d'une carte, plusieurs à la fois, propres à chaque
-  carte (variantes comprises).
+- `TcgCardVisualEffect` (`card_visual_effects`) : cardId, version (`normal` ou `fullart`, enum
+  `TcgCardLayout`), effectKey, position (ordre des calques, 0 en dessous). Clé primaire
+  `(card_id, version, effect_key)`, index sur `effect_key`, suppression en cascade des deux côtés.
+  Les effets visuels d'une carte, plusieurs à la fois, propres à chaque carte (variantes
+  comprises) et à chaque version : la normale et la full art se règlent à part (rareté, titre,
+  textes, type, effet de jeu et stats restent communs). La migration
+  `20261121200000_tcg_card_visual_effects_par_version` a recopié les effets de chaque carte sur
+  sa full art.
 - `TcgOwnedCard` (`owned_cards`) : userId, cardId, version (`TcgCardLayout`, défaut normal),
   count, firstAt, updatedAt. Clé primaire `(user_id, card_id, version)`, index sur `card_id`,
   supprimée avec la carte. Les cartes trouvées d'un joueur (Potodex), version par version, et leur
@@ -1094,6 +1098,12 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   colonnes (deux sur mobile) tirées de `listVisualEffects` (admins seulement, tri français) ; on en coche plusieurs, empilés dans
   l'ordre où on les coche (le premier en dessous, « calque n » affiché), enregistrés dans
   `visualEffectKeys` (absent : inchangé ; liste vide : aucun ; doublons retirés ; 10 au plus).
+  Chaque version a les siens : les cases sont celles de la version montrée sur l'aperçu (onglets
+  Normale / Alt Art au-dessus des coches « … active »), titre « Effets visuels — Normale » ou
+  « — Alt Art (AA) » ; ceux de la full art vont dans `visualEffectKeysFull` (absent : inchangé ;
+  à la création et à l'import : copie de ceux de la normale). « Reprendre ceux de la version … »
+  recopie la liste de l'autre version. Au rendu, `visualEffectsFor(card, version)` choisit la
+  liste de la version affichée (planche, fiche, booster, Potodex, carte agrandie).
   Les effets s'affichent sur la carte (aperçu, planche, fiche). Rendu dans
   `games/tcg/ui/visual-effects.tsx` : `VISUAL_EFFECTS` associe chaque clé du catalogue à un
   composant React (CSS de `tcg.css`, classes `tcg-vfx-…`, et JS au besoin), posé par

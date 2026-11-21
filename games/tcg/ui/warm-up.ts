@@ -6,6 +6,7 @@ import {
   type GlowKind,
   type GlowPoint,
   glowKind,
+  visualEffectsFor,
 } from "../src/card-rules";
 import type { GameCardFields } from "./GameCard";
 
@@ -45,7 +46,15 @@ function features(look: WarmUpLook): string[] {
  * (à chaque tour, l'allure qui couvre le plus de nouveautés ; à égalité, la première du set).
  */
 export function warmUpLooks(
-  cards: Pick<Card, "rarity" | "hasNormal" | "hasFullArt" | "visualEffectKeys" | "glowPoints">[],
+  cards: Pick<
+    Card,
+    | "rarity"
+    | "hasNormal"
+    | "hasFullArt"
+    | "visualEffectKeys"
+    | "visualEffectKeysFull"
+    | "glowPoints"
+  >[],
 ): WarmUpLook[] {
   const looks = new Map<string, WarmUpLook>();
   for (const card of cards) {
@@ -53,7 +62,7 @@ export function warmUpLooks(
       const look: WarmUpLook = {
         rarity: card.rarity,
         layout,
-        effects: [...card.visualEffectKeys],
+        effects: [...visualEffectsFor(card, layout)],
         glow: [...new Set(card.glowPoints.map(glowKind))].sort(),
       };
       const key = JSON.stringify(look);
