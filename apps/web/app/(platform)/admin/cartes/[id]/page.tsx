@@ -9,12 +9,21 @@ import { designFonts } from "../../../cartes/fonts";
 import { confirmCardImageAction, requestCardImageAction, updateCardAction } from "../actions";
 import { MoveCardForm } from "../forms";
 import { cardFaces, duplicateCandidates, familiesOf } from "../images";
+import { boardHref, boardQuery, cardHref } from "../board-url";
 
 export const metadata: Metadata = { title: "Modifier une carte" };
 
-export default async function AdminCardPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminCardPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ retour?: string }>;
+}) {
   const admin = await getCurrentAdmin();
   const { id } = await params;
+  // La planche d'où l'on vient (place, étape, vue, page) : le lien « retour » y ramène.
+  const board = boardQuery((await searchParams).retour);
   const card = await getCard(admin, id);
   if (!card) notFound();
   const [sets, allCards, visualEffects] = await Promise.all([
@@ -80,7 +89,7 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
         <p className="text-sm">
           Doublon de :{" "}
           {original ? (
-            <Link href={`/admin/cartes/${original.id}`} className="text-accent hover:underline">
+            <Link href={cardHref(original.id, board)} className="text-accent hover:underline">
               {original.name}
             </Link>
           ) : (
@@ -100,7 +109,7 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
               {siblings.map((c, i) => (
                 <span key={c.id}>
                   {i > 0 && ", "}
-                  <Link href={`/admin/cartes/${c.id}`} className="text-accent hover:underline">
+                  <Link href={cardHref(c.id, board)} className="text-accent hover:underline">
                     {c.name}
                   </Link>
                 </span>
@@ -115,7 +124,7 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
           {base ? (
             <>
               Variante de{" "}
-              <Link href={`/admin/cartes/${base.id}`} className="text-accent hover:underline">
+              <Link href={cardHref(base.id, board)} className="text-accent hover:underline">
                 {base.name}
               </Link>
               .
@@ -126,7 +135,7 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
               {variants.map((v, i) => (
                 <span key={v.id}>
                   {i > 0 && ", "}
-                  <Link href={`/admin/cartes/${v.id}`} className="text-accent hover:underline">
+                  <Link href={cardHref(v.id, board)} className="text-accent hover:underline">
                     {v.name}
                   </Link>
                 </span>
@@ -159,8 +168,8 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
             confirm: confirmCardImageAction.bind(null, card.id),
           }}
         />
-        <Link href="/admin/cartes" className="text-muted text-sm hover:underline">
-          ← Toutes les cartes
+        <Link href={boardHref(board, card.id)} className="text-muted text-sm hover:underline">
+          ← Retour aux cartes
         </Link>
       </div>
     </Card>

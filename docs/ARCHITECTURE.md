@@ -913,6 +913,9 @@ et modifient les cartes.
   « Normale » et « Full art » la montrent sur place dans cette version (`CardVersionSwitch`, les deux
   versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
   « Tout cocher », dans la barre de déplacement, coche les cartes affichées (miniatures et liste).
+  Ouvrir une fiche garde la planche : le lien de la carte passe sa requête (place, étape, vue, page,
+  recherche) dans `?retour=`, et « ← Retour aux cartes » y ramène, ancré sur la carte
+  (`admin/cartes/board-url.ts`, seuls ces paramètres sont gardés).
 - Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
   (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
   les rend qu'avec `trashed: true`, la mise à jour en masse les ignore), mais restent en base.
