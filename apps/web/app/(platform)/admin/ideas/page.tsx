@@ -6,7 +6,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentAdmin } from "@/lib/session";
 import { loadMoreIdeas } from "./actions";
-import { asIdeaTab, cardStatesByIdea, ideaCounters, NEW_CARD_HREF } from "./card-counts";
+import {
+  asIdeaTab,
+  cardStatesByIdea,
+  duplicateOfLabels,
+  ideaCounters,
+  NEW_CARD_HREF,
+} from "./card-counts";
 
 export const metadata: Metadata = { title: "Boîte à idées" };
 
@@ -24,7 +30,8 @@ export default async function AdminIdeasPage({
   const tab = asIdeaTab(params.onglet);
   const filters = { authorId: params.author || undefined, rarity: asRarity(params.rarity) };
 
-  // Onglets : les idées suivent leurs cartes au « Doublon » et à la « Corbeille ».
+  // Onglets : « Doublon de… » choisi sur la fiche de l'idée, ou les cartes suivies au « Doublon »
+  // et à la « Corbeille » ; « Carte à créer » : les idées gardées sans carte.
   const [{ stateOf, filter }, authorIds] = await Promise.all([
     cardStatesByIdea(admin, tab),
     listIdeaAuthorIds(admin),
@@ -43,10 +50,14 @@ export default async function AdminIdeasPage({
   };
   const tabs = [
     { key: undefined, label: `Idées (${active})` },
+    { key: "a-creer", label: `Carte à créer (${toCreate})` },
     { key: "doublon", label: `Doublon (${duplicates})` },
     { key: "corbeille", label: `Corbeille (${trashed})` },
   ];
-  const authors = await getUsersByIds([...authorIds, ...items.map((i) => i.authorId)]);
+  const [authors, originOf] = await Promise.all([
+    getUsersByIds([...authorIds, ...items.map((i) => i.authorId)]),
+    duplicateOfLabels(admin, items),
+  ]);
   const names = new Map(authors.map((u) => [u.id, u.name]));
 
   return (
@@ -80,7 +91,8 @@ export default async function AdminIdeasPage({
       </nav>
       <p className="text-muted mb-3 text-sm">
         {toCreate} idée{toCreate > 1 ? "s" : ""} à transformer en carte (toutes les idées, sans
-        filtre). Une idée suit ses cartes au doublon ou à la corbeille, et en revient avec elles.
+        filtre). Une idée va au doublon quand on la marque « Doublon de… » sur sa fiche ; elle suit
+        aussi ses cartes au doublon ou à la corbeille, et en revient avec elles.
       </p>
       <IdeasAdminList
         basePath="/admin/ideas"
@@ -102,6 +114,7 @@ export default async function AdminIdeasPage({
             hasImage: Boolean(idea.imageKey),
             createdAt: idea.createdAt,
             ...stateOf(idea.id),
+            duplicateOf: originOf.get(idea.id),
           })),
         }}
       />

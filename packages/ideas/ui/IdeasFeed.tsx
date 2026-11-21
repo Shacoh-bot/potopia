@@ -15,8 +15,13 @@ export type IdeaListItem = {
   createdAt: Date;
   /** Cartes du jeu tirées de l'idée (fourni par l'app ; absent : non affiché). */
   cards?: number;
-  /** Idée en doublon (sa carte est marquée « Doublon ») : ni « Pas de carte » ni création. */
+  /**
+   * Idée en doublon (marquée « Doublon de… », ou sa carte marquée « Doublon ») : ni « Pas de
+   * carte » ni création.
+   */
   duplicate?: boolean;
+  /** Idée d'origine d'une idée marquée « Doublon de… » : lien « Doublon de : titre — auteur ». */
+  duplicateOf?: { id: string; label: string };
 };
 
 export type IdeaPage = { items: IdeaListItem[]; nextCursor: string | null };
@@ -136,6 +141,14 @@ export function IdeasFeed({ initial, basePath, loadMore, newCardHref }: Props) {
               {idea.duplicate && <Badge tone="danger">Doublon</Badge>}
               {newCardHref && idea.cards === 0 && !idea.duplicate && <Badge>Pas de carte</Badge>}
             </AppLink>
+            {idea.duplicateOf && (
+              <AppLink
+                href={`${basePath}/${idea.duplicateOf.id}`}
+                className="text-accent max-w-[40%] shrink-0 truncate text-xs hover:underline"
+              >
+                Doublon de : {idea.duplicateOf.label}
+              </AppLink>
+            )}
             {/* Idée sans carte : création directe, pré-remplie depuis l'idée. */}
             {newCardHref && idea.cards === 0 && !idea.duplicate && (
               <AppLink
