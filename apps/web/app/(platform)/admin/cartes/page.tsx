@@ -30,6 +30,7 @@ import {
 } from "./forms";
 import { type CardFace, cardFaces, duplicateCandidates, imageId } from "./images";
 import { Pagination } from "./Pagination";
+import { cardAnchor, cardHref } from "./board-url";
 import { inPreparation, placeCards } from "./stages";
 
 export const metadata: Metadata = { title: "Cartes" };
@@ -121,7 +122,7 @@ export default async function AdminCardsPage({
     const name = c.duplicateOfId ? names.get(c.duplicateOfId) : undefined;
     return name ? (
       <Link
-        href={`/admin/cartes/${c.duplicateOfId}`}
+        href={cardHref(String(c.duplicateOfId), here)}
         className="text-text hover:text-accent block text-xs hover:underline"
       >
         Doublon de : {name}
@@ -185,6 +186,8 @@ export default async function AdminCardsPage({
     if (o.page && o.page > 1) params.set("page", String(o.page));
     return `/admin/cartes?${params}`;
   };
+  // Requête de cette planche, que la fiche d'une carte garde pour son lien « retour ».
+  const here = href({ q: query, page }).split("?")[1] ?? "";
   const pager = (
     <Pagination page={page} count={pageCount} href={(p) => href({ q: query, page: p })} />
   );
@@ -313,7 +316,7 @@ export default async function AdminCardsPage({
   const cardView = (card: TcgCard, face: CardFace) => (
     <CardFlip still>
       <Link
-        href={`/admin/cartes/${card.id}`}
+        href={cardHref(card.id, here)}
         aria-label={`Modifier ${card.name}`}
         className="flex flex-col items-center"
         draggable={false}
@@ -486,7 +489,11 @@ export default async function AdminCardsPage({
                 </thead>
                 <tbody>
                   {shown.map((card) => (
-                    <tr key={card.id} className="border-border hover:bg-surface-hover border-t">
+                    <tr
+                      key={card.id}
+                      id={cardAnchor(card.id)}
+                      className="border-border hover:bg-surface-hover border-t"
+                    >
                       <td className="px-3 py-1.5">
                         <input
                           type="checkbox"
@@ -514,7 +521,7 @@ export default async function AdminCardsPage({
                       </td>
                       <td className="px-3 py-1.5">
                         <Link
-                          href={`/admin/cartes/${card.id}`}
+                          href={cardHref(card.id, here)}
                           className="text-text hover:text-accent font-medium hover:underline"
                         >
                           {card.name}
@@ -553,6 +560,7 @@ export default async function AdminCardsPage({
               {shown.map((card) => (
                 <li
                   key={card.id}
+                  id={cardAnchor(card.id)}
                   className="flex flex-col items-center gap-1"
                   // Le navigateur ne dessine pas les cartes hors de l'écran (défilement fluide).
                   style={{ contentVisibility: "auto", containIntrinsicSize: "auto 585px" }}
