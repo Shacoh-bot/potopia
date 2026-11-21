@@ -25,7 +25,6 @@ import {
   frameFor,
   type GlowPoint,
   type ImageFrame,
-  markDuplicateNote,
   type VisualEffect,
 } from "../src/card-rules";
 import {
@@ -657,22 +656,12 @@ export function CardEditor({
 
           <Label hint="Pour l'admin seulement : jamais montrée aux joueurs, sans effet en jeu.">
             Note admin
-            <span className="flex gap-2">
-              <Input
-                value={fields.adminNote}
-                maxLength={CARD_LIMITS.adminNote}
-                placeholder="Ex. doublon de « … »"
-                onChange={(e) => set("adminNote", e.target.value)}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => set("adminNote", markDuplicateNote(fields.adminNote))}
-              >
-                Doublon
-              </Button>
-            </span>
+            <Input
+              value={fields.adminNote}
+              maxLength={CARD_LIMITS.adminNote}
+              placeholder="Ex. effet à revoir"
+              onChange={(e) => set("adminNote", e.target.value)}
+            />
           </Label>
 
           {fromIdea?.hasCards && (

@@ -189,18 +189,20 @@ export async function createSetAction(_prev: FormState, formData: FormData): Pro
 
 /**
  * Range une carte depuis la liste (menu de sa ligne) : un set (id), la réserve (« reserve »), la
- * corbeille (« trash ») ou le doublon (« duplicate »). Renvoie l'erreur lisible, ou null.
+ * corbeille (« trash ») ou le doublon (« duplicate », avec `duplicateOf`, la carte dont elle est le
+ * doublon). Renvoie l'erreur lisible, ou null.
  */
 export async function placeCardAction(
   id: string,
   target: string,
+  duplicateOf?: string,
 ): Promise<{ error: string } | null> {
   const admin = await actionAdmin();
   try {
     const cardId = z.string().min(1).parse(id);
     const to = z.string().min(1).parse(target);
     if (to === "trash" || to === "duplicate") {
-      await trashCards(admin, [cardId], { duplicate: to === "duplicate" });
+      await trashCards(admin, [cardId], { duplicate: to === "duplicate", duplicateOf });
     } else await moveCards(admin, [cardId], to === "reserve" ? null : to);
   } catch (error) {
     const message = inputError(error);
@@ -237,7 +239,7 @@ const plural = (n: number, word: string) =>
 /**
  * Range les cartes cochées (`ids`) dans un set ou dans la réserve (`target` = « reserve »), ce qui
  * les sort de la corbeille ; `target` = « trash » les met à la corbeille, « duplicate » au doublon
- * (corbeille, marquées « Doublon »), « delete » supprime pour de bon celles de la corbeille.
+ * (corbeille, marquées « Doublon », doublons de la carte `duplicateOf`), « delete » supprime pour de bon celles de la corbeille.
  */
 export async function moveCardsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const admin = await actionAdmin();
@@ -247,7 +249,8 @@ export async function moveCardsAction(_prev: FormState, formData: FormData): Pro
   try {
     if (target === "trash" || target === "duplicate") {
       const duplicate = target === "duplicate";
-      await trashCards(admin, ids, { duplicate });
+      const duplicateOf = String(formData.get("duplicateOf") ?? "") || undefined;
+      await trashCards(admin, ids, { duplicate, duplicateOf });
       revalidatePath("/admin/cartes", "layout");
       const n = new Set(ids).size;
       return {

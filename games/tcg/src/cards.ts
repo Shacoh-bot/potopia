@@ -674,7 +674,7 @@ export async function moveCards(
     );
     await tx.tcgCard.updateMany({
       where: { id: { in: moving.map((c) => c.id) }, deletedAt: { not: null } },
-      data: { deletedAt: null },
+      data: { deletedAt: null, duplicateOfId: null },
     });
     if (setId) {
       let number = await nextNumber(tx, setId);
@@ -714,25 +714,52 @@ export async function setCardStage(
  * Met des cartes à la corbeille (doublons, essais…) : elles sortent de leur set (renuméroté) et
  * des listes, mais restent en base ; `moveCards` les en sort. Une carte de base n'y va qu'avec
  * ses variantes. Avec `duplicate`, les cartes vont au « Doublon » : la corbeille, avec la marque
- * « Doublon » dans leur note (`markDuplicateNote`). Sans, une carte déjà à la corbeille perd cette
- * marque (du « Doublon » à la « Corbeille ») ; une carte qui arrive garde sa note.
+ * « Doublon » dans leur note (`markDuplicateNote`), et `duplicateOf` (obligatoire avec
+ * `duplicate`) est la carte dont elles sont le doublon : une carte hors corbeille qui n'est pas
+ * l'une d'elles. Sans, une carte déjà à la corbeille perd cette marque et ce lien (du « Doublon » à
+ * la « Corbeille ») ; une carte qui arrive garde sa note.
  */
 export async function trashCards(
   admin: Admin,
   ids: string[],
-  opts?: { tx?: DbTx; duplicate?: boolean },
+  opts?: { tx?: DbTx; duplicate?: boolean; duplicateOf?: string },
 ): Promise<{ trashed: number }> {
   assertAdmin(admin);
   const unique = [...new Set(idsInput.parse(ids))];
   return withTx(async (tx) => {
     const found = await findCards(tx, unique);
-    if (opts?.duplicate) await rewriteNotes(tx, found, (n) => markDuplicateNote(n ?? ""));
-    else
+    if (opts?.duplicate) {
+      const ofId = z.string().min(1).safeParse(opts.duplicateOf).data;
+      if (!ofId) throw new CardInputError("Choisis la carte dont c'est le doublon.");
+      if (unique.includes(ofId)) {
+        throw new CardInputError("Une carte ne peut pas être le doublon d'elle-même.");
+      }
+      const original = await tx.tcgCard.findUnique({
+        where: { id: ofId },
+        select: { deletedAt: true },
+      });
+      if (!original) throw new CardInputError("Carte d'origine introuvable.");
+      if (original.deletedAt) {
+        throw new CardInputError(
+          "La carte d'origine est à la corbeille : choisis une carte gardée.",
+        );
+      }
+      await rewriteNotes(tx, found, (n) => markDuplicateNote(n ?? ""));
+      await tx.tcgCard.updateMany({
+        where: { id: { in: found.map((c) => c.id) } },
+        data: { duplicateOfId: ofId },
+      });
+    } else {
       await rewriteNotes(
         tx,
         found.filter((c) => c.deletedAt),
         unmarkDuplicateNote,
       );
+      await tx.tcgCard.updateMany({
+        where: { id: { in: found.map((c) => c.id) } },
+        data: { duplicateOfId: null },
+      });
+    }
     const fresh = found.filter((c) => !c.deletedAt);
     const left = await tx.tcgCard.findFirst({
       where: {

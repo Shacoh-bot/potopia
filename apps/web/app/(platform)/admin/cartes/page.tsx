@@ -28,7 +28,7 @@ import {
   PlaceSelect,
   StageButtons,
 } from "./forms";
-import { type CardFace, cardFaces, imageId } from "./images";
+import { type CardFace, cardFaces, duplicateCandidates, imageId } from "./images";
 import { Pagination } from "./Pagination";
 import { inPreparation, placeCards } from "./stages";
 
@@ -113,6 +113,23 @@ export default async function AdminCardsPage({
         )
     ).map((face) => [imageId(face.card), face]),
   );
+  // Cartes d'origine possibles d'un doublon (menus « Doublon ») ; noms des cartes d'origine.
+  const candidates = await duplicateCandidates(admin, all);
+  const names = new Map([...all, ...binned].map((c) => [c.id, c.name]));
+  const duplicateLink = (c: (typeof cards)[number]) => {
+    if (!c.deletedAt || !isDuplicateNote(c.adminNote)) return null;
+    const name = c.duplicateOfId ? names.get(c.duplicateOfId) : undefined;
+    return name ? (
+      <Link
+        href={`/admin/cartes/${c.duplicateOfId}`}
+        className="text-text hover:text-accent block text-xs hover:underline"
+      >
+        Doublon de : {name}
+      </Link>
+    ) : (
+      <span className="text-danger block text-xs">Doublon de : à relier</span>
+    );
+  };
   // « Lié à l'idée : titre — auteur » de chaque carte affichée tirée d'une idée.
   const ideaLabels = await getIdeaLabels(
     admin,
@@ -238,7 +255,11 @@ export default async function AdminCardsPage({
     ? [
         { id: "", label: "Réserve (restaurer)" },
         ...setTargets,
-        duplicateView ? { id: "trash", label: "Corbeille" } : { id: "duplicate", label: "Doublon" },
+        // Au « Doublon » : changer (ou choisir) la carte d'origine des cartes cochées.
+        duplicateView
+          ? { id: "duplicate", label: "Doublon de… (changer l'original)" }
+          : { id: "duplicate", label: "Doublon" },
+        ...(duplicateView ? [{ id: "trash", label: "Corbeille" }] : []),
         { id: "delete", label: "Supprimer définitivement" },
       ]
     : [
@@ -418,7 +439,7 @@ export default async function AdminCardsPage({
       <GameCardDefs />
       {/* Toujours le même formulaire autour de la recherche : elle garde sa saisie d'un résultat à
           l'autre, même vide. */}
-      <MoveCardsForm targets={targets} hint={hint}>
+      <MoveCardsForm targets={targets} hint={hint} candidates={candidates}>
         {searchBar}
         {cards.length === 0 ? (
           <Card>
@@ -481,6 +502,7 @@ export default async function AdminCardsPage({
                             cardName={card.name}
                             value={placeOf(card)}
                             targets={placeTargets}
+                            candidates={candidates}
                           />
                           {card.number !== null && (
                             <span className="text-muted text-xs whitespace-nowrap tabular-nums">
@@ -503,6 +525,7 @@ export default async function AdminCardsPage({
                             {card.adminNote}
                           </span>
                         )}
+                        {duplicateLink(card)}
                         {ideaLink(card)}
                       </td>
                       <td className="text-muted px-3 py-1.5 whitespace-nowrap">
@@ -551,6 +574,7 @@ export default async function AdminCardsPage({
                       </span>
                     )}
                   </label>
+                  {duplicateLink(card)}
                   {ideaLink(card)}
                   {stageButtons(card)}
                 </li>
