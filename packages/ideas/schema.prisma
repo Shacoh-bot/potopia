@@ -21,11 +21,16 @@ model Idea {
   // Clé de l'objet dans le stockage (jamais une URL), émise par createUploadUrl.
   imageKey        String?  @unique @map("image_key")
   createdAt       DateTime @default(now()) @map("created_at")
+  // Idée d'origine quand l'admin marque celle-ci « Doublon de… » (null : pas un doublon).
+  duplicateOfId   String?  @map("duplicate_of_id")
 
-  image IdeaUpload? @relation(fields: [imageKey], references: [key])
+  image       IdeaUpload? @relation(fields: [imageKey], references: [key])
+  duplicateOf Idea?       @relation("IdeaDuplicate", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates  Idea[]      @relation("IdeaDuplicate")
 
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([authorId, createdAt])
+  @@index([duplicateOfId])
   @@map("ideas")
   @@schema("ideas")
 }

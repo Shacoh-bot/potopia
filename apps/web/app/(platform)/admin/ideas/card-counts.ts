@@ -1,4 +1,5 @@
-import { listIdeaIds } from "@app/ideas";
+import { getUsersByIds } from "@app/core";
+import { getIdeaLabels, type Idea, listDuplicateIdeaIds, listIdeaIds } from "@app/ideas";
 import { ideaCardStates } from "@app/tcg";
 
 type Admin = { discordId: string | null };
@@ -11,10 +12,11 @@ export type IdeaCardState = { cards: number; duplicate: boolean; trashed: boolea
 const NONE: IdeaCardState = { cards: 0, duplicate: false, trashed: false };
 
 /**
- * Onglets de la boîte à idées (`?onglet=`) : une idée suit ses cartes au « Doublon » ou à la
- * « Corbeille » (`ideaStateOf` du TCG) ; sans onglet, les autres.
+ * Onglets de la boîte à idées (`?onglet=`) : « a-creer », les idées gardées sans carte ; une idée
+ * va au « Doublon » quand elle est marquée « Doublon de… » ou que sa carte l'est, et suit ses
+ * cartes à la « Corbeille » (`ideaStateOf` du TCG) ; sans onglet, les idées gardées.
  */
-export const IDEA_TABS = ["doublon", "corbeille"] as const;
+export const IDEA_TABS = ["a-creer", "doublon", "corbeille"] as const;
 export type IdeaTab = (typeof IDEA_TABS)[number];
 
 export const asIdeaTab = (value: string | undefined): IdeaTab | undefined =>
@@ -32,16 +34,56 @@ export async function cardStatesByIdea(
   stateOf: (ideaId: string) => IdeaCardState;
   filter: { onlyIds?: string[]; exceptIds?: string[] };
 }> {
-  const states = await ideaCardStates(admin);
-  const ids = (keep: (s: IdeaCardState) => boolean) =>
-    [...states].flatMap(([id, s]) => (keep(s) ? [id] : []));
+  const [cardStates, marked, allIds] = await Promise.all([
+    ideaCardStates(admin),
+    listDuplicateIdeaIds(admin),
+    tab === "a-creer" ? listIdeaIds(admin) : Promise.resolve([]),
+  ]);
+  const stateOf = (ideaId: string) => combineState(cardStates.get(ideaId), marked.has(ideaId));
+  const known = [...new Set([...cardStates.keys(), ...marked])];
+  const ids = (keep: (s: IdeaCardState) => boolean, from = known) =>
+    from.filter((id) => keep(stateOf(id)));
   const filter =
-    tab === "doublon"
-      ? { onlyIds: ids((s) => s.duplicate) }
-      : tab === "corbeille"
-        ? { onlyIds: ids((s) => s.trashed) }
-        : { exceptIds: ids((s) => s.duplicate || s.trashed) };
-  return { stateOf: (ideaId) => states.get(ideaId) ?? NONE, filter };
+    tab === "a-creer"
+      ? { onlyIds: ids(needsCard, allIds) }
+      : tab === "doublon"
+        ? { onlyIds: ids((s) => s.duplicate) }
+        : tab === "corbeille"
+          ? { onlyIds: ids((s) => s.trashed) }
+          : { exceptIds: ids((s) => s.duplicate || s.trashed) };
+  return { stateOf, filter };
+}
+
+/**
+ * État d'une idée : celui de ses cartes, sauf qu'une idée marquée « Doublon de… » est en doublon
+ * (et non à la corbeille), quelles que soient ses cartes.
+ */
+export function combineState(cards: IdeaCardState | undefined, marked: boolean): IdeaCardState {
+  const s = cards ?? NONE;
+  return marked ? { ...s, duplicate: true, trashed: false } : s;
+}
+
+/** Onglet « Carte à créer » : idée gardée (ni doublon ni corbeille) sans carte gardée. */
+export const needsCard = (s: IdeaCardState) => s.cards === 0 && !s.duplicate && !s.trashed;
+
+/** « Doublon de : titre — auteur » des idées marquées « Doublon de… » de cette page, par id. */
+export async function duplicateOfLabels(
+  admin: Admin,
+  items: Pick<Idea, "id" | "duplicateOfId">[],
+): Promise<Map<string, { id: string; label: string }>> {
+  const originIds = [...new Set(items.flatMap((i) => (i.duplicateOfId ? [i.duplicateOfId] : [])))];
+  const labels = await getIdeaLabels(admin, originIds);
+  const users = await getUsersByIds([...new Set([...labels.values()].map((l) => l.authorId))]);
+  const names = new Map(users.map((u) => [u.id, u.name]));
+  const out = new Map<string, { id: string; label: string }>();
+  for (const i of items) {
+    const l = i.duplicateOfId ? labels.get(i.duplicateOfId) : undefined;
+    if (i.duplicateOfId && l) {
+      const author = names.get(l.authorId) ?? "Membre inconnu";
+      out.set(i.id, { id: i.duplicateOfId, label: `${l.title} — ${author}` });
+    }
+  }
+  return out;
 }
 
 /**
@@ -55,12 +97,12 @@ export async function ideaCounters(
 ): Promise<{ toCreate: number; active: number; duplicates: number; trashed: number }> {
   const counts = { toCreate: 0, active: 0, duplicates: 0, trashed: 0 };
   for (const id of await listIdeaIds(admin)) {
-    const { cards, duplicate, trashed } = stateOf(id);
-    if (duplicate) counts.duplicates++;
-    else if (trashed) counts.trashed++;
+    const s = stateOf(id);
+    if (s.duplicate) counts.duplicates++;
+    else if (s.trashed) counts.trashed++;
     else {
       counts.active++;
-      if (cards === 0) counts.toCreate++;
+      if (needsCard(s)) counts.toCreate++;
     }
   }
   return counts;

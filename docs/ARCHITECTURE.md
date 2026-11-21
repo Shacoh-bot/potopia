@@ -951,12 +951,19 @@ et modifient les cartes.
   de reconnaissance, `isDuplicateNote`, pour l'éditeur et les listes), même à la
   corbeille, et l'idée n'a aucune autre carte gardée (`ideaStateOf`) ; elle affiche le badge
   rouge « Doublon », sans « Pas de carte » ni bouton de création (liste et page de l'idée).
-  Retirer la marque de la carte rend l'idée normale : l'état est calculé, rien n'est stocké côté
-  idées. Idée à la corbeille : toutes ses cartes sont à la corbeille sans marque « Doublon »
-  (`trashed` de `ideaStateOf`). La liste a trois onglets (`?onglet=`) : « Idées » (les autres),
-  « Doublon », « Corbeille » ; une idée suit ainsi ses cartes et revient quand une carte en sort
-  (`cardStatesByIdea` donne le filtre `onlyIds` / `exceptIds` de `listIdeas`). En tête, le
-  compteur des idées à transformer en carte (ni carte gardée, ni doublon, ni corbeille). Le
+  Retirer la marque de la carte rend l'idée normale : cet état-là est calculé. Idée à la corbeille : toutes ses cartes sont à la corbeille sans marque « Doublon »
+  (`trashed` de `ideaStateOf`). Une idée peut aussi être marquée « Doublon de… » sans passer par
+  une carte : sur sa fiche admin, choix dans la liste des idées (recherche titre ou auteur, pas de
+  texte libre), stocké dans `ideas.ideas.duplicate_of_id` (`setIdeaDuplicateOf` ; FK SET NULL ;
+  l'origine ne peut être ni l'idée elle-même ni un doublon, et les doublons d'une idée qui devient
+  doublon passent sur la nouvelle origine). Lien « Doublon de : titre — auteur » dans la liste et
+  sur la fiche ; « Ce n'est plus un doublon » retire la marque. Les cartes liées ne bougent pas
+  (la fiche le rappelle) ; la marque l'emporte sur l'état des cartes (`combineState`). La liste a
+  quatre onglets (`?onglet=`) : « Idées » (les autres), « Carte à créer » (`a-creer` : idées
+  gardées sans carte, `needsCard`), « Doublon », « Corbeille » ; une idée suit ainsi ses cartes et
+  revient quand une carte en sort (`cardStatesByIdea` donne le filtre `onlyIds` / `exceptIds` de
+  `listIdeas`). En tête, le compteur des idées à transformer en carte (ni carte gardée, ni
+  doublon, ni corbeille). Le
   module `ideas` ne connaît pas les cartes : l'app lui passe l'état de chaque idée (`cards`,
   `duplicate`, `trashed`, calculés par `ideaCardStates` du TCG) et l'adresse de création
   (`newCardHref`).

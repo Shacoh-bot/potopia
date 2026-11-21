@@ -13,6 +13,9 @@ import {
   InvalidImageError,
   getIdeaAuthorIds,
   getIdeaLabels,
+  IdeaDuplicateError,
+  listDuplicateCandidates,
+  listDuplicateIdeaIds,
   listIdeaIds,
   listIdeaImageUrls,
   listIdeas,
@@ -20,6 +23,7 @@ import {
   STALE_UPLOAD_MAX_AGE_MS,
   submitIdea,
   UPLOAD_RATE_LIMIT,
+  setIdeaDuplicateOf,
   UploadRateLimitError,
 } from "../src/index";
 
@@ -374,5 +378,46 @@ describe("onglets et libellés de la liste admin", () => {
       authorId: all[0]?.authorId,
     });
     await expect(getIdeaLabels(MEMBER, [])).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe("idée « Doublon de… »", () => {
+  it("marque, refuse les mauvais choix, évite les chaînes et retire la marque", async () => {
+    await submitIdea(MEMBER.id, idea(1));
+    await submitIdea(OTHER.id, idea(2));
+    await submitIdea(MEMBER.id, idea(3));
+    const [c, b, a] = (await listIdeas(ADMIN)).items.map((i) => i.id) as [string, string, string];
+
+    await setIdeaDuplicateOf(ADMIN, { ideaId: b, ofId: a });
+    expect((await getIdea(ADMIN, b))?.duplicateOfId).toBe(a);
+    expect(await listDuplicateIdeaIds(ADMIN)).toEqual(new Set([b]));
+    // Une idée déjà doublon n'est pas proposée comme origine.
+    expect((await listDuplicateCandidates(ADMIN)).map((i) => i.id).sort()).toEqual([a, c].sort());
+
+    await expect(setIdeaDuplicateOf(ADMIN, { ideaId: a, ofId: a })).rejects.toBeInstanceOf(
+      IdeaDuplicateError,
+    );
+    await expect(setIdeaDuplicateOf(ADMIN, { ideaId: c, ofId: b })).rejects.toBeInstanceOf(
+      IdeaDuplicateError,
+    );
+    await expect(setIdeaDuplicateOf(ADMIN, { ideaId: c, ofId: "absente" })).rejects.toBeInstanceOf(
+      IdeaDuplicateError,
+    );
+    await expect(setIdeaDuplicateOf(MEMBER, { ideaId: b, ofId: a })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+
+    // L'origine devient doublon à son tour : ses doublons la suivent (pas de chaîne).
+    await setIdeaDuplicateOf(ADMIN, { ideaId: a, ofId: c });
+    expect((await getIdea(ADMIN, b))?.duplicateOfId).toBe(c);
+    expect(await listDuplicateIdeaIds(ADMIN)).toEqual(new Set([a, b]));
+
+    // « Ce n'est plus un doublon ».
+    await setIdeaDuplicateOf(ADMIN, { ideaId: b, ofId: null });
+    expect((await getIdea(ADMIN, b))?.duplicateOfId).toBeNull();
+
+    // Supprimer l'origine libère ses doublons (ON DELETE SET NULL).
+    await db.idea.delete({ where: { id: c } });
+    expect((await getIdea(ADMIN, a))?.duplicateOfId).toBeNull();
   });
 });

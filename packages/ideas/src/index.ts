@@ -6,8 +6,12 @@ export {
   listIdeaIds,
   getIdeaAuthorIds,
   getIdeaLabels,
+  IdeaDuplicateError,
+  listDuplicateCandidates,
+  listDuplicateIdeaIds,
   listIdeaImageUrls,
   listIdeas,
+  setIdeaDuplicateOf,
   type ExportedIdea,
   type Idea,
 } from "./admin";

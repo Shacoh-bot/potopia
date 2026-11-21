@@ -1,5 +1,5 @@
 import { ForbiddenError, isAdmin } from "@app/core";
-import { db } from "@app/db";
+import { db, type DbTx, withTx } from "@app/db";
 import { MAX_EXPIRES_IN, presignGet, presignGetStable } from "@app/storage";
 import { z } from "zod";
 import { RARITIES, type Rarity } from "./validation";
@@ -14,6 +14,8 @@ export type Idea = {
   effectIdea: string | null;
   imageKey: string | null;
   createdAt: Date;
+  /** Idée d'origine quand un admin a marqué celle-ci « Doublon de… » ; sinon null. */
+  duplicateOfId: string | null;
 };
 
 /** Utilisateur qui lit : seuls les admins (ADMIN_DISCORD_IDS) y ont droit. */
@@ -125,6 +127,85 @@ export async function listIdeaIds(reader: Reader): Promise<string[]> {
   assertAdmin(reader);
   const rows = await db.idea.findMany({ select: { id: true } });
   return rows.map((r) => r.id);
+}
+
+/**
+ * Ids des idées marquées « Doublon de… » par un admin (onglet Doublon de la liste admin, avec
+ * celles dont la carte est marquée « Doublon »). Lève ForbiddenError pour un non-admin.
+ */
+export async function listDuplicateIdeaIds(reader: Reader): Promise<Set<string>> {
+  assertAdmin(reader);
+  const rows = await db.idea.findMany({
+    where: { duplicateOfId: { not: null } },
+    select: { id: true },
+  });
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * Idées qu'on peut choisir comme original d'un doublon : toutes celles qui ne sont pas elles-mêmes
+ * marquées « Doublon de… », de la plus récente à la plus ancienne. Lève ForbiddenError pour un
+ * non-admin.
+ */
+export async function listDuplicateCandidates(
+  reader: Reader,
+): Promise<{ id: string; title: string; authorId: string }[]> {
+  assertAdmin(reader);
+  return db.idea.findMany({
+    where: { duplicateOfId: null },
+    select: { id: true, title: true, authorId: true },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  });
+}
+
+/** Choix d'un admin refusé (idée d'origine absente, elle-même, ou elle-même un doublon). */
+export class IdeaDuplicateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IdeaDuplicateError";
+  }
+}
+
+const duplicateInput = z.object({
+  ideaId: z.string().min(1),
+  /** Idée d'origine ; null retire la marque (« Ce n'est plus un doublon »). */
+  ofId: z.string().min(1).nullable(),
+});
+
+/**
+ * Marque une idée « Doublon de » une autre (`ofId`), ou retire la marque (`ofId: null`). L'origine
+ * doit exister, être une autre idée, et ne pas être elle-même un doublon. Les doublons de l'idée
+ * marquée passent sur la nouvelle origine (jamais de chaîne). Les cartes liées ne bougent pas.
+ * Lève ForbiddenError pour un non-admin, IdeaDuplicateError pour un choix refusé.
+ */
+export async function setIdeaDuplicateOf(
+  reader: Reader,
+  input: z.input<typeof duplicateInput>,
+  opts?: { tx?: DbTx },
+): Promise<void> {
+  assertAdmin(reader);
+  const { ideaId, ofId } = duplicateInput.parse(input);
+  await withTx(async (tx) => {
+    const idea = await tx.idea.findUnique({ where: { id: ideaId }, select: { id: true } });
+    if (!idea) throw new IdeaDuplicateError("Idée introuvable.");
+    if (ofId === null) {
+      await tx.idea.update({ where: { id: ideaId }, data: { duplicateOfId: null } });
+      return;
+    }
+    if (ofId === ideaId) {
+      throw new IdeaDuplicateError("Une idée ne peut pas être le doublon d'elle-même.");
+    }
+    const origin = await tx.idea.findUnique({
+      where: { id: ofId },
+      select: { duplicateOfId: true },
+    });
+    if (!origin) throw new IdeaDuplicateError("Idée d'origine introuvable.");
+    if (origin.duplicateOfId) {
+      throw new IdeaDuplicateError("Cette idée est elle-même un doublon : choisis l'originale.");
+    }
+    await tx.idea.updateMany({ where: { duplicateOfId: ideaId }, data: { duplicateOfId: ofId } });
+    await tx.idea.update({ where: { id: ideaId }, data: { duplicateOfId: ofId } });
+  }, opts);
 }
 
 /** Auteurs ayant envoyé au moins une idée, pour le filtre de la liste admin. */
