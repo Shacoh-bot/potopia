@@ -161,20 +161,17 @@ export function ExtraArt({ card, style }: { card: CardData; style: ExtraStyle })
       return (
         <div style={{ ...fill, background: "#000", filter: "contrast(1.15) brightness(0.9)" }}>
           {/* Canal rouge décalé à gauche, vert et bleu à droite : additionnés, ils redonnent
-              l'image, avec des franges colorées sur les contours. */}
-          <div
-            aria-hidden
-            style={{ ...fill, filter: "url(#tcg-red)", transform: "translateX(-4px)" }}
-          >
+              l'image, avec de fines franges colorées ; par à-coups brefs, l'écart grandit (tcg.css). */}
+          <div aria-hidden className="tcg-glitch-red" style={{ ...fill, filter: "url(#tcg-red)" }}>
             <PremiumArt card={card} />
           </div>
           <div
             aria-hidden
+            className="tcg-glitch-cyan"
             style={{
               ...fill,
               filter: "url(#tcg-cyan)",
               mixBlendMode: "screen",
-              transform: "translateX(4px)",
             }}
           >
             <PremiumArt card={card} />

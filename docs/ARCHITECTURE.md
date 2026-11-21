@@ -1126,7 +1126,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   redessinée (place `image`) : `lenticulaire` (« Lenticulaire », `tcg-lenti` : bascule vers
   l'illustration aux couleurs inversées quand la carte penche à droite, toute seule sans
   pointeur ; une vraie seconde image demanderait une colonne de plus) et les styles
-  d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch`,
+  d'illustration Snap (`ExtraArt` de `snap-styles.tsx`, filtres SVG de `SnapDefs`) : `glitch` (canaux rouge/cyan écartés de 1 px, 3 px par à-coups brefs ; tranches de 4 px au plus au survol),
   `or` (« Or massif »), plus `aquarelle` et `cosmos` (« Ciel
   cosmique »), refaits dans `visual-effects.tsx` (`Watercolor`, `Cosmic`) avec des marges et un
   fondu plus petits, réglés selon la mise en page (`full`), pour que l'illustration en garde la

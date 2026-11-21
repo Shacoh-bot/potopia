@@ -281,7 +281,44 @@
   mix-blend-mode: multiply;
 }
 
-/* Glitch : au survol, des tranches de l'image sautent de côté. */
+/* Glitch : canaux rouge et cyan écartés de 1 px au repos (la carte reste lisible), 3 px par
+   à-coups brefs toutes les 3,2 s ; au survol, des tranches de l'image sautent de côté (4 px au plus). */
+.tcg-glitch-red {
+  transform: translateX(-1px);
+  animation: tcg-glitch-red 3.2s steps(1) infinite;
+}
+.tcg-glitch-cyan {
+  transform: translateX(1px);
+  animation: tcg-glitch-cyan 3.2s steps(1) infinite;
+}
+@keyframes tcg-glitch-red {
+  0% {
+    transform: translateX(-1px);
+  }
+  92% {
+    transform: translateX(-3px);
+  }
+  94% {
+    transform: translateX(1px);
+  }
+  96% {
+    transform: translateX(-1px);
+  }
+}
+@keyframes tcg-glitch-cyan {
+  0% {
+    transform: translateX(1px);
+  }
+  92% {
+    transform: translateX(3px);
+  }
+  94% {
+    transform: translateX(-1px);
+  }
+  96% {
+    transform: translateX(1px);
+  }
+}
 .tcg-glitch-slice {
   opacity: 0;
 }
@@ -292,23 +329,23 @@
 @keyframes tcg-glitch {
   0% {
     clip-path: inset(12% 0 74% 0);
-    transform: translateX(-10px);
+    transform: translateX(-4px);
   }
   20% {
     clip-path: inset(48% 0 38% 0);
-    transform: translateX(9px);
+    transform: translateX(3px);
   }
   40% {
     clip-path: inset(70% 0 18% 0);
-    transform: translateX(-6px);
+    transform: translateX(-2px);
   }
   60% {
     clip-path: inset(30% 0 60% 0);
-    transform: translateX(12px);
+    transform: translateX(4px);
   }
   80% {
     clip-path: inset(84% 0 4% 0);
-    transform: translateX(-8px);
+    transform: translateX(-3px);
   }
   100% {
     clip-path: inset(0 0 100% 0);
@@ -529,6 +566,8 @@
   .tcg-sparkle,
   .tcg-orbit,
   .tcg-prism,
+  .tcg-glitch-red,
+  .tcg-glitch-cyan,
   .tcg-glitch-slice,
   .tcg-flow,
   .tcg-breathe,
