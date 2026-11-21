@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { db } from "@app/db";
 import { truncateTestDb } from "@app/db/testing";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -697,26 +698,108 @@ describe("idée en doublon", () => {
   });
 
   it("« Doublon » : la carte va à la corbeille marquée ; Corbeille ou sortie retirent la marque", async () => {
+    const original = await createCard(ADMIN, { ...BASE, name: "Original", setId });
     const card = await createCard(ADMIN, { ...BASE, name: "Copie", setId, ideaId: "idea-copy" });
     await updateCard(ADMIN, card.id, { ...BASE, name: "Copie", adminNote: "vue en double" });
     const state = async () => (await ideaCardStates(ADMIN)).get("idea-copy");
     const note = async () => (await getCard(ADMIN, card.id))?.adminNote;
+    const of = async () => (await getCard(ADMIN, card.id))?.duplicateOfId;
+    const duplicate = { duplicate: true, duplicateOf: original.id };
 
-    await trashCards(ADMIN, [card.id], { duplicate: true });
+    await trashCards(ADMIN, [card.id], duplicate);
     expect(await note()).toBe("Doublon — vue en double");
+    expect(await of()).toBe(original.id);
     expect((await getCard(ADMIN, card.id))?.deletedAt).not.toBeNull();
     expect(await state()).toEqual({ cards: 0, duplicate: true, trashed: false });
 
-    // du Doublon à la Corbeille : la marque part, l'idée suit à la corbeille
+    // du Doublon à la Corbeille : la marque et le lien partent, l'idée suit à la corbeille
     await trashCards(ADMIN, [card.id]);
     expect(await note()).toBe("vue en double");
+    expect(await of()).toBeNull();
     expect(await state()).toEqual({ cards: 0, duplicate: false, trashed: true });
 
-    // retour au Doublon, puis sortie dans la réserve : l'idée revient
-    await trashCards(ADMIN, [card.id], { duplicate: true });
+    // retour au Doublon, puis sortie dans la réserve : l'idée revient, le lien part
+    await trashCards(ADMIN, [card.id], duplicate);
     await moveCards(ADMIN, [card.id], null);
     expect(await note()).toBe("vue en double");
+    expect(await of()).toBeNull();
     expect(await state()).toEqual({ cards: 1, duplicate: false, trashed: false });
+  });
+
+  it("« Doublon » demande une carte d'origine gardée, autre que les cartes envoyées", async () => {
+    const original = await createCard(ADMIN, { ...BASE, name: "Original", setId });
+    const other = await createCard(ADMIN, { ...BASE, name: "Autre", setId });
+    const card = await createCard(ADMIN, { ...BASE, name: "Copie", setId });
+    await expect(trashCards(ADMIN, [card.id], { duplicate: true })).rejects.toThrow(
+      "Choisis la carte dont c'est le doublon.",
+    );
+    await expect(
+      trashCards(ADMIN, [card.id], { duplicate: true, duplicateOf: card.id }),
+    ).rejects.toThrow("Une carte ne peut pas être le doublon d'elle-même.");
+    await expect(
+      trashCards(ADMIN, [card.id], { duplicate: true, duplicateOf: "absente" }),
+    ).rejects.toThrow("Carte d'origine introuvable.");
+    await trashCards(ADMIN, [other.id]);
+    await expect(
+      trashCards(ADMIN, [card.id], { duplicate: true, duplicateOf: other.id }),
+    ).rejects.toThrow("La carte d'origine est à la corbeille");
+    expect((await getCard(ADMIN, card.id))?.deletedAt).toBeNull();
+
+    // déjà au Doublon : on en change la carte d'origine ; supprimer l'original défait le lien
+    await trashCards(ADMIN, [card.id], { duplicate: true, duplicateOf: original.id });
+    await moveCards(ADMIN, [other.id], setId);
+    await trashCards(ADMIN, [card.id], { duplicate: true, duplicateOf: other.id });
+    expect((await getCard(ADMIN, card.id))?.duplicateOfId).toBe(other.id);
+    await trashCards(ADMIN, [other.id]);
+    await deleteCards(ADMIN, [other.id]);
+    expect((await getCard(ADMIN, card.id))?.duplicateOfId).toBeNull();
+    expect((await getCard(ADMIN, card.id))?.adminNote).toBe("Doublon");
+  });
+
+  it("migration : relie les doublons en texte libre au nom exact d'une seule carte gardée", async () => {
+    const sql = readFileSync(
+      new URL(
+        "../../../packages/db/prisma/migrations/20261121120000_tcg_card_duplicate_of/migration.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const update = sql.match(/WITH marked[\s\S]+?;/)?.[0];
+    expect(update).toBeTruthy();
+    const kept = await createCard(ADMIN, { ...BASE, name: "Le Rat Géant", setId });
+    await createCard(ADMIN, { ...BASE, name: "Jumeau", setId });
+    await createCard(ADMIN, { ...BASE, name: "Jumeau" });
+    const notes = {
+      gardee: "Doublon — gardée : « le rat géant »",
+      de: "Doublon de Le Rat Géant",
+      ambigu: "Doublon — Jumeau",
+      inconnu: "Doublon — gardée : Personne",
+      seul: "Doublon",
+      autre: "Doublonnage — Le Rat Géant",
+    };
+    const ids: Record<string, string> = {};
+    for (const [key, adminNote] of Object.entries(notes)) {
+      const c = await createCard(ADMIN, { ...BASE, name: `Copie ${key}` });
+      await db.tcgCard.update({ where: { id: c.id }, data: { adminNote, deletedAt: new Date() } });
+      ids[key] = c.id;
+    }
+
+    await db.$executeRawUnsafe(update ?? "");
+
+    const linked = new Map(
+      (await db.tcgCard.findMany({ where: { deletedAt: { not: null } } })).map((c) => [
+        c.id,
+        c.duplicateOfId,
+      ]),
+    );
+    expect(Object.fromEntries(Object.entries(ids).map(([k, id]) => [k, linked.get(id)]))).toEqual({
+      gardee: kept.id,
+      de: kept.id,
+      ambigu: null,
+      inconnu: null,
+      seul: null,
+      autre: null,
+    });
   });
 });
 

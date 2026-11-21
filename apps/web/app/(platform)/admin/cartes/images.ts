@@ -3,6 +3,8 @@ import { getIdeaAuthorIds, listIdeaImageUrls } from "@app/ideas";
 import { presignGetStable } from "@app/storage";
 import { type Card, countSetCards, imageKeyFor, smallImageKeyFor } from "@app/tcg";
 
+import type { DuplicateCandidate } from "./forms";
+
 type Admin = { discordId: string | null };
 
 /** Clé des URL d'illustration : la carte et sa version (`layout`), qui a son illustration. */
@@ -98,4 +100,23 @@ export function familiesOf(cards: Card[]): string[] {
   return [...new Set(cards.flatMap((c) => (c.family ? [c.family] : [])))].sort((a, b) =>
     a.localeCompare(b),
   );
+}
+
+/**
+ * Cartes qu'on peut choisir comme original d'un doublon (`DuplicateOfPicker`), par nom : leur
+ * place (code du set, sinon « Réserve ») et leur miniature.
+ */
+export async function duplicateCandidates(
+  admin: Admin,
+  cards: Card[],
+): Promise<DuplicateCandidate[]> {
+  const urls = await cardImageUrls(admin, cards);
+  return [...cards]
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      place: c.setCode ?? "Réserve",
+      thumb: urls.get(imageId(c))?.url ?? null,
+    }));
 }

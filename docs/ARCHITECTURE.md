@@ -926,8 +926,15 @@ et modifient les cartes.
   montre les cartes de la corbeille marquées « Doublon » (`isDuplicateNote`) ; « Corbeille »
   montre les autres. Ranger une carte au « Doublon » (`trashCards` avec `duplicate`) la met à la
   corbeille et pose la marque (`markDuplicateNote`) ; la passer du Doublon à la Corbeille retire
-  la marque (`unmarkDuplicateNote`), tout comme l'en sortir (`moveCards`). Pas de colonne : la
-  marque est la note admin. Sous chaque carte tirée d'une idée (liste et miniatures) : « Lié à
+  la marque (`unmarkDuplicateNote`), tout comme l'en sortir (`moveCards`). La marque reste la
+  note admin ; la carte d'origine est une référence (`duplicateOfId`, colonne `duplicate_of_id`,
+  `ON DELETE SET NULL`) choisie dans une liste (`DuplicateOfPicker` : recherche par nom, miniature,
+  cartes hors corbeille seulement), jamais du texte libre : `trashCards` refuse `duplicate` sans
+  `duplicateOf` valide (carte gardée, autre que les cartes envoyées). Menus : ligne de la liste,
+  planche (cartes cochées) et page de la carte ; au Doublon, « Doublon de… » change l'original.
+  Sous la carte (onglet Doublon) et sur sa page : « Doublon de : nom » (lien), ou « à relier »
+  sans référence. La migration `20261121120000_tcg_card_duplicate_of` a relié les doublons en
+  texte libre dont le reste de la note est exactement le nom d'une seule carte gardée. Sous chaque carte tirée d'une idée (liste et miniatures) : « Lié à
   l'idée : titre — auteur » (`getIdeaLabels` du module `ideas`), lien vers la page de l'idée.
 - Lien avec une idée (`ideaId`) : seulement pour la gestion (retrouver la description et l'image
   proposées), aucun effet en jeu ; une idée peut donner plusieurs cartes. Depuis la page admin d'une
@@ -937,7 +944,7 @@ et modifient les cartes.
   Dans la liste `/admin/ideas`, chaque idée indique si elle a déjà une carte (badge vert « Carte
   créée » ou « N cartes », hors corbeille et hors doublons) ; sinon, badge « Pas de carte » et
   bouton « Créer la carte » qui ouvre directement la création. Idée en doublon : sa carte porte la
-  note admin « Doublon… » (bouton « Doublon » de la fiche, `markDuplicateNote` ; une seule règle
+  note admin « Doublon… » (menu « Doublon » avec sa carte d'origine, `markDuplicateNote` ; une seule règle
   de reconnaissance, `isDuplicateNote`, pour l'éditeur et les listes), même à la
   corbeille, et l'idée n'a aucune autre carte gardée (`ideaStateOf`) ; elle affiche le badge
   rouge « Doublon », sans « Pas de carte » ni bouton de création (liste et page de l'idée).

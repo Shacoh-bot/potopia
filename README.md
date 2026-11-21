@@ -314,8 +314,8 @@ dans la réserve (la page s'ouvre dessus) ; une carte rangée dans un set y pren
 prod avec lui. Depuis la page
 d'une idée (Administration › Boîte à idées), « Créer une carte » pré-remplit une carte. On y règle : nom, type, famille,
 mana, puissance, rareté, effet (choisi dans le catalogue `games/tcg/src/effects.ts`, puis réglé),
-description, une note admin (« Doublon de … », bouton « Doublon » ; visible dans la liste et la
-corbeille, jamais montrée aux joueurs) et illustration (fichier ou image collée avec Ctrl+V, convertie en WebP avant l'envoi,
+description, une note admin (texte libre, visible dans la liste et la corbeille, jamais montrée
+aux joueurs ; « Doublon » se choisit dans le menu de place, avec la carte d'origine prise dans une liste) et illustration (fichier ou image collée avec Ctrl+V, convertie en WebP avant l'envoi,
 puis à cadrer en la faisant glisser et en zoomant). Pour en créer beaucoup d'un coup, `/admin/cartes/import` prend un
 fichier JSON (format affiché sur la page ; un fichier `updates` y change en masse le coût, la
 puissance et l'effet de cartes existantes), et `/admin/cartes/illustrations` plusieurs images d'un

@@ -2,9 +2,11 @@
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { placeCardAction } from "@/app/(platform)/admin/cartes/actions";
 import {
   CardVersionSwitch,
   MoveCardsForm,
+  PlaceSelect,
   selectionState,
 } from "@/app/(platform)/admin/cartes/forms";
 
@@ -98,7 +100,7 @@ describe("« Tout cocher » des cartes affichées", () => {
   it("coche et décoche toutes les cartes de la planche, et suit les cases cochées à la main", () => {
     act(() =>
       root.render(
-        <MoveCardsForm targets={[{ id: "", label: "Réserve" }]} hint="">
+        <MoveCardsForm targets={[{ id: "", label: "Réserve" }]} hint="" candidates={[]}>
           {["a", "b", "c"].map((id) => (
             <input key={id} type="checkbox" name="ids" value={id} aria-label={id} />
           ))}
@@ -122,5 +124,76 @@ describe("« Tout cocher » des cartes affichées", () => {
     expect(boxes.every((b) => b.checked)).toBe(true);
     act(() => all.click());
     expect(boxes.some((b) => b.checked)).toBe(false);
+  });
+});
+
+/** Change la valeur d'un champ comme le fait le navigateur, pour que React voie l'événement. */
+function change(el: HTMLInputElement | HTMLSelectElement, value: string) {
+  const proto = el instanceof HTMLSelectElement ? HTMLSelectElement : HTMLInputElement;
+  Object.getOwnPropertyDescriptor(proto.prototype, "value")?.set?.call(el, value);
+  el.dispatchEvent(
+    new Event(el instanceof HTMLSelectElement ? "change" : "input", { bubbles: true }),
+  );
+}
+
+describe("« Doublon » : choisir la carte d'origine dans une liste", () => {
+  const candidates = [
+    { id: "rat", name: "Le Rat Géant", place: "S1", thumb: "/rat.webp" },
+    { id: "sage", name: "Le vieux sage", place: "Réserve", thumb: null },
+    { id: "copie", name: "Copie du rat", place: "S1", thumb: null },
+  ];
+
+  it("ne range rien avant le choix, cherche par nom (sans accents) et envoie la carte choisie", async () => {
+    vi.mocked(placeCardAction).mockResolvedValue(null);
+    act(() =>
+      root.render(
+        <PlaceSelect
+          cardId="copie"
+          cardName="Copie du rat"
+          value="reserve"
+          targets={[
+            { id: "reserve", label: "Réserve" },
+            { id: "duplicate", label: "Doublon" },
+          ]}
+          candidates={candidates}
+        />,
+      ),
+    );
+    act(() => change(container.querySelector("select") as HTMLSelectElement, "duplicate"));
+    expect(placeCardAction).not.toHaveBeenCalled();
+    const options = () =>
+      [...container.querySelectorAll('[role="option"]')].map((o) => o.textContent);
+    // la carte elle-même n'est pas proposée
+    expect(options()).toEqual(["Le Rat GéantS1", "Le vieux sageRéserve"]);
+    expect(container.querySelector('[role="option"] img')?.getAttribute("src")).toBe("/rat.webp");
+
+    act(() => change(container.querySelector("input") as HTMLInputElement, "geant"));
+    expect(options()).toEqual(["Le Rat GéantS1"]);
+    await act(async () =>
+      (container.querySelector('[role="option"]') as HTMLButtonElement).click(),
+    );
+    expect(placeCardAction).toHaveBeenCalledWith("copie", "duplicate", "rat");
+    expect(container.querySelector('[role="option"]')).toBeNull();
+  });
+
+  it("dans la planche, le doublon attend sa carte d'origine avant « Valider »", () => {
+    act(() =>
+      root.render(
+        <MoveCardsForm
+          targets={[{ id: "duplicate", label: "Doublon" }]}
+          hint=""
+          candidates={candidates}
+        >
+          <input type="checkbox" name="ids" value="copie" aria-label="copie" />
+        </MoveCardsForm>,
+      ),
+    );
+    act(() => change(container.querySelector("select") as HTMLSelectElement, "duplicate"));
+    expect(button("Valider")?.disabled).toBe(true);
+    act(() => (container.querySelector('[role="option"]') as HTMLButtonElement).click());
+    expect(container.textContent).toContain("Doublon de : Le Rat Géant");
+    const form = container.querySelector("form") as HTMLFormElement;
+    expect(new FormData(form).get("duplicateOf")).toBe("rat");
+    expect(button("Valider")?.disabled).toBe(false);
   });
 });

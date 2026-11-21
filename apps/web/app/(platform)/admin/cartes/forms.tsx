@@ -153,6 +153,93 @@ export function NewSetForm() {
 /** Destination d'un déplacement : la réserve (`id` vide), un set, « trash » ou « delete ». */
 export type MoveTarget = { id: string; label: string };
 
+/** Carte qu'on peut choisir comme original d'un doublon : son nom, sa place et sa miniature. */
+export type DuplicateCandidate = { id: string; name: string; place: string; thumb: string | null };
+
+/** Texte comparable : minuscules, sans accents. */
+const foldText = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+/** Nombre de cartes proposées sous la recherche. */
+const PICKER_RESULTS = 8;
+
+/**
+ * Choix de la carte dont une carte est le doublon : recherche par nom dans la liste des cartes
+ * gardées (sets et réserve), avec leur miniature. `onPick` reçoit l'id choisi ; `onCancel`
+ * referme le choix. Pas de texte libre : seule une carte de la liste peut être choisie.
+ */
+export function DuplicateOfPicker({
+  candidates,
+  exclude = [],
+  onPick,
+  onCancel,
+  disabled,
+}: {
+  candidates: DuplicateCandidate[];
+  /** Cartes à ne pas proposer (la carte elle-même). */
+  exclude?: string[];
+  onPick: (id: string) => void;
+  onCancel?: () => void;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const q = foldText(query.trim());
+  const found = candidates
+    .filter((c) => !exclude.includes(c.id) && (!q || foldText(c.name).includes(q)))
+    .slice(0, PICKER_RESULTS);
+  return (
+    <span className="border-border bg-surface flex w-72 max-w-full flex-col gap-1 rounded-md border p-2 text-left">
+      <span className="flex items-center gap-1">
+        <Input
+          autoFocus
+          value={query}
+          disabled={disabled}
+          placeholder="Doublon de quelle carte ?"
+          aria-label="Chercher la carte d'origine du doublon"
+          className="h-8 py-0 text-xs"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Annuler le doublon"
+            className="text-muted hover:text-text p-1"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </span>
+      <span role="listbox" aria-label="Cartes d'origine possibles" className="flex flex-col">
+        {found.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            role="option"
+            aria-selected={false}
+            disabled={disabled}
+            onClick={() => onPick(c.id)}
+            className="hover:bg-accent/15 flex items-center gap-2 rounded px-1 py-0.5 text-xs disabled:opacity-60"
+          >
+            {c.thumb ? (
+              // eslint-disable-next-line @next/next/no-img-element -- miniature présignée, pas de next/image
+              <img src={c.thumb} alt="" className="h-8 w-6 shrink-0 rounded-sm object-cover" />
+            ) : (
+              <span className="bg-border h-8 w-6 shrink-0 rounded-sm" />
+            )}
+            <span className="text-text truncate">{c.name}</span>
+            <span className="text-muted ml-auto shrink-0">{c.place}</span>
+          </button>
+        ))}
+        {found.length === 0 && <span className="text-muted px-1 text-xs">Aucune carte.</span>}
+      </span>
+    </span>
+  );
+}
+
 function TargetSelect({
   targets,
   onChange,
@@ -185,28 +272,35 @@ function TargetSelect({
 
 /**
  * Édition d'une carte dans la vue liste : changer le choix range la carte tout de suite (set,
- * réserve ou corbeille). Le menu n'a pas de `name` : il ne part pas avec les cases cochées.
+ * réserve ou corbeille) ; « Doublon » demande d'abord la carte d'origine (`DuplicateOfPicker`).
+ * Le menu n'a pas de `name` : il ne part pas avec les cases cochées.
  */
 export function PlaceSelect({
   cardId,
   cardName,
   value,
   targets,
+  candidates,
 }: {
   cardId: string;
   cardName: string;
-  /** Place actuelle : id du set, « reserve » ou « trash ». */
+  /** Place actuelle : id du set, « reserve », « duplicate » ou « trash ». */
   value: string;
-  /** Choix : les sets (id), la réserve (« reserve ») et la corbeille (« trash »). */
+  /** Choix : les sets (id), la réserve (« reserve »), le doublon et la corbeille (« trash »). */
   targets: MoveTarget[];
+  /** Cartes d'origine possibles d'un doublon. */
+  candidates: DuplicateCandidate[];
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  // Annuler le choix du doublon remet le menu sur la place actuelle (nouvelle clé).
+  const [round, setRound] = useState(0);
   return (
     <span className="flex flex-col gap-0.5">
       <Select
         // Nouvelle place renvoyée par le serveur : le menu repart de celle-ci.
-        key={value}
+        key={`${value}:${round}`}
         defaultValue={value}
         disabled={pending}
         aria-label={`Édition de ${cardName}`}
@@ -215,6 +309,8 @@ export function PlaceSelect({
         className="h-8 py-0 text-xs"
         onChange={(e) => {
           const target = e.target.value;
+          setPicking(target === "duplicate");
+          if (target === "duplicate") return;
           startTransition(async () => {
             setError((await placeCardAction(cardId, target))?.error ?? null);
           });
@@ -226,6 +322,24 @@ export function PlaceSelect({
           </option>
         ))}
       </Select>
+      {picking && (
+        <DuplicateOfPicker
+          candidates={candidates}
+          exclude={[cardId]}
+          disabled={pending}
+          onCancel={() => {
+            setPicking(false);
+            setRound((r) => r + 1);
+          }}
+          onPick={(of) =>
+            startTransition(async () => {
+              const result = await placeCardAction(cardId, "duplicate", of);
+              setError(result?.error ?? null);
+              if (!result) setPicking(false);
+            })
+          }
+        />
+      )}
       {error && <span className="text-danger text-xs">{error}</span>}
     </span>
   );
@@ -423,23 +537,49 @@ function confirmDelete(e: FormEvent<HTMLFormElement>) {
 export function MoveCardsForm({
   targets,
   hint,
+  candidates,
   children,
 }: {
   targets: MoveTarget[];
   /** Rappel affiché à côté du bouton. */
   hint: string;
+  /** Cartes d'origine possibles quand la sélection part au « Doublon ». */
+  candidates: DuplicateCandidate[];
   children: ReactNode;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(moveCardsAction, {
     status: "idle",
   });
+  const [target, setTarget] = useState("");
+  const [original, setOriginal] = useState<DuplicateCandidate | null>(null);
+  const duplicate = target === "duplicate";
   return (
     <form action={action} onSubmit={confirmDelete} className="flex flex-col gap-4">
       <div className="bg-surface border-border sticky top-2 z-10 flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm">
         <SelectAllBox />
         <span className="text-muted">Cartes cochées :</span>
-        <TargetSelect targets={targets} />
-        <Button type="submit" size="sm" disabled={pending}>
+        <TargetSelect targets={targets} onChange={(e) => setTarget(e.target.value)} />
+        {duplicate &&
+          (original ? (
+            <span className="flex items-center gap-1">
+              <input type="hidden" name="duplicateOf" value={original.id} />
+              Doublon de : <strong>{original.name}</strong>
+              <button
+                type="button"
+                onClick={() => setOriginal(null)}
+                aria-label="Changer la carte d'origine"
+                className="text-muted hover:text-text p-1"
+              >
+                <X size={14} />
+              </button>
+            </span>
+          ) : (
+            <DuplicateOfPicker
+              candidates={candidates}
+              onPick={(id) => setOriginal(candidates.find((c) => c.id === id) ?? null)}
+            />
+          ))}
+        <Button type="submit" size="sm" disabled={pending || (duplicate && !original)}>
           Valider
         </Button>
         <span className="text-muted text-xs">{hint}</span>
@@ -455,20 +595,36 @@ export function MoveCardsForm({
  * le choix dans le menu ; à la corbeille, suppression définitive (confirmée, puis retour à la
  * corbeille).
  */
-export function MoveCardForm({ cardId, targets }: { cardId: string; targets: MoveTarget[] }) {
+export function MoveCardForm({
+  cardId,
+  targets,
+  candidates,
+}: {
+  cardId: string;
+  targets: MoveTarget[];
+  /** Cartes d'origine possibles si la carte part au « Doublon ». */
+  candidates: DuplicateCandidate[];
+}) {
   const [state, action, pending] = useActionState<FormState, FormData>(moveCardsAction, {
     status: "idle",
   });
+  const formRef = useRef<HTMLFormElement>(null);
+  const originalRef = useRef<HTMLInputElement>(null);
+  const [picking, setPicking] = useState(false);
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2 text-sm">
+    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2 text-sm">
       <input type="hidden" name="ids" value={cardId} />
       <input type="hidden" name="back" value="on" />
+      <input ref={originalRef} type="hidden" name="duplicateOf" defaultValue="" />
       <TargetSelect
         targets={targets}
         disabled={pending}
-        // Enregistré dès le choix ; la suppression définitive se confirme d'abord.
+        // Enregistré dès le choix ; la suppression définitive se confirme d'abord, le doublon
+        // attend le choix de sa carte d'origine.
         onChange={(e) => {
           const select = e.currentTarget;
+          setPicking(select.value === "duplicate");
+          if (select.value === "duplicate") return;
           if (
             select.value === "delete" &&
             !window.confirm("Supprimer définitivement ? Impossible à annuler.")
@@ -479,6 +635,18 @@ export function MoveCardForm({ cardId, targets }: { cardId: string; targets: Mov
           select.form?.requestSubmit();
         }}
       />
+      {picking && (
+        <DuplicateOfPicker
+          candidates={candidates}
+          exclude={[cardId]}
+          disabled={pending}
+          onCancel={() => setPicking(false)}
+          onPick={(id) => {
+            if (originalRef.current) originalRef.current.value = id;
+            formRef.current?.requestSubmit();
+          }}
+        />
+      )}
       <Status state={state} />
     </form>
   );

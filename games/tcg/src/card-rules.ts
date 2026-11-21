@@ -348,6 +348,8 @@ export type Card = {
   glowPoints: GlowPoint[];
   ideaId: string | null;
   baseCardId: string | null;
+  /** Carte dont celle-ci est le doublon (choisie au passage au « Doublon ») ; null : aucune. */
+  duplicateOfId: string | null;
   /** Effets visuels (clés du catalogue `visual_effects`), dans l'ordre des calques. */
   visualEffectKeys: string[];
   /** Mise à la corbeille (hors set, hors des listes) ; null : carte active. */

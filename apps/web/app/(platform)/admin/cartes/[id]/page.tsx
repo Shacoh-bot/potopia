@@ -1,4 +1,4 @@
-import { getCard, listCards, listSets, listVisualEffects } from "@app/tcg";
+import { getCard, isDuplicateNote, listCards, listSets, listVisualEffects } from "@app/tcg";
 import { CardEditor } from "@app/tcg/ui";
 import { Card } from "@app/ui";
 import type { Metadata } from "next";
@@ -8,7 +8,7 @@ import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../../cartes/fonts";
 import { confirmCardImageAction, requestCardImageAction, updateCardAction } from "../actions";
 import { MoveCardForm } from "../forms";
-import { cardFaces, familiesOf } from "../images";
+import { cardFaces, duplicateCandidates, familiesOf } from "../images";
 
 export const metadata: Metadata = { title: "Modifier une carte" };
 
@@ -28,6 +28,9 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
     { ...card, layout: "fullart" },
   ]);
   const base = card.baseCardId ? allCards.find((c) => c.id === card.baseCardId) : null;
+  // « Doublon de : … » : la carte d'origine choisie au passage au « Doublon ».
+  const original = card.duplicateOfId ? await getCard(admin, card.duplicateOfId) : null;
+  const candidates = await duplicateCandidates(admin, allCards);
   const variants = allCards.filter((c) => c.baseCardId === card.id);
   const siblings = card.ideaId
     ? allCards.filter((c) => c.ideaId === card.ideaId && c.id !== card.id)
@@ -46,11 +49,14 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
     ? [
         { id: "", label: "Réserve (restaurer)" },
         ...setTargets,
+        // Déjà au « Doublon » : en changer (ou en choisir) la carte d'origine.
+        { id: "duplicate", label: isDuplicateNote(card.adminNote) ? "Doublon de…" : "Doublon" },
         { id: "delete", label: "Supprimer définitivement" },
       ]
     : [
         ...(card.setId ? [{ id: "", label: "Réserve (hors set)" }] : []),
         ...setTargets,
+        { id: "duplicate", label: "Doublon" },
         { id: "trash", label: "Corbeille" },
       ];
 
@@ -59,7 +65,9 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
   const header = (
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {targets.length > 0 && <MoveCardForm cardId={card.id} targets={targets} />}
+        {targets.length > 0 && (
+          <MoveCardForm cardId={card.id} targets={targets} candidates={candidates} />
+        )}
         <p className={trashed ? "text-danger text-sm" : "text-muted text-sm"}>
           {trashed
             ? "À la corbeille : hors des sets et des listes. Range-la pour la restaurer."
@@ -68,6 +76,18 @@ export default async function AdminCardPage({ params }: { params: Promise<{ id: 
               : "Dans la réserve : n'ira pas en prod tant qu'elle n'est pas dans un set."}
         </p>
       </div>
+      {isDuplicateNote(card.adminNote) && (
+        <p className="text-sm">
+          Doublon de :{" "}
+          {original ? (
+            <Link href={`/admin/cartes/${original.id}`} className="text-accent hover:underline">
+              {original.name}
+            </Link>
+          ) : (
+            <span className="text-danger">à relier (choisis « Doublon de… » dans le menu)</span>
+          )}
+        </p>
+      )}
       {card.ideaId && (
         <p className="text-muted text-sm">
           Tirée d&apos;une{" "}
