@@ -9,7 +9,11 @@ import {
   warmUpSteps,
 } from "../ui/warm-up";
 
-type Fields = Pick<Card, "rarity" | "hasNormal" | "hasFullArt" | "visualEffectKeys" | "glowPoints">;
+type Fields = Pick<
+  Card,
+  "rarity" | "hasNormal" | "hasFullArt" | "visualEffectKeys" | "visualEffectKeysFull" | "glowPoints"
+>;
+// Sans liste full art donnée : la même que la normale (comme une carte recopiée par la migration).
 const card = (over: Partial<Fields>): Fields => ({
   rarity: "common",
   hasNormal: true,
@@ -17,6 +21,22 @@ const card = (over: Partial<Fields>): Fields => ({
   visualEffectKeys: [],
   glowPoints: [],
   ...over,
+  visualEffectKeysFull: over.visualEffectKeysFull ?? over.visualEffectKeys ?? [],
+});
+
+describe("warmUpLooks et les effets par version", () => {
+  it("prend les effets propres à chaque version", () => {
+    const looks = warmUpLooks([
+      card({
+        rarity: "sr",
+        hasFullArt: true,
+        visualEffectKeys: ["holo"],
+        visualEffectKeysFull: ["eclair"],
+      }),
+    ]);
+    const byLayout = Object.fromEntries(looks.map((l) => [l.layout, l.effects]));
+    expect(byLayout).toEqual({ normal: ["holo"], fullart: ["eclair"] });
+  });
 });
 
 describe("préchauffage de l'ouverture d'un booster", () => {

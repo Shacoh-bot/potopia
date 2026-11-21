@@ -23,6 +23,7 @@ import {
   isDuplicateNote,
   markDuplicateNote,
   importCards,
+  visualEffectsFor,
   listCards,
   listVisualEffects,
   moveCards,
@@ -944,6 +945,49 @@ describe("effets visuels", () => {
       cards: [{ ...BASE, name: "Importée", visualEffectKeys: ["holo"] }],
     });
     expect((await listCards(ADMIN))[0]?.visualEffectKeys).toEqual(["holo"]);
+    // Sans liste propre, la full art reçoit une copie de ceux de la normale.
+    expect((await listCards(ADMIN))[0]?.visualEffectKeysFull).toEqual(["holo"]);
+  });
+
+  it("normale et full art ont chacune leurs effets : modifier l'une ne touche pas l'autre", async () => {
+    const card = await createCard(ADMIN, {
+      ...BASE,
+      setId,
+      hasFullArt: true,
+      visualEffectKeys: ["eclair", "holo"],
+    });
+    // À la création, la full art part d'une copie de la normale.
+    expect(card.visualEffectKeysFull).toEqual(["eclair", "holo"]);
+    // Full art seule modifiée : la normale garde les siens.
+    const full = await updateCard(ADMIN, card.id, { ...BASE, visualEffectKeysFull: ["holo"] });
+    expect(full.visualEffectKeys).toEqual(["eclair", "holo"]);
+    expect(full.visualEffectKeysFull).toEqual(["holo"]);
+    // Normale seule modifiée : la full art garde les siens.
+    const normal = await updateCard(ADMIN, card.id, { ...BASE, visualEffectKeys: [] });
+    expect(normal.visualEffectKeys).toEqual([]);
+    expect(normal.visualEffectKeysFull).toEqual(["holo"]);
+    // Les deux d'un coup, relus en base.
+    await updateCard(ADMIN, card.id, {
+      ...BASE,
+      visualEffectKeys: ["holo"],
+      visualEffectKeysFull: ["eclair", "holo"],
+    });
+    const read = await getCard(ADMIN, card.id);
+    expect(read?.visualEffectKeys).toEqual(["holo"]);
+    expect(read?.visualEffectKeysFull).toEqual(["eclair", "holo"]);
+    // Un effet inconnu sur la full art est refusé, sans rien changer.
+    await expect(
+      updateCard(ADMIN, card.id, { ...BASE, visualEffectKeysFull: ["inconnu"] }),
+    ).rejects.toThrow(CardInputError);
+    expect((await getCard(ADMIN, card.id))?.visualEffectKeysFull).toEqual(["eclair", "holo"]);
+  });
+
+  it("chaque version affiche ses effets (visualEffectsFor)", () => {
+    const card = { visualEffectKeys: ["holo"], visualEffectKeysFull: ["eclair"] };
+    expect(visualEffectsFor(card, "normal")).toEqual(["holo"]);
+    expect(visualEffectsFor(card, "fullart")).toEqual(["eclair"]);
+    // Sans liste full art (carte fictive) : ceux de la normale.
+    expect(visualEffectsFor({ visualEffectKeys: ["holo"] }, "fullart")).toEqual(["holo"]);
   });
 });
 

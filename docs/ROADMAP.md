@@ -594,6 +594,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       l'image, posés dans la fiche ; migration `tcg_card_glow_points` (ajout d'une colonne).
 - [x] Effets d'ambiance : braises, caustiques, rayons de lumière, pétales, feuilles d'automne,
       ombres possédées ; migration `tcg_visual_effects_ambiances` (ajout seul).
+- [x] Effets visuels réglés à part pour la normale et la full art (`visualEffectKeysFull`) ;
+      migration `tcg_card_visual_effects_par_version` (ajout d'une colonne + recopie des effets
+      de chaque carte sur sa full art, rien de retiré).
 - [x] Lumières à placer : arc électrique, rayons depuis un point et trait lumineux, en plus des
       points lumineux (même colonne `glow_points`, champ `kind`).
 - [x] Boosters et Potodex en test (admins, `/admin/boosters`, `/admin/potodex`) : tirage par

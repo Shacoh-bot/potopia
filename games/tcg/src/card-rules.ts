@@ -240,6 +240,18 @@ export function ideaStateOf(cards: { adminNote: string | null; deletedAt: Date |
   return { cards: kept, duplicate, trashed: kept === 0 && !duplicate && cards.length > 0 };
 }
 
+/**
+ * Effets visuels d'une version, dans l'ordre des calques. Sans liste propre à la full art (carte
+ * fictive, vieux appel), la full art reprend ceux de la normale.
+ */
+export function visualEffectsFor(
+  card: { visualEffectKeys?: string[]; visualEffectKeysFull?: string[] },
+  version: CardLayout,
+): string[] {
+  const normal = card.visualEffectKeys ?? [];
+  return version === "fullart" ? (card.visualEffectKeysFull ?? normal) : normal;
+}
+
 /** Clé de l'illustration d'une version : la full art reprend celle de la normale sans la sienne. */
 export function imageKeyFor(
   card: { imageKey: string | null; imageKeyFull?: string | null },
@@ -350,8 +362,13 @@ export type Card = {
   baseCardId: string | null;
   /** Carte dont celle-ci est le doublon (choisie au passage au « Doublon ») ; null : aucune. */
   duplicateOfId: string | null;
-  /** Effets visuels (clés du catalogue `visual_effects`), dans l'ordre des calques. */
+  /**
+   * Effets visuels de la version normale (clés du catalogue `visual_effects`), dans l'ordre des
+   * calques.
+   */
   visualEffectKeys: string[];
+  /** Effets visuels de la version full art, réglés à part de ceux de la normale. */
+  visualEffectKeysFull: string[];
   /** Mise à la corbeille (hors set, hors des listes) ; null : carte active. */
   deletedAt: Date | null;
   updatedAt: Date;

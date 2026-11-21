@@ -1,4 +1,4 @@
-import { type Card, frameFor, isAltArt } from "../src/card-rules";
+import { type Card, frameFor, isAltArt, visualEffectsFor } from "../src/card-rules";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
@@ -22,8 +22,10 @@ export type GameCardFields = Pick<
   hasNormal?: Card["hasNormal"];
   /** Points lumineux sur l'illustration ; absents : aucun. */
   glowPoints?: Card["glowPoints"];
-  /** Effets visuels (clés du catalogue), le premier en dessous ; absent : aucun. */
+  /** Effets visuels de la normale (clés du catalogue), le premier en dessous ; absent : aucun. */
   visualEffectKeys?: string[];
+  /** Effets visuels de la full art ; absent : ceux de la normale (`visualEffectsFor`). */
+  visualEffectKeysFull?: string[];
   /**
    * Auteur de l'idée d'origine, préparé avec la carte (`cardFaces` de l'app) : le pied « idée de … »
    * suit la carte sur tous les écrans, booster et Potodex compris.
@@ -122,7 +124,7 @@ export function GameCard({
       band="court"
       typeLine={typeLine(card)}
       gameFooter
-      visualEffects={card.visualEffectKeys}
+      visualEffects={visualEffectsFor(card, layout)}
       refined
       hoverHalo={hoverHalo}
     />

@@ -140,6 +140,14 @@ const glowPointSchema = z
     "Trait lumineux : seconde extrémité attendue.",
   );
 
+/** Liste d'effets visuels d'une version : clés du catalogue, 10 au plus, doublons retirés. */
+const effectKeysField = (label: string) =>
+  z
+    .array(z.string().min(1).max(60), `${label} : liste attendue.`)
+    .max(10, `${label} : 10 au plus.`)
+    .optional()
+    .transform((v) => (v === undefined ? undefined : [...new Set(v)]));
+
 const cardFields = z.object({
   name: z
     .string()
@@ -187,13 +195,13 @@ const cardFields = z.object({
   // Versions actives. Absentes : celles enregistrées ; à la création, celle de la mise en page.
   hasNormal: z.boolean("Version normale : oui ou non.").optional(),
   hasFullArt: z.boolean("Version full art : oui ou non.").optional(),
-  // Effets visuels, dans l'ordre des calques (le premier en dessous). Absent : ceux enregistrés ne
-  // changent pas ; liste vide : aucun. Les doublons sont retirés.
-  visualEffectKeys: z
-    .array(z.string().min(1).max(60), "Effets visuels : liste attendue.")
-    .max(10, "Effets visuels : 10 au plus.")
-    .optional()
-    .transform((v) => (v === undefined ? undefined : [...new Set(v)])),
+  // Effets visuels de la version normale, dans l'ordre des calques (le premier en dessous).
+  // Absent : ceux enregistrés ne changent pas (à la création : aucun) ; liste vide : aucun. Les
+  // doublons sont retirés.
+  visualEffectKeys: effectKeysField("Effets visuels"),
+  // Effets visuels de la version full art, réglés à part de la normale. Absent : ceux enregistrés
+  // ne changent pas (à la création : une copie de ceux de la normale).
+  visualEffectKeysFull: effectKeysField("Effets visuels (full art)"),
 });
 
 export type CardInput = z.input<typeof cardFields>;
@@ -258,13 +266,14 @@ type CardRow = Omit<
   | "imageFrame"
   | "imageFrameFull"
   | "visualEffectKeys"
+  | "visualEffectKeysFull"
   | "prepStage"
 > & {
   rarity: string;
   prepStage: string;
   layout: string;
   glowPoints: unknown;
-  visualEffects: { effectKey: string }[];
+  visualEffects: { effectKey: string; version: string }[];
   effectParams: unknown;
   imageFrame: unknown;
   imageFrameFull: unknown;
@@ -275,7 +284,10 @@ export function toCard(row: CardRow): Card {
   const { set, visualEffects, ...rest } = row;
   return {
     ...rest,
-    visualEffectKeys: visualEffects.map((e) => e.effectKey),
+    visualEffectKeys: visualEffects.filter((e) => e.version === "normal").map((e) => e.effectKey),
+    visualEffectKeysFull: visualEffects
+      .filter((e) => e.version === "fullart")
+      .map((e) => e.effectKey),
     rarity: row.rarity as CardRarityId,
     layout: row.layout as CardLayout,
     prepStage: row.prepStage as CardPrepStage,
@@ -290,12 +302,13 @@ export function toCard(row: CardRow): Card {
 /** Ce qu'il faut lire avec une carte : le code de son set et ses effets visuels, dans l'ordre. */
 export const withSet = {
   set: { select: { code: true } },
-  visualEffects: { select: { effectKey: true }, orderBy: { position: "asc" } },
+  visualEffects: { select: { effectKey: true, version: true }, orderBy: { position: "asc" } },
 } as const;
 
 /** Refuse un effet visuel absent du catalogue (message clair plutôt qu'une erreur de clé). */
-async function checkVisualEffects(tx: DbTx, keys: string[] | undefined): Promise<void> {
-  if (!keys?.length) return;
+async function checkVisualEffects(tx: DbTx, ...lists: (string[] | undefined)[]): Promise<void> {
+  const keys = [...new Set(lists.flatMap((l) => l ?? []))];
+  if (!keys.length) return;
   const found = await tx.tcgVisualEffect.findMany({
     where: { key: { in: keys } },
     select: { key: true },
@@ -304,14 +317,34 @@ async function checkVisualEffects(tx: DbTx, keys: string[] | undefined): Promise
   if (missing.length) throw new CardInputError(`Effet visuel inconnu : ${missing.join(", ")}.`);
 }
 
-/** Effets visuels à créer, dans l'ordre des calques. */
-const effectRows = (keys: string[]) => ({
-  create: keys.map((effectKey, position) => ({ effectKey, position })),
+/** Lignes d'effets visuels d'une version, dans l'ordre des calques. */
+const versionRows = (keys: string[], version: CardLayout) =>
+  keys.map((effectKey, position) => ({ effectKey, position, version }));
+
+/**
+ * Effets visuels d'une carte neuve, une liste par version ; la full art absente reprend une copie
+ * de ceux de la normale (ensuite, chacune se règle à part).
+ */
+const effectRows = (normal: string[] | undefined, full: string[] | undefined) => ({
+  create: [...versionRows(normal ?? [], "normal"), ...versionRows(full ?? normal ?? [], "fullart")],
 });
 
-/** Remplace les effets visuels d'une carte ; `undefined` : on n'y touche pas. */
-const replaceEffects = (keys: string[] | undefined) =>
-  keys === undefined ? undefined : { deleteMany: {}, ...effectRows(keys) };
+/**
+ * Remplace les effets visuels d'une carte, version par version ; une liste `undefined` : on ne
+ * touche pas à cette version ; les deux : on n'écrit rien.
+ */
+function replaceEffects(normal: string[] | undefined, full: string[] | undefined) {
+  const lists = [
+    ["normal", normal],
+    ["fullart", full],
+  ] as const;
+  const changed = lists.filter((l): l is readonly [CardLayout, string[]] => l[1] !== undefined);
+  if (!changed.length) return undefined;
+  return {
+    deleteMany: changed.map(([version]) => ({ version })),
+    create: changed.flatMap(([version, keys]) => versionRows(keys, version)),
+  };
+}
 
 /** Le catalogue des effets visuels, par nom (ordre alphabétique français). */
 export async function listVisualEffects(admin: Admin): Promise<VisualEffect[]> {
@@ -493,14 +526,14 @@ export async function createCard(
 ): Promise<Card> {
   assertAdmin(admin);
   const { setId, ideaId, baseCardId } = createInput.parse(input);
-  const { visualEffectKeys, ...parsed } = parseCard(input);
+  const { visualEffectKeys, visualEffectKeysFull, ...parsed } = parseCard(input);
   const fields = followEffect(parsed, parsed.statsManual ?? false);
   return withTx(async (tx) => {
     const base = baseCardId ? await tx.tcgCard.findUnique({ where: { id: baseCardId } }) : null;
     if (baseCardId && !base) throw new CardInputError("Carte de base introuvable.");
     if (base?.baseCardId) throw new CardInputError("Une variante ne peut pas avoir de variante.");
     if (base?.deletedAt) throw new CardInputError("Carte de base à la corbeille.");
-    await checkVisualEffects(tx, visualEffectKeys);
+    await checkVisualEffects(tx, visualEffectKeys, visualEffectKeysFull);
     const number = setId ? await nextNumber(tx, setId) : null;
     const row = await tx.tcgCard.create({
       data: {
@@ -511,7 +544,7 @@ export async function createCard(
         number,
         ideaId: ideaId ?? null,
         baseCardId: base?.id ?? null,
-        visualEffects: effectRows(visualEffectKeys ?? []),
+        visualEffects: effectRows(visualEffectKeys, visualEffectKeysFull),
       },
       include: withSet,
     });
@@ -533,11 +566,12 @@ export async function updateCard(
   opts?: { tx?: DbTx },
 ): Promise<Card> {
   assertAdmin(admin);
-  const { visualEffectKeys, ...fields } = parseCard(input);
+  const { visualEffectKeys, visualEffectKeysFull, ...fields } = parseCard(input);
+  const visualEffects = replaceEffects(visualEffectKeys, visualEffectKeysFull);
   return withTx(async (tx) => {
     const current = await tx.tcgCard.findUnique({ where: { id } });
     if (!current) throw new CardInputError("Carte introuvable.");
-    await checkVisualEffects(tx, visualEffectKeys);
+    await checkVisualEffects(tx, visualEffectKeys, visualEffectKeysFull);
     if (current.baseCardId) {
       const row = await tx.tcgCard.update({
         where: { id },
@@ -550,7 +584,7 @@ export async function updateCard(
           imageFrameFull: fields.imageFrameFull,
           ...resolveVersions(fields, current, current.layout),
           glowPoints: fields.glowPoints,
-          visualEffects: replaceEffects(visualEffectKeys),
+          visualEffects,
         },
         include: withSet,
       });
@@ -569,7 +603,7 @@ export async function updateCard(
         imageFrameFull: fields.imageFrameFull,
         ...resolveVersions(fields, current, current.layout),
         glowPoints: fields.glowPoints,
-        visualEffects: replaceEffects(visualEffectKeys),
+        visualEffects,
       },
       include: withSet,
     });
@@ -961,9 +995,12 @@ export async function importCards(
       ).map((c) => c.ideaId),
     );
     const fresh = parsed.filter((c) => !c.ideaId || !existing.has(c.ideaId));
-    await checkVisualEffects(tx, [...new Set(fresh.flatMap((c) => c.visualEffectKeys ?? []))]);
+    await checkVisualEffects(
+      tx,
+      ...fresh.flatMap((c) => [c.visualEffectKeys, c.visualEffectKeysFull]),
+    );
     let number = setId ? await nextNumber(tx, setId) : null;
-    for (const { visualEffectKeys, ...card } of fresh) {
+    for (const { visualEffectKeys, visualEffectKeysFull, ...card } of fresh) {
       await tx.tcgCard.create({
         data: {
           ...card,
@@ -971,7 +1008,7 @@ export async function importCards(
           ...resolveVersions(card, null, "normal"),
           setId,
           number: number === null ? null : number++,
-          visualEffects: effectRows(visualEffectKeys ?? []),
+          visualEffects: effectRows(visualEffectKeys, visualEffectKeysFull),
         },
       });
     }

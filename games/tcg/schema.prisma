@@ -141,17 +141,19 @@ model TcgVisualEffect {
   @@schema("tcg")
 }
 
-// Effet visuel posé sur une carte. Une carte en a plusieurs : `position` donne l'ordre des
-// calques (0 en dessous). Retirer un effet du catalogue le retire des cartes.
+// Effet visuel posé sur une version de carte (normale ou full art, réglées à part). Une version en
+// a plusieurs : `position` donne l'ordre des calques (0 en dessous). Retirer un effet du catalogue
+// le retire des cartes.
 model TcgCardVisualEffect {
-  cardId    String @map("card_id")
-  effectKey String @map("effect_key")
+  cardId    String        @map("card_id")
+  version   TcgCardLayout @default(normal)
+  effectKey String        @map("effect_key")
   position  Int
 
   card   TcgCard         @relation(fields: [cardId], references: [id], onDelete: Cascade)
   effect TcgVisualEffect @relation(fields: [effectKey], references: [key], onDelete: Cascade)
 
-  @@id([cardId, effectKey])
+  @@id([cardId, version, effectKey])
   @@index([effectKey])
   @@map("card_visual_effects")
   @@schema("tcg")
