@@ -7,6 +7,7 @@ import {
   type GlowPoint,
   glowKind,
   visualEffectsFor,
+  glowPointsFor,
 } from "../src/card-rules";
 import type { GameCardFields } from "./GameCard";
 
@@ -54,6 +55,7 @@ export function warmUpLooks(
     | "visualEffectKeys"
     | "visualEffectKeysFull"
     | "glowPoints"
+    | "glowPointsFull"
   >[],
 ): WarmUpLook[] {
   const looks = new Map<string, WarmUpLook>();
@@ -63,7 +65,7 @@ export function warmUpLooks(
         rarity: card.rarity,
         layout,
         effects: [...visualEffectsFor(card, layout)],
-        glow: [...new Set(card.glowPoints.map(glowKind))].sort(),
+        glow: [...new Set(glowPointsFor(card, layout).map(glowKind))].sort(),
       };
       const key = JSON.stringify(look);
       if (!looks.has(key)) looks.set(key, look);

@@ -228,6 +228,35 @@ describe("createCard", () => {
     expect(shown.layout).toBe("normal");
   });
 
+  it("règle les points lumineux à part pour la normale et la full art (retrait, déplacement)", async () => {
+    const a = { x: 40, y: 30, size: 6, color: "#7cff6b", speed: 0 };
+    const b = { x: 60, y: 30, size: 6, color: "#ff2d7a", speed: 4 };
+    // à la création, la full art part d'une copie des points de la normale
+    const card = await createCard(ADMIN, { ...BASE, setId, glowPoints: [a, b] });
+    expect(card.glowPointsFull).toEqual([a, b]);
+    // full art : on retire un point et on déplace l'autre ; la normale ne bouge pas
+    const moved = { ...a, x: 10, y: 80 };
+    const full = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      glowPoints: [a, b],
+      glowPointsFull: [moved],
+    });
+    expect(full.glowPointsFull).toEqual([moved]);
+    expect(full.glowPoints).toEqual([a, b]);
+    // et l'inverse : la normale change, la full art reste
+    const normal = await updateCard(ADMIN, card.id, {
+      ...BASE,
+      glowPoints: [{ ...b, size: 9 }],
+      glowPointsFull: [moved],
+    });
+    expect(normal.glowPoints).toEqual([{ ...b, size: 9 }]);
+    expect(normal.glowPointsFull).toEqual([moved]);
+    // absents (mise à jour en masse) : ceux des deux versions restent
+    const kept = await updateCard(ADMIN, card.id, { ...BASE });
+    expect(kept.glowPoints).toEqual([{ ...b, size: 9 }]);
+    expect(kept.glowPointsFull).toEqual([moved]);
+  });
+
   it("garde les lumières (points, étincelles, rayons, traits), bornées, et les laisse quand on ne les envoie pas", async () => {
     const card = await createCard(ADMIN, { ...BASE, setId });
     expect(card.glowPoints).toEqual([]);

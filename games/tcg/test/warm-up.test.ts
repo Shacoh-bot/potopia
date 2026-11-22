@@ -11,7 +11,13 @@ import {
 
 type Fields = Pick<
   Card,
-  "rarity" | "hasNormal" | "hasFullArt" | "visualEffectKeys" | "visualEffectKeysFull" | "glowPoints"
+  | "rarity"
+  | "hasNormal"
+  | "hasFullArt"
+  | "visualEffectKeys"
+  | "visualEffectKeysFull"
+  | "glowPoints"
+  | "glowPointsFull"
 >;
 // Sans liste full art donnée : la même que la normale (comme une carte recopiée par la migration).
 const card = (over: Partial<Fields>): Fields => ({
@@ -22,6 +28,7 @@ const card = (over: Partial<Fields>): Fields => ({
   glowPoints: [],
   ...over,
   visualEffectKeysFull: over.visualEffectKeysFull ?? over.visualEffectKeys ?? [],
+  glowPointsFull: over.glowPointsFull ?? over.glowPoints ?? [],
 });
 
 describe("warmUpLooks et les effets par version", () => {

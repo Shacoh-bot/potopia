@@ -84,6 +84,7 @@ export {
   drawVersion,
   imageKeyFor,
   visualEffectsFor,
+  glowPointsFor,
   isBlurryWhenZoomed,
   smallImageKeyFor,
   isAltArt,

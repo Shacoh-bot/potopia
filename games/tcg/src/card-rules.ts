@@ -252,6 +252,18 @@ export function visualEffectsFor(
   return version === "fullart" ? (card.visualEffectKeysFull ?? normal) : normal;
 }
 
+/**
+ * Points lumineux d'une version. Sans liste propre à la full art (carte fictive, vieux appel), la
+ * full art reprend ceux de la normale.
+ */
+export function glowPointsFor(
+  card: { glowPoints?: GlowPoint[]; glowPointsFull?: GlowPoint[] },
+  version: CardLayout,
+): GlowPoint[] {
+  const normal = card.glowPoints ?? [];
+  return version === "fullart" ? (card.glowPointsFull ?? normal) : normal;
+}
+
 /** Clé de l'illustration d'une version : la full art reprend celle de la normale sans la sienne. */
 export function imageKeyFor(
   card: { imageKey: string | null; imageKeyFull?: string | null },
@@ -356,8 +368,10 @@ export type Card = {
   /** Versions qui existent (au moins une), tirées et collectionnées séparément. */
   hasNormal: boolean;
   hasFullArt: boolean;
-  /** Points lumineux sur l'illustration (vide : aucun). */
+  /** Points lumineux de la version normale sur l'illustration (vide : aucun). */
   glowPoints: GlowPoint[];
+  /** Points lumineux de la version full art, réglés à part de ceux de la normale. */
+  glowPointsFull: GlowPoint[];
   ideaId: string | null;
   baseCardId: string | null;
   /** Carte dont celle-ci est le doublon (choisie au passage au « Doublon ») ; null : aucune. */

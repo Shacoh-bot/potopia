@@ -64,6 +64,95 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-22",
+    title: "Points lumineux par version",
+    items: [
+      {
+        admin: true,
+        text: "Cartes : les points lumineux se règlent à part pour la normale et la full art : en retirer ou en déplacer un sur une version ne touche plus l'autre. « Reprendre ceux de la version… » recopie effets et points lumineux, seulement quand on clique.",
+      },
+    ],
+  },
+  {
+    date: "2026-11-21",
+    title: "Cartes plus lisibles, doublons plus simples",
+    items: [
+      { admin: true, text: "Cartes : effet visuel Glitch adouci, la carte reste lisible." },
+      {
+        admin: true,
+        text: "Cartes : effets visuels réglables à part pour la normale et la full art.",
+      },
+      {
+        admin: true,
+        text: "Admin cartes : « Doublon de » se choisit dans une liste de cartes ; le retour de la fiche garde l'onglet et la vue.",
+      },
+      {
+        admin: true,
+        text: "Boîte à idées : « Doublon de » une autre idée, et onglet « Carte à créer ».",
+      },
+    ],
+  },
+  {
+    date: "2026-11-20",
+    title: "Préparation des cartes en 4 étapes",
+    items: [
+      {
+        admin: true,
+        text: "Admin cartes : 4 étapes de préparation (de « À traiter » à « À intégrer à un set »), coches de version côte à côte dans la fiche.",
+      },
+      {
+        admin: true,
+        text: "Admin cartes : espace de travail hors set, onglet Doublon, l'idée suit sa carte (« Lié à l'idée »).",
+      },
+    ],
+  },
+  {
+    date: "2026-11-19",
+    title: "Boosters plus rapides, étapes de préparation",
+    items: [
+      {
+        admin: true,
+        text: "Boosters : le prochain paquet est tiré d'avance et ses illustrations chargées avant le clic.",
+      },
+      {
+        admin: true,
+        text: "Admin cartes : étapes de préparation (onglets filtres, classement en un clic), boutons Normale / Full art sous chaque carte, « Tout cocher ».",
+      },
+    ],
+  },
+  {
+    date: "2026-11-18",
+    title: "Boosters fluides dès la première ouverture",
+    items: [
+      {
+        admin: true,
+        text: "Boosters : la première ouverture ne saccade plus.",
+      },
+      {
+        admin: true,
+        text: "Potodex : sous Firefox, les pastilles de mana et de puissance s'affichent entières sur la petite carte inclinée.",
+      },
+      {
+        admin: true,
+        text: "Admin : aperçu « Potodex complet », tout débloqué, en lecture seule.",
+      },
+    ],
+  },
+  {
+    date: "2026-11-17",
+    title: "Auras fluides, carte agrandie sous Firefox",
+    items: [
+      {
+        admin: true,
+        text: "Boosters : auras des cartes plus fluides, même rendu.",
+      },
+      {
+        admin: true,
+        text: "Cartes : sous Firefox, la carte agrandie s'affiche entière et centrée.",
+      },
+    ],
+  },
+  {
     date: "2026-11-16",
     title: "Ouverture des boosters plus vivante",
     items: [
@@ -74,6 +163,10 @@ export const PATCH_NOTES = parsePatchNotes([
       {
         admin: true,
         text: "Boosters : sous Firefox, l'animation entre la découpe et les cartes s'affiche enfin. Échap sur une carte ouverte en grand ne ferme plus que la carte.",
+      },
+      {
+        admin: true,
+        text: "Cartes : l'avertissement « image trop petite » n'apparaît plus qu'en dessous de 1 500 px.",
       },
     ],
   },
