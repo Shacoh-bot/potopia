@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Cartes : bas de carte revu : set et numéro (« S1 1/100 », « S? » hors set), rareté et étoiles toujours côte à côte, AA juste après dans un cadre plus petit, puis « idée de … » toujours en entier. Textes plus petits et plus serrés ; le texte d'effet trop long rapetisse au lieu d'être coupé.",
+      },
+      {
+        admin: true,
         text: "Cartes : le coût et la puissance restent collés au cadre quand on incline une carte ; avant, sur les cartes non retournables, ils flottaient devant et glissaient tout seuls.",
       },
       {

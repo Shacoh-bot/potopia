@@ -4,6 +4,7 @@ import { PremiumArt } from "./premium";
 import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { GlowPoints } from "./GlowPoints";
 import { Art, fill, Layer, R, Shell } from "./v2";
+import { effectTextSize, FOOTER_GAP, footerFontSize } from "./card-fit";
 import { effectPlace } from "./effect-places";
 import { VisualEffectLayer } from "./visual-effects";
 import {
@@ -319,7 +320,10 @@ function FitTitle({ title, width }: { title: string; width: number }) {
   );
 }
 
-/** Pied de carte : numéro, puis rareté et ses étoiles. */
+/**
+ * Pied de carte : set et numéro, rareté et ses étoiles (collées), AA, puis « idée de … ». La taille
+ * du texte s'adapte (`footerFontSize`) pour que tout tienne, auteur compris, sans rien couper.
+ */
 function Footer({
   card,
   finish,
@@ -331,6 +335,15 @@ function Footer({
   game: boolean;
 }) {
   const stars = RARITY_STARS[finish];
+  const serial = card.serial ?? "—";
+  const rarity = game ? FINISH_SHORT[finish] : FINISH_LABELS[finish];
+  const author = game ? card.author : undefined;
+  const size = footerFontSize({ serial, rarity, stars, altArt: !!card.altArt, author });
+  const dot = (
+    <span aria-hidden style={{ opacity: 0.5 }}>
+      ·
+    </span>
+  );
   return (
     <Layer
       z={20}
@@ -340,62 +353,60 @@ function Footer({
         bottom: 15,
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: FOOTER_GAP,
         fontFamily: font("franklin", "sans-serif"),
-        fontSize: 9,
-        letterSpacing: 0.6,
+        fontSize: size,
+        letterSpacing: 0.3,
         color: "#d8d2c4",
         whiteSpace: "nowrap",
       }}
     >
-      <span style={{ fontVariantNumeric: "tabular-nums" }}>{card.serial ?? "—"}</span>
-      <span aria-hidden style={{ opacity: 0.5 }}>
-        ·
-      </span>
-      <span title={game ? FINISH_LABELS[finish] : undefined}>
-        {game ? FINISH_SHORT[finish] : FINISH_LABELS[finish]}
+      <span style={{ fontVariantNumeric: "tabular-nums" }}>{serial}</span>
+      {dot}
+      {/* Rareté et étoiles dans un seul bloc : jamais séparées. */}
+      <span
+        title={game ? FINISH_LABELS[finish] : undefined}
+        style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+      >
+        {rarity}
+        {stars > 0 && (
+          <span
+            role="img"
+            aria-label={`${stars} étoile${stars > 1 ? "s" : ""}`}
+            style={{
+              color: "#ffd66b",
+              fontSize: size + 1,
+              letterSpacing: 1,
+              textShadow: "0 0 4px rgb(255 190 60 / 0.7)",
+            }}
+          >
+            {"★".repeat(stars)}
+          </span>
+        )}
       </span>
       {card.altArt && (
-        // Alt Art : mention en plus de la rareté, quelle qu'elle soit.
+        // Alt Art : mention après la rareté, quelle qu'elle soit.
         <span
           title="Alt Art"
           style={{
-            padding: "0 5px",
-            borderRadius: 3,
+            padding: "0 3px",
+            borderRadius: 2,
             fontWeight: 800,
-            fontSize: 10,
-            letterSpacing: 1,
-            lineHeight: "14px",
+            fontSize: size,
+            letterSpacing: 0.5,
+            lineHeight: `${Math.round(size + 3)}px`,
             color: "#1d1607",
             background: "linear-gradient(135deg, #fff3b8, #f2c24f 45%, #fff6cf 60%, #d9a52e)",
-            boxShadow: "0 0 5px rgb(255 205 90 / 0.8)",
+            boxShadow: "0 0 4px rgb(255 205 90 / 0.8)",
           }}
         >
           AA
         </span>
       )}
-      {stars > 0 && (
-        <span
-          role="img"
-          aria-label={`${stars} étoile${stars > 1 ? "s" : ""}`}
-          style={{
-            color: "#ffd66b",
-            fontSize: 11,
-            letterSpacing: 1,
-            textShadow: "0 0 4px rgb(255 190 60 / 0.7)",
-          }}
-        >
-          {"★".repeat(stars)}
-        </span>
-      )}
-      {game && card.author && (
+      {author && (
         <>
-          <span aria-hidden style={{ opacity: 0.5 }}>
-            ·
-          </span>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-            idée de {card.author}
-          </span>
+          {dot}
+          <span>idée de {author}</span>
         </>
       )}
     </Layer>
@@ -535,6 +546,8 @@ export function FinalCard({
   hoverHalo?: boolean;
 }) {
   const full = layout === "fullart";
+  // Taille du texte d'effet qui fait tout tenir (jamais coupé).
+  const fit = effectTextSize(card.effect, card.flavor);
   // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
   const placed = (place: string) => visualEffects.filter((k) => effectPlace(k) === place);
   // Les effets qui redessinent l'illustration passent sous ceux posés dessus.
@@ -714,8 +727,8 @@ export function FinalCard({
             flexDirection: "column",
             padding: "8px 40px 8px 12px",
             fontFamily: font("fantasy-text", "serif"),
-            fontSize: 13.5,
-            lineHeight: "16px",
+            fontSize: fit.fontSize,
+            lineHeight: `${fit.lineHeight}px`,
             overflow: "hidden",
             ...panel,
           }}
@@ -728,8 +741,8 @@ export function FinalCard({
                 marginTop: "auto",
                 paddingTop: 6,
                 fontStyle: "italic",
-                fontSize: 11.5,
-                lineHeight: "14px",
+                fontSize: fit.flavorSize,
+                lineHeight: `${fit.flavorLine}px`,
                 opacity: 0.8,
               }}
             >

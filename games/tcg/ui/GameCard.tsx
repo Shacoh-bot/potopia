@@ -1,4 +1,5 @@
 import { type Card, frameFor, glowPointsFor, isAltArt, visualEffectsFor } from "../src/card-rules";
+import { serialLabel } from "./card-fit";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
@@ -89,7 +90,6 @@ export function GameCard({
   hoverHalo?: boolean;
 }) {
   const layout = forced ?? card.layout ?? "normal";
-  const pad = (n: number) => String(n).padStart(2, "0");
   const data: CardData = {
     title: card.name || "Sans nom",
     flavor: card.flavor,
@@ -110,13 +110,8 @@ export function GameCard({
     glowPoints: glowPointsFor(card, layout),
     altArt: isAltArt(card, layout),
     author: author ?? card.author ?? undefined,
-    // Hors set, pas de numéro : la carte est dans la réserve.
-    serial:
-      card.number === null
-        ? "Réserve"
-        : [card.setCode, setSize ? `${pad(card.number)}/${pad(setSize)}` : pad(card.number)]
-            .filter(Boolean)
-            .join(" "),
+    // « S1 1/100 » ; hors set (réserve) : « S? », sans numéro.
+    serial: serialLabel(card.setCode, card.number, setSize),
   };
   const face = (
     <FinalCard
