@@ -43,3 +43,25 @@ export function glowPlacement(
     radius: (shownW * zoom * point.size) / 100,
   };
 }
+
+/**
+ * Rectangle de l'image entière dans la fenêtre (px de la fenêtre), cadrage et zoom compris : le
+ * même calcul que `glowPlacement`, pour les coins de l'image. Sert à poser une copie de
+ * l'illustration exactement sur elle (zone d'eau qui ondule).
+ */
+export function imageRect(
+  frame: ImageFrame | null | undefined,
+  box: Size,
+  natural: Size,
+): { left: number; top: number; width: number; height: number } {
+  const topLeft = glowPlacement({ x: 0, y: 0, size: 100 }, frame, box, natural);
+  const bottomRight = glowPlacement({ x: 100, y: 100, size: 0 }, frame, box, natural);
+  const left = (topLeft.left / 100) * box.width;
+  const top = (topLeft.top / 100) * box.height;
+  return {
+    left,
+    top,
+    width: (bottomRight.left / 100) * box.width - left,
+    height: (bottomRight.top / 100) * box.height - top,
+  };
+}

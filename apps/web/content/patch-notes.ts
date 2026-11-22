@@ -65,11 +65,28 @@ export function latestPatchNote(notes: PatchNote[]): string {
 export const PATCH_NOTES = parsePatchNotes([
   {
     date: "2026-11-22",
-    title: "Points lumineux par version",
+    title: "Nouveaux effets et lumières de cartes",
+    publicTitle: "Petites retouches",
     items: [
       {
         admin: true,
         text: "Cartes : les points lumineux se règlent à part pour la normale et la full art : en retirer ou en déplacer un sur une version ne touche plus l'autre. « Reprendre ceux de la version… » recopie effets et points lumineux, seulement quand on clique.",
+      },
+      {
+        admin: true,
+        text: "Cartes : deux nouveaux effets visuels, « Lumière de vitrail » (la lumière traverse une illustration en vitrail) et « Énergie vivante » (les zones vives changent de teinte et pulsent).",
+      },
+      {
+        admin: true,
+        text: "Cartes : trois nouvelles lumières à placer, avec leur taille : « Eau » (l'image ondule, ronds dans l'eau), « Onde de fusion » (une onde de choc déforme l'image) et « Tourbillon » (l'image s'enroule en spirale).",
+      },
+      {
+        admin: true,
+        text: "Cartes : point lumineux plus doux, sans cercle net, et plus de halo blanc qui suit la souris au survol.",
+      },
+      {
+        admin: true,
+        text: "Admin cartes : bouton « Retour aux cartes » en haut à droite de la fiche.",
       },
     ],
   },

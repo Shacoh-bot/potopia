@@ -290,7 +290,15 @@ export function smallImageKeyFor(
 }
 
 /** Types de lumière à placer sur l'illustration. */
-export const GLOW_KINDS = ["glow", "sparks", "rays", "line"] as const;
+export const GLOW_KINDS = [
+  "glow",
+  "sparks",
+  "rays",
+  "line",
+  "water",
+  "shockwave",
+  "vortex",
+] as const;
 export type GlowKind = (typeof GLOW_KINDS)[number];
 
 /** Noms affichés : le type, puis ce que règlent sa taille et sa vitesse. */
@@ -299,6 +307,20 @@ export const GLOW_KIND_LABELS: Record<GlowKind, { name: string; size: string; sp
   sparks: { name: "Arc électrique", size: "Portée", speed: "Débit" },
   rays: { name: "Rayons", size: "Longueur", speed: "Rotation" },
   line: { name: "Trait lumineux", size: "Épaisseur", speed: "Clignotement" },
+  water: { name: "Eau", size: "Étendue", speed: "Ondulation" },
+  shockwave: { name: "Onde de fusion", size: "Portée", speed: "Fréquence" },
+  vortex: { name: "Tourbillon", size: "Étendue", speed: "Torsion" },
+};
+
+/**
+ * Lumières qui couvrent une zone (ovale centré sur le point), et sa forme : demi-largeur `width`
+ * fois la taille, demi-hauteur `height` fois la taille (taille en % de la largeur de l'image).
+ * L'eau, vue de biais, est large et basse ; l'onde et le tourbillon sont ronds.
+ */
+export const ZONE_SHAPES: Partial<Record<GlowKind, { width: number; height: number }>> = {
+  water: { width: 2, height: 0.8 },
+  shockwave: { width: 1.5, height: 1.5 },
+  vortex: { width: 1.2, height: 1.2 },
 };
 
 /**

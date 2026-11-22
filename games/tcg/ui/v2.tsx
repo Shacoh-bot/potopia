@@ -44,7 +44,6 @@ export function Shell({
         }}
       >
         {children}
-        <div className="tcg-glare" style={{ borderRadius: radius }} />
       </div>
     </Tilt>
   );

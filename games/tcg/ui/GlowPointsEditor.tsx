@@ -9,17 +9,22 @@ import {
   type GlowKind,
   glowKind,
   type GlowPoint,
+  ZONE_SHAPES,
 } from "../src/card-rules";
 
 /** Couleur d'un nouveau point : un vert lumineux. */
 const DEFAULT_COLOR = "#7cff6b";
 
-/** Réglages d'une nouvelle lumière, selon son type. */
-const NEW_LIGHT: Record<GlowKind, { size: number; speed: number }> = {
+/** Réglages d'une nouvelle lumière, selon son type (couleur : celle de la lumière choisie). */
+const NEW_LIGHT: Record<GlowKind, { size: number; speed: number; color?: string }> = {
   glow: { size: GLOW_LIMITS.size.default, speed: 0 },
   sparks: { size: 8, speed: 5 },
   rays: { size: 10, speed: 2 },
   line: { size: 1.5, speed: 3 },
+  // L'eau scintille d'un blanc bleuté, quelle que soit la couleur des autres lumières.
+  water: { size: 15, speed: 5, color: "#dff4ff" },
+  shockwave: { size: 12, speed: 4 },
+  vortex: { size: 15, speed: 3 },
 };
 
 /** Zoom de l'image pour viser : de 1 (image entière) à 5. */
@@ -30,7 +35,7 @@ const round = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10
 
 /**
  * Pose des lumières sur l'image entière (non rognée) : on choisit le type (point lumineux,
- * étincelles, rayons, trait), un clic sur l'image en pose une (jusqu'à `GLOW_LIMITS.points`), un
+ * étincelles, rayons, trait, eau, onde de fusion, tourbillon), un clic sur l'image en pose une (jusqu'à `GLOW_LIMITS.points`), un
  * glisser déplace sa poignée (un trait en a deux, une par extrémité), un clic la choisit. La
  * lumière choisie se règle : couleur, taille (en % de la largeur de l'image), vitesse (0 :
  * immobile). Les positions sont en % de l'image : accrochées à elle, elles suivent
@@ -212,8 +217,9 @@ export function GlowPointsEditor({
               ...(kind === "glow" ? {} : { kind }),
               ...pos,
               ...(kind === "line" ? { x2: Math.min(100, pos.x + 15), y2: pos.y } : {}),
-              ...NEW_LIGHT[kind],
-              color: current?.color ?? DEFAULT_COLOR,
+              size: NEW_LIGHT[kind].size,
+              speed: NEW_LIGHT[kind].speed,
+              color: NEW_LIGHT[kind].color ?? current?.color ?? DEFAULT_COLOR,
             };
             const next = [...points, light];
             onChange(next);
@@ -243,6 +249,25 @@ export function GlowPointsEditor({
               ) : null,
             )}
           </svg>
+          {/* Étendue d'une lumière de zone (eau, onde, tourbillon) : l'ovale qu'elle couvre. */}
+          {points.map((p, i) => {
+            const shape = ZONE_SHAPES[glowKind(p)];
+            return shape ? (
+              <div
+                key={`zone-${i}`}
+                aria-hidden
+                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-dashed"
+                style={{
+                  left: `${p.x}%`,
+                  top: `${p.y}%`,
+                  width: `${p.size * shape.width * 2}%`,
+                  aspectRatio: `${shape.width} / ${shape.height}`,
+                  borderColor: selected === i ? "#fff" : p.color,
+                  background: `${p.color}22`,
+                }}
+              />
+            ) : null;
+          })}
           {points.flatMap((p, i) => {
             const k = glowKind(p);
             const ends: (1 | 2)[] = k === "line" ? [1, 2] : [1];

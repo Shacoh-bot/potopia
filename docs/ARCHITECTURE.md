@@ -918,7 +918,8 @@ et modifient les cartes.
   versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
   « Tout cocher », dans la barre de déplacement, coche les cartes affichées (miniatures et liste).
   Ouvrir une fiche garde la planche : le lien de la carte passe sa requête (place, étape, vue, page,
-  recherche) dans `?retour=`, et « ← Retour aux cartes » y ramène, ancré sur la carte
+  recherche) dans `?retour=`, et le bouton « ← Retour aux cartes », en haut à droite de la fiche,
+  y ramène, ancré sur la carte
   (`admin/cartes/board-url.ts`, seuls ces paramètres sont gardés).
 - Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
   (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
@@ -1066,13 +1067,15 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   trouvée ou choisie). Pour l'instant seuls les admins voient les
   cartes ; quand les membres les verront, ce pied dira qui a proposé l'idée (à décider avec la
   règle de la boîte noire). Sur la planche, les cartes sont figées (`GameCard still`, classe
-  `tcg-still`) : sans 3D, animation, reflet ni grande ombre floue, pour un défilement fluide ;
+  `tcg-still`) : sans 3D, animation ni grande ombre floue, pour un défilement fluide ;
   la carte survolée redevient vivante, comme dans sa fiche : inclinaison 3D vers le pointeur,
-  reflet, ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
+  ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
   `still-hover.ts` écoute le survol sur le lien, la carte y étant insensible au pointeur, et
   `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante. Exception : l'effet
   visuel de la carte (calque `.tcg-vfx` : pétales, braises, fumée…) tourne toujours, survolé ou
-  non ; figé, il restait dans une pose artificielle (pétales alignés).
+  non ; figé, il restait dans une pose artificielle (pétales alignés). Plus de reflet blanc qui
+  suit le pointeur au survol (ancien calque `tcg-glare`, retiré le 2026-11-22) : holo, paillettes
+  et effets restent dosés par `--glare` (1 sous le pointeur).
 - Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
   pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
   `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG
@@ -1174,10 +1177,24 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (« Pétales ») et `feuilles` (« Feuilles d'automne ») (place `card` : tombent en tournoyant,
   `falling`), `ombres` (« Ombres possédées », place `card` : volutes noires qui rampent depuis
   les bords et s'écartent du pointeur, par un masque autour de `--mx`/`--my`).
+  `vitrail` (« Lumière de vitrail », place `image`, migration `tcg_visual_effects_vitrail`,
+  `StainedGlass`, pensé pour une illustration déjà en vitrail) : un « soleil » derrière la carte
+  éclaire les morceaux de verre autour de lui (copie de l'illustration plus claire et saturée,
+  masque rond deux fois plus grand que la carte dont le centre tombe en `100% - --mx`/`--my` ;
+  les plombs, noirs, le restent) ; il dérive au repos et suit le pointeur au survol ; une copie
+  floutée en `screen` fait rayonner les couleurs (elle respire) et des éclats en étoile
+  s'allument tour à tour (graine fixe). Mouvement réduit : soleil fixe, pas d'éclats.
+  `energie` (« Énergie vivante », place `image`, migration `tcg_visual_effects_energie`,
+  `LivingEnergy`) : seules les zones vives et saturées de l'illustration (volutes d'énergie,
+  magie) pulsent et changent lentement de teinte (aller-retour de ±70°, 9 s), avec un
+  rayonnement flou en `screen`. Filtre SVG : saturation estimée par les écarts entre canaux
+  (`feColorMatrix`, les deux signes additionnés), multipliée par la luminosité au-dessus de 40 %
+  (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
+  tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
-  `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). Leur rendu est
-  retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
+  `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est
+  revenu le 2026-11-22 avec un autre rendu (ci-dessus). Le rendu des autres est retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
   anciennes propositions de design.
   **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES
@@ -1230,7 +1247,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   elle reprend le cadrage de la normale. La fiche enregistre toujours les deux cadrages : régler
   la normale ne déplace pas la full art. Le glisser suit la souris au pixel près, zoom comme dézoom
   (`framePointShift`, `ui/frame-drag.ts`, testé) ; les points lumineux suivent (`glowPlacement`).
-- Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
+- Lumières à placer (`glowPoints`, 12 au plus par carte), de sept types (`kind`, absent :
   point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), arc électrique
   (`sparks` : arcs en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
   taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
@@ -1239,7 +1256,23 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   lumineux (entre deux poignées, `x2`/`y2` ; bloom SVG diffus en quatre couches, grand halo, halo
   moyen, lueur, cœur fin blanc teinté, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
   flou d'un trait horizontal ne soit pas rogné ; taille : épaisseur, vitesse : clignotement du trait
-  entier, comme un point lumineux). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
+  entier, comme un point lumineux) et eau (`water` : zone ovale aplatie centrée sur le point,
+  demi-largeur 2 × la taille et demi-hauteur 0,8 × la taille, `ZONE_SHAPES` ; une copie de
+  l'illustration posée exactement sur elle, `imageRect` de `src/glow.ts`, y ondule en vagues
+  horizontales par un filtre SVG de turbulence fondu sur les bords de l'ovale, avec des ronds dans
+  l'eau qui s'élargissent et des scintillements de sa couleur ; taille : étendue, vitesse :
+  ondulation, 0 : figée ; les vagues ondulent toujours, figées en mouvement réduit ; nouvelle
+  zone : blanc bleuté `#dff4ff`, l'éditeur trace l'ovale en pointillés), onde de fusion
+  (`shockwave` : zone ronde, rayon 1,5 × la taille ; à chaque cycle, flash au point puis onde de
+  choc qui s'élargit jusqu'au bord en déformant l'image comme une loupe, copie de l'illustration
+  agrandie de 8 % vue dans un anneau dont le rayon est animé par la propriété enregistrée
+  `--tcg-shock`, bordée d'un anneau lumineux ; taille : portée, vitesse : fréquence, 12 s /
+  vitesse) et tourbillon (`vortex` : zone ronde, rayon 1,2 × la taille ; six anneaux de copies
+  de l'illustration fondus l'un dans l'autre, chacun tourné d'autant plus qu'il est près du
+  centre, d'où une spirale ; la torsion se resserre et se relâche, lueur au cœur ; taille :
+  étendue, vitesse : torsion, 40 s / vitesse). Lumières de zone : une copie de l'image calée
+  dessus (`ImageCopy`), l'éditeur trace leur zone en pointillés. Toutes les autres
+  animations ne bougent que sous le pointeur ; sinon, visibles au calme.
   Le point lumineux a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
   couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :
@@ -1249,8 +1282,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   `object-position`, zoom `scale`) pour savoir où tombe le point dans la fenêtre, d'après la
   taille réelle de l'image (lue une fois par URL, `useNaturalSize`) ; le point suit donc le
   cadrage, le zoom et la mise en page ; avec l'effet `parallaxe`, ils prennent le même mouvement
-  que l'illustration (`tcg-vfx-plx-back`) et restent à leur place sur elle. Rendu (`GlowPoints`, client) : halo flou de sa couleur et
-  cœur net blanc teinté, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
+  que l'illustration (`tcg-vfx-plx-back`) et restent à leur place sur elle. Rendu (`GlowPoints`, client) : halo de sa couleur à
+  décroissance douce (proche d'une gaussienne), étendu à 2,2 fois sa taille pour qu'aucun bord
+  ne se voie, et petit cœur blanc teinté fondu, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
   la carte en full art) ; un point clignotant ne clignote que sous le pointeur, sinon (planche,
   carte non survolée, mouvement réduit) il reste immobile à son niveau le plus faible. Fiche : à droite de la carte, deux onglets, « Image » (cadrage puis envoi)
   et « Points lumineux » (`GlowPointsEditor`), l'aperçu restant visible ; l'éditeur montre l'image entière,

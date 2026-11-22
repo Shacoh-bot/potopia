@@ -36,23 +36,6 @@
   }
 }
 
-/* Reflet de lumière qui suit le pointeur. */
-.tcg-glare {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at var(--mx) var(--my),
-    rgb(255 255 255 / 0.55) 0%,
-    rgb(255 255 255 / 0.12) 28%,
-    transparent 55%
-  );
-  mix-blend-mode: soft-light;
-  opacity: calc(0.35 + var(--glare) * 0.65);
-  transition: opacity 0.3s;
-}
-
 /* Holo arc-en-ciel : fines bandes irisées qui glissent avec le pointeur, discrètes au repos. */
 .tcg-holo {
   position: absolute;
@@ -607,9 +590,6 @@
   animation: none !important;
   transition: none !important;
 }
-.tcg-still:not([data-live]) .tcg-glare {
-  display: none;
-}
 
 /* Carte retournable (`CardFlip`) : on la fait tourner en glissant à l'horizontale. Les faces sont
    à plat (leur 3D interne s'y aplatit) pour que `backface-visibility` cache celle de derrière. */
@@ -871,6 +851,133 @@
   transform: translate(calc((var(--mx, 50%) - 50%) * 0.14), calc((var(--my, 35%) - 35%) * 0.14));
 }
 
+/* vitrail : la lumière traverse le verre. `-lit` est l'illustration plus claire et plus saturée,
+   rognée en rond autour du « soleil » : un masque deux fois plus grand que la carte, dont le
+   centre tombe en (100% - position) ; il dérive au repos et suit le pointeur au survol. Les
+   plombs, noirs, restent noirs même éclaircis. `-bloom` fait rayonner les couleurs du verre
+   (copie floutée en `screen`, qui respire) ; `-glint` : éclats en étoile, tour à tour. */
+.tcg-vfx-vitrail-lit,
+.tcg-vfx-vitrail-bloom {
+  position: absolute;
+  inset: 0;
+}
+.tcg-vfx-vitrail-lit {
+  filter: brightness(1.5) saturate(1.55) contrast(1.06);
+  -webkit-mask-image: radial-gradient(
+    circle closest-side,
+    #000 0,
+    rgb(0 0 0 / 0.55) 22%,
+    transparent 48%
+  );
+  mask-image: radial-gradient(circle closest-side, #000 0, rgb(0 0 0 / 0.55) 22%, transparent 48%);
+  -webkit-mask-size: 200% 200%;
+  mask-size: 200% 200%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: tcg-vitrail-sun 14s ease-in-out infinite;
+}
+.tcg-tilt[data-active] .tcg-vfx-vitrail-lit {
+  animation: none;
+  -webkit-mask-position: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
+  mask-position: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
+}
+.tcg-vfx-vitrail-bloom {
+  filter: blur(7px) brightness(1.25) saturate(1.9);
+  mix-blend-mode: screen;
+  opacity: 0.22;
+  animation: tcg-vitrail-breathe 7s ease-in-out infinite;
+}
+.tcg-tilt[data-active] .tcg-vfx-vitrail-bloom {
+  animation: none;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+.tcg-vfx-vitrail-glint {
+  position: absolute;
+  translate: -50% -50%;
+  background:
+    radial-gradient(circle, #fff 0 9%, rgb(255 246 210 / 0.7) 20%, transparent 42%),
+    linear-gradient(90deg, transparent 46%, #fff 50%, transparent 54%),
+    linear-gradient(0deg, transparent 46%, #fff 50%, transparent 54%);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 0, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 0, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: tcg-vitrail-glint 6s ease-in-out infinite;
+}
+@keyframes tcg-vitrail-sun {
+  0%,
+  100% {
+    -webkit-mask-position: 30% 75%;
+    mask-position: 30% 75%;
+  }
+  33% {
+    -webkit-mask-position: 75% 60%;
+    mask-position: 75% 60%;
+  }
+  66% {
+    -webkit-mask-position: 50% 30%;
+    mask-position: 50% 30%;
+  }
+}
+@keyframes tcg-vitrail-breathe {
+  50% {
+    opacity: 0.38;
+  }
+}
+@keyframes tcg-vitrail-glint {
+  0%,
+  78%,
+  100% {
+    opacity: 0;
+    scale: 0.3;
+    rotate: 0deg;
+  }
+  86% {
+    opacity: 1;
+    scale: 1;
+    rotate: 45deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-vitrail-lit,
+  .tcg-vfx-vitrail-bloom,
+  .tcg-vfx-vitrail-glint {
+    animation: none;
+  }
+  .tcg-vfx-vitrail-lit {
+    -webkit-mask-position: 50% 60%;
+    mask-position: 50% 60%;
+  }
+}
+
+/* energie : la copie filtrée (zones vives seulement, teinte tournée) pulse ; son rayonnement
+   (même copie floutée, en `screen`) respire avec elle. */
+.tcg-vfx-energie {
+  position: absolute;
+  inset: 0;
+  animation: tcg-energie-pulse 3.2s ease-in-out infinite;
+}
+.tcg-vfx-energie-bloom {
+  filter: blur(6px) brightness(1.3);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+@keyframes tcg-energie-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-energie {
+    animation: none;
+  }
+}
+
 /* lampe : tout est assombri sauf un rond de lumière autour du pointeur ; au repos, rond large au
    centre et pénombre légère. */
 .tcg-vfx-lamp {
@@ -1102,9 +1209,9 @@
   }
 }
 
-/* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo flou
-   de leur couleur (::before) et cœur net, blanc teinté (::after), ajoutés comme de la lumière
-   (screen). Clignotement à leur vitesse (--blink), seulement quand le pointeur est sur la carte ;
+/* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo
+   flou de leur couleur, étendu bien au-delà de leur taille (::before), et petit cœur blanc
+   teinté fondu (::after), ajoutés comme de la lumière (screen). Clignotement à leur vitesse (--blink), seulement quand le pointeur est sur la carte ;
    sinon (et en mouvement réduit), un point clignotant reste à son niveau le plus faible. */
 .tcg-glow-layer {
   position: absolute;
@@ -1125,25 +1232,35 @@
   position: absolute;
   border-radius: 50%;
 }
+/* Halo : décroissance douce (proche d'une gaussienne : forte au centre, longue traîne), étendue
+   bien au-delà de la taille réglée (`inset` négatif) pour qu'aucun bord ne se voie. */
 .tcg-glow::before {
-  inset: 0;
+  inset: -60%;
   background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--glow) 90%, transparent) 0%,
-    color-mix(in srgb, var(--glow) 40%, transparent) 38%,
-    transparent 70%
+    circle closest-side,
+    color-mix(in srgb, var(--glow) 85%, transparent) 0%,
+    color-mix(in srgb, var(--glow) 58%, transparent) 10%,
+    color-mix(in srgb, var(--glow) 36%, transparent) 21%,
+    color-mix(in srgb, var(--glow) 20%, transparent) 34%,
+    color-mix(in srgb, var(--glow) 10%, transparent) 49%,
+    color-mix(in srgb, var(--glow) 4%, transparent) 67%,
+    color-mix(in srgb, var(--glow) 1%, transparent) 84%,
+    transparent 100%
   );
-  filter: blur(calc(var(--r) * 0.2));
+  filter: blur(calc(var(--r) * 0.08));
 }
+/* Cœur : blanc teinté, petit, fondu sans bord vers la couleur. */
 .tcg-glow::after {
-  inset: 32%;
+  inset: 30%;
   background: radial-gradient(
-    circle,
-    #fff 0%,
-    color-mix(in srgb, var(--glow) 70%, #fff) 40%,
-    transparent 75%
+    circle closest-side,
+    rgb(255 255 255 / 0.95) 0%,
+    color-mix(in srgb, var(--glow) 35%, rgb(255 255 255 / 0.7)) 18%,
+    color-mix(in srgb, var(--glow) 45%, transparent) 42%,
+    color-mix(in srgb, var(--glow) 15%, transparent) 70%,
+    transparent 100%
   );
-  filter: blur(1px);
+  filter: blur(calc(var(--r) * 0.04));
 }
 .tcg-glow[data-blink],
 .tcg-line[data-blink] {
@@ -1269,6 +1386,216 @@
 }
 .tcg-arc[data-still] {
   animation: none;
+}
+
+/* Zone d'eau (lumière `water`, `Water` de GlowPoints.tsx) : l'ovale rogne tout ce qu'il contient.
+   `-wave` : la copie de l'illustration qui ondule, fondue sur les bords de l'ovale ; `-ripple` :
+   ronds dans l'eau aplatis (perspective) qui s'élargissent et s'effacent ; `-sparkle` : traits
+   de soleil de la couleur de la lumière, faibles au calme. */
+.tcg-water {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.tcg-water-wave {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
+}
+.tcg-water-ripple,
+.tcg-water-sparkle {
+  position: absolute;
+  translate: -50% -50%;
+  mix-blend-mode: screen;
+}
+.tcg-water-ripple {
+  aspect-ratio: 3 / 1;
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  box-shadow:
+    0 0 3px rgb(255 255 255 / 0.3),
+    inset 0 0 3px rgb(255 255 255 / 0.25);
+  opacity: 0;
+  animation: tcg-water-ripple 6s ease-out infinite;
+}
+.tcg-water-sparkle {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--glow) 40%, #fff),
+    transparent
+  );
+  box-shadow: 0 0 4px color-mix(in srgb, var(--glow) 70%, transparent);
+  opacity: 0.35;
+  animation: tcg-water-sparkle 3s ease-in-out infinite;
+}
+/* Onde de fusion (lumière `shockwave`, `Shockwave` de GlowPoints.tsx). `-lens` : copie de
+   l'illustration agrandie de 8 % autour du point, visible seulement dans un anneau dont le rayon
+   (--tcg-shock, propriété enregistrée pour pouvoir l'animer) va du centre au bord : là où passe
+   l'anneau, l'image est déplacée vers l'extérieur, comme sous une loupe. `-ring` : son bord
+   lumineux ; `-flash` : l'éclair au point au départ de l'onde, lueur faible au calme. */
+@property --tcg-shock {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+.tcg-shock,
+.tcg-vortex {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.tcg-shock-lens,
+.tcg-shock-ring,
+.tcg-shock-flash,
+.tcg-vortex-band,
+.tcg-vortex-core {
+  position: absolute;
+  inset: 0;
+}
+.tcg-shock-lens {
+  scale: 1.08;
+  -webkit-mask-image: radial-gradient(
+    circle closest-side,
+    transparent calc(var(--tcg-shock) - 16%),
+    #000 calc(var(--tcg-shock) - 5%),
+    transparent var(--tcg-shock)
+  );
+  mask-image: radial-gradient(
+    circle closest-side,
+    transparent calc(var(--tcg-shock) - 16%),
+    #000 calc(var(--tcg-shock) - 5%),
+    transparent var(--tcg-shock)
+  );
+  animation: tcg-shock-lens 3s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+.tcg-shock-ring {
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--glow) 55%, #fff);
+  box-shadow:
+    0 0 10px var(--glow),
+    inset 0 0 10px color-mix(in srgb, var(--glow) 60%, transparent);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: tcg-shock-ring 3s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+.tcg-shock-flash {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--glow) 40%, #fff) 0%,
+    color-mix(in srgb, var(--glow) 60%, transparent) 12%,
+    transparent 30%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  animation: tcg-shock-flash 3s ease-out infinite;
+}
+@keyframes tcg-shock-lens {
+  0% {
+    --tcg-shock: 0%;
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    --tcg-shock: 100%;
+    opacity: 0;
+  }
+}
+@keyframes tcg-shock-ring {
+  0% {
+    scale: 0.05;
+    opacity: 0.9;
+  }
+  100% {
+    scale: 1;
+    opacity: 0;
+  }
+}
+@keyframes tcg-shock-flash {
+  0% {
+    opacity: 1;
+    scale: 0.6;
+  }
+  12% {
+    opacity: 0.9;
+    scale: 1.2;
+  }
+  35%,
+  100% {
+    opacity: 0.15;
+    scale: 1;
+  }
+}
+
+/* Tourbillon (lumière `vortex`, `Vortex` de GlowPoints.tsx) : anneaux d'une copie de
+   l'illustration, chacun tourné de sa torsion (--twist, plus forte au centre) ; sous le pointeur
+   la torsion se resserre et se relâche, au calme elle reste au tiers. `-core` : lueur au cœur. */
+.tcg-vortex-band {
+  rotate: calc(var(--twist) * 0.35);
+  animation: tcg-vortex-twist 10s ease-in-out infinite;
+}
+.tcg-vortex-core {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--glow) 50%, #fff) 0%,
+    color-mix(in srgb, var(--glow) 45%, transparent) 15%,
+    transparent 45%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: tcg-vortex-core 10s ease-in-out infinite;
+}
+@keyframes tcg-vortex-twist {
+  0%,
+  100% {
+    rotate: calc(var(--twist) * 0.35);
+  }
+  50% {
+    rotate: var(--twist);
+  }
+}
+@keyframes tcg-vortex-core {
+  0%,
+  100% {
+    opacity: 0.5;
+    scale: 0.9;
+  }
+  50% {
+    opacity: 0.85;
+    scale: 1.1;
+  }
+}
+
+@keyframes tcg-water-ripple {
+  0% {
+    opacity: 0;
+    scale: 0.1;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  60%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes tcg-water-sparkle {
+  0%,
+  60%,
+  100% {
+    opacity: 0;
+    scale: 0.4 1;
+  }
+  75% {
+    opacity: 1;
+    scale: 1 1;
+  }
 }
 
 @keyframes tcg-glow-blink {

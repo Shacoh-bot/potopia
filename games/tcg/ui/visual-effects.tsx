@@ -367,7 +367,7 @@ const snapStyle = (style: ExtraStyle) =>
 /* ── Effets d'ambiance ── */
 
 /** Mouvement réduit demandé par le système (lu après le premier rendu, faux côté serveur). */
-function useReducedMotion() {
+export function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -386,6 +386,122 @@ function Parallax({ card }: EffectProps) {
         <PremiumArt card={card} />
       </div>
       <div className="tcg-vfx-plx-front" />
+    </div>
+  );
+}
+
+/** Reflets du vitrail : petits éclats posés au hasard (graine fixe), chacun à son rythme. */
+const GLINTS = (() => {
+  const rnd = seeded(83);
+  return Array.from({ length: 9 }, () => ({
+    left: `${8 + rnd() * 84}%`,
+    top: `${8 + rnd() * 80}%`,
+    size: 10 + rnd() * 12,
+    delay: `${(-rnd() * 7).toFixed(2)}s`,
+    duration: `${(5 + rnd() * 4).toFixed(2)}s`,
+  }));
+})();
+
+/**
+ * Vitrail : la lumière traverse le verre. Un soleil, derrière la carte, éclaire les morceaux de
+ * verre autour de lui (copie de l'illustration plus claire et plus saturée, rognée en rond : les
+ * plombs, noirs, le restent) ; au repos, il dérive lentement, et il suit le pointeur au survol.
+ * Un rayonnement (copie floutée en `screen`) fait briller les couleurs du verre, et de petits
+ * éclats s'allument tour à tour sur les morceaux (CSS seul, classes `tcg-vfx-vitrail-…`).
+ */
+function StainedGlass({ card }: EffectProps) {
+  return (
+    <div style={{ ...fillAbs, overflow: "hidden" }}>
+      <PremiumArt card={card} />
+      <div className="tcg-vfx-vitrail-bloom">
+        <PremiumArt card={card} />
+      </div>
+      <div className="tcg-vfx-vitrail-lit">
+        <PremiumArt card={card} />
+      </div>
+      {GLINTS.map((g, i) => (
+        <span
+          key={i}
+          className="tcg-vfx-vitrail-glint"
+          style={{
+            left: g.left,
+            top: g.top,
+            width: g.size,
+            height: g.size,
+            animationDelay: g.delay,
+            animationDuration: g.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Écart des couleurs, amplifié (`k`) : un canal moins un autre, la partie positive seule. */
+const ENERGY_K = 1.2;
+const diff = (sign: 1 | -1) => {
+  const k = ENERGY_K * sign;
+  // R' = k(R − G), G' = k(G − B), B' = k(B − R) ; opacité 1.
+  return `${k} ${-k} 0 0 0  0 ${k} ${-k} 0 0  ${-k} 0 ${k} 0 0  0 0 0 0 1`;
+};
+
+/**
+ * Énergie vivante : seules les zones vives et saturées de l'illustration (volutes d'énergie,
+ * magie, flammes colorées) pulsent et changent lentement de teinte ; le reste (personnages, décor,
+ * nuages blancs) ne bouge pas. Filtre SVG : la saturation est estimée par les écarts entre canaux
+ * (les deux signes, additionnés), multipliée par la luminosité (au-dessus d'un seuil : les
+ * vêtements sombres restent hors du masque) ; une copie de l'image, à la teinte tournée
+ * (animée), n'est gardée que dans ce masque, avec un rayonnement flou en `screen`. Carte figée
+ * ou mouvement réduit : teinte fixe, seulement un peu ravivée.
+ */
+function LivingEnergy({ card, still }: EffectProps) {
+  const reduced = useReducedMotion();
+  const moving = !still && !reduced;
+  const id = moving ? "tcg-vfx-energie" : "tcg-vfx-energie-still";
+  return (
+    <div style={{ ...fillAbs, overflow: "hidden" }}>
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+        <filter id={id} colorInterpolationFilters="sRGB">
+          <feColorMatrix in="SourceGraphic" type="matrix" values={diff(1)} result="d1" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values={diff(-1)} result="d2" />
+          <feComposite in="d1" in2="d2" operator="arithmetic" k2="1" k3="1" result="spread" />
+          {/* Opacité = saturation estimée, moins un seuil. */}
+          <feColorMatrix
+            in="spread"
+            type="matrix"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0.6 0.6 0 -0.3"
+            result="sat"
+          />
+          {/* Opacité = luminosité au-dessus de 40 %, amplifiée. */}
+          <feColorMatrix
+            in="SourceGraphic"
+            type="matrix"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.9 1.77 0.33 0 -1.2"
+            result="lum"
+          />
+          <feComposite in="sat" in2="lum" operator="arithmetic" k1="1" result="mask" />
+          <feColorMatrix in="SourceGraphic" type="hueRotate" values="0" result="hue">
+            {moving && (
+              <animate
+                attributeName="values"
+                dur="9s"
+                values="0;70;0;-70;0"
+                repeatCount="indefinite"
+              />
+            )}
+          </feColorMatrix>
+          <feComposite in="hue" in2="mask" operator="in" />
+        </filter>
+      </svg>
+      <PremiumArt card={card} />
+      <div className="tcg-vfx-energie" style={{ filter: `url(#${id})` }}>
+        <PremiumArt card={card} />
+      </div>
+      <div className="tcg-vfx-energie tcg-vfx-energie-bloom">
+        <div style={{ ...fillAbs, filter: `url(#${id})` }}>
+          <PremiumArt card={card} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -771,6 +887,8 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   or: { render: snapStyle("gold") },
   aquarelle: { render: Watercolor },
   cosmos: { render: Cosmic },
+  vitrail: { render: StainedGlass },
+  energie: { render: LivingEnergy },
   parallaxe: { render: Parallax },
   lampe: { render: Flashlight },
   metal: { render: BrushedMetal },

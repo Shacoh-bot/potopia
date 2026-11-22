@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { glowPeriod } from "../src/card-rules";
-import { glowPlacement } from "../src/glow";
+import { glowPlacement, imageRect } from "../src/glow";
 
 const point = { x: 50, y: 50, size: 10 };
 
@@ -32,6 +32,26 @@ describe("glowPlacement", () => {
     const natural = { width: 100, height: 100 };
     const at = glowPlacement({ x: 75, y: 50, size: 10 }, { x: 50, y: 50, zoom: 2 }, box, natural);
     expect(at).toEqual({ left: 100, top: 50, radius: 20 });
+  });
+});
+
+describe("imageRect", () => {
+  it("image plus haute que la fenêtre, cadrée en haut : elle dépasse en bas", () => {
+    const rect = imageRect(
+      { x: 50, y: 0, zoom: 1 },
+      { width: 100, height: 100 },
+      { width: 100, height: 200 },
+    );
+    expect(rect).toEqual({ left: 0, top: 0, width: 100, height: 200 });
+  });
+
+  it("le zoom agrandit l'image autour du point de cadrage", () => {
+    const rect = imageRect(
+      { x: 50, y: 50, zoom: 2 },
+      { width: 100, height: 100 },
+      { width: 100, height: 100 },
+    );
+    expect(rect).toEqual({ left: -50, top: -50, width: 200, height: 200 });
   });
 });
 
