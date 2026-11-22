@@ -36,23 +36,6 @@
   }
 }
 
-/* Reflet de lumière qui suit le pointeur. */
-.tcg-glare {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at var(--mx) var(--my),
-    rgb(255 255 255 / 0.55) 0%,
-    rgb(255 255 255 / 0.12) 28%,
-    transparent 55%
-  );
-  mix-blend-mode: soft-light;
-  opacity: calc(0.35 + var(--glare) * 0.65);
-  transition: opacity 0.3s;
-}
-
 /* Holo arc-en-ciel : fines bandes irisées qui glissent avec le pointeur, discrètes au repos. */
 .tcg-holo {
   position: absolute;
@@ -606,9 +589,6 @@
 .tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *)::after {
   animation: none !important;
   transition: none !important;
-}
-.tcg-still:not([data-live]) .tcg-glare {
-  display: none;
 }
 
 /* Carte retournable (`CardFlip`) : on la fait tourner en glissant à l'horizontale. Les faces sont

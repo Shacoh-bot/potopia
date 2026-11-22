@@ -1067,13 +1067,15 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   trouvée ou choisie). Pour l'instant seuls les admins voient les
   cartes ; quand les membres les verront, ce pied dira qui a proposé l'idée (à décider avec la
   règle de la boîte noire). Sur la planche, les cartes sont figées (`GameCard still`, classe
-  `tcg-still`) : sans 3D, animation, reflet ni grande ombre floue, pour un défilement fluide ;
+  `tcg-still`) : sans 3D, animation ni grande ombre floue, pour un défilement fluide ;
   la carte survolée redevient vivante, comme dans sa fiche : inclinaison 3D vers le pointeur,
-  reflet, ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
+  ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
   `still-hover.ts` écoute le survol sur le lien, la carte y étant insensible au pointeur, et
   `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante. Exception : l'effet
   visuel de la carte (calque `.tcg-vfx` : pétales, braises, fumée…) tourne toujours, survolé ou
-  non ; figé, il restait dans une pose artificielle (pétales alignés).
+  non ; figé, il restait dans une pose artificielle (pétales alignés). Plus de reflet blanc qui
+  suit le pointeur au survol (ancien calque `tcg-glare`, retiré le 2026-11-22) : holo, paillettes
+  et effets restent dosés par `--glare` (1 sous le pointeur).
 - Coût et puissance de la carte retenue (`ImageCost`, `ImagePower` de `snap.tsx`) : une image
   pixel art néon sertie d'or (`apps/web/public/tcg/badge-cost.webp`, losange cyan ;
   `badge-power.webp`, arche magenta ; 256 px, fond transparent), le chiffre restant du texte SVG

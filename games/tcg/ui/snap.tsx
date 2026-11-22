@@ -982,7 +982,6 @@ export function SnapCard({
             </span>
           </div>
         )}
-        <div className="tcg-glare" style={{ borderRadius: radius }} />
       </div>
     </Tilt>
   );

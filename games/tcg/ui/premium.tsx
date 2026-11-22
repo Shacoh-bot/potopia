@@ -105,7 +105,6 @@ function Finish({
       {(rarity === "rare" || rarity === "legendary") && (
         <div className="tcg-orbit" style={{ "--orbit": orbit } as CSSProperties} />
       )}
-      <div className="tcg-glare" />
     </>
   );
 }
