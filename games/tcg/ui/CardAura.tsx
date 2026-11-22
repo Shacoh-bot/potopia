@@ -31,6 +31,8 @@ type Palette = {
   /** Nombre d'étincelles. */
   sparks: number;
   rainbow: boolean;
+  /** Couleur des étincelles, si elle diffère de `mid`. */
+  spark?: [number, number, number];
 };
 
 const PALETTES: Partial<Record<Rarity, Palette>> = {
@@ -50,10 +52,12 @@ const PALETTES: Partial<Record<Rarity, Palette>> = {
     sparks: 60,
     rainbow: false,
   },
+  // SR « carmin étoilé d'or » (cadre SR-2, 22/11) : cœur doré, vrilles carmin, étincelles dorées.
   sr: {
-    core: [1, 1, 1],
-    mid: [0.86, 0.82, 1],
-    edge: [0.55, 0.75, 1],
+    core: [1, 0.86, 0.5],
+    mid: [0.95, 0.08, 0.3],
+    edge: [0.55, 0, 0.18],
+    spark: [1, 0.8, 0.32],
     power: 0.95,
     sparks: 190,
     rainbow: false,
@@ -606,7 +610,7 @@ function renderAura(r: Renderer, f: AuraFrame): number {
     // Couleur des étincelles : celle de la rareté, arrondie comme une couleur CSS (0 à 255).
     gl.uniform3fv(
       U(sparkProg, "mid"),
-      f.pal.mid.map((v) => Math.round(v * 255) / 255),
+      (f.pal.spark ?? f.pal.mid).map((v) => Math.round(v * 255) / 255),
     );
     gl.uniform1f(U(sparkProg, "grow"), measureGradientGrowth());
     gl.bindBuffer(gl.ARRAY_BUFFER, r.pointBuf);
@@ -728,7 +732,7 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
       // Repli : étincelles au canevas 2D, par-dessus (comme avant).
       if (!r.webglSparks) {
         ctx2d ??= c2.getContext("2d");
-        if (ctx2d) drawSparks2d(ctx2d, points, n, pal.mid);
+        if (ctx2d) drawSparks2d(ctx2d, points, n, pal.spark ?? pal.mid);
       }
       return true;
     };

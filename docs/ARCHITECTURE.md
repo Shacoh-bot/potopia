@@ -869,8 +869,12 @@ rafraîchit le routeur client sans recharger la page.
   description en italique plus petite en bas. En pied de carte : numéro, rareté et étoiles
   (`RARITY_STARS` : 1 pour la légendaire, 2 pour la SR, 3 pour la SSR), précédés du code du set
   (« S1 07/116 »). Pas de symbole d'édition : la rareté se voit au cadre (`RARITY_FRAME` : argent,
-  vert, bleu, violet (épique), or, nacre, arc-en-ciel), uni et sans lumière venant d'un côté pour une épaisseur égale
-  tout autour, puis aux effets. Bandeau court (n°70) : titre à la hauteur du mana, centré sur toute la
+  vert, bleu, violet (épique), or, carmin, arc-en-ciel), uni et sans lumière venant d'un côté pour une épaisseur égale
+  tout autour, puis aux effets. La SSR ajoute deux comètes d'énergie qui font le tour du cadre (`SsrComets`,
+  « SSR-2 » du 22/11) ; la SR, un carmin qui tourne, des éclats dorés et un halo carmin qui respire
+  (`SrCarmine`, « SR-2 » du 22/11 ; aura d'ouverture du booster carmin et or, `CardAura`). Les deux
+  (`FRAME_MOTION`, `FrameRun`) : 4 bandes droites, une par bord, où un dégradé défile (translation
+  seule, aucun masque ni rotation : 60 im/s visés dans Firefox). Bandeau court (n°70) : titre à la hauteur du mana, centré sur toute la
   largeur de la carte ; la planche du n°70 montre aussi les sept raretés. Le n°67 (`final-bandeau`) a le bandeau plein et
   se montre dans chaque rareté ; les n°68 à 71 (`BAND_DESIGNS`, `BandShape`) essaient d'autres
   formes de bandeau autour du mana : échancré, mana serti dans un anneau de métal, bandeau court
