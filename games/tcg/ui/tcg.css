@@ -393,36 +393,33 @@
   mix-blend-mode: overlay;
 }
 
-/* Cadre SSR « SSR-2 » (v5.tsx, SsrComets) : deux comètes d'énergie sur le RGB. L'anneau et son
-   masque sont immobiles ; seul le disque conique dessous tourne (transform), pour Firefox. */
+/* Cadre SSR « SSR-2 » (v5.tsx, SsrComets) : deux comètes d'énergie sur le RGB. Aucun masque sur
+   ce qui bouge (lent dans Firefox) : 4 bandes droites dans une boîte à coins arrondis, le même
+   disque conique tourne dans chacune (transform). */
 .tcg-ssr-comets {
   position: absolute;
   inset: 0;
   border-radius: 22px;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
 }
-/* Lueur qui déborde de la carte : anneau de 4 px juste à l'extérieur du cadre. */
+/* Lueur qui déborde de la carte : bandes de 4 px juste à l'extérieur du cadre. */
 .tcg-ssr-comets--glow {
   inset: -4px;
-  padding: 4px;
   border-radius: 26px;
   opacity: 0.45;
 }
+.tcg-ssr-comets--glow .tcg-ssr-comets__strip {
+  margin: 4px 0 0 4px;
+}
+.tcg-ssr-comets__strip {
+  position: absolute;
+  overflow: hidden;
+}
 .tcg-ssr-comets__spin {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 180%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
+  width: 540px;
+  height: 540px;
   background: conic-gradient(
     transparent 0deg,
     transparent 22deg,

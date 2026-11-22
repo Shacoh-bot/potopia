@@ -247,17 +247,46 @@ function Band({
 /**
  * Cadre SSR (« SSR-2 », choisi par l'utilisateur le 22/11) : deux comètes d'énergie à cœur
  * blanc font le tour du cadre RGB (2,6 s par tour) et débordent un peu, en lueur, hors de la
- * carte. Fluidité (Firefox) : les anneaux et leurs masques restent immobiles, seul le disque
- * conique qu'ils laissent voir tourne (transform) ; aucun filtre.
+ * carte. Fluidité (Firefox) : aucun masque sur ce qui bouge (un anneau masqué tombait à
+ * ~20 im/s, Firefox invisible) ; le cadre est fait de 4 bandes droites (`overflow: hidden`,
+ * découpe rapide) dans une boîte à coins arrondis, et dans chaque bande tourne le même disque
+ * conique centré sur la carte (transform seul). Les angles intérieurs du cadre (arrondis) ne
+ * sont pas traversés : invisible au passage rapide d'une comète.
  */
+const COMET_DISC = 540;
+function cometStrips(out: number, width: number) {
+  const x0 = -out;
+  const y0 = -out;
+  const x1 = W + out - width;
+  const y1 = H + out - width;
+  const long = W + 2 * out;
+  const tall = H + 2 * out - 2 * width;
+  return [
+    [x0, y0, long, width],
+    [x0, y1, long, width],
+    [x0, y0 + width, width, tall],
+    [x1, y0 + width, width, tall],
+  ].map(([x, y, w, h]) => (
+    <div
+      key={`${x},${y}`}
+      className="tcg-ssr-comets__strip"
+      style={{ left: x, top: y, width: w, height: h }}
+    >
+      <div
+        className="tcg-ssr-comets__spin"
+        style={{ left: W / 2 - COMET_DISC / 2 - x, top: H / 2 - COMET_DISC / 2 - y }}
+      />
+    </div>
+  ));
+}
 function SsrComets() {
   return (
     <>
       <div aria-hidden className="tcg-ssr-comets tcg-ssr-comets--glow">
-        <div className="tcg-ssr-comets__spin" />
+        {cometStrips(4, 4)}
       </div>
-      <div aria-hidden className="tcg-ssr-comets" style={{ padding: FRAME }}>
-        <div className="tcg-ssr-comets__spin" />
+      <div aria-hidden className="tcg-ssr-comets">
+        {cometStrips(0, FRAME)}
       </div>
     </>
   );
