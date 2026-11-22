@@ -1,6 +1,6 @@
 import { getCard, isDuplicateNote, listCards, listSets, listVisualEffects } from "@app/tcg";
 import { CardEditor } from "@app/tcg/ui";
-import { Card } from "@app/ui";
+import { buttonClasses, Card } from "@app/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -149,7 +149,18 @@ export default async function AdminCardPage({
   );
 
   return (
-    <Card title={`${place} · ${card.name}`}>
+    <Card
+      title={`${place} · ${card.name}`}
+      action={
+        // Retour à la planche avec ses filtres (place, étape, vue, page, recherche), sur la carte.
+        <Link
+          href={boardHref(board, card.id)}
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
+        >
+          ← Retour aux cartes
+        </Link>
+      }
+    >
       <div className={`${designFonts} flex flex-col gap-4`}>
         <CardEditor
           card={card}
@@ -168,9 +179,6 @@ export default async function AdminCardPage({
             confirm: confirmCardImageAction.bind(null, card.id),
           }}
         />
-        <Link href={boardHref(board, card.id)} className="text-muted text-sm hover:underline">
-          ← Retour aux cartes
-        </Link>
       </div>
     </Card>
   );

@@ -367,7 +367,7 @@ const snapStyle = (style: ExtraStyle) =>
 /* ── Effets d'ambiance ── */
 
 /** Mouvement réduit demandé par le système (lu après le premier rendu, faux côté serveur). */
-function useReducedMotion() {
+export function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);

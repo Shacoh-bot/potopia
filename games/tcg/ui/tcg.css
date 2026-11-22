@@ -1371,6 +1371,77 @@
   animation: none;
 }
 
+/* Zone d'eau (lumière `water`, `Water` de GlowPoints.tsx) : l'ovale rogne tout ce qu'il contient.
+   `-wave` : la copie de l'illustration qui ondule, fondue sur les bords de l'ovale ; `-ripple` :
+   ronds dans l'eau aplatis (perspective) qui s'élargissent et s'effacent ; `-sparkle` : traits
+   de soleil de la couleur de la lumière, faibles au calme. */
+.tcg-water {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.tcg-water-wave {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
+}
+.tcg-water-ripple,
+.tcg-water-sparkle {
+  position: absolute;
+  translate: -50% -50%;
+  mix-blend-mode: screen;
+}
+.tcg-water-ripple {
+  aspect-ratio: 3 / 1;
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  box-shadow:
+    0 0 3px rgb(255 255 255 / 0.3),
+    inset 0 0 3px rgb(255 255 255 / 0.25);
+  opacity: 0;
+  animation: tcg-water-ripple 6s ease-out infinite;
+}
+.tcg-water-sparkle {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--glow) 40%, #fff),
+    transparent
+  );
+  box-shadow: 0 0 4px color-mix(in srgb, var(--glow) 70%, transparent);
+  opacity: 0.35;
+  animation: tcg-water-sparkle 3s ease-in-out infinite;
+}
+@keyframes tcg-water-ripple {
+  0% {
+    opacity: 0;
+    scale: 0.1;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  60%,
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+@keyframes tcg-water-sparkle {
+  0%,
+  60%,
+  100% {
+    opacity: 0;
+    scale: 0.4 1;
+  }
+  75% {
+    opacity: 1;
+    scale: 1 1;
+  }
+}
+
 @keyframes tcg-glow-blink {
   0%,
   100% {

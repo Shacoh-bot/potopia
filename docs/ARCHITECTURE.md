@@ -918,7 +918,8 @@ et modifient les cartes.
   versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
   « Tout cocher », dans la barre de déplacement, coche les cartes affichées (miniatures et liste).
   Ouvrir une fiche garde la planche : le lien de la carte passe sa requête (place, étape, vue, page,
-  recherche) dans `?retour=`, et « ← Retour aux cartes » y ramène, ancré sur la carte
+  recherche) dans `?retour=`, et le bouton « ← Retour aux cartes », en haut à droite de la fiche,
+  y ramène, ancré sur la carte
   (`admin/cartes/board-url.ts`, seuls ces paramètres sont gardés).
 - Corbeille (pour les doublons, les essais) : `trashCards` met des cartes à la corbeille
   (`deletedAt`) ; elles sortent de leur set (renuméroté) et de toutes les listes (`listCards` ne
@@ -1237,7 +1238,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   elle reprend le cadrage de la normale. La fiche enregistre toujours les deux cadrages : régler
   la normale ne déplace pas la full art. Le glisser suit la souris au pixel près, zoom comme dézoom
   (`framePointShift`, `ui/frame-drag.ts`, testé) ; les points lumineux suivent (`glowPlacement`).
-- Lumières à placer (`glowPoints`, 12 au plus par carte), de quatre types (`kind`, absent :
+- Lumières à placer (`glowPoints`, 12 au plus par carte), de cinq types (`kind`, absent :
   point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), arc électrique
   (`sparks` : arcs en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
   taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
@@ -1246,7 +1247,14 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   lumineux (entre deux poignées, `x2`/`y2` ; bloom SVG diffus en quatre couches, grand halo, halo
   moyen, lueur, cœur fin blanc teinté, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
   flou d'un trait horizontal ne soit pas rogné ; taille : épaisseur, vitesse : clignotement du trait
-  entier, comme un point lumineux). Toutes ne bougent que sous le pointeur ; sinon, visibles au calme.
+  entier, comme un point lumineux) et eau (`water` : zone ovale aplatie centrée sur le point,
+  demi-largeur 2 × la taille et demi-hauteur 0,8 × la taille, `WATER_SHAPE` ; une copie de
+  l'illustration posée exactement sur elle, `imageRect` de `src/glow.ts`, y ondule en vagues
+  horizontales par un filtre SVG de turbulence fondu sur les bords de l'ovale, avec des ronds dans
+  l'eau qui s'élargissent et des scintillements de sa couleur ; taille : étendue, vitesse :
+  ondulation, 0 : figée ; les vagues ondulent toujours, figées en mouvement réduit ; nouvelle
+  zone : blanc bleuté `#dff4ff`, l'éditeur trace l'ovale en pointillés). Toutes les autres
+  animations ne bougent que sous le pointeur ; sinon, visibles au calme.
   Le point lumineux a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
   couleur `#rrggbb` et une vitesse de clignotement de 0 (fixe) à 10 (durée d'un clignotement :

@@ -290,7 +290,7 @@ export function smallImageKeyFor(
 }
 
 /** Types de lumière à placer sur l'illustration. */
-export const GLOW_KINDS = ["glow", "sparks", "rays", "line"] as const;
+export const GLOW_KINDS = ["glow", "sparks", "rays", "line", "water"] as const;
 export type GlowKind = (typeof GLOW_KINDS)[number];
 
 /** Noms affichés : le type, puis ce que règlent sa taille et sa vitesse. */
@@ -299,7 +299,15 @@ export const GLOW_KIND_LABELS: Record<GlowKind, { name: string; size: string; sp
   sparks: { name: "Arc électrique", size: "Portée", speed: "Débit" },
   rays: { name: "Rayons", size: "Longueur", speed: "Rotation" },
   line: { name: "Trait lumineux", size: "Épaisseur", speed: "Clignotement" },
+  water: { name: "Eau", size: "Étendue", speed: "Ondulation" },
 };
+
+/**
+ * Zone d'eau (`water`) : un ovale aplati centré sur le point, de demi-largeur `WATER_SHAPE.width`
+ * fois la taille et de demi-hauteur `WATER_SHAPE.height` fois la taille (taille en % de la
+ * largeur de l'image) : une étendue d'eau vue de biais est large et basse.
+ */
+export const WATER_SHAPE = { width: 2, height: 0.8 } as const;
 
 /**
  * Lumière posée sur l'illustration (des yeux qui brillent, une lame électrifiée…) : son type
