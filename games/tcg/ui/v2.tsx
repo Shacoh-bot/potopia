@@ -49,7 +49,7 @@ export function Shell({
   );
 }
 
-/** Calque à une profondeur donnée (parallaxe quand la carte s'incline). */
+/** Calque posé à plat sur la carte (`z` : ancienne profondeur, gardée pour mémoire ; voir `.tcg-layer`). */
 export function Layer({
   z,
   style,
