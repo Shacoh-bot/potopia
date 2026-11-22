@@ -261,12 +261,13 @@ function cometStrips(out: number, width: number) {
   const y1 = H + out - width;
   const long = W + 2 * out;
   const tall = H + 2 * out - 2 * width;
-  return [
+  const strips: [number, number, number, number][] = [
     [x0, y0, long, width],
     [x0, y1, long, width],
     [x0, y0 + width, width, tall],
     [x1, y0 + width, width, tall],
-  ].map(([x, y, w, h]) => (
+  ];
+  return strips.map(([x, y, w, h]) => (
     <div
       key={`${x},${y}`}
       className="tcg-ssr-comets__strip"
