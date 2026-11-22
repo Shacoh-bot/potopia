@@ -1282,8 +1282,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   `object-position`, zoom `scale`) pour savoir où tombe le point dans la fenêtre, d'après la
   taille réelle de l'image (lue une fois par URL, `useNaturalSize`) ; le point suit donc le
   cadrage, le zoom et la mise en page ; avec l'effet `parallaxe`, ils prennent le même mouvement
-  que l'illustration (`tcg-vfx-plx-back`) et restent à leur place sur elle. Rendu (`GlowPoints`, client) : halo flou de sa couleur et
-  cœur net blanc teinté, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
+  que l'illustration (`tcg-vfx-plx-back`) et restent à leur place sur elle. Rendu (`GlowPoints`, client) : halo de sa couleur à
+  décroissance douce (proche d'une gaussienne), étendu à 2,2 fois sa taille pour qu'aucun bord
+  ne se voie, et petit cœur blanc teinté fondu, en fusion `screen`, sur l'illustration (fenêtre en carte normale, toute
   la carte en full art) ; un point clignotant ne clignote que sous le pointeur, sinon (planche,
   carte non survolée, mouvement réduit) il reste immobile à son niveau le plus faible. Fiche : à droite de la carte, deux onglets, « Image » (cadrage puis envoi)
   et « Points lumineux » (`GlowPointsEditor`), l'aperçu restant visible ; l'éditeur montre l'image entière,

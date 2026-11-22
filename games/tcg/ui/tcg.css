@@ -1209,9 +1209,9 @@
   }
 }
 
-/* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo flou
-   de leur couleur (::before) et cœur net, blanc teinté (::after), ajoutés comme de la lumière
-   (screen). Clignotement à leur vitesse (--blink), seulement quand le pointeur est sur la carte ;
+/* Points lumineux (`GlowPoints`) : posés sur l'illustration, centrés sur leur position. Halo
+   flou de leur couleur, étendu bien au-delà de leur taille (::before), et petit cœur blanc
+   teinté fondu (::after), ajoutés comme de la lumière (screen). Clignotement à leur vitesse (--blink), seulement quand le pointeur est sur la carte ;
    sinon (et en mouvement réduit), un point clignotant reste à son niveau le plus faible. */
 .tcg-glow-layer {
   position: absolute;
@@ -1232,25 +1232,35 @@
   position: absolute;
   border-radius: 50%;
 }
+/* Halo : décroissance douce (proche d'une gaussienne : forte au centre, longue traîne), étendue
+   bien au-delà de la taille réglée (`inset` négatif) pour qu'aucun bord ne se voie. */
 .tcg-glow::before {
-  inset: 0;
+  inset: -60%;
   background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--glow) 90%, transparent) 0%,
-    color-mix(in srgb, var(--glow) 40%, transparent) 38%,
-    transparent 70%
+    circle closest-side,
+    color-mix(in srgb, var(--glow) 85%, transparent) 0%,
+    color-mix(in srgb, var(--glow) 58%, transparent) 10%,
+    color-mix(in srgb, var(--glow) 36%, transparent) 21%,
+    color-mix(in srgb, var(--glow) 20%, transparent) 34%,
+    color-mix(in srgb, var(--glow) 10%, transparent) 49%,
+    color-mix(in srgb, var(--glow) 4%, transparent) 67%,
+    color-mix(in srgb, var(--glow) 1%, transparent) 84%,
+    transparent 100%
   );
-  filter: blur(calc(var(--r) * 0.2));
+  filter: blur(calc(var(--r) * 0.08));
 }
+/* Cœur : blanc teinté, petit, fondu sans bord vers la couleur. */
 .tcg-glow::after {
-  inset: 32%;
+  inset: 30%;
   background: radial-gradient(
-    circle,
-    #fff 0%,
-    color-mix(in srgb, var(--glow) 70%, #fff) 40%,
-    transparent 75%
+    circle closest-side,
+    rgb(255 255 255 / 0.95) 0%,
+    color-mix(in srgb, var(--glow) 35%, rgb(255 255 255 / 0.7)) 18%,
+    color-mix(in srgb, var(--glow) 45%, transparent) 42%,
+    color-mix(in srgb, var(--glow) 15%, transparent) 70%,
+    transparent 100%
   );
-  filter: blur(1px);
+  filter: blur(calc(var(--r) * 0.04));
 }
 .tcg-glow[data-blink],
 .tcg-line[data-blink] {
