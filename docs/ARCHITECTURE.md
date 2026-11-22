@@ -1118,6 +1118,9 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   `art` par défaut (l'illustration seule), `card` (toute la carte, sous le bandeau du titre, la
   bordure et les encadrés : calque de profondeur 5, l'éclair) ou `frame` (toute la carte,
   par-dessus la bordure et le bandeau mais sous les encadrés : profondeur 20, effets de cadre).
+  Ces « profondeurs » (`Layer z`) ne donnent plus que l'ordre voulu : les calques sont à plat
+  (`.tcg-layer`, `transform: none`) et la carte s'incline d'un bloc ; seuls les effets d'image
+  (ex. `parallaxe`) bougent sur elle. L'empilement suit l'ordre du DOM (coût et puissance en dernier).
   Un effet `image` redessine l'illustration (il reçoit la carte et la redessine avec
   `PremiumArt`) : il se pose juste sur elle, sous les autres effets de l'illustration et sous le
   texte, en carte normale comme en full art. Sur la

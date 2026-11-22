@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Cartes : le coût et la puissance restent collés au cadre quand on incline une carte ; avant, sur les cartes non retournables, ils flottaient devant et glissaient tout seuls.",
+      },
+      {
+        admin: true,
         text: "Cartes : les points lumineux se règlent à part pour la normale et la full art : en retirer ou en déplacer un sur une version ne touche plus l'autre. « Reprendre ceux de la version… » recopie effets et points lumineux, seulement quand on clique.",
       },
       {

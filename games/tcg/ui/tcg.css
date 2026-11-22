@@ -135,12 +135,16 @@
 
 /* ───────────── Snap : effets des variantes et des raretés ───────────── */
 
-/* Profondeur : les calques avec --z avancent quand la carte s'incline (parallaxe). */
+/* Calques à plat : la carte s'incline d'un bloc. Avant, les calques avec --z avançaient vers
+   l'écran (parallaxe) : coût et puissance flottaient devant le cadre et glissaient quand on
+   inclinait la carte, mais seulement sur les cartes non retournables (les faces de `CardFlip`
+   sont à plat). Rien ne bouge plus indépendamment de la carte, sauf un effet visuel volontaire
+   sur l'illustration (ex. l'effet « parallaxe »). L'ordre d'empilement suit le DOM. */
 .tcg-depth {
-  transform-style: preserve-3d;
+  transform-style: flat;
 }
 .tcg-layer {
-  transform: translateZ(var(--z, 0px));
+  transform: none;
 }
 
 /* Effet de la carte : caché au repos, il glisse depuis le bas au survol (comme dans Snap). */
