@@ -971,6 +971,33 @@
   }
 }
 
+/* energie : la copie filtrée (zones vives seulement, teinte tournée) pulse ; son rayonnement
+   (même copie floutée, en `screen`) respire avec elle. */
+.tcg-vfx-energie {
+  position: absolute;
+  inset: 0;
+  animation: tcg-energie-pulse 3.2s ease-in-out infinite;
+}
+.tcg-vfx-energie-bloom {
+  filter: blur(6px) brightness(1.3);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+@keyframes tcg-energie-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-energie {
+    animation: none;
+  }
+}
+
 /* lampe : tout est assombri sauf un rond de lumière autour du pointeur ; au repos, rond large au
    centre et pénombre légère. */
 .tcg-vfx-lamp {
@@ -1415,6 +1442,145 @@
   opacity: 0.35;
   animation: tcg-water-sparkle 3s ease-in-out infinite;
 }
+/* Onde de fusion (lumière `shockwave`, `Shockwave` de GlowPoints.tsx). `-lens` : copie de
+   l'illustration agrandie de 8 % autour du point, visible seulement dans un anneau dont le rayon
+   (--tcg-shock, propriété enregistrée pour pouvoir l'animer) va du centre au bord : là où passe
+   l'anneau, l'image est déplacée vers l'extérieur, comme sous une loupe. `-ring` : son bord
+   lumineux ; `-flash` : l'éclair au point au départ de l'onde, lueur faible au calme. */
+@property --tcg-shock {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+.tcg-shock,
+.tcg-vortex {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.tcg-shock-lens,
+.tcg-shock-ring,
+.tcg-shock-flash,
+.tcg-vortex-band,
+.tcg-vortex-core {
+  position: absolute;
+  inset: 0;
+}
+.tcg-shock-lens {
+  scale: 1.08;
+  -webkit-mask-image: radial-gradient(
+    circle closest-side,
+    transparent calc(var(--tcg-shock) - 16%),
+    #000 calc(var(--tcg-shock) - 5%),
+    transparent var(--tcg-shock)
+  );
+  mask-image: radial-gradient(
+    circle closest-side,
+    transparent calc(var(--tcg-shock) - 16%),
+    #000 calc(var(--tcg-shock) - 5%),
+    transparent var(--tcg-shock)
+  );
+  animation: tcg-shock-lens 3s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+.tcg-shock-ring {
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--glow) 55%, #fff);
+  box-shadow:
+    0 0 10px var(--glow),
+    inset 0 0 10px color-mix(in srgb, var(--glow) 60%, transparent);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: tcg-shock-ring 3s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+.tcg-shock-flash {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--glow) 40%, #fff) 0%,
+    color-mix(in srgb, var(--glow) 60%, transparent) 12%,
+    transparent 30%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  animation: tcg-shock-flash 3s ease-out infinite;
+}
+@keyframes tcg-shock-lens {
+  0% {
+    --tcg-shock: 0%;
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    --tcg-shock: 100%;
+    opacity: 0;
+  }
+}
+@keyframes tcg-shock-ring {
+  0% {
+    scale: 0.05;
+    opacity: 0.9;
+  }
+  100% {
+    scale: 1;
+    opacity: 0;
+  }
+}
+@keyframes tcg-shock-flash {
+  0% {
+    opacity: 1;
+    scale: 0.6;
+  }
+  12% {
+    opacity: 0.9;
+    scale: 1.2;
+  }
+  35%,
+  100% {
+    opacity: 0.15;
+    scale: 1;
+  }
+}
+
+/* Tourbillon (lumière `vortex`, `Vortex` de GlowPoints.tsx) : anneaux d'une copie de
+   l'illustration, chacun tourné de sa torsion (--twist, plus forte au centre) ; sous le pointeur
+   la torsion se resserre et se relâche, au calme elle reste au tiers. `-core` : lueur au cœur. */
+.tcg-vortex-band {
+  rotate: calc(var(--twist) * 0.35);
+  animation: tcg-vortex-twist 10s ease-in-out infinite;
+}
+.tcg-vortex-core {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--glow) 50%, #fff) 0%,
+    color-mix(in srgb, var(--glow) 45%, transparent) 15%,
+    transparent 45%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: tcg-vortex-core 10s ease-in-out infinite;
+}
+@keyframes tcg-vortex-twist {
+  0%,
+  100% {
+    rotate: calc(var(--twist) * 0.35);
+  }
+  50% {
+    rotate: var(--twist);
+  }
+}
+@keyframes tcg-vortex-core {
+  0%,
+  100% {
+    opacity: 0.5;
+    scale: 0.9;
+  }
+  50% {
+    opacity: 0.85;
+    scale: 1.1;
+  }
+}
+
 @keyframes tcg-water-ripple {
   0% {
     opacity: 0;

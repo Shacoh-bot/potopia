@@ -290,7 +290,15 @@ export function smallImageKeyFor(
 }
 
 /** Types de lumière à placer sur l'illustration. */
-export const GLOW_KINDS = ["glow", "sparks", "rays", "line", "water"] as const;
+export const GLOW_KINDS = [
+  "glow",
+  "sparks",
+  "rays",
+  "line",
+  "water",
+  "shockwave",
+  "vortex",
+] as const;
 export type GlowKind = (typeof GLOW_KINDS)[number];
 
 /** Noms affichés : le type, puis ce que règlent sa taille et sa vitesse. */
@@ -300,14 +308,20 @@ export const GLOW_KIND_LABELS: Record<GlowKind, { name: string; size: string; sp
   rays: { name: "Rayons", size: "Longueur", speed: "Rotation" },
   line: { name: "Trait lumineux", size: "Épaisseur", speed: "Clignotement" },
   water: { name: "Eau", size: "Étendue", speed: "Ondulation" },
+  shockwave: { name: "Onde de fusion", size: "Portée", speed: "Fréquence" },
+  vortex: { name: "Tourbillon", size: "Étendue", speed: "Torsion" },
 };
 
 /**
- * Zone d'eau (`water`) : un ovale aplati centré sur le point, de demi-largeur `WATER_SHAPE.width`
- * fois la taille et de demi-hauteur `WATER_SHAPE.height` fois la taille (taille en % de la
- * largeur de l'image) : une étendue d'eau vue de biais est large et basse.
+ * Lumières qui couvrent une zone (ovale centré sur le point), et sa forme : demi-largeur `width`
+ * fois la taille, demi-hauteur `height` fois la taille (taille en % de la largeur de l'image).
+ * L'eau, vue de biais, est large et basse ; l'onde et le tourbillon sont ronds.
  */
-export const WATER_SHAPE = { width: 2, height: 0.8 } as const;
+export const ZONE_SHAPES: Partial<Record<GlowKind, { width: number; height: number }>> = {
+  water: { width: 2, height: 0.8 },
+  shockwave: { width: 1.5, height: 1.5 },
+  vortex: { width: 1.2, height: 1.2 },
+};
 
 /**
  * Lumière posée sur l'illustration (des yeux qui brillent, une lame électrifiée…) : son type

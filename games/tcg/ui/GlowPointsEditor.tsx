@@ -9,7 +9,7 @@ import {
   type GlowKind,
   glowKind,
   type GlowPoint,
-  WATER_SHAPE,
+  ZONE_SHAPES,
 } from "../src/card-rules";
 
 /** Couleur d'un nouveau point : un vert lumineux. */
@@ -23,6 +23,8 @@ const NEW_LIGHT: Record<GlowKind, { size: number; speed: number; color?: string 
   line: { size: 1.5, speed: 3 },
   // L'eau scintille d'un blanc bleuté, quelle que soit la couleur des autres lumières.
   water: { size: 15, speed: 5, color: "#dff4ff" },
+  shockwave: { size: 12, speed: 4 },
+  vortex: { size: 15, speed: 3 },
 };
 
 /** Zoom de l'image pour viser : de 1 (image entière) à 5. */
@@ -33,7 +35,7 @@ const round = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10
 
 /**
  * Pose des lumières sur l'image entière (non rognée) : on choisit le type (point lumineux,
- * étincelles, rayons, trait, eau), un clic sur l'image en pose une (jusqu'à `GLOW_LIMITS.points`), un
+ * étincelles, rayons, trait, eau, onde de fusion, tourbillon), un clic sur l'image en pose une (jusqu'à `GLOW_LIMITS.points`), un
  * glisser déplace sa poignée (un trait en a deux, une par extrémité), un clic la choisit. La
  * lumière choisie se règle : couleur, taille (en % de la largeur de l'image), vitesse (0 :
  * immobile). Les positions sont en % de l'image : accrochées à elle, elles suivent
@@ -247,9 +249,10 @@ export function GlowPointsEditor({
               ) : null,
             )}
           </svg>
-          {/* Étendue d'une zone d'eau : l'ovale qu'elle couvre (taille en % de la largeur). */}
-          {points.map((p, i) =>
-            glowKind(p) === "water" ? (
+          {/* Étendue d'une lumière de zone (eau, onde, tourbillon) : l'ovale qu'elle couvre. */}
+          {points.map((p, i) => {
+            const shape = ZONE_SHAPES[glowKind(p)];
+            return shape ? (
               <div
                 key={`zone-${i}`}
                 aria-hidden
@@ -257,14 +260,14 @@ export function GlowPointsEditor({
                 style={{
                   left: `${p.x}%`,
                   top: `${p.y}%`,
-                  width: `${p.size * WATER_SHAPE.width * 2}%`,
-                  aspectRatio: `${WATER_SHAPE.width} / ${WATER_SHAPE.height}`,
+                  width: `${p.size * shape.width * 2}%`,
+                  aspectRatio: `${shape.width} / ${shape.height}`,
                   borderColor: selected === i ? "#fff" : p.color,
                   background: `${p.color}22`,
                 }}
               />
-            ) : null,
-          )}
+            ) : null;
+          })}
           {points.flatMap((p, i) => {
             const k = glowKind(p);
             const ends: (1 | 2)[] = k === "line" ? [1, 2] : [1];

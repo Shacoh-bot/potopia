@@ -1,12 +1,13 @@
 "use client";
 
-import { type CSSProperties, useEffect, useId, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useId, useState } from "react";
 import {
+  type GlowKind,
   glowKind,
   type GlowPoint,
   glowPeriod,
   type ImageFrame,
-  WATER_SHAPE,
+  ZONE_SHAPES,
 } from "../src/card-rules";
 import { glowPlacement, imageRect, type Size } from "../src/glow";
 import { useReducedMotion } from "./visual-effects";
@@ -311,6 +312,64 @@ function Lines({
   );
 }
 
+/** Rectangle de l'image entière dans la fenêtre (px), `imageRect`. */
+type Rect = { left: number; top: number; width: number; height: number };
+
+/** Ce que reçoit une lumière de zone (eau, onde, tourbillon). */
+type ZoneProps = {
+  place: Place;
+  box: Size;
+  rect: Rect;
+  imageUrl: string;
+  color: string;
+  speed: number;
+};
+
+/** Boîte d'une zone dans la fenêtre (px) : coin, demi-largeur `a` et demi-hauteur `b`. */
+function zoneBox(kind: GlowKind, place: Place, box: Size) {
+  const shape = ZONE_SHAPES[kind] ?? { width: 1, height: 1 };
+  const a = place.radius * shape.width;
+  const b = place.radius * shape.height;
+  return {
+    a,
+    b,
+    left: (place.left / 100) * box.width - a,
+    top: (place.top / 100) * box.height - b,
+  };
+}
+
+/**
+ * Copie de l'illustration posée exactement sur elle (`rect`), dans une zone dont le coin est en
+ * (`left`, `top`) : les lumières de zone la déforment (vagues, loupe, torsion) à cet endroit.
+ */
+function ImageCopy({
+  imageUrl,
+  rect,
+  left,
+  top,
+}: {
+  imageUrl: string;
+  rect: Rect;
+  left: number;
+  top: number;
+}) {
+  return (
+    <img
+      src={imageUrl}
+      alt=""
+      draggable={false}
+      style={{
+        position: "absolute",
+        left: rect.left - left,
+        top: rect.top - top,
+        width: rect.width,
+        height: rect.height,
+        maxWidth: "none",
+      }}
+    />
+  );
+}
+
 /** Ronds et scintillements d'une zone d'eau, tirés une fois (coordonnées dans l'ovale, de -1 à 1). */
 const WATER_RIPPLES = (() => {
   const rnd = seededRandom(97);
@@ -333,37 +392,19 @@ const WATER_SPARKLES = (() => {
 })();
 
 /**
- * Zone d'eau : un ovale aplati (`WATER_SHAPE`) où l'illustration ondule en vagues horizontales
- * (copie de l'image posée exactement sur elle, `rect`, passée à un filtre SVG de turbulence et
- * fondue sur les bords de l'ovale), avec des ronds dans l'eau qui s'élargissent et des
- * scintillements de sa couleur. Les vagues ondulent toujours, à la vitesse réglée (0 : figées) ;
- * ronds et scintillements ne bougent que sous le pointeur, comme les autres lumières. Mouvement
- * réduit : vagues figées.
+ * Zone d'eau : un ovale aplati (`ZONE_SHAPES.water`) où l'illustration ondule en vagues
+ * horizontales (copie de l'image passée à un filtre SVG de turbulence et fondue sur les bords de
+ * l'ovale), avec des ronds dans l'eau qui s'élargissent et des scintillements de sa couleur. Les
+ * vagues ondulent toujours, à la vitesse réglée (0 : figées) ; ronds et scintillements ne bougent
+ * que sous le pointeur, comme les autres lumières. Mouvement réduit : vagues figées.
  */
-function Water({
-  place,
-  box,
-  rect,
-  imageUrl,
-  color,
-  speed,
-}: {
-  place: Place;
-  box: Size;
-  rect: { left: number; top: number; width: number; height: number };
-  imageUrl: string;
-  color: string;
-  speed: number;
-}) {
+function Water({ place, box, rect, imageUrl, color, speed }: ZoneProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const reduced = useReducedMotion();
   const moving = speed > 0 && !reduced;
   // Vitesse 10 : une ondulation en 3 s ; 1 : en 30 s.
   const cycle = speed > 0 ? 30 / speed : 6;
-  const a = place.radius * WATER_SHAPE.width;
-  const b = place.radius * WATER_SHAPE.height;
-  const left = (place.left / 100) * box.width - a;
-  const top = (place.top / 100) * box.height - b;
+  const { a, b, left, top } = zoneBox("water", place, box);
   const filter = `tcg-water-${uid}`;
   const at = (u: number, v: number) => ({ left: `${50 + u * 50}%`, top: `${50 + v * 50}%` });
   return (
@@ -384,19 +425,7 @@ function Water({
         </filter>
       </svg>
       <div className="tcg-water-wave" style={{ filter: `url(#${filter})` }}>
-        <img
-          src={imageUrl}
-          alt=""
-          draggable={false}
-          style={{
-            position: "absolute",
-            left: rect.left - left,
-            top: rect.top - top,
-            width: rect.width,
-            height: rect.height,
-            maxWidth: "none",
-          }}
-        />
+        <ImageCopy imageUrl={imageUrl} rect={rect} left={left} top={top} />
       </div>
       {WATER_RIPPLES.map((r, i) => (
         <span
@@ -430,9 +459,94 @@ function Water({
 }
 
 /**
+ * Onde de fusion : à chaque cycle, un flash de sa couleur au point, puis une onde de choc ronde
+ * qui s'élargit jusqu'au bord de la zone en déformant l'image comme une loupe (anneau d'une copie
+ * de l'illustration agrandie autour du point) et s'efface, bordée d'un anneau lumineux. Vitesse :
+ * fréquence des ondes (10 : une toutes les 1,2 s ; 0 : aucune). Comme les autres lumières, elle
+ * ne part que sous le pointeur ; au calme, une lueur faible au point.
+ */
+function Shockwave({ place, box, rect, imageUrl, color, speed }: ZoneProps) {
+  const { a, left, top } = zoneBox("shockwave", place, box);
+  const timing: CSSProperties =
+    speed > 0 ? { animationDuration: `${12 / speed}s` } : { animationName: "none" };
+  return (
+    <div
+      className="tcg-shock"
+      style={{ left, top, width: a * 2, height: a * 2, "--glow": color } as CSSProperties}
+    >
+      <div className="tcg-shock-lens tcg-lt-anim" style={timing}>
+        <ImageCopy imageUrl={imageUrl} rect={rect} left={left} top={top} />
+      </div>
+      <div className="tcg-shock-ring tcg-lt-anim" style={timing} />
+      <div className="tcg-shock-flash tcg-lt-anim" style={timing} />
+    </div>
+  );
+}
+
+/** Anneaux d'un tourbillon, du centre vers le bord : rayons (fraction de la zone) et torsion. */
+const VORTEX_BANDS = Array.from({ length: 6 }, (_, i) => ({
+  from: i / 6,
+  to: (i + 1) / 6,
+  // Plus on est près du centre, plus l'image tourne.
+  twist: 34 * (1 - i / 6) ** 1.5,
+}));
+
+/**
+ * Tourbillon : l'image s'enroule autour du point. La zone est coupée en anneaux (copies de
+ * l'illustration fondues l'une dans l'autre), chacun tourné d'autant plus qu'il est près du
+ * centre ; sous le pointeur, la torsion se resserre et se relâche (vitesse : rythme ; 0 : fixe),
+ * avec une lueur de sa couleur au cœur. Au calme : torsion légère, fixe.
+ */
+function Vortex({ place, box, rect, imageUrl, color, speed }: ZoneProps) {
+  const { a, left, top } = zoneBox("vortex", place, box);
+  const timing: CSSProperties =
+    speed > 0 ? { animationDuration: `${40 / speed}s` } : { animationName: "none" };
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  return (
+    <div
+      className="tcg-vortex"
+      style={{ left, top, width: a * 2, height: a * 2, "--glow": color } as CSSProperties}
+    >
+      {VORTEX_BANDS.map((band, i) => {
+        // Fondu de 5 % de part et d'autre : les anneaux se chevauchent sans couture.
+        const inner =
+          i === 0
+            ? "#000 0"
+            : `transparent ${pct(band.from - 0.05)}, #000 ${pct(band.from + 0.05)}`;
+        const mask = `radial-gradient(circle closest-side, ${inner}, #000 ${pct(band.to - 0.05)}, transparent ${pct(band.to + 0.05)})`;
+        return (
+          <div
+            key={i}
+            className="tcg-vortex-band tcg-lt-anim"
+            style={
+              {
+                ...timing,
+                "--twist": `${band.twist}deg`,
+                WebkitMaskImage: mask,
+                maskImage: mask,
+              } as CSSProperties
+            }
+          >
+            <ImageCopy imageUrl={imageUrl} rect={rect} left={left} top={top} />
+          </div>
+        );
+      })}
+      <div className="tcg-vortex-core tcg-lt-anim" style={timing} />
+    </div>
+  );
+}
+
+/** Lumières de zone : leur rendu, par type. */
+const ZONES: Partial<Record<GlowKind, (props: ZoneProps) => ReactNode>> = {
+  water: Water,
+  shockwave: Shockwave,
+  vortex: Vortex,
+};
+
+/**
  * Lumières d'une carte, sur son illustration (`box` : taille de la fenêtre en px de la carte),
  * accrochées à l'image : elles suivent le cadrage et le zoom. Points lumineux (bloom qui
- * clignote), arcs électriques, rayons, traits et zones d'eau ; ajoutés comme de la lumière (screen). Ils ne bougent
+ * clignote), arcs électriques, rayons, traits et zones (eau, onde de fusion, tourbillon) ; ajoutés comme de la lumière (screen). Ils ne bougent
  * que sous le pointeur (tcg.css) ; sinon ils restent visibles, au calme.
  */
 export function GlowPoints({
@@ -474,10 +588,11 @@ export function GlowPoints({
           return <Sparks key={`s${i}`} place={place} color={p.color} period={period} />;
         if (kind === "rays")
           return <Rays key={`r${i}`} place={place} color={p.color} speed={p.speed} />;
-        if (kind === "water")
+        const Zone = ZONES[kind];
+        if (Zone)
           return imageUrl ? (
-            <Water
-              key={`w${i}`}
+            <Zone
+              key={`z${i}`}
               place={place}
               box={box}
               rect={rect}

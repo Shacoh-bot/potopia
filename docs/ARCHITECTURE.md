@@ -1182,6 +1182,13 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   les plombs, noirs, le restent) ; il dérive au repos et suit le pointeur au survol ; une copie
   floutée en `screen` fait rayonner les couleurs (elle respire) et des éclats en étoile
   s'allument tour à tour (graine fixe). Mouvement réduit : soleil fixe, pas d'éclats.
+  `energie` (« Énergie vivante », place `image`, migration `tcg_visual_effects_energie`,
+  `LivingEnergy`) : seules les zones vives et saturées de l'illustration (volutes d'énergie,
+  magie) pulsent et changent lentement de teinte (aller-retour de ±70°, 9 s), avec un
+  rayonnement flou en `screen`. Filtre SVG : saturation estimée par les écarts entre canaux
+  (`feColorMatrix`, les deux signes additionnés), multipliée par la luminosité au-dessus de 40 %
+  (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
+  tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est
@@ -1238,7 +1245,7 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   elle reprend le cadrage de la normale. La fiche enregistre toujours les deux cadrages : régler
   la normale ne déplace pas la full art. Le glisser suit la souris au pixel près, zoom comme dézoom
   (`framePointShift`, `ui/frame-drag.ts`, testé) ; les points lumineux suivent (`glowPlacement`).
-- Lumières à placer (`glowPoints`, 12 au plus par carte), de cinq types (`kind`, absent :
+- Lumières à placer (`glowPoints`, 12 au plus par carte), de sept types (`kind`, absent :
   point lumineux) : point lumineux (bloom qui clignote ; des yeux qui brillent…), arc électrique
   (`sparks` : arcs en zigzag qui crépitent autour d'un point, par flashs saccadés, sans halo ;
   taille : portée, vitesse : débit), rayons (faisceaux au fondu doux autour d'un point, très
@@ -1248,12 +1255,21 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   moyen, lueur, cœur fin blanc teinté, filtres calés sur toute la fenêtre (`userSpaceOnUse`) pour que le
   flou d'un trait horizontal ne soit pas rogné ; taille : épaisseur, vitesse : clignotement du trait
   entier, comme un point lumineux) et eau (`water` : zone ovale aplatie centrée sur le point,
-  demi-largeur 2 × la taille et demi-hauteur 0,8 × la taille, `WATER_SHAPE` ; une copie de
+  demi-largeur 2 × la taille et demi-hauteur 0,8 × la taille, `ZONE_SHAPES` ; une copie de
   l'illustration posée exactement sur elle, `imageRect` de `src/glow.ts`, y ondule en vagues
   horizontales par un filtre SVG de turbulence fondu sur les bords de l'ovale, avec des ronds dans
   l'eau qui s'élargissent et des scintillements de sa couleur ; taille : étendue, vitesse :
   ondulation, 0 : figée ; les vagues ondulent toujours, figées en mouvement réduit ; nouvelle
-  zone : blanc bleuté `#dff4ff`, l'éditeur trace l'ovale en pointillés). Toutes les autres
+  zone : blanc bleuté `#dff4ff`, l'éditeur trace l'ovale en pointillés), onde de fusion
+  (`shockwave` : zone ronde, rayon 1,5 × la taille ; à chaque cycle, flash au point puis onde de
+  choc qui s'élargit jusqu'au bord en déformant l'image comme une loupe, copie de l'illustration
+  agrandie de 8 % vue dans un anneau dont le rayon est animé par la propriété enregistrée
+  `--tcg-shock`, bordée d'un anneau lumineux ; taille : portée, vitesse : fréquence, 12 s /
+  vitesse) et tourbillon (`vortex` : zone ronde, rayon 1,2 × la taille ; six anneaux de copies
+  de l'illustration fondus l'un dans l'autre, chacun tourné d'autant plus qu'il est près du
+  centre, d'où une spirale ; la torsion se resserre et se relâche, lueur au cœur ; taille :
+  étendue, vitesse : torsion, 40 s / vitesse). Lumières de zone : une copie de l'image calée
+  dessus (`ImageCopy`), l'éditeur trace leur zone en pointillés. Toutes les autres
   animations ne bougent que sous le pointeur ; sinon, visibles au calme.
   Le point lumineux a
   une position en % de l'image, une taille de halo en % de la largeur de l'image (1 à 30), une
