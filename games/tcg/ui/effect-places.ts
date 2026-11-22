@@ -27,6 +27,7 @@ const EFFECT_PLACES: Record<string, EffectPlace> = {
   or: "image",
   aquarelle: "image",
   cosmos: "image",
+  vitrail: "image",
   parallaxe: "image",
   lampe: "card",
   donnees: "card",

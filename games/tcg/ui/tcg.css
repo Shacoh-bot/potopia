@@ -871,6 +871,106 @@
   transform: translate(calc((var(--mx, 50%) - 50%) * 0.14), calc((var(--my, 35%) - 35%) * 0.14));
 }
 
+/* vitrail : la lumière traverse le verre. `-lit` est l'illustration plus claire et plus saturée,
+   rognée en rond autour du « soleil » : un masque deux fois plus grand que la carte, dont le
+   centre tombe en (100% - position) ; il dérive au repos et suit le pointeur au survol. Les
+   plombs, noirs, restent noirs même éclaircis. `-bloom` fait rayonner les couleurs du verre
+   (copie floutée en `screen`, qui respire) ; `-glint` : éclats en étoile, tour à tour. */
+.tcg-vfx-vitrail-lit,
+.tcg-vfx-vitrail-bloom {
+  position: absolute;
+  inset: 0;
+}
+.tcg-vfx-vitrail-lit {
+  filter: brightness(1.5) saturate(1.55) contrast(1.06);
+  -webkit-mask-image: radial-gradient(
+    circle closest-side,
+    #000 0,
+    rgb(0 0 0 / 0.55) 22%,
+    transparent 48%
+  );
+  mask-image: radial-gradient(circle closest-side, #000 0, rgb(0 0 0 / 0.55) 22%, transparent 48%);
+  -webkit-mask-size: 200% 200%;
+  mask-size: 200% 200%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: tcg-vitrail-sun 14s ease-in-out infinite;
+}
+.tcg-tilt[data-active] .tcg-vfx-vitrail-lit {
+  animation: none;
+  -webkit-mask-position: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
+  mask-position: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
+}
+.tcg-vfx-vitrail-bloom {
+  filter: blur(7px) brightness(1.25) saturate(1.9);
+  mix-blend-mode: screen;
+  opacity: 0.22;
+  animation: tcg-vitrail-breathe 7s ease-in-out infinite;
+}
+.tcg-tilt[data-active] .tcg-vfx-vitrail-bloom {
+  animation: none;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+.tcg-vfx-vitrail-glint {
+  position: absolute;
+  translate: -50% -50%;
+  background:
+    radial-gradient(circle, #fff 0 9%, rgb(255 246 210 / 0.7) 20%, transparent 42%),
+    linear-gradient(90deg, transparent 46%, #fff 50%, transparent 54%),
+    linear-gradient(0deg, transparent 46%, #fff 50%, transparent 54%);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 0, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 0, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: tcg-vitrail-glint 6s ease-in-out infinite;
+}
+@keyframes tcg-vitrail-sun {
+  0%,
+  100% {
+    -webkit-mask-position: 30% 75%;
+    mask-position: 30% 75%;
+  }
+  33% {
+    -webkit-mask-position: 75% 60%;
+    mask-position: 75% 60%;
+  }
+  66% {
+    -webkit-mask-position: 50% 30%;
+    mask-position: 50% 30%;
+  }
+}
+@keyframes tcg-vitrail-breathe {
+  50% {
+    opacity: 0.38;
+  }
+}
+@keyframes tcg-vitrail-glint {
+  0%,
+  78%,
+  100% {
+    opacity: 0;
+    scale: 0.3;
+    rotate: 0deg;
+  }
+  86% {
+    opacity: 1;
+    scale: 1;
+    rotate: 45deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcg-vfx-vitrail-lit,
+  .tcg-vfx-vitrail-bloom,
+  .tcg-vfx-vitrail-glint {
+    animation: none;
+  }
+  .tcg-vfx-vitrail-lit {
+    -webkit-mask-position: 50% 60%;
+    mask-position: 50% 60%;
+  }
+}
+
 /* lampe : tout est assombri sauf un rond de lumière autour du pointeur ; au repos, rond large au
    centre et pénombre légère. */
 .tcg-vfx-lamp {

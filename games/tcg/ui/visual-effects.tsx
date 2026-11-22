@@ -390,6 +390,53 @@ function Parallax({ card }: EffectProps) {
   );
 }
 
+/** Reflets du vitrail : petits éclats posés au hasard (graine fixe), chacun à son rythme. */
+const GLINTS = (() => {
+  const rnd = seeded(83);
+  return Array.from({ length: 9 }, () => ({
+    left: `${8 + rnd() * 84}%`,
+    top: `${8 + rnd() * 80}%`,
+    size: 10 + rnd() * 12,
+    delay: `${(-rnd() * 7).toFixed(2)}s`,
+    duration: `${(5 + rnd() * 4).toFixed(2)}s`,
+  }));
+})();
+
+/**
+ * Vitrail : la lumière traverse le verre. Un soleil, derrière la carte, éclaire les morceaux de
+ * verre autour de lui (copie de l'illustration plus claire et plus saturée, rognée en rond : les
+ * plombs, noirs, le restent) ; au repos, il dérive lentement, et il suit le pointeur au survol.
+ * Un rayonnement (copie floutée en `screen`) fait briller les couleurs du verre, et de petits
+ * éclats s'allument tour à tour sur les morceaux (CSS seul, classes `tcg-vfx-vitrail-…`).
+ */
+function StainedGlass({ card }: EffectProps) {
+  return (
+    <div style={{ ...fillAbs, overflow: "hidden" }}>
+      <PremiumArt card={card} />
+      <div className="tcg-vfx-vitrail-bloom">
+        <PremiumArt card={card} />
+      </div>
+      <div className="tcg-vfx-vitrail-lit">
+        <PremiumArt card={card} />
+      </div>
+      {GLINTS.map((g, i) => (
+        <span
+          key={i}
+          className="tcg-vfx-vitrail-glint"
+          style={{
+            left: g.left,
+            top: g.top,
+            width: g.size,
+            height: g.size,
+            animationDelay: g.delay,
+            animationDuration: g.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** Lampe torche : la carte est dans le noir, un rond de lumière suit le pointeur. */
 const Flashlight = () => <div className="tcg-vfx-lamp" />;
 
@@ -771,6 +818,7 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   or: { render: snapStyle("gold") },
   aquarelle: { render: Watercolor },
   cosmos: { render: Cosmic },
+  vitrail: { render: StainedGlass },
   parallaxe: { render: Parallax },
   lampe: { render: Flashlight },
   metal: { render: BrushedMetal },

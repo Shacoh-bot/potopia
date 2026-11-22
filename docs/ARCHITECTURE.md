@@ -1174,10 +1174,17 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (« Pétales ») et `feuilles` (« Feuilles d'automne ») (place `card` : tombent en tournoyant,
   `falling`), `ombres` (« Ombres possédées », place `card` : volutes noires qui rampent depuis
   les bords et s'écartent du pointeur, par un masque autour de `--mx`/`--my`).
+  `vitrail` (« Lumière de vitrail », place `image`, migration `tcg_visual_effects_vitrail`,
+  `StainedGlass`, pensé pour une illustration déjà en vitrail) : un « soleil » derrière la carte
+  éclaire les morceaux de verre autour de lui (copie de l'illustration plus claire et saturée,
+  masque rond deux fois plus grand que la carte dont le centre tombe en `100% - --mx`/`--my` ;
+  les plombs, noirs, le restent) ; il dérive au repos et suit le pointeur au survol ; une copie
+  floutée en `screen` fait rayonner les couleurs (elle respire) et des éclats en étoile
+  s'allument tour à tour (graine fixe). Mouvement réduit : soleil fixe, pas d'éclats.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
-  `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). Leur rendu est
-  retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
+  `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est
+  revenu le 2026-11-22 avec un autre rendu (ci-dessus). Le rendu des autres est retiré de `visual-effects.tsx` ; les styles `tcg-torch` et les styles Snap restent pour les
   anciennes propositions de design.
   **Ajouter un effet** : une
   migration qui insère sa ligne (`INSERT INTO "tcg"."visual_effects" ("key", "name") VALUES

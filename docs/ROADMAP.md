@@ -599,6 +599,9 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       de chaque carte sur sa full art, rien de retiré).
 - [x] Lumières à placer : arc électrique, rayons depuis un point et trait lumineux, en plus des
       points lumineux (même colonne `glow_points`, champ `kind`).
+- [x] Effet « Lumière de vitrail » (`vitrail`, nouveau rendu) : la lumière traverse une
+      illustration en vitrail, suit le pointeur, rayonnement et éclats ; migration
+      `tcg_visual_effects_vitrail` (ajout seul).
 - [x] Boosters et Potodex en test (admins, `/admin/boosters`, `/admin/potodex`) : tirage par
       rareté avec SSR garantie au 30e paquet, collection (`tcg.owned_cards`) et journal des
       paquets (`tcg.booster_openings`), migration `tcg_boosters_potodex` (ajout seul) ; ouverture
