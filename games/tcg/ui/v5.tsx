@@ -70,11 +70,14 @@ export const RARITY_FRAME: Record<CardFinish, string> = {
   rare: "#4688f0",
   epic: "#9b55ec",
   legendary: "#e0ac34",
-  sr: "conic-gradient(from 0deg at 50% 50%, #ffe0f0, #dccfff, #c9f1ff, #fff1d2, #ffe0f0)",
+  sr: "conic-gradient(from 0deg at 50% 50%, #b0063a, #6d0026, #e0003c, #6d0026, #b0063a)",
   ssr: "conic-gradient(from 0deg at 50% 50%, #ff6ab5, #ffd36a, #7dffb0, #6ad5ff, #b88bff, #ff6ab5)",
 };
-/** Cadre animé selon la rareté : seule la SSR en a un (deux comètes d'énergie, `SsrComets`). */
-export const FRAME_MOTION: Partial<Record<CardFinish, "comets">> = { ssr: "comets" };
+/** Cadre animé selon la rareté : SSR = deux comètes d'énergie (`SsrComets`), SR = carmin étoilé d'or (`SrCarmine`). */
+export const FRAME_MOTION: Partial<Record<CardFinish, FrameMotion>> = {
+  sr: "carmine",
+  ssr: "comets",
+};
 /** Liseré clair, le même tout autour du cadre (aucun effet de lumière venant d'un côté). */
 const FRAME_EDGE = "inset 0 0 0 1px rgb(255 255 255 / 0.45)";
 
@@ -245,50 +248,143 @@ function Band({
 }
 
 /**
- * Cadre SSR (« SSR-2 », choisi par l'utilisateur le 22/11) : deux comètes d'énergie à cœur
- * blanc font le tour du cadre RGB (2,6 s par tour) et débordent un peu, en lueur, hors de la
- * carte. Fluidité (Firefox) : aucun masque sur ce qui bouge (un anneau masqué tombait à
- * ~20 im/s, Firefox invisible) ; le cadre est fait de 4 bandes droites (`overflow: hidden`,
- * découpe rapide) dans une boîte à coins arrondis, et dans chaque bande tourne le même disque
- * conique centré sur la carte (transform seul). Les angles intérieurs du cadre (arrondis) ne
- * sont pas traversés : invisible au passage rapide d'une comète.
+ * Cadres animés (choisis par l'utilisateur le 22/11) : une lumière fait le tour du cadre.
+ * - SSR « SSR-2 » : deux comètes d'énergie à cœur blanc (traînes cyan et violette, tête rose)
+ *   sur le cadre RGB, 2,6 s par tour, avec une lueur qui déborde un peu hors de la carte.
+ * - SR « SR-2 » (carmin étoilé d'or) : un carmin vif tourne (3,2 s), des éclats dorés
+ *   scintillent tout autour et un halo carmin respire autour de la carte.
+ *
+ * Fluidité (cible : 60 im/s dans Firefox) : rien ne tourne et rien n'est masqué. Le cadre est
+ * fait de 4 bandes droites, une par bord (`overflow: hidden`, découpe rapide), tournées le long
+ * de leur bord ; dans chacune, le même dégradé de période `period` défile (translation seule),
+ * décalé de la longueur des bords déjà parcourus : la lumière passe d'un bord à l'autre sans
+ * saut. (Un disque conique qui tourne dans les bandes tombait à ~20 im/s par carte, Firefox
+ * invisible ; un anneau masqué, à ~14.) Les angles intérieurs arrondis ne sont pas traversés :
+ * on y voit la couleur fixe du cadre (`RARITY_FRAME`), de la même teinte.
  */
-const COMET_DISC = 540;
-function cometStrips(out: number, width: number) {
-  const x0 = -out;
-  const y0 = -out;
-  const x1 = W + out - width;
-  const y1 = H + out - width;
-  const long = W + 2 * out;
-  const tall = H + 2 * out - 2 * width;
-  const strips: [number, number, number, number][] = [
-    [x0, y0, long, width],
-    [x0, y1, long, width],
-    [x0, y0 + width, width, tall],
-    [x1, y0 + width, width, tall],
+type FrameMotion = "comets" | "carmine";
+/** Les 4 bords dans le sens horaire : coin de départ, angle, longueur (W et H sont définis plus bas). */
+function frameEdges(): [x: number, y: number, rot: number, len: number][] {
+  return [
+    [0, 0, 0, W],
+    [W, 0, 90, H],
+    [W, H, 180, W],
+    [0, H, 270, H],
   ];
-  return strips.map(([x, y, w, h]) => (
-    <div
-      key={`${x},${y}`}
-      className="tcg-ssr-comets__strip"
-      style={{ left: x, top: y, width: w, height: h }}
-    >
+}
+function FrameRun({
+  light,
+  period,
+  seconds,
+  thick,
+  out = 0,
+}: {
+  /** Classe du dégradé (`tcg-frame-run__light--…`). */
+  light: string;
+  /** Période du dégradé, en px de tour de cadre (1440 = un tour). */
+  period: number;
+  /** Durée pour parcourir une période. */
+  seconds: number;
+  /** Épaisseur de la bande. */
+  thick: number;
+  /** Bande hors de la carte, de `out` px (lueur) ; 0 : sur le cadre. */
+  out?: number;
+}) {
+  let along = 0;
+  return frameEdges().map(([x, y, rot, len]) => {
+    const shift = (((along - out) % period) + period) % period;
+    along += len;
+    return (
       <div
-        className="tcg-ssr-comets__spin"
-        style={{ left: W / 2 - COMET_DISC / 2 - x, top: H / 2 - COMET_DISC / 2 - y }}
-      />
-    </div>
-  ));
+        key={rot}
+        className="tcg-frame-run__edge"
+        style={{ left: x + out, top: y + out, transform: `rotate(${rot}deg)` }}
+      >
+        <div
+          className="tcg-frame-run__cut"
+          style={{ left: -out, top: -out, width: len + 2 * out, height: thick }}
+        >
+          <div
+            className={`tcg-frame-run__light ${light}`}
+            style={
+              {
+                left: -period,
+                width: len + 2 * out + 2 * period,
+                backgroundSize: `${period}px 100%`,
+                backgroundPosition: `${-shift}px 0`,
+                animationDuration: `${seconds}s`,
+                "--run": `${period}px`,
+              } as CSSProperties
+            }
+          />
+        </div>
+      </div>
+    );
+  });
 }
 function SsrComets() {
   return (
     <>
-      <div aria-hidden className="tcg-ssr-comets tcg-ssr-comets--glow">
-        {cometStrips(4, 4)}
+      <div aria-hidden className="tcg-frame-run tcg-frame-run--glow">
+        <FrameRun
+          light="tcg-frame-run__light--comets"
+          period={2 * (W + H)}
+          seconds={2.6}
+          thick={4}
+          out={4}
+        />
       </div>
-      <div aria-hidden className="tcg-ssr-comets">
-        {cometStrips(0, FRAME)}
+      <div aria-hidden className="tcg-frame-run">
+        <FrameRun
+          light="tcg-frame-run__light--comets"
+          period={2 * (W + H)}
+          seconds={2.6}
+          thick={FRAME}
+        />
       </div>
+    </>
+  );
+}
+/** Éclats dorés de la SR-2 : [x, y, taille, départ (s), durée (s)], posés sur le cadre. */
+const SR_SPARKS: [number, number, number, number, number][] = [
+  [86.1, 3.5, 9, -0.27, 2.36],
+  [131.4, 3.5, 12, -0.75, 2.21],
+  [222.9, 3.5, 9, -3.0, 2.64],
+  [296.5, 84.9, 12, -1.63, 2.44],
+  [296.5, 148.0, 9, -2.61, 2.36],
+  [296.5, 295.7, 12, -1.27, 2.88],
+  [296.5, 342.4, 9, -0.71, 2.02],
+  [258.4, 416.5, 9, -1.53, 2.36],
+  [144.2, 416.5, 9, -2.99, 2.45],
+  [50.4, 416.5, 12, -2.37, 2.35],
+  [3.5, 322.5, 12, -0.48, 2.75],
+  [3.5, 240.5, 12, -1.96, 2.25],
+  [3.5, 170.4, 12, -1.5, 2.83],
+  [3.5, 64.2, 12, -2.7, 2.46],
+];
+function SrCarmine() {
+  return (
+    <>
+      <div aria-hidden className="tcg-sr-halo" />
+      <div aria-hidden className="tcg-frame-run">
+        <FrameRun light="tcg-frame-run__light--carmine" period={720} seconds={3.2} thick={FRAME} />
+      </div>
+      {SR_SPARKS.map(([x, y, size, delay, seconds]) => (
+        <div
+          key={`${x},${y}`}
+          aria-hidden
+          className="tcg-sr-spark"
+          style={
+            {
+              left: x,
+              top: y,
+              "--s": `${size}px`,
+              animationDelay: `${delay}s`,
+              animationDuration: `${seconds}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
     </>
   );
 }
@@ -723,6 +819,7 @@ export function FinalCard({
       <Layer z={10} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
         <Ring background={RARITY_FRAME[finish]} width={FRAME} />
         {FRAME_MOTION[finish] === "comets" && <SsrComets />}
+        {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
         <div
           style={{
             ...fill,

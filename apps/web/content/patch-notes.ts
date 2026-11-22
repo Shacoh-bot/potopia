@@ -70,7 +70,11 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
-        text: "Cartes SSR : deux comètes d'énergie à cœur blanc font sans cesse le tour du cadre arc-en-ciel et débordent un peu en lueur autour de la carte.",
+        text: "Cartes SSR : deux comètes d'énergie à cœur blanc font sans cesse le tour du cadre arc-en-ciel et débordent un peu en lueur autour de la carte, fluides dans Firefox.",
+      },
+      {
+        admin: true,
+        text: "Cartes SR : nouveau cadre carmin étoilé d'or : un carmin vif tourne autour de la carte, de petits éclats dorés scintillent sur le cadre et un halo carmin respire autour. À l'ouverture d'un booster, l'aura de la SR passe aussi au carmin et à l'or.",
       },
       {
         admin: true,

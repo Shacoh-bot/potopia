@@ -393,10 +393,11 @@
   mix-blend-mode: overlay;
 }
 
-/* Cadre SSR « SSR-2 » (v5.tsx, SsrComets) : deux comètes d'énergie sur le RGB. Aucun masque sur
-   ce qui bouge (lent dans Firefox) : 4 bandes droites dans une boîte à coins arrondis, le même
-   disque conique tourne dans chacune (transform). */
-.tcg-ssr-comets {
+/* Cadres animés (v5.tsx, FrameRun) : SSR « SSR-2 » (deux comètes d'énergie sur le RGB) et SR
+   « SR-2 » (carmin étoilé d'or). Rien ne tourne, rien n'est masqué (lent dans Firefox) : 4 bandes
+   droites, une par bord, dans une boîte à coins arrondis ; dans chacune un dégradé défile
+   (transform seul). */
+.tcg-frame-run {
   position: absolute;
   inset: 0;
   border-radius: 22px;
@@ -404,46 +405,137 @@
   pointer-events: none;
 }
 /* Lueur qui déborde de la carte : bandes de 4 px juste à l'extérieur du cadre. */
-.tcg-ssr-comets--glow {
+.tcg-frame-run--glow {
   inset: -4px;
   border-radius: 26px;
   opacity: 0.45;
 }
-.tcg-ssr-comets--glow .tcg-ssr-comets__strip {
-  margin: 4px 0 0 4px;
+.tcg-frame-run__edge {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
 }
-.tcg-ssr-comets__strip {
+.tcg-frame-run__cut {
   position: absolute;
   overflow: hidden;
 }
-.tcg-ssr-comets__spin {
+.tcg-frame-run__light {
   position: absolute;
-  width: 540px;
-  height: 540px;
-  background: conic-gradient(
-    transparent 0deg,
-    transparent 22deg,
-    rgb(103 232 249 / 0.9) 70deg,
-    #fff 88deg,
-    #ff2d7a 98deg,
-    transparent 112deg,
-    transparent 202deg,
-    rgb(168 85 247 / 0.9) 250deg,
-    #fff 268deg,
-    #ff2d7a 278deg,
-    transparent 292deg,
-    transparent 360deg
-  );
+  top: 0;
+  height: 100%;
+  background-repeat: repeat-x;
   will-change: transform;
-  animation: tcg-ssr-comets 2.6s linear infinite;
+  animation: tcg-frame-run 3s linear infinite;
 }
-@keyframes tcg-ssr-comets {
+@keyframes tcg-frame-run {
+  from {
+    transform: translateX(0);
+  }
   to {
-    transform: rotate(360deg);
+    transform: translateX(var(--run));
+  }
+}
+/* SSR-2 : deux comètes par tour (la tête, rose, en avant). */
+.tcg-frame-run__light--comets {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 6.1%,
+    rgb(103 232 249 / 0.9) 19.4%,
+    #fff 24.4%,
+    #ff2d7a 27.2%,
+    transparent 31.1%,
+    transparent 56.1%,
+    rgb(168 85 247 / 0.9) 69.4%,
+    #fff 74.4%,
+    #ff2d7a 77.2%,
+    transparent 81.1%,
+    transparent 100%
+  );
+}
+/* SR-2 : carmin vif, reflets roses. */
+.tcg-frame-run__light--carmine {
+  background-image: linear-gradient(
+    90deg,
+    #4a0020,
+    #b0063a,
+    #ff2d5f,
+    #ffd0dc,
+    #e0003c,
+    #6d0026,
+    #b0063a,
+    #ff4d73,
+    #4a0020
+  );
+}
+/* SR-2 : halo carmin autour de la carte, qui respire (ombre figée, seule l'opacité bouge). */
+.tcg-sr-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+  box-shadow:
+    0 0 22px 7px rgb(230 0 70 / 0.8),
+    0 0 4px 1px rgb(255 190 210 / 0.9);
+  will-change: opacity;
+  animation: tcg-sr-breathe 2.4s ease-in-out infinite;
+}
+@keyframes tcg-sr-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+/* SR-2 : petit éclat doré (croix fine + point) ; seules l'opacité et l'échelle bougent. */
+.tcg-sr-spark {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, #fff 0 1px, rgb(255 200 80 / 0.8) 1.6px, transparent 3px);
+  animation: tcg-sr-spark 2.4s ease-in-out infinite;
+}
+.tcg-sr-spark::before,
+.tcg-sr-spark::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.4px;
+  margin-top: -0.7px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, #ffe08a 45%, #ffe08a 55%, transparent);
+}
+.tcg-sr-spark::after {
+  transform: rotate(90deg);
+}
+@keyframes tcg-sr-spark {
+  0%,
+  55%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
+  }
+  85% {
+    opacity: 0;
+    transform: scale(0.6) rotate(35deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tcg-ssr-comets__spin {
+  .tcg-frame-run__light,
+  .tcg-sr-halo,
+  .tcg-sr-spark {
     animation: none;
   }
 }
@@ -2145,7 +2237,7 @@
   --halo-size: 20px;
 }
 .tcg-hover-halo[data-rarity="sr"] {
-  --halo: rgb(236 228 255 / 0.6);
+  --halo: rgb(230 0 70 / 0.6);
   --halo-size: 22px;
 }
 .tcg-hover-halo[data-rarity="ssr"] {
