@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { db } from "@app/db";
 import { truncateTestDb } from "@app/db/testing";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -33,9 +34,14 @@ const sequence =
 
 let setId = "";
 
+/** Clé d'illustration factice : le paquet de test écarte les cartes sans image. */
+const withImage = (id: string) =>
+  db.tcgCard.update({ where: { id }, data: { imageKey: `cards/${randomUUID()}.webp` } });
+
 async function addCards(rarity: CardRarityId, count: number) {
   for (let i = 0; i < count; i++) {
-    await createCard(ADMIN, { ...BASE, name: `${rarity} ${i + 1}`, rarity, setId });
+    const card = await createCard(ADMIN, { ...BASE, name: `${rarity} ${i + 1}`, rarity, setId });
+    await withImage(card.id);
   }
 }
 
@@ -348,6 +354,41 @@ describe("paquets de test de l'admin", () => {
     // les SR et SSR des paquets de test ne remettent pas les garanties à zéro
     expect(await boosterPity(ADMIN, { setCode: "S1" })).toEqual(before);
     expect(before.untilSr).toBe(SR_PITY - 3);
+  });
+});
+
+describe("paquet de test : toutes les cartes", () => {
+  it("pioche aussi dans la réserve, jamais la corbeille, un doublon ni une carte sans image ; le paquet des joueurs reste au set", async () => {
+    await addCards("common", 3);
+    const reserve = async (name: string) => {
+      const card = await createCard(ADMIN, { ...BASE, name, rarity: "ssr" });
+      return card.id;
+    };
+    const good = await reserve("Réserve");
+    await withImage(good);
+    const trashed = await reserve("Corbeille");
+    await db.tcgCard.update({
+      where: { id: trashed },
+      data: { deletedAt: new Date(), imageKey: `cards/${randomUUID()}.webp` },
+    });
+    const duplicate = await reserve("Doublon");
+    await db.tcgCard.update({
+      where: { id: duplicate },
+      data: { adminNote: "Doublon — gardée : Réserve", imageKey: `cards/${randomUUID()}.webp` },
+    });
+    const noImage = await reserve("Sans image");
+    for (let i = 0; i < 5; i++) {
+      const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { test: true });
+      const ids = cards.map((c) => c.id);
+      expect(ids.at(-1)).toBe(good);
+      expect(ids).not.toContain(trashed);
+      expect(ids).not.toContain(duplicate);
+      expect(ids).not.toContain(noImage);
+    }
+    for (let i = 0; i < 20; i++) {
+      const { cards } = await openBooster(ADMIN, { setCode: "S1" });
+      expect(cards.every((c) => c.id !== good)).toBe(true);
+    }
   });
 });
 

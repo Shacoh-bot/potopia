@@ -68,6 +68,11 @@ export const PATCH_NOTES = parsePatchNotes([
     title: "Nouveaux effets et lumières de cartes",
     publicTitle: "Petites retouches",
     items: [
+      "Accueil : les tuiles des apps remplissent toute la largeur du bloc, quelle que soit la taille de la fenêtre. Elles sont plus grandes et réparties en lignes équilibrées (plus de tuile seule sur sa ligne ni de grand vide à droite).",
+      {
+        admin: true,
+        text: "Booster de test de l'admin : il pioche maintenant dans toutes les cartes (réserve « S? » et tous les sets), sauf la corbeille, les cartes marquées Doublon et celles sans image. Le booster des joueurs reste limité au set.",
+      },
       {
         admin: true,
         text: "Cartes SSR : deux comètes d'énergie à cœur blanc font sans cesse le tour du cadre arc-en-ciel et débordent un peu en lueur autour de la carte, fluides dans Firefox.",

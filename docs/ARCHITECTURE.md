@@ -423,6 +423,7 @@ vers une URL GET présignée valable 5 min. Toute autre personne reçoit un 403.
   un nom déclaré dans l'union `AppIconName` (`registry.ts`) et associé à une icône lucide dans
   `ICONS` (`packages/core/ui/AppGrid.tsx`) : une nouvelle icône demande les deux. Elle sert aux
   apps sans illustration.
+- Grille de l'accueil (`AppGrid`, classe `.app-grid` de `packages/ui/theme.css`) : calcul en CSS (container queries + `round()`) du nombre de tuiles d'au moins 10 rem qui tiennent dans le bloc, puis des lignes équilibrées (9 apps : 5 + 4, jamais 8 + 1) ; les tuiles remplissent la largeur, 18 rem au plus, 3 colonnes sur téléphone.
 - `art` (facultatif) : chemin d'une illustration carrée de `apps/web/public/apps/`, qui remplit
   toute la tuile à la place de l'icône et du nom (le nom reste l'`aria-label` du lien). Toutes les
   apps actuelles en ont une (`apps/<id>.webp`, 480 px, recadrées sur leur cadre néon : même
@@ -1362,7 +1363,7 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   ±0,1 point). Option A confirmée par l'utilisateur le 2026-11-14. **Paquets de test de l'admin**
   (`openBooster(…, { test: true })`, utilisé par `/admin/boosters`) : une carte de chaque rareté
   haute (`TEST_PACK_RARITIES` : rare, épique, légendaire, SR, SSR ; `drawTestBooster`) pour
-  essayer ouvertures, sons et effets ; notés `isTest`, ils ne comptent pas pour les garanties. `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
+  essayer ouvertures, sons et effets ; notés `isTest`, ils ne comptent pas pour les garanties. Ils piochent dans TOUTES les cartes (réserve et tous les sets ; `loadPool(…, test)`), sauf la corbeille, les cartes marquées « Doublon » et celles sans image (ni `imageKey`/`imageKeyFull` ni idée) ; décidé le 2026-11-22. `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
   Une rareté sans carte dans le set
   prend la rareté juste en dessous (puis la plus proche au-dessus). Doublons possibles. Seules les
   cartes du set tiré comptent (ni la réserve, ni la corbeille). **Version** : une fois les 5

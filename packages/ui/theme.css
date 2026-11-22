@@ -795,6 +795,77 @@
   .app-art-cell:is(:hover, :focus-within) {
     z-index: 3;
   }
+  /* Grille des apps de l'accueil (AppGrid). Les tuiles remplissent la largeur du bloc, en lignes
+     équilibrées : --maxc = nombre de tuiles d'au moins 10 rem qui tiennent (paliers ci-dessous,
+     3 sur téléphone), --rows = lignes nécessaires, --cols = tuiles par ligne une fois réparties
+     (9 apps sur 7 places : 5 + 4, jamais 7 + 2 ni 8 + 1). Taille plafonnée à 18 rem (illustrations
+     de 480 px) : au-delà, la grille se centre. */
+  .app-grid {
+    --gap: 0.75rem;
+    --maxc: 3;
+    --rows: round(up, var(--n) / var(--maxc), 1);
+    --cols: round(up, var(--n) / var(--rows), 1);
+    --tile: min(18rem, (100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols) - 0.1px);
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--tile));
+    grid-auto-rows: var(--tile);
+    gap: var(--gap);
+    justify-content: center;
+  }
+  @container (width >= 43rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 4;
+    }
+  }
+  @container (width >= 54rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 5;
+    }
+  }
+  @container (width >= 65rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 6;
+    }
+  }
+  @container (width >= 76rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 7;
+    }
+  }
+  @container (width >= 87rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 8;
+    }
+  }
+  @container (width >= 98rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 9;
+    }
+  }
+  @container (width >= 109rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 10;
+    }
+  }
+  @container (width >= 120rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 11;
+    }
+  }
+  @container (width >= 131rem) {
+    .app-grid {
+      --gap: 1rem;
+      --maxc: 12;
+    }
+  }
   .app-art-pops {
     position: absolute;
     inset: 0;
@@ -835,8 +906,8 @@
     --pop: translate(65%, -20%) rotate(16deg);
     --d: 140ms;
   }
-  /* Grandes tuiles (AppGrid, écran xl) : lettres à l'échelle. */
-  @media (width >= 80rem) {
+  /* Grandes tuiles (AppGrid, bloc d'au moins 43 rem) : lettres à l'échelle. */
+  @container (width >= 43rem) {
     .app-art::before {
       padding: 4px;
     }
