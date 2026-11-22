@@ -73,6 +73,8 @@ export const RARITY_FRAME: Record<CardFinish, string> = {
   sr: "conic-gradient(from 0deg at 50% 50%, #ffe0f0, #dccfff, #c9f1ff, #fff1d2, #ffe0f0)",
   ssr: "conic-gradient(from 0deg at 50% 50%, #ff6ab5, #ffd36a, #7dffb0, #6ad5ff, #b88bff, #ff6ab5)",
 };
+/** Cadre animé selon la rareté : seule la SSR en a un (deux comètes d'énergie, `SsrComets`). */
+export const FRAME_MOTION: Partial<Record<CardFinish, "comets">> = { ssr: "comets" };
 /** Liseré clair, le même tout autour du cadre (aucun effet de lumière venant d'un côté). */
 const FRAME_EDGE = "inset 0 0 0 1px rgb(255 255 255 / 0.45)";
 
@@ -239,6 +241,25 @@ function Band({
         width={300 - 2 * (short ? Math.round(MANA.x + MANA.r) + 2 : TITLE.inset)}
       />
     </Layer>
+  );
+}
+
+/**
+ * Cadre SSR (« SSR-2 », choisi par l'utilisateur le 22/11) : deux comètes d'énergie à cœur
+ * blanc font le tour du cadre RGB (2,6 s par tour) et débordent un peu, en lueur, hors de la
+ * carte. Fluidité (Firefox) : les anneaux et leurs masques restent immobiles, seul le disque
+ * conique qu'ils laissent voir tourne (transform) ; aucun filtre.
+ */
+function SsrComets() {
+  return (
+    <>
+      <div aria-hidden className="tcg-ssr-comets tcg-ssr-comets--glow">
+        <div className="tcg-ssr-comets__spin" />
+      </div>
+      <div aria-hidden className="tcg-ssr-comets" style={{ padding: FRAME }}>
+        <div className="tcg-ssr-comets__spin" />
+      </div>
+    </>
   );
 }
 
@@ -671,6 +692,7 @@ export function FinalCard({
       {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
       <Layer z={10} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
         <Ring background={RARITY_FRAME[finish]} width={FRAME} />
+        {FRAME_MOTION[finish] === "comets" && <SsrComets />}
         <div
           style={{
             ...fill,

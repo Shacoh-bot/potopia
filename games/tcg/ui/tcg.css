@@ -393,6 +393,64 @@
   mix-blend-mode: overlay;
 }
 
+/* Cadre SSR « SSR-2 » (v5.tsx, SsrComets) : deux comètes d'énergie sur le RGB. L'anneau et son
+   masque sont immobiles ; seul le disque conique dessous tourne (transform), pour Firefox. */
+.tcg-ssr-comets {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+/* Lueur qui déborde de la carte : anneau de 4 px juste à l'extérieur du cadre. */
+.tcg-ssr-comets--glow {
+  inset: -4px;
+  padding: 4px;
+  border-radius: 26px;
+  opacity: 0.45;
+}
+.tcg-ssr-comets__spin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 180%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 22deg,
+    rgb(103 232 249 / 0.9) 70deg,
+    #fff 88deg,
+    #ff2d7a 98deg,
+    transparent 112deg,
+    transparent 202deg,
+    rgb(168 85 247 / 0.9) 250deg,
+    #fff 268deg,
+    #ff2d7a 278deg,
+    transparent 292deg,
+    transparent 360deg
+  );
+  will-change: transform;
+  animation: tcg-ssr-comets 2.6s linear infinite;
+}
+@keyframes tcg-ssr-comets {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tcg-ssr-comets__spin {
+    animation: none;
+  }
+}
+
 /* ───────────── Deuxième vague (v2.tsx) ───────────── */
 
 /* Liseré d'énergie qui court autour de la carte (couleurs dans --flow). */

@@ -870,7 +870,8 @@ rafraîchit le routeur client sans recharger la page.
   (`RARITY_STARS` : 1 pour la légendaire, 2 pour la SR, 3 pour la SSR), précédés du code du set
   (« S1 07/116 »). Pas de symbole d'édition : la rareté se voit au cadre (`RARITY_FRAME` : argent,
   vert, bleu, violet (épique), or, nacre, arc-en-ciel), uni et sans lumière venant d'un côté pour une épaisseur égale
-  tout autour, puis aux effets. Bandeau court (n°70) : titre à la hauteur du mana, centré sur toute la
+  tout autour, puis aux effets. La SSR ajoute deux comètes d'énergie qui font le tour du cadre (`SsrComets`,
+  « SSR-2 » du 22/11 : anneaux masqués immobiles, seul le disque conique tourne). Bandeau court (n°70) : titre à la hauteur du mana, centré sur toute la
   largeur de la carte ; la planche du n°70 montre aussi les sept raretés. Le n°67 (`final-bandeau`) a le bandeau plein et
   se montre dans chaque rareté ; les n°68 à 71 (`BAND_DESIGNS`, `BandShape`) essaient d'autres
   formes de bandeau autour du mana : échancré, mana serti dans un anneau de métal, bandeau court
