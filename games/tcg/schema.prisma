@@ -96,6 +96,8 @@ model TcgCard {
   // Points lumineux posés sur l'illustration (JSON : position en % de l'image, taille, couleur,
   // vitesse de clignotement) ; null : aucun.
   glowPoints        Json?         @map("glow_points")
+  // Points lumineux de la full art, réglés à part de ceux de la normale ; null : aucun.
+  glowPointsFull    Json?         @map("glow_points_full")
   // Mise en page choisie pour afficher la carte (normale ou full art).
   layout            TcgCardLayout @default(normal)
   // Versions qui existent pour la carte (au moins une) : chacune se tire et se collectionne à part.

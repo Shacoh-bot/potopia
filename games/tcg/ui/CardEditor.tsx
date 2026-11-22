@@ -23,6 +23,7 @@ import {
   DEFAULT_FRAME,
   FRAME_ZOOM,
   frameFor,
+  glowPointsFor,
   type GlowPoint,
   type ImageFrame,
   type VisualEffect,
@@ -217,8 +218,11 @@ export function CardEditor({
   const image = images[layout];
   // Un cadrage par mise en page. La full art part du cadrage de la carte normale tant qu'elle n'a
   // pas le sien (cartes cadrées avant la séparation) : rien n'est perdu.
-  // Points lumineux, en % de l'image (accrochés à elle).
-  const [glowPoints, setGlowPoints] = useState<GlowPoint[]>(() => card?.glowPoints ?? []);
+  // Points lumineux, en % de l'image (accrochés à elle) : chaque version a les siens.
+  const [glow, setGlow] = useState<Record<Layout, GlowPoint[]>>(() => ({
+    normal: card?.glowPoints ?? [],
+    fullart: card ? glowPointsFor(card, "fullart") : [],
+  }));
   const [frames, setFrames] = useState<Record<Layout, ImageFrame>>(() => ({
     normal: frameFor(card ?? {}, "normal") ?? DEFAULT_FRAME,
     fullart: frameFor(card ?? {}, "fullart") ?? DEFAULT_FRAME,
@@ -288,11 +292,12 @@ export function CardEditor({
       setCode: card ? card.setCode : sets.find((s) => s.id === setId)?.code,
       imageFrame: frames.normal,
       imageFrameFull: frames.fullart,
-      glowPoints,
+      glowPoints: glow.normal,
+      glowPointsFull: glow.fullart,
       // pour la mention AA de l'aperçu (`isAltArt`, selon `ALT_ART_NEEDS_NORMAL`)
       hasNormal: versions.normal,
     }),
-    [fields, cost, power, shownText, card, sets, setId, setSizes, frames, glowPoints, versions],
+    [fields, cost, power, shownText, card, sets, setId, setSizes, frames, glow, versions],
   );
 
   function set<K extends keyof Fields>(key: K, value: Fields[K]) {
@@ -327,7 +332,8 @@ export function CardEditor({
         effectText: shownText,
         imageFrame: images.normal ? frames.normal : null,
         imageFrameFull: images.fullart ? frames.fullart : null,
-        glowPoints,
+        glowPoints: glow.normal,
+        glowPointsFull: glow.fullart,
         hasNormal: versions.normal,
         hasFullArt: versions.fullart,
         // version montrée par défaut (planches) : la normale si elle existe
@@ -404,6 +410,16 @@ export function CardEditor({
   const sameEffects =
     shownEffects.length === otherEffects.length &&
     shownEffects.every((k, i) => k === otherEffects[i]);
+  const sameGlow = JSON.stringify(glow[layout]) === JSON.stringify(glow[otherLayout]);
+
+  /**
+   * « Reprendre ceux de l'autre version » : seul geste qui recopie, effets visuels et points
+   * lumineux de l'autre version sur celle montrée.
+   */
+  function copyOther() {
+    set(effectsField, [...otherEffects]);
+    setGlow((g) => ({ ...g, [layout]: g[otherLayout].map((p) => ({ ...p })) }));
+  }
 
   /** Une case d'effet visuel (de la version montrée). */
   const effectRow = (v: VisualEffect) => {
@@ -799,7 +815,27 @@ export function CardEditor({
                 </div>
               )}
               {image && sideTab === "glow" ? (
-                <GlowPointsEditor imageUrl={image} points={glowPoints} onChange={setGlowPoints} />
+                <div className="flex w-full flex-col items-center gap-2">
+                  <p className="text-muted text-xs">
+                    Points lumineux — {CARD_VERSION_LABELS[layout]} (réglés à part pour chaque
+                    version)
+                  </p>
+                  {!sameGlow && (
+                    <button
+                      type="button"
+                      data-copy-glow
+                      className="text-accent text-xs underline"
+                      onClick={copyOther}
+                    >
+                      Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
+                    </button>
+                  )}
+                  <GlowPointsEditor
+                    imageUrl={image}
+                    points={glow[layout]}
+                    onChange={(points) => setGlow((g) => ({ ...g, [layout]: points }))}
+                  />
+                </div>
               ) : (
                 <>
                   {image && (
@@ -886,12 +922,12 @@ export function CardEditor({
               empilés dans l&apos;ordre où on les coche (le premier en dessous). Nouveaux effets :
               ajoutés par migration.
             </p>
-            {!sameEffects && (
+            {(!sameEffects || !sameGlow) && (
               <button
                 type="button"
                 data-copy-effects
                 className="text-accent self-start text-xs underline"
-                onClick={() => set(effectsField, [...otherEffects])}
+                onClick={copyOther}
               >
                 Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
               </button>

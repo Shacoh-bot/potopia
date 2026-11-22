@@ -1,4 +1,4 @@
-import { type Card, frameFor, isAltArt, visualEffectsFor } from "../src/card-rules";
+import { type Card, frameFor, glowPointsFor, isAltArt, visualEffectsFor } from "../src/card-rules";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
@@ -22,6 +22,8 @@ export type GameCardFields = Pick<
   hasNormal?: Card["hasNormal"];
   /** Points lumineux sur l'illustration ; absents : aucun. */
   glowPoints?: Card["glowPoints"];
+  /** Points lumineux de la full art ; absents : ceux de la normale (`glowPointsFor`). */
+  glowPointsFull?: Card["glowPointsFull"];
   /** Effets visuels de la normale (clés du catalogue), le premier en dessous ; absent : aucun. */
   visualEffectKeys?: string[];
   /** Effets visuels de la full art ; absent : ceux de la normale (`visualEffectsFor`). */
@@ -105,7 +107,7 @@ export function GameCard({
     imageUrl,
     imageUrlLarge: card.imageUrlLarge,
     imageFrame: frameFor(card, layout),
-    glowPoints: card.glowPoints,
+    glowPoints: glowPointsFor(card, layout),
     altArt: isAltArt(card, layout),
     author: author ?? card.author ?? undefined,
     // Hors set, pas de numéro : la carte est dans la réserve.

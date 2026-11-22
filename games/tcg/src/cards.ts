@@ -189,6 +189,12 @@ const cardFields = z.object({
     .array(glowPointSchema, "Lumières : liste attendue.")
     .max(GLOW_LIMITS.points, `Lumières : ${GLOW_LIMITS.points} au plus.`)
     .optional(),
+  // Points lumineux de la full art, réglés à part de la normale. Absent : ceux enregistrés ne
+  // changent pas (à la création : une copie de ceux de la normale) ; liste vide : aucun.
+  glowPointsFull: z
+    .array(glowPointSchema, "Lumières (full art) : liste attendue.")
+    .max(GLOW_LIMITS.points, `Lumières (full art) : ${GLOW_LIMITS.points} au plus.`)
+    .optional(),
   // Mise en page affichée. Absent : celle enregistrée ne change pas ; à la création, normale (full
   // art pour une variante).
   layout: z.enum(CARD_LAYOUTS, "Mise en page inconnue.").optional(),
@@ -263,6 +269,7 @@ type CardRow = Omit<
   | "rarity"
   | "layout"
   | "glowPoints"
+  | "glowPointsFull"
   | "imageFrame"
   | "imageFrameFull"
   | "visualEffectKeys"
@@ -273,6 +280,7 @@ type CardRow = Omit<
   prepStage: string;
   layout: string;
   glowPoints: unknown;
+  glowPointsFull: unknown;
   visualEffects: { effectKey: string; version: string }[];
   effectParams: unknown;
   imageFrame: unknown;
@@ -292,6 +300,7 @@ export function toCard(row: CardRow): Card {
     layout: row.layout as CardLayout,
     prepStage: row.prepStage as CardPrepStage,
     glowPoints: (row.glowPoints as GlowPoint[] | null) ?? [],
+    glowPointsFull: (row.glowPointsFull as GlowPoint[] | null) ?? [],
     effectParams: (row.effectParams as EffectParams | null) ?? null,
     imageFrame: (row.imageFrame as ImageFrame | null) ?? null,
     imageFrameFull: (row.imageFrameFull as ImageFrame | null) ?? null,
@@ -544,6 +553,7 @@ export async function createCard(
         number,
         ideaId: ideaId ?? null,
         baseCardId: base?.id ?? null,
+        glowPointsFull: fields.glowPointsFull ?? fields.glowPoints,
         visualEffects: effectRows(visualEffectKeys, visualEffectKeysFull),
       },
       include: withSet,
@@ -584,6 +594,7 @@ export async function updateCard(
           imageFrameFull: fields.imageFrameFull,
           ...resolveVersions(fields, current, current.layout),
           glowPoints: fields.glowPoints,
+          glowPointsFull: fields.glowPointsFull,
           visualEffects,
         },
         include: withSet,
@@ -603,6 +614,7 @@ export async function updateCard(
         imageFrameFull: fields.imageFrameFull,
         ...resolveVersions(fields, current, current.layout),
         glowPoints: fields.glowPoints,
+        glowPointsFull: fields.glowPointsFull,
         visualEffects,
       },
       include: withSet,
@@ -1008,6 +1020,7 @@ export async function importCards(
           ...resolveVersions(card, null, "normal"),
           setId,
           number: number === null ? null : number++,
+          glowPointsFull: card.glowPointsFull ?? card.glowPoints,
           visualEffects: effectRows(visualEffectKeys, visualEffectKeysFull),
         },
       });
