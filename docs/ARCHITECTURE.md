@@ -1051,11 +1051,14 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   largeur, puis 2 colonnes de plus, dans la limite de la largeur) ; choix de l'affichage
   de la carte, normale ou full art, enregistré avec elle), `/admin/cartes/import`, `/admin/cartes/illustrations` (`CardImagesUpload` :
   plusieurs images d'un coup, chacune posée sur la carte dont elle porte le numéro, « 12.jpg »). Les cartes s'affichent dans le design retenu
-  (n°70, `GameCard`, ligne de type « {type} — {famille} », « Réserve » en pied de carte hors set).
+  (n°70, `GameCard`, ligne de type « {type} — {famille} », « S? » en pied de carte hors set).
   Pied des vraies cartes (`gameFooter` de `FinalCard`, les propositions notées gardent le leur) :
-  numéro, rareté abrégée (C, PC, R, E, L, SR, SSR) avec ses étoiles, puis « idée de {auteur} »
+  set et numéro (« S1 1/100 », `serialLabel` ; hors set « S? » seul), rareté abrégée (C, PC, R,
+  E, L, SR, SSR) collée à ses étoiles, badge « AA », puis « idée de {auteur} »
   (`getIdeaAuthorIds` + nom du membre, `cardAuthors`), sur tous les écrans, booster et Potodex
-  compris. **Source unique de l'affichage** : chaque écran qui montre une carte (menu « Cartes »,
+  compris. Les sets s'appellent S1, S2… : la mise en page ne prévoit que ce code court. Rien
+  n'est coupé : `card-fit.ts` calcule sans mesure du DOM la taille du pied (8 px au plus) et du
+  texte d'effet (13,5 px au plus), qui rapetissent pour tout faire tenir. **Source unique de l'affichage** : chaque écran qui montre une carte (menu « Cartes »,
   fiche, booster, Potodex) la prépare avec `cardFaces` (`admin/cartes/images.ts`) : image de la
   version (`cardImageUrls`), auteur de l'idée (`card.author`, que `GameCard` lit quand l'écran ne
   passe pas `author`) et taille du set (`countSetCards`, hors corbeille). `cardImageUrls` et
