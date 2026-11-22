@@ -11,6 +11,7 @@ import {
   cardVersions,
   drawVersion,
   isAltArt,
+  isDuplicateNote,
 } from "./card-rules";
 import { type Admin, assertAdmin, CardInputError, toCard, withSet } from "./cards";
 
@@ -309,14 +310,31 @@ const drawnSchema = z
   .min(1);
 type Drawn = z.infer<typeof drawnSchema>;
 
-async function loadPool(tx: DbTx, setId: string): Promise<PoolEntry[]> {
+/**
+ * Cartes tirables. Paquet des joueurs : celles du set. Paquet de test de l'admin (`test`) : TOUTES
+ * les cartes, réserve (« S? ») et autres sets compris, sauf la corbeille, les cartes marquées
+ * « Doublon » et celles qui n'ont aucune image (ni illustration propre ni idée dont reprendre
+ * l'image) : le test montre ainsi n'importe quelle carte, comme le demande l'admin (2026-11-22).
+ */
+async function loadPool(tx: DbTx, setId: string, test = false): Promise<PoolEntry[]> {
   const pool = await tx.tcgCard.findMany({
-    where: { setId, deletedAt: null },
-    select: { id: true, rarity: true, hasNormal: true, hasFullArt: true },
+    where: test
+      ? {
+          deletedAt: null,
+          OR: [
+            { imageKey: { not: null } },
+            { imageKeyFull: { not: null } },
+            { ideaId: { not: null } },
+          ],
+        }
+      : { setId, deletedAt: null },
+    select: { id: true, rarity: true, hasNormal: true, hasFullArt: true, adminNote: true },
     // ordre fixe : un même tirage aléatoire (`rnd`) donne le même paquet
     orderBy: { id: "asc" },
   });
-  return pool as PoolEntry[];
+  return pool
+    .filter((c) => !test || !isDuplicateNote(c.adminNote))
+    .map(({ adminNote: _note, ...c }) => c) as PoolEntry[];
 }
 
 /**
@@ -380,7 +398,7 @@ async function pendingPack(
   test: boolean,
   rnd: (() => number) | undefined,
 ): Promise<{ pool: PoolEntry[]; drawn: Drawn }> {
-  const pool = await loadPool(tx, setId);
+  const pool = await loadPool(tx, setId, test);
   const forced = test ? "test" : await nextForced(tx, userId, setId);
   const key = poolKey(pool, forced);
   const row = await tx.tcgPendingBooster.findUnique({ where: pendingWhere(userId, setId, test) });
