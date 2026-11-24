@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Cartes : au survol, une carte pouvait se couvrir un instant de la couleur de sa rareté (image et texte cachés). Corrigé : le cadre ne peut plus recouvrir la carte.",
+      },
+      {
+        admin: true,
         text: "Booster de test de l'admin : il pioche dans toutes les cartes du jeu, hors set, sans image et Doublon compris ; seule la corbeille reste exclue. Le bouton d'ouverture apparaît aussi quand le set est vide. Le booster des joueurs ne change pas.",
       },
     ],

@@ -142,6 +142,11 @@
    sur l'illustration (ex. l'effet « parallaxe »). L'ordre d'empilement suit le DOM. */
 .tcg-depth {
   transform-style: flat;
+  /* Groupe isolé : les fusions des calques (holo « color », éclair « screen »…) se font avec
+     l'illustration. Sans lui, sur la carte vivante, leur fond serait `.tcg-tilt` en preserve-3d,
+     dont les plans sont peints à part : la fusion ne voit pas l'image et l'effet se peint
+     par-dessus la carte (reflets holo opaques au survol). */
+  isolation: isolate;
 }
 .tcg-layer {
   transform: none;
