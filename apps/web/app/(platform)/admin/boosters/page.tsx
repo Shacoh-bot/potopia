@@ -1,6 +1,7 @@
 import {
   BOOSTER_SLOTS,
   boosterPity,
+  CardInputError,
   CARD_RARITY_LABELS,
   type CardRarityId,
   CHANCE_RATES,
@@ -66,13 +67,15 @@ export default async function AdminBoostersPage({
   ]);
   // Prochain paquet, déjà tiré : ses illustrations se préchargent avant le clic. Il part au
   // navigateur AVANT l'ouverture : le joueur peut lire son prochain paquet (voir `packOf`).
-  const next =
-    dex.total === 0
-      ? null
-      : await packOf(
-          admin,
-          (await peekBooster(admin, { setCode: current.code }, { test: true })).cards,
-        );
+  // Paquet de test : il pioche dans tout le jeu, donc s'ouvre même quand le set est vide.
+  // Aucune carte dans tout le jeu (hors corbeille) : rien à ouvrir.
+  const next = await peekBooster(admin, { setCode: current.code }, { test: true }).then(
+    (pack) => packOf(admin, pack.cards),
+    (error: unknown) => {
+      if (error instanceof CardInputError) return null;
+      throw error;
+    },
+  );
   // Préchauffage de la 1re ouverture : l'allure des cartes du set (rareté, mise en page, effets),
   // jamais leur contenu.
   const looks = warmUpLooks(setCards.filter((c) => c.number !== null));
@@ -113,9 +116,13 @@ export default async function AdminBoostersPage({
           découvre qui des potes a fini en carte cette fois-ci. Tout ce qui sort rejoint ton
           Potodex, doublons compris : de quoi frimer, ou pleurer, devant le set {current.code}.
         </p>
-        {dex.total === 0 ? (
-          <EmptyState title="Set vide" description="Ce set n'a encore aucune carte numérotée." />
-        ) : (
+        {dex.total === 0 && (
+          <p className="text-muted text-sm">
+            Set vide : ce set n&apos;a encore aucune carte numérotée. Le paquet de test pioche quand
+            même dans toutes les cartes du jeu.
+          </p>
+        )}
+        {next ? (
           <BoosterOpener
             // un autre set repart de zéro (son prochain paquet, ses illustrations)
             key={current.code}
@@ -124,11 +131,14 @@ export default async function AdminBoostersPage({
             looks={looks}
             next={next}
           />
+        ) : (
+          <EmptyState title="Aucune carte" description="Le jeu n'a encore aucune carte à tirer." />
         )}
         <p className="text-accent text-sm">
-          Mode test (admin) : chaque paquet contient une carte de chaque rareté, de rare à SSR, pour
-          essayer ouvertures, sons et effets. Ces paquets ne comptent ni pour les garanties ni pour
-          les chances ci-dessous, qui sont celles des joueurs.
+          Mode test (admin) : chaque paquet contient une carte de chaque rareté, de rare à SSR,
+          prise parmi toutes les cartes du jeu (hors corbeille), pour essayer ouvertures, sons et
+          effets. Ces paquets ne comptent ni pour les garanties ni pour les chances ci-dessous, qui
+          sont celles des joueurs.
         </p>
 
         <section

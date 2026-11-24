@@ -1363,7 +1363,7 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   ±0,1 point). Option A confirmée par l'utilisateur le 2026-11-14. **Paquets de test de l'admin**
   (`openBooster(…, { test: true })`, utilisé par `/admin/boosters`) : une carte de chaque rareté
   haute (`TEST_PACK_RARITIES` : rare, épique, légendaire, SR, SSR ; `drawTestBooster`) pour
-  essayer ouvertures, sons et effets ; notés `isTest`, ils ne comptent pas pour les garanties. Ils piochent dans TOUTES les cartes (réserve et tous les sets ; `loadPool(…, test)`), sauf la corbeille, les cartes marquées « Doublon » et celles sans image (ni `imageKey`/`imageKeyFull` ni idée) ; décidé le 2026-11-22. `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
+  essayer ouvertures, sons et effets ; notés `isTest`, ils ne comptent pas pour les garanties. Ils piochent dans TOUTES les cartes du jeu (réserve et tous les sets, avec ou sans image, « Doublon » compris ; `loadPool(…, test)`), sauf la corbeille ; décidé le 2026-11-24 (remplace le filtre du 2026-11-22). `/admin/boosters` montre donc l'ouverture même pour un set vide (« Aucune carte » seulement si tout le jeu est vide). `forcedChance` (garantie du prochain paquet), `drawChance`, `simulateChance`.
   Une rareté sans carte dans le set
   prend la rareté juste en dessous (puis la plus proche au-dessus). Doublons possibles. Seules les
   cartes du set tiré comptent (ni la réserve, ni la corbeille). **Version** : une fois les 5
