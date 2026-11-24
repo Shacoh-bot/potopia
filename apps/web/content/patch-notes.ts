@@ -64,6 +64,17 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-24",
+    title: "Booster de test : toutes les cartes, même set vide",
+    publicTitle: "Petites retouches",
+    items: [
+      {
+        admin: true,
+        text: "Booster de test de l'admin : il pioche dans toutes les cartes du jeu, hors set, sans image et Doublon compris ; seule la corbeille reste exclue. Le bouton d'ouverture apparaît aussi quand le set est vide. Le booster des joueurs ne change pas.",
+      },
+    ],
+  },
+  {
     date: "2026-11-22",
     title: "Nouveaux effets et lumières de cartes",
     publicTitle: "Petites retouches",

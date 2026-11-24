@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { db } from "@app/db";
 import { truncateTestDb } from "@app/db/testing";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -34,14 +33,9 @@ const sequence =
 
 let setId = "";
 
-/** Clé d'illustration factice : le paquet de test écarte les cartes sans image. */
-const withImage = (id: string) =>
-  db.tcgCard.update({ where: { id }, data: { imageKey: `cards/${randomUUID()}.webp` } });
-
 async function addCards(rarity: CardRarityId, count: number) {
   for (let i = 0; i < count; i++) {
-    const card = await createCard(ADMIN, { ...BASE, name: `${rarity} ${i + 1}`, rarity, setId });
-    await withImage(card.id);
+    await createCard(ADMIN, { ...BASE, name: `${rarity} ${i + 1}`, rarity, setId });
   }
 }
 
@@ -358,37 +352,39 @@ describe("paquets de test de l'admin", () => {
 });
 
 describe("paquet de test : toutes les cartes", () => {
-  it("pioche aussi dans la réserve, jamais la corbeille, un doublon ni une carte sans image ; le paquet des joueurs reste au set", async () => {
+  it("pioche dans tout le jeu (réserve, autres sets, sans image, doublons), jamais la corbeille ; le paquet des joueurs reste au set", async () => {
     await addCards("common", 3);
-    const reserve = async (name: string) => {
-      const card = await createCard(ADMIN, { ...BASE, name, rarity: "ssr" });
-      return card.id;
-    };
-    const good = await reserve("Réserve");
-    await withImage(good);
-    const trashed = await reserve("Corbeille");
-    await db.tcgCard.update({
-      where: { id: trashed },
-      data: { deletedAt: new Date(), imageKey: `cards/${randomUUID()}.webp` },
-    });
-    const duplicate = await reserve("Doublon");
+    const other = (await ensureSet(ADMIN, { code: "S2", name: "Autre set" })).id;
+    const card = async (name: string, data: { setId?: string } = {}) =>
+      (await createCard(ADMIN, { ...BASE, name, rarity: "ssr", ...data })).id;
+    const reserve = await card("Réserve sans image");
+    const elsewhere = await card("Autre set", { setId: other });
+    const duplicate = await card("Doublon");
     await db.tcgCard.update({
       where: { id: duplicate },
-      data: { adminNote: "Doublon — gardée : Réserve", imageKey: `cards/${randomUUID()}.webp` },
+      data: { adminNote: "Doublon — gardée : Réserve" },
     });
-    const noImage = await reserve("Sans image");
-    for (let i = 0; i < 5; i++) {
+    const trashed = await card("Corbeille");
+    await db.tcgCard.update({ where: { id: trashed }, data: { deletedAt: new Date() } });
+    const seen = new Set<string>();
+    for (let i = 0; i < 60; i++) {
       const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { test: true });
       const ids = cards.map((c) => c.id);
-      expect(ids.at(-1)).toBe(good);
       expect(ids).not.toContain(trashed);
-      expect(ids).not.toContain(duplicate);
-      expect(ids).not.toContain(noImage);
+      ids.forEach((id) => seen.add(id));
     }
+    expect([...seen]).toEqual(expect.arrayContaining([reserve, elsewhere, duplicate]));
     for (let i = 0; i < 20; i++) {
       const { cards } = await openBooster(ADMIN, { setCode: "S1" });
-      expect(cards.every((c) => c.id !== good)).toBe(true);
+      expect(cards.every((c) => ![reserve, elsewhere, duplicate].includes(c.id))).toBe(true);
     }
+  });
+
+  it("marche avec un set vide : le paquet de test pioche hors du set", async () => {
+    const reserve = (await createCard(ADMIN, { ...BASE, name: "Réserve", rarity: "rare" })).id;
+    const { cards } = await openBooster(ADMIN, { setCode: "S1" }, { test: true });
+    expect(cards.map((c) => c.id)).toEqual(Array(5).fill(reserve));
+    await expect(openBooster(ADMIN, { setCode: "S1" })).rejects.toThrow();
   });
 });
 
