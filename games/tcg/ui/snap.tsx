@@ -212,7 +212,52 @@ export function ImagePower({ value }: { value: number }) {
   );
 }
 
-/** Anneau de cadre : n'importe quel fond (dégradé, or…) découpé en bordure. */
+/** Segments par quart de cercle des coins de `ringClip` : écart à l'arc < 0,1 px jusqu'à 30 px. */
+const RING_ARC_STEPS = 10;
+
+/** Contour d'un rectangle arrondi, décalé de `inset`, en points de `polygon()` (sens horaire). */
+function roundedRectPoints(inset: number, radius: number): string[] {
+  const n = (v: number) => Number(v.toFixed(3));
+  const x = (v: number, right: boolean) => (right ? `calc(100% - ${n(v)}px)` : `${n(v)}px`);
+  // Coins dans l'ordre haut-gauche, haut-droit, bas-droit, bas-gauche ; angle de départ de l'arc.
+  const corners = [
+    { right: false, bottom: false, from: Math.PI },
+    { right: true, bottom: false, from: 1.5 * Math.PI },
+    { right: true, bottom: true, from: 0 },
+    { right: false, bottom: true, from: 0.5 * Math.PI },
+  ];
+  const points: string[] = [];
+  for (const c of corners) {
+    for (let i = 0; i <= RING_ARC_STEPS; i++) {
+      const a = c.from + (i / RING_ARC_STEPS) * (Math.PI / 2);
+      // Distance au bord de la boîte, comptée vers l'intérieur (0 = bord du coin).
+      const dx = inset + radius - radius * Math.abs(Math.cos(a));
+      const dy = inset + radius - radius * Math.abs(Math.sin(a));
+      points.push(`${x(dx, c.right)} ${x(dy, c.bottom)}`);
+    }
+  }
+  return points;
+}
+
+/**
+ * Découpe d'un anneau d'épaisseur `width` et de rayon extérieur `radius` : contour extérieur puis
+ * contour intérieur (rayon `radius - width`, comme la boîte de contenu d'un élément arrondi),
+ * remplis en pair-impair, donc troués au milieu. Exporté pour les tests.
+ */
+export function ringClip(width: number, radius: number): string {
+  const outer = roundedRectPoints(0, radius);
+  const inner = roundedRectPoints(width, Math.max(radius - width, 0));
+  return `polygon(evenodd, ${[...outer, outer[0], ...inner, inner[0]].join(", ")})`;
+}
+
+/**
+ * Anneau de cadre : n'importe quel fond (dégradé, or…) découpé en bordure.
+ *
+ * Le trou est un `clip-path` (polygone pair-impair), pas un masque composé (`mask-composite:
+ * exclude`) : l'anneau couvre toute la carte et passe au-dessus de l'illustration et du texte ; un
+ * navigateur qui recompose la carte (passage figée → vivante au survol d'une planche, 3D) peignait
+ * parfois une image sans ce masque, d'où un aplat de la couleur de la rareté sur toute la carte.
+ */
 export function Ring({
   background,
   width = 8,
@@ -222,6 +267,16 @@ export function Ring({
   width?: number;
   style?: CSSProperties;
 }) {
+  const radius = style?.borderRadius ?? R;
+  const hole: CSSProperties =
+    typeof radius === "number"
+      ? { clipPath: ringClip(width, radius) }
+      : {
+          // Rayon non numérique (aucun appel aujourd'hui) : ancien masque composé.
+          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor",
+          mask: "linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)",
+        };
   return (
     <div
       aria-hidden
@@ -231,9 +286,7 @@ export function Ring({
         borderRadius: R,
         padding: width,
         background,
-        WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-        WebkitMaskComposite: "xor",
-        mask: "linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)",
+        ...hole,
         pointerEvents: "none",
         ...style,
       }}
