@@ -646,7 +646,7 @@ const PANEL_GOLD =
  */
 function PanelTrim({ h }: { h: number }) {
   return (
-    <>
+    <div className="tcg-strate-filets" style={{ display: "contents" }}>
       {/* Filet dessiné (pas un calque troué par clip-path, qui se peignait parfois plein : aplat doré). */}
       <FrameRing
         background={PANEL_GOLD}
@@ -666,7 +666,7 @@ function PanelTrim({ h }: { h: number }) {
           pointerEvents: "none",
         }}
       />
-    </>
+    </div>
   );
 }
 
@@ -822,10 +822,17 @@ export function FinalCard({
         </Layer>
       )}
 
-      <Band card={card} layout={layout} shape={band} bare={bare} />
+      {/* `tcg-strate-*` : repères des strates, que le banc d'essai admin peut masquer une à une. */}
+      <div className="tcg-strate-bandeau" style={{ display: "contents" }}>
+        <Band card={card} layout={layout} shape={band} bare={bare} />
+      </div>
 
       {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
-      <Layer z={10} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
+      <Layer
+        z={10}
+        className="tcg-strate-cadre"
+        style={{ ...fill, borderRadius: R, pointerEvents: "none" }}
+      >
         {/* Cadre dessiné en SVG, sans découpe : il ne peut plus se peindre sur toute la carte. */}
         <FrameRing background={RARITY_FRAME[finish]} width={FRAME} />
         {FRAME_MOTION[finish] === "comets" && <SsrComets />}
@@ -860,7 +867,11 @@ export function FinalCard({
         </Layer>
       )}
 
-      <Layer z={30} style={{ left: SIDE, right: SIDE, top: TYPE.top, height: TYPE.height }}>
+      <Layer
+        z={30}
+        className="tcg-strate-encadres"
+        style={{ left: SIDE, right: SIDE, top: TYPE.top, height: TYPE.height }}
+      >
         <div
           style={{
             height: "100%",
@@ -878,7 +889,11 @@ export function FinalCard({
         </div>
       </Layer>
 
-      <Layer z={30} style={{ left: SIDE, right: SIDE, top: TEXT.top, bottom: TEXT.bottom }}>
+      <Layer
+        z={30}
+        className="tcg-strate-encadres"
+        style={{ left: SIDE, right: SIDE, top: TEXT.top, bottom: TEXT.bottom }}
+      >
         <div
           style={{
             height: "100%",
@@ -920,17 +935,21 @@ export function FinalCard({
         </Layer>
       )}
 
-      <Footer card={card} finish={finish} game={gameFooter} />
+      <div className="tcg-strate-pied" style={{ display: "contents" }}>
+        <Footer card={card} finish={finish} game={gameFooter} />
+      </div>
 
       {/* Coût et puissance en dernier : toujours au-dessus du reste, sans sertissage. */}
       <Layer
         z={80}
+        className="tcg-strate-pastilles"
         style={{ left: -2, top: -2, zIndex: 5, scale: String(BADGE), transformOrigin: "0 0" }}
       >
         <ImageCost value={card.cost} />
       </Layer>
       <Layer
         z={80}
+        className="tcg-strate-pastilles"
         style={{
           right: -2,
           bottom: -2,

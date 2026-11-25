@@ -7,6 +7,7 @@ import {
   BookOpen,
   BookOpenCheck,
   Coins,
+  FlaskConical,
   Layers,
   Lightbulb,
   Package,
@@ -60,6 +61,13 @@ const SECTIONS = (ideasCount: number) => [
     title: "Potodex complet",
     description: "Aperçu du Potodex avec toutes les cartes débloquées (lecture seule).",
     icon: BookOpenCheck,
+  },
+  {
+    href: "/admin/banc-cartes",
+    title: "Banc d'essai des cartes",
+    description:
+      "Une carte, une rangée de booster ou une planche : couper les strates, compter les images.",
+    icon: FlaskConical,
   },
   {
     href: "/admin/mascotte",
