@@ -430,15 +430,17 @@
   top: 0;
   height: 100%;
   background-repeat: repeat-x;
-  will-change: transform;
+  /* La lumière glisse par la position du fond, pas par un `transform` : un calque composé à part
+     sous la découpe arrondie de `.tcg-frame-run` sortait parfois de cette découpe sur la carte
+     inclinée (bandes carrées aux coins). Peinte dans la carte, elle reste découpée. */
   animation: tcg-frame-run 3s linear infinite;
 }
 @keyframes tcg-frame-run {
   from {
-    transform: translateX(0);
+    background-position-x: var(--from);
   }
   to {
-    transform: translateX(var(--run));
+    background-position-x: calc(var(--from) + var(--run));
   }
 }
 /* SSR-2 : deux comètes par tour (la tête, rose, en avant). */
@@ -730,7 +732,8 @@
    La carte survolée redevient vivante (une seule à la fois) : `Tilt` lui pose `data-live` (pas
    `:hover` : la planche la rend insensible au pointeur, sous son lien ; voir still-hover.ts).
    Exception : l'effet visuel de la carte (`.tcg-vfx` : pétales, braises, fumée…) tourne toujours,
-   survolée ou non ; figé, il restait dans une pose artificielle (pétales alignés). */
+   survolée ou non ; figé, il restait dans une pose artificielle (pétales alignés). De même pour
+   le cadre animé des SR et SSR (`.tcg-frame-run`, éclats `.tcg-sr-spark`) : animé en permanence. */
 .tcg-still:not([data-live]) .tcg-tilt,
 .tcg-still:not([data-live]) .tcg-depth,
 .tcg-still:not([data-live]) .tcg-layer {
@@ -740,9 +743,9 @@
 .tcg-still:not([data-live]) .tcg-depth {
   box-shadow: none !important;
 }
-.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *),
-.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *)::before,
-.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *)::after {
+.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *, .tcg-frame-run *, .tcg-sr-spark),
+.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *, .tcg-frame-run *, .tcg-sr-spark)::before,
+.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *, .tcg-frame-run *, .tcg-sr-spark)::after {
   animation: none !important;
   transition: none !important;
 }

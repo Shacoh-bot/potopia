@@ -64,6 +64,21 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-25",
+    title: "Cartes : plus d'aplat rouge ou doré, cadres SR/SSR toujours animés",
+    publicTitle: "Petites retouches",
+    items: [
+      {
+        admin: true,
+        text: "Cartes : cadre de rareté et filets dorés dessinés sans découpe, plus d'aplat rouge ou doré sur la carte (booster, Potodex). Lumières des cadres SR/SSR : plus de carrés aux coins, animées aussi sans survol dans le Potodex.",
+      },
+      {
+        admin: true,
+        text: "Effets « cadre prismatique » et « liseré d'énergie » retirés (ils cachaient le cadre) : plus proposés ni affichés, réglage gardé. Éditeur : cocher un effet ne décale plus la liste (lien « Reprendre ceux de la version… » à place fixe).",
+      },
+    ],
+  },
+  {
     date: "2026-11-24",
     title: "Booster de test : toutes les cartes, même set vide",
     publicTitle: "Petites retouches",

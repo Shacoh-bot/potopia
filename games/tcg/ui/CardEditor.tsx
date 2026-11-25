@@ -46,6 +46,7 @@ import { ImageFramer } from "./ImageFramer";
 import { pastedImage, sendCardImages, sizeWarning, toCardImages } from "./toCardWebp";
 import { FINAL_ART } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
+import { isRetiredEffect } from "./effect-places";
 
 /** Onglets de la colonne à droite de la carte. */
 const SIDE_TABS = [
@@ -181,7 +182,7 @@ export function CardEditor({
   card,
   sets,
   families,
-  visualEffects,
+  visualEffects: catalogEffects,
   imageUrl,
   imageUrlFull,
   author,
@@ -196,6 +197,9 @@ export function CardEditor({
   const [state, dispatch, pending] = useActionState(save, { status: "idle" });
   const [, startTransition] = useTransition();
   const [fields, setFields] = useState(() => initialFields(card, fromIdea?.initial));
+  // Effets retirés (ils cachent le cadre de rareté) : plus proposés. Une carte qui en a un le garde
+  // enregistré (rien effacé) ; il ne s'affiche plus.
+  const visualEffects = catalogEffects.filter((v) => !isRetiredEffect(v.key));
   const [setId, setSetId] = useState(card?.setId ?? defaultSetId ?? "");
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   // Texte réécrit à la main : il ne suit plus l'effet.
@@ -820,16 +824,17 @@ export function CardEditor({
                     Points lumineux — {CARD_VERSION_LABELS[layout]} (réglés à part pour chaque
                     version)
                   </p>
-                  {!sameGlow && (
-                    <button
-                      type="button"
-                      data-copy-glow
-                      className="text-accent text-xs underline"
-                      onClick={copyOther}
-                    >
-                      Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
-                    </button>
-                  )}
+                  {/* Toujours à sa place (caché quand rien à reprendre) : cocher ne décale rien. */}
+                  <button
+                    type="button"
+                    data-copy-glow
+                    className={`text-accent text-xs underline ${sameGlow ? "invisible" : ""}`}
+                    disabled={sameGlow}
+                    aria-hidden={sameGlow}
+                    onClick={copyOther}
+                  >
+                    Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
+                  </button>
                   <GlowPointsEditor
                     imageUrl={image}
                     points={glow[layout]}
@@ -922,16 +927,18 @@ export function CardEditor({
               empilés dans l&apos;ordre où on les coche (le premier en dessous). Nouveaux effets :
               ajoutés par migration.
             </p>
-            {(!sameEffects || !sameGlow) && (
-              <button
-                type="button"
-                data-copy-effects
-                className="text-accent self-start text-xs underline"
-                onClick={copyOther}
-              >
-                Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
-              </button>
-            )}
+            {/* Toujours à sa place (caché quand rien à reprendre) : cocher un effet ne fait plus
+                apparaître ce lien, qui décalait toute la liste. */}
+            <button
+              type="button"
+              data-copy-effects
+              className={`text-accent self-start text-xs underline ${sameEffects && sameGlow ? "invisible" : ""}`}
+              disabled={sameEffects && sameGlow}
+              aria-hidden={sameEffects && sameGlow}
+              onClick={copyOther}
+            >
+              Reprendre ceux de la version {CARD_VERSION_LABELS[otherLayout]}
+            </button>
             {visualEffects.length === 0 && (
               <p className="text-muted text-sm">Aucun effet dans le catalogue.</p>
             )}
