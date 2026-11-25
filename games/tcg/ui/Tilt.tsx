@@ -19,24 +19,41 @@ export function Tilt({
   style?: CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Un seul calcul par image : un pointeur envoie souvent bien plus de 60 mouvements par seconde
+  // (Firefox ne les regroupe pas), et chaque écriture de variable recalcule tout le sous-arbre.
+  const frame = useRef(0);
+  const last = useRef<{ clientX: number; clientY: number } | null>(null);
+  // Boîte lue une fois par survol (pas à chaque mouvement) ; oubliée à la sortie.
+  const rect = useRef<DOMRect | null>(null);
 
-  function move(e: { clientX: number; clientY: number }) {
+  function apply() {
+    frame.current = 0;
     const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
+    const e = last.current;
+    if (!el || !e) return;
+    const r = (rect.current ??= el.getBoundingClientRect());
     // Bornés : une carte vue de profil (en plein retournement) est très étroite à l'écran, et
     // l'angle calculé deviendrait énorme.
     const x = Math.min(1, Math.max(0, (e.clientX - r.left) / (r.width || 1)));
     const y = Math.min(1, Math.max(0, (e.clientY - r.top) / (r.height || 1)));
-    el.style.setProperty("--mx", `${x * 100}%`);
+    el.style.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
     el.style.setProperty("--x", x.toFixed(3));
-    el.style.setProperty("--my", `${y * 100}%`);
-    el.style.setProperty("--ry", `${(x - 0.5) * 18}deg`);
-    el.style.setProperty("--rx", `${(0.5 - y) * 18}deg`);
-    el.dataset.active = "";
+    el.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
+    el.style.setProperty("--ry", `${((x - 0.5) * 18).toFixed(2)}deg`);
+    el.style.setProperty("--rx", `${((0.5 - y) * 18).toFixed(2)}deg`);
+    if (!("active" in el.dataset)) el.dataset.active = "";
+  }
+
+  function move(e: { clientX: number; clientY: number }) {
+    last.current = { clientX: e.clientX, clientY: e.clientY };
+    if (!frame.current) frame.current = requestAnimationFrame(apply);
   }
 
   function leave() {
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
+    last.current = null;
+    rect.current = null;
     const el = ref.current;
     if (!el) return;
     for (const v of ["--mx", "--my", "--x", "--rx", "--ry"]) el.style.removeProperty(v);
@@ -58,6 +75,7 @@ export function Tilt({
       }) ?? undefined
     );
   }, []);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   return (
     <div

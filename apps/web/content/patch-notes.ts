@@ -76,6 +76,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Effets « cadre prismatique » et « liseré d'énergie » retirés (ils cachaient le cadre) : plus proposés ni affichés, réglage gardé. Éditeur : cocher un effet ne décale plus la liste (lien « Reprendre ceux de la version… » à place fixe).",
       },
+      {
+        admin: true,
+        text: "Fluidité (booster, Potodex) : l'inclinaison d'une carte suit le pointeur avec un seul calcul par image, les lumières des cadres SR/SSR coûtent moins, et les lueurs d'ambiance du fond s'arrêtent sur ces écrans.",
+      },
     ],
   },
   {

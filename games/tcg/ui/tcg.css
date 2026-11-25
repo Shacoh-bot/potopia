@@ -433,18 +433,25 @@
   /* La lumière glisse par la position du fond, pas par un `transform` : un calque composé à part
      sous la découpe arrondie de `.tcg-frame-run` sortait parfois de cette découpe sur la carte
      inclinée (bandes carrées aux coins). Peinte dans la carte, elle reste découpée. */
-  animation: tcg-frame-run 3s linear infinite;
+  animation: tcg-frame-run-720 3s linear infinite;
 }
-@keyframes tcg-frame-run {
-  from {
-    background-position-x: var(--from);
-  }
+/* Une animation par période de dégradé, en valeurs fixes : avec des var() dans les clés, Chrome
+   recalcule le style de chaque bande à chaque image. Le décalage propre à chaque bord est dans
+   son `left` (v5.tsx, FrameRun). */
+@keyframes tcg-frame-run-720 {
   to {
-    background-position-x: calc(var(--from) + var(--run));
+    background-position-x: 720px;
+  }
+}
+@keyframes tcg-frame-run-1440 {
+  to {
+    background-position-x: 1440px;
   }
 }
 /* SSR-2 : deux comètes par tour (la tête, rose, en avant). */
 .tcg-frame-run__light--comets {
+  /* période : un tour de cadre, 2 × (300 + 420) px */
+  animation-name: tcg-frame-run-1440;
   background-image: linear-gradient(
     90deg,
     transparent 0%,
@@ -538,6 +545,12 @@
     opacity: 0;
     transform: scale(0.6) rotate(35deg);
   }
+}
+/* Écrans pleins de cartes animées (ouverture de booster, planches du Potodex) : les lueurs
+   d'ambiance du thème (body::before, plein écran) s'arrêtent. Leur dérive de 40 s ne se voit pas,
+   mais elle force la recomposition de tout l'écran à chaque image (coûteux dans Firefox). */
+body:has(.tcg-opening, .tcg-still)::before {
+  animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
   .tcg-frame-run__light,

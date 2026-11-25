@@ -307,17 +307,14 @@ function FrameRun({
         >
           <div
             className={`tcg-frame-run__light ${light}`}
-            style={
-              {
-                left: -period,
-                width: len + 2 * out + 2 * period,
-                backgroundSize: `${period}px 100%`,
-                backgroundPosition: `${-shift}px 0`,
-                animationDuration: `${seconds}s`,
-                "--from": `${-shift}px`,
-                "--run": `${period}px`,
-              } as CSSProperties
-            }
+            // Le décalage du bord est porté par `left` (fixe) : l'animation n'a plus de var() à
+            // résoudre à chaque image, elle fait glisser le fond d'une période (classe du dégradé).
+            style={{
+              left: -period - shift,
+              width: len + 2 * out + 2 * period + shift,
+              backgroundSize: `${period}px 100%`,
+              animationDuration: `${seconds}s`,
+            }}
           />
         </div>
       </div>
