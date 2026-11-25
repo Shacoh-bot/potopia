@@ -9,6 +9,8 @@ import {
   drawBooster,
   ensureSet,
   forcedChance,
+  ALL_CARDS_CODE,
+  getAllCardsPotodex,
   getCompletePotodex,
   getPotodex,
   openBooster,
@@ -418,6 +420,37 @@ describe("Potodex", () => {
     expect(await db.tcgOwnedCard.findMany({ orderBy: { cardId: "asc" } })).toEqual(owned);
     expect(await db.tcgBoosterOpening.count()).toBe(1);
     expect(await getPotodex(ADMIN, { setCode: "S1" })).toMatchObject({ found: 1, boosters: 1 });
+  });
+
+  it("aperçu « toutes les cartes » : tous sets et réserve, sans corbeille ni doublon", async () => {
+    await addCards("common", 2);
+    await addCards("rare", 1);
+    // réserve : sans set ni numéro
+    await createCard(ADMIN, { ...BASE, name: "réserve", rarity: "uncommon" });
+    const binned = await createCard(ADMIN, { ...BASE, name: "corbeille", rarity: "common", setId });
+    const duplicate = await createCard(ADMIN, { ...BASE, name: "doublon", rarity: "common" });
+    await db.tcgCard.update({ where: { id: binned.id }, data: { deletedAt: new Date() } });
+    await db.tcgCard.update({
+      where: { id: duplicate.id },
+      data: { adminNote: "Doublon — gardée : x" },
+    });
+    await openBooster(ADMIN, { setCode: "S1" }, { rnd: sequence() });
+    const owned = await db.tcgOwnedCard.findMany({ orderBy: { cardId: "asc" } });
+
+    const dex = await getAllCardsPotodex(ADMIN);
+    const names = dex.entries.map((e) => (e.found ? e.card.name : ""));
+    expect(dex.set.code).toBe(ALL_CARDS_CODE);
+    expect(dex.size).toBe(4);
+    expect(names).not.toContain("corbeille");
+    expect(names).not.toContain("doublon");
+    expect(dex.entries.every((e) => e.found && e.count === 1)).toBe(true);
+    expect(dex).toMatchObject({ found: dex.total, boosters: 0 });
+    // la réserve (sans set) vient après les cartes du set
+    expect(names.at(-1)).toBe("réserve");
+    expect(dex.entries.at(-1)?.number).toBe(4);
+    // rien d'écrit : collection inchangée
+    expect(await db.tcgOwnedCard.findMany({ orderBy: { cardId: "asc" } })).toEqual(owned);
+    await expect(getAllCardsPotodex(MEMBER)).rejects.toThrow("Réservé aux admins.");
   });
 
   it("aperçu « tout débloqué » refusé à un membre non admin", async () => {
