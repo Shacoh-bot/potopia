@@ -101,6 +101,8 @@ export {
   drawBooster,
   drawTestBooster,
   forcedChance,
+  ALL_CARDS_CODE,
+  getAllCardsPotodex,
   getCompletePotodex,
   getPotodex,
   openBooster,

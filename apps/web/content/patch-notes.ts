@@ -76,6 +76,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Booster de test de l'admin : il pioche dans toutes les cartes du jeu, hors set, sans image et Doublon compris ; seule la corbeille reste exclue. Le bouton d'ouverture apparaît aussi quand le set est vide. Le booster des joueurs ne change pas.",
       },
+      {
+        admin: true,
+        text: "Potodex complet : nouvel onglet « Toutes les cartes », ouvert par défaut, avec chaque carte du jeu (tous sets et réserve) hors corbeille et doublons, Normale et Full art. Lecture seule : ta collection ne change pas.",
+      },
     ],
   },
   {

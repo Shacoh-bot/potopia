@@ -11,6 +11,7 @@ import {
   cardVersions,
   drawVersion,
   isAltArt,
+  isDuplicateNote,
 } from "./card-rules";
 import { type Admin, assertAdmin, CardInputError, toCard, withSet } from "./cards";
 
@@ -518,6 +519,45 @@ export async function getCompletePotodex(
   input: z.input<typeof setInput>,
 ): Promise<Potodex> {
   return readPotodex(player, input, true);
+}
+
+/** Code de l'aperçu « Toutes les cartes » (minuscules : ne peut pas être celui d'un vrai set). */
+export const ALL_CARDS_CODE = "toutes";
+
+/**
+ * Aperçu admin « tout débloqué », toutes cartes confondues : chaque carte du jeu, tous sets et
+ * réserve compris, numérotée ou non, avec ou sans image, hors corbeille et hors doublons (note
+ * « Doublon »), chaque version trouvée en un exemplaire. Cases numérotées de 1 à n dans l'ordre :
+ * set (le plus ancien d'abord, la réserve à la fin), numéro, date de création. Lecture seule : la
+ * vraie collection n'est ni lue ni modifiée.
+ */
+export async function getAllCardsPotodex(player: Player): Promise<Potodex> {
+  assertAdmin(player);
+  const rows = (
+    await db.tcgCard.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ set: { createdAt: "asc" } }, { number: "asc" }, { createdAt: "asc" }],
+      include: withSet,
+    })
+  ).filter((row) => !isDuplicateNote(row.adminNote));
+  const entries = rows.flatMap((row, i) =>
+    cardVersions(row).map((version): PotodexEntry => ({
+      number: i + 1,
+      version,
+      altArt: isAltArt(row, version),
+      found: true,
+      count: 1,
+      card: { ...toCard(row), layout: version },
+    })),
+  );
+  return {
+    set: { id: "", code: ALL_CARDS_CODE, name: "Toutes les cartes" },
+    entries,
+    found: entries.length,
+    total: entries.length,
+    size: rows.length,
+    boosters: 0,
+  };
 }
 
 /** Potodex d'un set : ses cases, et les compteurs (versions trouvées, paquets ouverts). */

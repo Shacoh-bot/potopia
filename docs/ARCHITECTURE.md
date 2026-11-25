@@ -1390,7 +1390,10 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   sa version ; `found` et `total` comptent les versions, `size` les cartes), `getCompletePotodex`
   (même Potodex, chaque version trouvée en un exemplaire, sans lire ni écrire la collection ; sert
   l'aperçu admin « Potodex complet », `/admin/potodex?complet=1`, avec un bandeau et sans remise à
-  zéro), `resetCollection`
+  zéro), `getAllCardsPotodex` (onglet « Toutes les cartes » de cet aperçu, ouvert par défaut,
+  `?complet=1&set=toutes` (`ALL_CARDS_CODE`) : toutes les cartes du jeu, tous sets et réserve,
+  numérotées ou non, hors corbeille et doublons (`isDuplicateNote`), cases numérotées de 1 à n ;
+  lecture seule), `resetCollection`
   (vide la collection de test et le journal, garanties comprises), `boosterPity` (paquets au
   plus avant la SR ou mieux et la SSR garanties, affichés sous le paquet). Toutes vérifient l'admin tant que
   c'est un test ; les paquets sont gratuits et illimités.
