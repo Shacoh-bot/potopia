@@ -62,7 +62,7 @@ const VIDEO_DONE = 3.62;
 /** Largeur d'une carte `GameCard` à l'échelle 1, et rapport largeur/hauteur des cartes. */
 const CARD_WIDTH = 300;
 const CARD_RATIO = 360 / 504;
-/** Durée du demi-tour d'une carte (ms), comme l'animation tcg-flip-over de tcg.css. */
+/** Durée du demi-tour d'une carte (ms), comme tcg-flip-out puis tcg-flip-in (2 × 0,31 s) dans tcg.css. */
 const FLIP_MS = 620;
 /** Fondu d'arrivée de l'aura d'une carte posée (`tcg-aura-in`). */
 const AURA_IN_MS = 700;

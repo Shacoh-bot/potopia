@@ -1422,10 +1422,14 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   « zoomée » tant que le paquet 3D n'était pas dessiné ; elle est calée au moment où elle apparaît
   dans la page (pas seulement quand `src` change). 3) quand les cartes de la vidéo sont posées,
   les 5 vraies cartes, de dos, se rangent côte à côte ; chacune est une vraie carte recto-verso
-  (dos et `GameCard` montés dos à dos, `backface-visibility`), qu'un clic fait pivoter d'un seul
-  demi-tour (`tcg-flip-over`) ; le halo de rareté s'allume à mi-parcours, l'inclinaison et les
-  reflets reviennent une fois la carte posée ; la 3D du retournement est alors retirée et le côté
-  caché aussi (sinon ses calques animés transparaissaient quand on inclinait la carte). Chaque nouveau paquet repart de la vue d'origine
+  (dos et `GameCard` montés l'un sur l'autre) ; un clic la retourne sans 3D réelle : le dos pivote
+  jusqu'à la tranche (`tcg-flip-out`), puis la face part de la tranche (`tcg-flip-in`), un seul
+  côté visible à la fois (avec `preserve-3d` et `backface-visibility`, Firefox montrait les deux :
+  retournement « doublé ») ; le halo de rareté s'allume à mi-parcours, l'inclinaison et les
+  reflets reviennent une fois la carte posée, le dos est alors caché. Aucune carte n'utilise
+  `preserve-3d` ni `backface-visibility` (inclinaison `Tilt` à plat : perspective dans la
+  transformation ; `CardFlip` cache le côté de dos par `data-back`) : la 3D réelle faisait
+  disparaître cadre, nom et pastilles au survol dans Firefox. Test : `flat-3d.test.ts`. Chaque nouveau paquet repart de la vue d'origine
   (composant remonté). Le paquet 3D repasse aux couleurs du rendu Blender pendant l'approche, pour
   un relais sans saut. Safari joue la vidéo MP4 (le WebM transparent n'y marche pas) ; animations
   réduites (`prefers-reduced-motion`) : l'ouverture se joue quand même en entier (paquet, découpe,
