@@ -14,10 +14,11 @@
   --ry: 0deg;
   --glare: 0;
   position: relative;
+  /* Inclinaison à plat : la perspective tient dans la transformation, sans `preserve-3d` (aucun
+     calque n'a de profondeur). Dans Firefox, la 3D réelle faisait disparaître cadre, nom et
+     pastilles au survol (banc d'essai, 25/11). */
   transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
-  transform-style: preserve-3d;
   transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
-  will-change: transform;
   /* Une carte se manipule, elle ne se sélectionne pas comme du texte. */
   user-select: none;
   -webkit-user-select: none;
@@ -25,6 +26,7 @@
 .tcg-tilt[data-active] {
   --glare: 1;
   transition: transform 0.08s linear;
+  will-change: transform;
 }
 
 /* Planche de cartes (<Board>) : sur mobile, les cartes passent à la ligne au lieu de dépasser à
@@ -143,9 +145,7 @@
 .tcg-depth {
   transform-style: flat;
   /* Groupe isolé : les fusions des calques (holo « color », éclair « screen »…) se font avec
-     l'illustration. Sans lui, sur la carte vivante, leur fond serait `.tcg-tilt` en preserve-3d,
-     dont les plans sont peints à part : la fusion ne voit pas l'image et l'effet se peint
-     par-dessus la carte (reflets holo opaques au survol). */
+     l'illustration, et non avec ce qui est derrière la carte. */
   isolation: isolate;
 }
 .tcg-layer {
@@ -763,11 +763,11 @@ body:has(.tcg-opening, .tcg-still)::before {
   transition: none !important;
 }
 
-/* Carte retournable (`CardFlip`) : on la fait tourner en glissant à l'horizontale. Les faces sont
-   à plat (leur 3D interne s'y aplatit) pour que `backface-visibility` cache celle de derrière. */
+/* Carte retournable (`CardFlip`) : on la fait tourner en glissant à l'horizontale. Tout est à plat
+   (aucun `preserve-3d`) : seul le côté tourné vers nous est visible (`data-back`, posé par
+   `CardFlip` selon l'angle) ; le dos, retourné une fois de plus, se lit à l'endroit. */
 .tcg-flip {
   position: relative;
-  transform-style: preserve-3d;
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   /* Le glisser horizontal tourne la carte ; le défilement vertical reste au navigateur. */
   touch-action: pan-y;
@@ -779,9 +779,9 @@ body:has(.tcg-opening, .tcg-still)::before {
   transition: none;
   cursor: grabbing;
 }
-.tcg-flip-face {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+.tcg-flip[data-back] > .tcg-flip-face:not(.tcg-flip-back),
+.tcg-flip:not([data-back]) > .tcg-flip-back {
+  visibility: hidden;
 }
 .tcg-flip-back {
   position: absolute;
@@ -2061,59 +2061,52 @@ body:has(.tcg-opening, .tcg-still)::before {
 .tcg-opening-card[data-side="face"] {
   cursor: zoom-in;
 }
-/* Vraie carte recto-verso : le dos et la face sont dos à dos dans un même volume, et toute la
-   carte pivote d'un seul demi-tour. Chaque côté est à plat (la 3D interne de la face, inclinaison
-   et reflets, s'y aplatit) pour que `backface-visibility` cache celui de derrière, Firefox compris. */
+/* Carte recto-verso, retournée sans 3D réelle (aucun `preserve-3d`, aucun `backface-visibility`) :
+   le dos pivote jusqu'à la tranche en se décollant un peu (accélère), puis la face part de la
+   tranche et se repose (ralentit). Même geste qu'un demi-tour d'un seul bloc, mais un seul côté
+   existe à chaque instant : rien ne transparaît ni ne se dédouble (Firefox montrait les deux). */
 .tcg-opening-turn {
   position: relative;
   display: block;
-  transform-style: preserve-3d;
-  transform: perspective(1000px) translateZ(0) rotateY(0deg);
-}
-.tcg-opening-card[data-side="face"] .tcg-opening-turn {
-  transform: perspective(1000px) translateZ(0) rotateY(180deg);
-  animation: tcg-flip-over 0.62s both;
 }
 .tcg-opening-side {
   display: block;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 .tcg-opening-face {
   position: absolute;
   inset: 0;
-  transform: rotateY(180deg);
 }
-/* Hors du demi-tour, seul le côté visible existe : avant, la face n'est pas montrée ; une fois la
-   carte posée, la 3D du retournement est retirée (même rendu : 180° + 180° = 0°) et le dos est
-   caché. Sinon, en inclinant la carte à la souris, les calques animés de l'autre côté (galaxie du
-   dos, reflets) transparaissaient. */
 .tcg-opening-card[data-side="back"] .tcg-opening-face {
   visibility: hidden;
 }
-.tcg-opening-card[data-settled] .tcg-opening-turn {
-  transform: none;
-  animation: none;
+.tcg-opening-card[data-side="face"]:not([data-settled]) .tcg-opening-side:not(.tcg-opening-face) {
+  animation: tcg-flip-out 0.31s ease-in both;
 }
-.tcg-opening-card[data-settled] .tcg-opening-face {
-  transform: none;
+.tcg-opening-card[data-side="face"]:not([data-settled]) .tcg-opening-face {
+  animation: tcg-flip-in 0.31s 0.31s ease-out both;
 }
 .tcg-opening-card[data-settled] .tcg-opening-side:not(.tcg-opening-face) {
   visibility: hidden;
 }
-/* Un seul geste : la carte accélère jusqu'à la tranche en se décollant un peu, puis ralentit en
-   se reposant. Mêmes fonctions à chaque étape : le navigateur interpole l'angle, sans raccourci. */
-@keyframes tcg-flip-over {
+/* `visibility` change d'un coup : le dos disparaît à la tranche, la face y apparaît. */
+@keyframes tcg-flip-out {
   from {
     transform: perspective(1000px) translateZ(0) rotateY(0deg);
-    animation-timing-function: ease-in;
-  }
-  50% {
-    transform: perspective(1000px) translateZ(60px) rotateY(90deg);
-    animation-timing-function: ease-out;
+    visibility: visible;
   }
   to {
-    transform: perspective(1000px) translateZ(0) rotateY(180deg);
+    transform: perspective(1000px) translateZ(60px) rotateY(90deg);
+    visibility: hidden;
+  }
+}
+@keyframes tcg-flip-in {
+  from {
+    transform: perspective(1000px) translateZ(60px) rotateY(-90deg);
+    visibility: hidden;
+  }
+  to {
+    transform: perspective(1000px) translateZ(0) rotateY(0deg);
+    visibility: visible;
   }
 }
 /* La carte révélée prend son aura (`CardAura`, posée derrière elle dans la case) : elle apparaît
@@ -2196,7 +2189,7 @@ body:has(.tcg-opening, .tcg-still)::before {
     transition: none;
   }
   .tcg-opening-card,
-  .tcg-opening-turn,
+  .tcg-opening-side,
   .tcg-opening-hint {
     animation: none !important;
   }
@@ -2275,9 +2268,6 @@ body:has(.tcg-opening, .tcg-still)::before {
 
 /* Banc d'essai admin (`CardBench`) : strates coupées une à une (`data-sans`), pour trouver celle
    qui fait disparaître une partie de la carte ou qui ralentit. N'agit que dans le banc. */
-.tcg-bench[data-sans~="3d"] .tcg-tilt {
-  transform-style: flat !important;
-}
 .tcg-bench[data-sans~="incl"] .tcg-tilt {
   transform: none !important;
 }

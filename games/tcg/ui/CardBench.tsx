@@ -20,7 +20,6 @@ type Mode = "une" | "rangee" | "planche";
  * Couper une strate ne change que l'affichage du banc : aucune donnée n'est écrite.
  */
 export const BENCH_STRATES: { key: string; label: string; hint: string }[] = [
-  { key: "3d", label: "3D (preserve-3d)", hint: "inclinaison gardée, mais à plat" },
   { key: "incl", label: "Inclinaison", hint: "la carte ne pivote plus au survol" },
   { key: "holo", label: "Holo", hint: "reflets irisés de la rareté et de l'effet holo" },
   { key: "effets", label: "Effets visuels", hint: "tous les effets du catalogue" },
@@ -39,7 +38,7 @@ export const BENCH_STRATES: { key: string; label: string; hint: string }[] = [
 
 const EFFECT_KEYS = Object.keys(VISUAL_EFFECTS).filter((k) => !RETIRED_EFFECTS.includes(k));
 
-/** Durée du demi-tour du booster (`tcg-flip-over`, 0,62 s), plus une marge. */
+/** Durée du demi-tour du booster (`tcg-flip-out` puis `tcg-flip-in`, 0,62 s), plus une marge. */
 const FLIP_MS = 650;
 
 /**
@@ -264,7 +263,7 @@ function Scaled({ scale, children }: { scale: number; children: ReactNode }) {
 
 /**
  * Une case de carte. En face de booster : même balisage et mêmes classes que `BoosterOpening`
- * (retournement, face `backface-visibility: hidden`, aura derrière), taille par `zoom` ou par
+ * (retournement, un seul côté visible à la fois, aura derrière), taille par `zoom` ou par
  * `transform`. Avec `flip`, la carte part de dos et fait son demi-tour.
  */
 function BenchSlot({

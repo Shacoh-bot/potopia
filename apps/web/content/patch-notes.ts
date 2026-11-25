@@ -64,6 +64,21 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-26",
+    title: "Cartes : plus rien ne s'efface au survol dans Firefox",
+    publicTitle: "Petites retouches",
+    items: [
+      {
+        admin: true,
+        text: "Cartes : le cadre, le nom, le coût et la puissance ne s'effacent plus quand on survole une carte dans Firefox (booster, Potodex, fiches) : inclinaison sans 3D réelle, même rendu.",
+      },
+      {
+        admin: true,
+        text: "Booster : le retournement d'une carte ne montre plus les deux côtés à la fois (retournement « doublé »).",
+      },
+    ],
+  },
+  {
     date: "2026-11-25",
     title: "Cartes : plus d'aplat rouge ou doré, cadres SR/SSR toujours animés",
     publicTitle: "Petites retouches",

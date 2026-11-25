@@ -91,6 +91,8 @@ export function CardFlip({
       <div
         className="tcg-flip"
         data-dragging={dragging ? "" : undefined}
+        // Côté tourné vers nous, d'après l'angle (dos entre 90° et 270°) : l'autre est caché.
+        data-back={backVisible ? "" : undefined}
         style={{ transform: `perspective(1200px) rotateY(${angle.toFixed(2)}deg)` }}
         onPointerDown={down}
         onPointerMove={move}
