@@ -45,6 +45,18 @@ const EFFECT_PLACES: Record<string, EffectPlace> = {
   ombres: "card",
 };
 
+/**
+ * Effets retirés (règle du 25/11/2026) : ils cachent le cadre de rareté, qui montre la rareté.
+ * Ils ne se choisissent plus dans l'éditeur et ne s'affichent plus ; le réglage des cartes qui les
+ * ont déjà reste enregistré (rien effacé). Halo, givre, orbite et néon restent permis.
+ */
+export const RETIRED_EFFECTS: readonly string[] = ["prisme", "flux"];
+
+/** L'effet est-il retiré (ni choisi ni affiché) ? */
+export function isRetiredEffect(effectKey: string): boolean {
+  return RETIRED_EFFECTS.includes(effectKey);
+}
+
 /** Place de l'effet : illustration, toute la carte, par-dessus la bordure, ou l'image redessinée. */
 export function effectPlace(effectKey: string): EffectPlace {
   return EFFECT_PLACES[effectKey] ?? "art";

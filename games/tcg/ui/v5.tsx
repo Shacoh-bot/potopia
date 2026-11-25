@@ -1,11 +1,12 @@
 import type { CSSProperties } from "react";
 import { type CardData, font } from "./cards";
 import { PremiumArt } from "./premium";
-import { ImageCost, ImagePower, Ring, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
+import { ImageCost, ImagePower, SNAP_FINISH_LABELS, type SnapFinish } from "./snap";
 import { GlowPoints } from "./GlowPoints";
 import { Art, fill, Layer, R, Shell } from "./v2";
 import { effectTextSize, FOOTER_GAP, footerFontSize } from "./card-fit";
-import { effectPlace } from "./effect-places";
+import { effectPlace, isRetiredEffect } from "./effect-places";
+import { FrameRing } from "./frame-ring";
 import { VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
@@ -313,6 +314,7 @@ function FrameRun({
                 backgroundSize: `${period}px 100%`,
                 backgroundPosition: `${-shift}px 0`,
                 animationDuration: `${seconds}s`,
+                "--from": `${-shift}px`,
                 "--run": `${period}px`,
               } as CSSProperties
             }
@@ -645,10 +647,18 @@ const PANEL_GOLD =
  * Filets très fins des encadrés (ligne de type, effet) dans le style du dos : un filet doré de
  * 1 px à la place de la bordure, doublé à l'intérieur d'un liseré cyan à peine visible.
  */
-function PanelTrim() {
+function PanelTrim({ h }: { h: number }) {
   return (
     <>
-      <Ring background={PANEL_GOLD} width={1} style={{ inset: 0, borderRadius: 8 }} />
+      {/* Filet dessiné (pas un calque troué par clip-path, qui se peignait parfois plein : aplat doré). */}
+      <FrameRing
+        background={PANEL_GOLD}
+        width={1}
+        radius={8}
+        w={W - 2 * SIDE}
+        h={h}
+        segments={48}
+      />
       <div
         aria-hidden
         style={{
@@ -696,7 +706,9 @@ export function FinalCard({
   // Taille du texte d'effet qui fait tout tenir (jamais coupé).
   const fit = effectTextSize(card.effect, card.flavor);
   // Carte normale : chaque effet à sa place (`effectPlace`) : illustration, carte, ou bordure.
-  const placed = (place: string) => visualEffects.filter((k) => effectPlace(k) === place);
+  // Effets retirés (ils cachent le cadre de rareté) : plus affichés, réglage gardé.
+  const placed = (place: string) =>
+    visualEffects.filter((k) => !isRetiredEffect(k) && effectPlace(k) === place);
   // Les effets qui redessinent l'illustration passent sous ceux posés dessus.
   const imageEffects = placed("image");
   const artEffects = [...imageEffects, ...placed("art")];
@@ -817,7 +829,8 @@ export function FinalCard({
 
       {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
       <Layer z={10} style={{ ...fill, borderRadius: R, pointerEvents: "none" }}>
-        <Ring background={RARITY_FRAME[finish]} width={FRAME} />
+        {/* Cadre dessiné en SVG, sans découpe : il ne peut plus se peindre sur toute la carte. */}
+        <FrameRing background={RARITY_FRAME[finish]} width={FRAME} />
         {FRAME_MOTION[finish] === "comets" && <SsrComets />}
         {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
         <div
@@ -864,7 +877,7 @@ export function FinalCard({
           <span style={{ fontFamily: font("magic", "serif"), fontWeight: 700, fontSize: 12.5 }}>
             {typeLine ?? `Créature — ${card.tag}`}
           </span>
-          {!bare && <PanelTrim />}
+          {!bare && <PanelTrim h={TYPE.height} />}
         </div>
       </Layer>
 
@@ -882,7 +895,7 @@ export function FinalCard({
             ...panel,
           }}
         >
-          {!bare && <PanelTrim />}
+          {!bare && <PanelTrim h={H - TEXT.top - TEXT.bottom} />}
           <div>{card.effect}</div>
           {card.flavor && (
             <div
