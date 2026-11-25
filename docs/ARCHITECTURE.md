@@ -1529,6 +1529,16 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
   Chaque son varie un peu à chaque fois ; volume du site respecté.
+- `/admin/banc-cartes` : banc d'essai du rendu des cartes (`CardBench` de `@app/tcg/ui`), en
+  lecture seule. Les 80 premières cartes du jeu (hors corbeille), en une carte, en rangée de 5
+  comme à l'ouverture d'un booster (même balisage `.tcg-opening-*`, auras, taille par `zoom` ou
+  par `transform`, bouton « Retourner ») ou en planche figée de 40. Rareté, version et effets
+  forçables. Strates à couper une à une (attribut `data-sans` du banc, règles `.tcg-bench` de
+  `tcg.css`) : 3D, inclinaison, holo, effets, cadre, filets, bandeau, encadrés, pied, pastilles,
+  halo, fusions, filtres, masques, animations ; la carte porte pour cela des repères
+  `tcg-strate-*` (v5). Compteur d'images par seconde, d'images longues (> 50 ms) et de la pire
+  image. Sert à trouver dans le vrai navigateur de l'admin ce qui fait disparaître une partie
+  d'une carte ou ce qui ralentit (`test/card-bench.test.ts` vérifie que chaque strate a sa règle).
 - `/admin/potodex` : toutes les cartes du set, chaque version à part (case « AA » pour l'Alt
   Art), celles trouvées avec leur nombre d'exemplaires, les autres en noir avec seulement leur
   numéro (et « AA » pour une Alt Art) ; compteur « versions trouvées/total », paquets ouverts,

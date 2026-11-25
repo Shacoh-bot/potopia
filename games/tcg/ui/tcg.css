@@ -2272,3 +2272,39 @@ body:has(.tcg-opening, .tcg-still)::before {
 .tcg-still[data-live] .tcg-hover-halo {
   opacity: 1;
 }
+
+/* Banc d'essai admin (`CardBench`) : strates coupées une à une (`data-sans`), pour trouver celle
+   qui fait disparaître une partie de la carte ou qui ralentit. N'agit que dans le banc. */
+.tcg-bench[data-sans~="3d"] .tcg-tilt {
+  transform-style: flat !important;
+}
+.tcg-bench[data-sans~="incl"] .tcg-tilt {
+  transform: none !important;
+}
+.tcg-bench[data-sans~="holo"] :is(.tcg-holo, .tcg-vfx-holo),
+.tcg-bench[data-sans~="effets"] .tcg-vfx,
+.tcg-bench[data-sans~="cadre"] .tcg-strate-cadre,
+.tcg-bench[data-sans~="filets"] .tcg-strate-filets,
+.tcg-bench[data-sans~="bandeau"] .tcg-strate-bandeau,
+.tcg-bench[data-sans~="encadres"] .tcg-strate-encadres,
+.tcg-bench[data-sans~="pied"] .tcg-strate-pied,
+.tcg-bench[data-sans~="pastilles"] .tcg-strate-pastilles,
+.tcg-bench[data-sans~="halo"] .tcg-hover-halo {
+  display: none !important;
+}
+.tcg-bench[data-sans~="fusions"] * {
+  mix-blend-mode: normal !important;
+}
+.tcg-bench[data-sans~="filtres"] * {
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+.tcg-bench[data-sans~="masques"] * {
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+.tcg-bench[data-sans~="anims"] *,
+.tcg-bench[data-sans~="anims"] *::before,
+.tcg-bench[data-sans~="anims"] *::after {
+  animation-play-state: paused !important;
+}

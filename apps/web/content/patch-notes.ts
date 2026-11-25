@@ -80,6 +80,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Fluidité (booster, Potodex) : l'inclinaison d'une carte suit le pointeur avec un seul calcul par image, les lumières des cadres SR/SSR coûtent moins, et les lueurs d'ambiance du fond s'arrêtent sur ces écrans.",
       },
+      {
+        admin: true,
+        text: "Nouveau « Banc d'essai des cartes » (admin) : une carte, une rangée de booster ou une planche, rareté et effets au choix, strates à couper une à une (3D, holo, cadre…) et compteur d'images par seconde. Pour trouver ce qui fait disparaître une partie des cartes. Lecture seule.",
+      },
     ],
   },
   {
