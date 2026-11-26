@@ -1976,10 +1976,10 @@ body:has(.tcg-opening, .tcg-still)::before {
 }
 
 /* vent : bourrasques de lumière (style de la carte « Spinning spinning »). Chaque coup de vent
-   (`.tcg-vfx-gust`, réglages posés par Wind) fait 4 passages par cycle : il apparaît à un angle et
-   un rayon (`--w-a*`, `--w-s*`), file autour du centre du tourbillon jusqu'à `--w-e*` en se
-   montrant à peine 8 % du cycle, puis s'efface et repart d'ailleurs. Rotation, échelle et
-   transparence seulement : ni filtre, ni fusion, ni masque, ni 3D. */
+   (`.tcg-vfx-gust`, réglages posés par Wind) fait 4 passages par cycle : centré sur un très grand
+   arc (`--w-x*`, `--w-y*`, hors de la carte), il pivote de `--w-a*` à `--w-e*` (quelques degrés :
+   portion presque droite) en se montrant à peine 8 % du cycle, puis s'efface et repart d'ailleurs.
+   Déplacement, rotation et transparence seulement : ni filtre, ni fusion, ni masque, ni 3D. */
 .tcg-vfx-wind {
   position: absolute;
   inset: 0;
@@ -1993,7 +1993,7 @@ body:has(.tcg-opening, .tcg-still)::before {
 }
 @keyframes tcg-vfx-gust-fly {
   0% {
-    transform: rotate(var(--w-a0)) scale(var(--w-s0));
+    transform: translate(var(--w-x0), var(--w-y0)) rotate(var(--w-a0));
     opacity: 0;
   }
   1.2%,
@@ -2002,11 +2002,11 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
   8%,
   24.9% {
-    transform: rotate(var(--w-e0)) scale(var(--w-s0));
+    transform: translate(var(--w-x0), var(--w-y0)) rotate(var(--w-e0));
     opacity: 0;
   }
   25% {
-    transform: rotate(var(--w-a1)) scale(var(--w-s1));
+    transform: translate(var(--w-x1), var(--w-y1)) rotate(var(--w-a1));
     opacity: 0;
   }
   26.2%,
@@ -2015,11 +2015,11 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
   33%,
   49.9% {
-    transform: rotate(var(--w-e1)) scale(var(--w-s1));
+    transform: translate(var(--w-x1), var(--w-y1)) rotate(var(--w-e1));
     opacity: 0;
   }
   50% {
-    transform: rotate(var(--w-a2)) scale(var(--w-s2));
+    transform: translate(var(--w-x2), var(--w-y2)) rotate(var(--w-a2));
     opacity: 0;
   }
   51.2%,
@@ -2028,11 +2028,11 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
   58%,
   74.9% {
-    transform: rotate(var(--w-e2)) scale(var(--w-s2));
+    transform: translate(var(--w-x2), var(--w-y2)) rotate(var(--w-e2));
     opacity: 0;
   }
   75% {
-    transform: rotate(var(--w-a3)) scale(var(--w-s3));
+    transform: translate(var(--w-x3), var(--w-y3)) rotate(var(--w-a3));
     opacity: 0;
   }
   76.2%,
@@ -2041,7 +2041,7 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
   83%,
   100% {
-    transform: rotate(var(--w-e3)) scale(var(--w-s3));
+    transform: translate(var(--w-x3), var(--w-y3)) rotate(var(--w-e3));
     opacity: 0;
   }
 }

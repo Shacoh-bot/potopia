@@ -1203,16 +1203,17 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
   tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   `vent` (« Vent », place `art`, migration `tcg_visual_effects_vent`, `Wind`, pensé pour la full
-  art « Spinning spinning ») : bourrasques de lumière dans le style de l'illustration (v3.1).
-  36 traînées effilées (`windStreak` : arc du tourbillon, épais à la tête, nul au bout ; halo de
-  couleur plus large et pâle en guise de flou de mouvement, cœur clair) aux couleurs de l'image
-  (violets, roses, cyan, or), plus 12 étincelles et 10 confettis de fête foraine. Le tourbillon
-  est un cercle aplati et un peu penché autour du centre de l'illustration (56 % de haut en full
-  art). Chaque coup de vent (`WIND_GUSTS`) fait 4 passages par cycle (`tcg-vfx-gust-fly`) : il
-  apparaît à un angle et un rayon tirés une fois (`--w-a*`, `--w-s*`), file dans le sens des
-  aiguilles d'une montre jusqu'à `--w-e*` (visible ≈ 0,5-0,9 s ; étincelles plus vite) puis
-  s'efface ; tous décalés. Rotation, échelle et transparence seulement ; ni filtre, ni fusion, ni
-  masque, ni 3D. Mouvement réduit : rien ne s'affiche.
+  art « Spinning spinning ») : bourrasques de lumière dans le style de l'illustration (v3.2).
+  36 traînées effilées (`windStreak` : arc épais à la tête, nul au bout ; halo de couleur plus
+  large et pâle en guise de flou de mouvement, cœur clair) aux couleurs de l'image (violets,
+  roses, cyan, or), plus 12 étincelles et 10 confettis de fête foraine. Chaque coup de vent
+  (`WIND_GUSTS`) suit un arc de très grand rayon (220 à 400, centre hors de la carte) dont il ne
+  parcourt qu'une portion presque droite : de gauche à droite dans la moitié haute (centre loin
+  en dessous), de droite à gauche dans la moitié basse (centre loin au-dessus), quelques
+  transitions au milieu ; ensemble, les deux bords d'un grand tourbillon horaire. 4 passages par
+  cycle (`tcg-vfx-gust-fly`, centre `--w-x*`/`--w-y*`, angles `--w-a*` → `--w-e*`), visible
+  ≈ 0,5-0,9 s, tous décalés. Déplacement, rotation et transparence seulement ; ni filtre, ni
+  fusion, ni masque, ni 3D. Mouvement réduit : rien ne s'affiche.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est
