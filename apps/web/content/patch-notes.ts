@@ -88,6 +88,9 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Effet « Vent » refait : des bourrasques de lumière aux couleurs de l'illustration glissent vite le long des tourbillons peints, vers la droite en haut et vers la gauche en bas, avec étincelles et confettis.",
       },
+      {
+        admin: true,
+        text: "Cartes : filet de sécurité automatique. Avant chaque mise en ligne, les cartes de chaque rareté sont photographiées dans Firefox et Chrome, au repos et au survol : un changement de rendu ou une partie qui disparaît bloque la mise en ligne.",      },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 try {
   process.loadEnvFile(fileURLToPath(new URL("../../.env", import.meta.url)));
@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     globalSetup: ["./test/global-setup.ts"],
     fileParallelism: false,
+    // Banc de rendu (Firefox + Chrome) : configuration à part, `vitest.rendu.config.ts`.
+    exclude: [...configDefaults.exclude, "test/rendu/**"],
     env: {
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? "",
       ADMIN_DISCORD_IDS: "100000000000000001",

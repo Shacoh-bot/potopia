@@ -85,3 +85,40 @@ jobs:
 
       - name: Build du site
         run: pnpm build
+
+  # Banc de rendu des cartes (filet de sécurité de la refonte) : Firefox et Chrome invisibles, dans
+  # l'image Playwright dont viennent les captures de référence (mêmes polices, même rendu).
+  # Sa version suit `playwright` de games/tcg/package.json.
+  rendu-cartes:
+    name: Rendu des cartes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      options: --user 1001 --ipc=host
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Installation
+        run: pnpm install --frozen-lockfile --filter "@app/tcg..."
+
+      - name: Banc de rendu
+        run: pnpm --filter @app/tcg test:rendu
+
+      - name: Captures de l'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendu-cartes-echecs
+          path: games/tcg/.vitest/attachments
+          if-no-files-found: ignore

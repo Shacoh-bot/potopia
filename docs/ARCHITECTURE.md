@@ -1710,6 +1710,18 @@ palettes), jamais son code (GPL) : le compositeur est fait maison.
 - **storage** : clés, présignatures, objets (sur le stockage S3 local).
 - **jeux** : voir les README de TROIS, d'Agents Doubles, de Pose JoJo et de DOUZE ; **tcg** : vote ouvert aux membres,
   numéros stables, mots-clés et négations.
+- **cartes, filet de sécurité** (refonte du rendu, étape 2) :
+  - `games/tcg/test/card-budget.test.tsx` (avec `pnpm test`) : plafond d'éléments par carte, aucune 3D
+    réelle (`preserve-3d`, `backface-visibility`), strates repérées (`tcg-strate-*`) présentes, fusions
+    de couleurs (`mix-blend-mode`) plafonnées par fichier, animations de `tcg.css` limitées à
+    transform/opacity (exceptions listées). Cliquet : une étape peut baisser ces plafonds, pas les monter.
+  - banc de rendu `games/tcg/test/rendu` (Vitest navigateur, Firefox + Chrome invisibles, job CI
+    « Rendu des cartes » dans l'image Playwright) : chaque rareté, normale sans effet et full art à
+    3 effets, au repos et inclinée au survol, animations figées ; capture comparée à la référence
+    (tolérance 1 % de pixels) et strates toutes visibles dans la carte au survol. Références prises
+    sous Linux : `pnpm test:rendu:docker` (Docker) compare en local, `pnpm test:rendu:docker --update`
+    les renouvelle après un changement voulu (à regarder avant de les versionner) ; un échec dépose
+    captures et écarts dans `games/tcg/test/rendu/.echecs` (local) ou dans les artefacts du CI.
 
 ## Étapes de réalisation
 

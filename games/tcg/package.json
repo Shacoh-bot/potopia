@@ -11,7 +11,9 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:rendu": "vitest run -c vitest.rendu.config.ts",
+    "test:rendu:docker": "sh scripts/rendu-docker.sh"
   },
   "dependencies": {
     "@app/config": "workspace:*",
@@ -30,9 +32,13 @@
   "devDependencies": {
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@types/three": "0.187.0",
+    "@vitest/browser-playwright": "5.0.5",
     "eslint": "10.13.0",
+    "playwright": "1.65.1",
     "react": "19.3.1",
+    "react-dom": "19.3.1",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   }
