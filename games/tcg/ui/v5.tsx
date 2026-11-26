@@ -75,6 +75,12 @@ export const RARITY_FRAME: Record<CardFinish, string> = {
   ssr: "conic-gradient(from 0deg at 50% 50%, #ff6ab5, #ffd36a, #7dffb0, #6ad5ff, #b88bff, #ff6ab5)",
 };
 /** Cadre animé selon la rareté : SSR = deux comètes d'énergie (`SsrComets`), SR = carmin étoilé d'or (`SrCarmine`). */
+/**
+ * Raretés qui ont une aura simple (lueur qui respire autour de la carte, `.tcg-aura`) : épique très
+ * légère, légendaire, SR, SSR. Commune, peu commune et rare n'en ont pas.
+ */
+export const CARD_AURA_FINISHES: readonly CardFinish[] = ["epic", "legendary", "sr", "ssr"];
+
 export const FRAME_MOTION: Partial<Record<CardFinish, FrameMotion>> = {
   sr: "carmine",
   ssr: "comets",
@@ -364,7 +370,6 @@ const SR_SPARKS: [number, number, number, number, number][] = [
 function SrCarmine() {
   return (
     <>
-      <div aria-hidden className="tcg-sr-halo" />
       <div aria-hidden className="tcg-frame-run">
         <FrameRun light="tcg-frame-run__light--carmine" period={720} seconds={3.2} thick={FRAME} />
       </div>
@@ -834,6 +839,9 @@ export function FinalCard({
         style={{ ...fill, borderRadius: R, pointerEvents: "none" }}
       >
         {/* Cadre dessiné en SVG, sans découpe : il ne peut plus se peindre sur toute la carte. */}
+        {CARD_AURA_FINISHES.includes(finish) && (
+          <div aria-hidden className="tcg-aura" data-rarity={finish} />
+        )}
         <FrameRing background={RARITY_FRAME[finish]} width={FRAME} />
         {FRAME_MOTION[finish] === "comets" && <SsrComets />}
         {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
