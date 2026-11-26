@@ -5,7 +5,7 @@ import { VISUAL_EFFECTS, WIND_GUSTS, WIND_HOPS, windStreak } from "../ui/visual-
 
 /**
  * Effet « Vent » : de vraies bourrasques sur l'illustration seule (jamais sur le cadre de rareté) :
- * beaucoup de petits traits qui filent vite et s'effacent, un peu partout, autour du tourbillon.
+ * traînées de lumière effilées et étincelles qui filent autour du tourbillon puis s'effacent.
  */
 const css = readFileSync(new URL("../ui/tcg.css", import.meta.url), "utf8").replace(
   /\/\*[\s\S]*?\*\//g,
@@ -27,54 +27,54 @@ describe("effet Vent", () => {
     expect(isRetiredEffect("vent")).toBe(false);
   });
 
-  it("des bourrasques : beaucoup de coups de vent, tous décalés, qui changent de place", () => {
-    expect(WIND_GUSTS.length).toBeGreaterThanOrEqual(30);
+  it("des bourrasques : beaucoup de coups de vent, tous décalés, qui repartent d'ailleurs", () => {
     const streaks = WIND_GUSTS.filter((g) => g.kind === "streak");
     expect(streaks.length).toBeGreaterThanOrEqual(20);
-    // Un trait n'est visible qu'au premier tiers de son passage (≈ 0,32 × durée) : 0,4 à 0,9 s.
+    expect(WIND_GUSTS.filter((g) => g.kind !== "streak").length).toBeGreaterThanOrEqual(15);
+    // Une traînée n'est visible que 8 % de son cycle de 4 passages (0,32 × un passage) : 0,4-0,95 s.
     for (const g of streaks) {
       expect(g.duration * 0.32).toBeGreaterThanOrEqual(0.4);
       expect(g.duration * 0.32).toBeLessThanOrEqual(0.95);
     }
-    // Tous décalés, et chaque coup saute ailleurs entre deux passages.
-    expect(new Set(WIND_GUSTS.map((g) => g.delay.toFixed(3))).size).toBe(WIND_GUSTS.length);
+    expect(new Set(WIND_GUSTS.map((g) => g.delay.toFixed(5))).size).toBe(WIND_GUSTS.length);
     for (const g of WIND_GUSTS) {
       expect(g.hops).toHaveLength(WIND_HOPS);
-      const spots = new Set(g.hops.map((h) => `${Math.round(h.x)}:${Math.round(h.y)}`));
-      expect(spots.size).toBe(WIND_HOPS);
-      for (const h of g.hops) {
-        expect(Math.abs(h.x)).toBeLessThanOrEqual(70);
-        expect(Math.abs(h.y)).toBeLessThanOrEqual(100);
-      }
+      expect(new Set(g.hops.map((h) => Math.round(h.angle))).size).toBe(WIND_HOPS);
+      // sens des aiguilles d'une montre à l'écran : l'angle croît pendant le passage
+      for (const h of g.hops) expect(h.end).toBeGreaterThan(h.angle + 40);
     }
   });
 
-  it("suit le tourbillon dans le sens des aiguilles d'une montre (à l'écran)", () => {
-    // Orientation moyenne d'un trait par rapport à la tangente horaire en sa place : proche de 0.
-    const offsets = WIND_GUSTS.filter((g) => g.kind === "streak").flatMap((g) =>
-      g.hops.map((h) => {
-        const tangent = (Math.atan2(h.y, h.x) * 180) / Math.PI + 90;
-        return ((((h.angle - tangent) % 360) + 540) % 360) - 180;
-      }),
-    );
-    for (const o of offsets) expect(Math.abs(o)).toBeLessThanOrEqual(28.01);
+  it("couleurs de l'illustration et cœur clair, pas de blanc plat", () => {
+    const colors = new Set(WIND_GUSTS.map((g) => g.color));
+    expect(colors.size).toBeGreaterThanOrEqual(4);
+    expect(colors.has("#ffffff")).toBe(false);
   });
 
-  it("animations : tracé, transparence et sauts de place seulement (ni 3D, ni filtre)", () => {
-    const allowed = ["transform", "opacity", "stroke-dashoffset"];
-    for (const name of ["tcg-vfx-gust-hop", "tcg-vfx-gust-draw", "tcg-vfx-gust-mote"]) {
-      const body = css.split(`@keyframes ${name} {`)[1]?.split("\n}")[0] ?? "";
-      const props = [...body.matchAll(/([a-z-]+):/g)].map((m) => m[1]);
-      expect(props.length).toBeGreaterThan(0);
-      for (const p of props) expect(allowed).toContain(p);
-    }
-    const hop = css.split("@keyframes tcg-vfx-gust-hop {")[1]?.split("\n}")[0] ?? "";
-    expect(hop).not.toMatch(/3d|perspective|scale/);
+  it("animation : rotation, échelle et transparence seulement (ni 3D, ni filtre)", () => {
+    const body = css.split("@keyframes tcg-vfx-gust-fly {")[1]?.split("\n}")[0] ?? "";
+    const props = [...body.matchAll(/([a-z-]+):/g)].map((m) => m[1]);
+    expect(props.length).toBeGreaterThan(0);
+    for (const p of props) expect(["transform", "opacity"]).toContain(p);
+    expect(body).not.toMatch(/3d|perspective|translate|matrix/);
+    for (let k = 0; k < WIND_HOPS; k++) expect(body).toContain(`var(--w-e${k})`);
   });
 
-  it("un trait de vent file vers l'avant, avec parfois une boucle au bout", () => {
-    expect(windStreak(40, 0.2, false)).toMatch(/^M 0 0 Q 20\.00 8\.00 40\.00 4\.80$/);
-    expect(windStreak(40, 0.2, true).match(/ c /g)).toHaveLength(2);
-    expect(WIND_GUSTS.some((g) => g.d.includes(" c "))).toBe(true);
+  it("une traînée est effilée : épaisse à la tête, nulle au bout de la queue", () => {
+    const d = windStreak(60, 2);
+    // « M tête … queue (bord extérieur) L queue … tête (bord intérieur) A … Z »
+    const pts = (d.split(" A ")[0] ?? "")
+      .replace("M ", "")
+      .split(" L ")
+      .map((x) => x.split(" ").map(Number));
+    const outer = pts.slice(0, 13);
+    const inner = pts.slice(13, 26).reverse();
+    const gap = (i: number) =>
+      Math.hypot(...(outer[i] as number[])) - Math.hypot(...(inner[i] as number[]));
+    expect(gap(0)).toBeCloseTo(4, 1);
+    expect(gap(6)).toBeLessThan(gap(0));
+    expect(gap(12)).toBeCloseTo(0, 5);
+    // la queue est derrière la tête (angles négatifs : vers le haut à droite de l'écran)
+    expect((outer[12] as number[])[1]).toBeLessThan(0);
   });
 });

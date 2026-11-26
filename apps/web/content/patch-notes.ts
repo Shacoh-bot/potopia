@@ -86,7 +86,7 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
-        text: "Effet « Vent » refait : de vraies bourrasques. Plein de petits traits de vent apparaissent un peu partout, filent très vite autour du tourbillon puis s'effacent, avec des brins emportés.",
+        text: "Effet « Vent » refait : de vraies bourrasques de lumière, aux couleurs de l'illustration. Des traînées effilées et lumineuses apparaissent un peu partout, filent très vite autour du tourbillon puis s'effacent, avec des étincelles et des confettis emportés.",
       },
     ],
   },

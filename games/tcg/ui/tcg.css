@@ -1975,11 +1975,11 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
 }
 
-/* vent : bourrasques. Chaque coup de vent (`.tcg-vfx-gust`, réglages posés par Wind) saute d'une
-   place à l'autre (`tcg-vfx-gust-hop`, 4 places, un saut par passage, quand le trait est invisible) ;
-   son trait se trace très vite le long de sa courbe en s'étirant puis s'efface
-   (`tcg-vfx-gust-draw`, tiret qui avance : `stroke-dashoffset`, et transparence). Les brins
-   (`.tcg-vfx-gust-mote`) passent plus vite. Ni 3D, ni filtre, ni fusion, ni masque. */
+/* vent : bourrasques de lumière (style de la carte « Spinning spinning »). Chaque coup de vent
+   (`.tcg-vfx-gust`, réglages posés par Wind) fait 4 passages par cycle : il apparaît à un angle et
+   un rayon (`--w-a*`, `--w-s*`), file autour du centre du tourbillon jusqu'à `--w-e*` en se
+   montrant à peine 8 % du cycle, puis s'efface et repart d'ailleurs. Rotation, échelle et
+   transparence seulement : ni filtre, ni fusion, ni masque, ni 3D. */
 .tcg-vfx-wind {
   position: absolute;
   inset: 0;
@@ -1987,72 +1987,61 @@ body:has(.tcg-opening, .tcg-still)::before {
   height: 100%;
 }
 .tcg-vfx-gust {
-  transform-origin: 0 0;
-  animation: tcg-vfx-gust-hop var(--w-hop) linear var(--w-delay) infinite;
-}
-.tcg-vfx-gust-line {
   opacity: 0;
-  stroke-dasharray: 50 300;
-  stroke-dashoffset: 50;
-  animation: tcg-vfx-gust-draw var(--w-dur) cubic-bezier(0.3, 0.6, 0.5, 1) var(--w-delay) infinite;
+  transform-origin: 0 0;
+  animation: tcg-vfx-gust-fly var(--w-dur) linear var(--w-delay) infinite;
 }
-.tcg-vfx-gust-mote {
-  stroke-dasharray: 10 300;
-  stroke-dashoffset: 10;
-  animation-name: tcg-vfx-gust-mote;
-}
-@keyframes tcg-vfx-gust-hop {
-  0%,
+@keyframes tcg-vfx-gust-fly {
+  0% {
+    transform: rotate(var(--w-a0)) scale(var(--w-s0));
+    opacity: 0;
+  }
+  1.2%,
+  5.5% {
+    opacity: var(--w-o);
+  }
+  8%,
   24.9% {
-    transform: translate(var(--w-x0), var(--w-y0)) rotate(var(--w-a0));
+    transform: rotate(var(--w-e0)) scale(var(--w-s0));
+    opacity: 0;
   }
-  25%,
+  25% {
+    transform: rotate(var(--w-a1)) scale(var(--w-s1));
+    opacity: 0;
+  }
+  26.2%,
+  30.5% {
+    opacity: var(--w-o);
+  }
+  33%,
   49.9% {
-    transform: translate(var(--w-x1), var(--w-y1)) rotate(var(--w-a1));
+    transform: rotate(var(--w-e1)) scale(var(--w-s1));
+    opacity: 0;
   }
-  50%,
+  50% {
+    transform: rotate(var(--w-a2)) scale(var(--w-s2));
+    opacity: 0;
+  }
+  51.2%,
+  55.5% {
+    opacity: var(--w-o);
+  }
+  58%,
   74.9% {
-    transform: translate(var(--w-x2), var(--w-y2)) rotate(var(--w-a2));
+    transform: rotate(var(--w-e2)) scale(var(--w-s2));
+    opacity: 0;
   }
-  75%,
+  75% {
+    transform: rotate(var(--w-a3)) scale(var(--w-s3));
+    opacity: 0;
+  }
+  76.2%,
+  80.5% {
+    opacity: var(--w-o);
+  }
+  83%,
   100% {
-    transform: translate(var(--w-x3), var(--w-y3)) rotate(var(--w-a3));
-  }
-}
-@keyframes tcg-vfx-gust-draw {
-  0% {
-    stroke-dashoffset: 50;
-    opacity: 0;
-  }
-  5% {
-    opacity: 0.95;
-  }
-  24% {
-    opacity: 0.8;
-  }
-  32% {
-    stroke-dashoffset: -100;
-    opacity: 0;
-  }
-  100% {
-    stroke-dashoffset: -100;
-    opacity: 0;
-  }
-}
-@keyframes tcg-vfx-gust-mote {
-  0% {
-    stroke-dashoffset: 10;
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  26% {
-    stroke-dashoffset: -100;
-    opacity: 0;
-  }
-  100% {
-    stroke-dashoffset: -100;
+    transform: rotate(var(--w-e3)) scale(var(--w-s3));
     opacity: 0;
   }
 }
@@ -2065,8 +2054,7 @@ body:has(.tcg-opening, .tcg-still)::before {
   .tcg-vfx-rays,
   .tcg-vfx-fall,
   .tcg-vfx-shade,
-  .tcg-vfx-gust,
-  .tcg-vfx-gust-line {
+  .tcg-vfx-gust {
     animation: none;
   }
   .tcg-glow[data-blink],

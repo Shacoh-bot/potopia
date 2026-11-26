@@ -873,77 +873,92 @@ const Shadows = () => (
 
 /* ── Vent ── */
 
-/** Positions successives d'un coup de vent : il saute ailleurs entre deux passages, invisible. */
+/** Passages d'un coup de vent : à chacun, il repart d'ailleurs (autre angle, autre rayon). */
 export const WIND_HOPS = 4;
+/** Rayon de référence d'une traînée (repère du tourbillon, avant aplatissement). */
+const WIND_R = 50;
 
 /**
- * Tracé d'un trait de vent dans son repère : il part de l'origine et file vers +x sur `length`,
- * légèrement courbé (`bend` : flèche relative, signe = côté), avec parfois une petite boucle au bout
- * (`curl`), comme les coups de vent des dessins animés. Courbes de Bézier : un seul chemin.
+ * Une traînée de lumière, comme celles peintes dans le fond de la carte : un arc du tourbillon
+ * (rayon `WIND_R`), tête à l'angle 0 et queue sur `sweep` degrés derrière elle (angles négatifs :
+ * le vent tourne dans le sens des aiguilles d'une montre à l'écran). Forme pleine et effilée :
+ * demi-largeur `width` à la tête (arrondie), qui fond jusqu'à 0 au bout de la queue ; le rayon
+ * dérive un peu le long de la queue (`drift`, fraction de `WIND_R`). Rend un chemin SVG fermé.
  */
-export function windStreak(length: number, bend: number, curl: boolean): string {
+export function windStreak(sweep: number, width: number, drift = 0): string {
   const f = (n: number) => n.toFixed(2);
-  const sag = bend * length;
-  const end = `${f(length)} ${f(sag * 0.6)}`;
-  let d = `M 0 0 Q ${f(length * 0.5)} ${f(sag)} ${end}`;
-  if (curl) {
-    const s = length * 0.16 * Math.sign(bend || 1);
-    const k = length * 0.16;
-    d += ` c ${f(k)} 0 ${f(k * 1.3)} ${f(-s)} ${f(k * 0.6)} ${f(-s * 1.2)}`;
-    d += ` c ${f(-k * 0.6)} ${f(-s * 0.2)} ${f(-k * 0.8)} ${f(s * 0.5)} ${f(-k * 0.2)} ${f(s * 0.7)}`;
-  }
-  return d;
+  const STEPS = 12;
+  const side = (sign: 1 | -1) =>
+    Array.from({ length: STEPS + 1 }, (_, i) => {
+      const t = i / STEPS;
+      const a = (-sweep * t * Math.PI) / 180;
+      const r = WIND_R * (1 + drift * t) + sign * width * (1 - t) ** 1.4;
+      return `${f(r * Math.cos(a))} ${f(r * Math.sin(a))}`;
+    });
+  const outer = side(1);
+  const inner = side(-1).reverse();
+  // tête arrondie : un demi-cercle de l'intérieur vers l'extérieur
+  return `M ${outer.join(" L ")} L ${inner.join(" L ")} A ${f(width)} ${f(width)} 0 0 1 ${outer[0]} Z`;
 }
 
+/** Couleurs prises dans l'illustration : violets, roses, cyan, or. */
+const WIND_COLORS = ["#b36bff", "#ff5fcf", "#46d6ff", "#ffc84a", "#ff9ae3", "#8f7bff"];
+/** Étincelle à quatre branches (rayon 1), comme les éclats de la fête foraine du fond. */
+const SPARK = "M 0 -1 Q 0.16 -0.16 1 0 Q 0.16 0.16 0 1 Q -0.16 0.16 -1 0 Q -0.16 -0.16 0 -1 Z";
+
 /**
- * Coups de vent, tirés une fois pour toutes. Repère : -70…70 en largeur, -100…100 en hauteur,
- * centre du tourbillon à l'origine. Chaque coup a `WIND_HOPS` places, une par passage : à chaque
- * place, il est orienté le long du tourbillon (sens des aiguilles d'une montre à l'écran), dévié au
- * hasard. `duration` : un passage (le trait n'est visible qu'au premier tiers, ≈ 0,4-0,9 s),
- * `delay` négatif : tous décalés. Les traits (`kind: "streak"`) sont longs et fins ; un brin
- * (`kind: "mote"`) est un point qui file vite le long de sa courbe. Secondes.
+ * Coups de vent, tirés une fois pour toutes. Chaque coup tourne autour du centre du tourbillon :
+ * à chaque passage (`hops`), il apparaît à l'angle `angle`, au rayon `scale` × `WIND_R`, file
+ * jusqu'à `end` (sens des aiguilles d'une montre) en ≈ 0,4-0,9 s pour une traînée, puis s'efface ;
+ * `duration` : un passage, `delay` négatif : tous décalés. `kind` : traînée de lumière
+ * (`streak`, forme `d`, halo de couleur et cœur clair), étincelle (`spark`) ou confetti
+ * (`confetti`). Secondes, degrés.
  */
 export const WIND_GUSTS = (() => {
-  const rnd = seeded(73);
-  const place = (rMin: number, rMax: number, jitter: number) => {
-    const r = rMin + rnd() * (rMax - rMin);
-    const a = rnd() * 2 * Math.PI;
-    const x = Math.max(-66, Math.min(66, r * Math.cos(a) * 0.75));
-    const y = Math.max(-96, Math.min(96, r * Math.sin(a)));
-    const angle = (Math.atan2(y, x) * 180) / Math.PI + 90 + (rnd() - 0.5) * 2 * jitter;
-    return { x, y, angle };
-  };
-  const gust = (kind: "streak" | "mote") => {
+  const rnd = seeded(79);
+  const pick = <T,>(list: T[]): T => list[Math.floor(rnd() * list.length)] as T;
+  const gust = (kind: "streak" | "spark" | "confetti") => {
     const streak = kind === "streak";
-    const duration = streak ? 1.5 + rnd() * 1.4 : 0.9 + rnd() * 0.7;
+    const duration = streak ? 1.5 + rnd() * 1.4 : 0.9 + rnd() * 0.8;
+    const sweep = 50 + rnd() * 60;
+    const width = 1.4 + rnd() * 1.2;
+    const drift = (rnd() - 0.5) * 0.25;
     return {
       kind,
       duration,
       delay: -rnd() * duration * WIND_HOPS,
-      width: streak ? 1.2 + rnd() * 1.2 : 1.6 + rnd() * 0.8,
-      d: streak
-        ? windStreak(30 + rnd() * 32, (rnd() - 0.5) * 0.8, rnd() < 0.3)
-        : windStreak(24 + rnd() * 18, (rnd() - 0.5) * 0.6, false),
-      gold: rnd() < 0.2,
-      hops: Array.from({ length: WIND_HOPS }, () =>
-        streak ? place(14, 112, 28) : place(10, 100, 40),
-      ),
+      color: pick(WIND_COLORS),
+      // traînée : arc effilé (`d`), son halo plus large et plus pâle (le flou de mouvement) et son
+      // cœur clair plus court ; étincelle et confetti : petit motif placé sur le rayon
+      d: streak ? windStreak(sweep, width, drift) : null,
+      halo: streak ? windStreak(sweep * 1.05, width * 2.6, drift) : null,
+      core: streak ? windStreak(sweep * 0.8, width * 0.4, drift) : null,
+      size: streak ? 0 : 1.8 + rnd() * 1.4,
+      tilt: rnd() * 180,
+      opacity: streak ? 0.75 + rnd() * 0.25 : 0.85 + rnd() * 0.15,
+      hops: Array.from({ length: WIND_HOPS }, () => {
+        const angle = rnd() * 360;
+        const travel = streak ? 45 + rnd() * 45 : 80 + rnd() * 70;
+        return { angle, end: angle + travel, scale: 0.45 + rnd() * 1.15 };
+      }),
     };
   };
   return [
-    ...Array.from({ length: 30 }, () => gust("streak")),
-    ...Array.from({ length: 18 }, () => gust("mote")),
+    ...Array.from({ length: 36 }, () => gust("streak")),
+    ...Array.from({ length: 12 }, () => gust("spark")),
+    ...Array.from({ length: 10 }, () => gust("confetti")),
   ];
 })();
 
 /**
- * Vent : de vraies bourrasques, comme dans les dessins animés. Beaucoup de petits traits fins,
- * blancs et translucides, apparaissent un peu partout sur l'illustration, filent très vite le long
- * de leur courbe en s'étirant, puis s'effacent ; chacun repart ailleurs au passage suivant, tous
- * décalés : aucune structure fixe. Ils suivent le tourbillon autour du centre de l'illustration
- * (sens des aiguilles d'une montre ; pensé pour la full art « Spinning spinning »), avec des
- * brins emportés plus vite encore. Animation : tracé du trait (`stroke-dashoffset`), transparence
- * et sauts de place ; ni 3D, ni filtre, ni fusion, ni masque. Sur l'illustration seule.
+ * Vent : des bourrasques de lumière dans le style de la carte « Spinning spinning ». Des traînées
+ * effilées (épaisses à la tête, très fines au bout), halo de couleur de l'image (violet, rose,
+ * cyan, or) et cœur clair, épousent le tourbillon peint (cercles aplatis et un peu penchés autour
+ * du centre de l'illustration) : chacune apparaît, file très vite dans le sens des aiguilles d'une
+ * montre puis s'efface, et repart d'ailleurs ; des étincelles et confettis de fête foraine sont
+ * emportés plus vite encore. Tout est dessiné une fois ; seuls la rotation, l'échelle et la
+ * transparence s'animent (`tcg-vfx-gust-fly`) : ni filtre, ni fusion, ni masque, ni 3D. Le
+ * flou de mouvement est un halo plus large et plus transparent sous chaque traînée.
  */
 const Wind = ({ full }: EffectProps) => (
   <div style={{ ...fillAbs, overflow: "hidden" }}>
@@ -953,38 +968,46 @@ const Wind = ({ full }: EffectProps) => (
       className="tcg-vfx-wind"
       aria-hidden
     >
-      <g transform={`translate(0 ${full ? 12 : 0})`}>
+      <g transform={`translate(0 ${full ? 12 : 0}) rotate(-10) scale(1 0.62)`}>
         {WIND_GUSTS.map((g, i) => (
           <g
             key={i}
             className="tcg-vfx-gust"
             style={
               {
-                "--w-dur": `${g.duration}s`,
+                "--w-dur": `${g.duration * WIND_HOPS}s`,
                 "--w-delay": `${g.delay}s`,
-                "--w-hop": `${g.duration * WIND_HOPS}s`,
+                "--w-o": g.opacity,
                 ...Object.fromEntries(
                   g.hops.flatMap((h, k) => [
-                    [`--w-x${k}`, `${h.x.toFixed(1)}px`],
-                    [`--w-y${k}`, `${h.y.toFixed(1)}px`],
                     [`--w-a${k}`, `${h.angle.toFixed(0)}deg`],
+                    [`--w-e${k}`, `${h.end.toFixed(0)}deg`],
+                    [`--w-s${k}`, h.scale.toFixed(2)],
                   ]),
                 ),
               } as CSSProperties
             }
           >
-            <path
-              d={g.d}
-              pathLength={100}
-              className={
-                g.kind === "mote" ? "tcg-vfx-gust-line tcg-vfx-gust-mote" : "tcg-vfx-gust-line"
-              }
-              fill="none"
-              stroke={g.gold ? "#fff1c4" : "#ffffff"}
-              strokeWidth={g.width}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            {g.d ? (
+              <>
+                <path d={g.halo ?? undefined} fill={g.color} opacity={0.28} />
+                <path d={g.d} fill={g.color} opacity={0.8} />
+                <path d={g.core ?? undefined} fill="#fff8e6" />
+              </>
+            ) : (
+              <g
+                transform={`translate(${WIND_R} 0) rotate(${g.tilt.toFixed(0)}) scale(${g.size.toFixed(2)})`}
+              >
+                {g.kind === "spark" ? (
+                  <>
+                    <circle r={1.1} fill={g.color} opacity={0.35} />
+                    <path d={SPARK} fill="#fffaf0" />
+                  </>
+                ) : (
+                  <rect x={-0.9} y={-0.5} width={1.8} height={1} rx={0.15} fill={g.color} />
+                )}
+              </g>
+            )}
           </g>
         ))}
       </g>

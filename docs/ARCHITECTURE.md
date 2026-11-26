@@ -1203,15 +1203,16 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
   tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   `vent` (« Vent », place `art`, migration `tcg_visual_effects_vent`, `Wind`, pensé pour la full
-  art « Spinning spinning ») : de vraies bourrasques (v3). 30 traits de vent courts et fins
-  (blancs translucides, courbés, parfois une boucle au bout, `windStreak`) et 18 brins
-  apparaissent un peu partout, filent très vite en se traçant le long de leur courbe
-  (`stroke-dashoffset` + transparence, keyframes `gust-draw`/`gust-mote`, visibles ≈ 0,4-0,9 s)
-  puis s'effacent ; chaque coup de vent saute ailleurs entre deux passages (`gust-hop`, 4 places
-  tirées une fois, `WIND_GUSTS`), tous décalés : aucune structure fixe. Orientés le long du
-  tourbillon autour du centre de l'illustration (56 % de haut en full art), sens des aiguilles
-  d'une montre, déviés au hasard. Un seul SVG, réglages par variables CSS (`--w-*`) ; ni 3D, ni
-  filtre, ni fusion, ni masque. Mouvement réduit : rien ne s'affiche.
+  art « Spinning spinning ») : bourrasques de lumière dans le style de l'illustration (v3.1).
+  36 traînées effilées (`windStreak` : arc du tourbillon, épais à la tête, nul au bout ; halo de
+  couleur plus large et pâle en guise de flou de mouvement, cœur clair) aux couleurs de l'image
+  (violets, roses, cyan, or), plus 12 étincelles et 10 confettis de fête foraine. Le tourbillon
+  est un cercle aplati et un peu penché autour du centre de l'illustration (56 % de haut en full
+  art). Chaque coup de vent (`WIND_GUSTS`) fait 4 passages par cycle (`tcg-vfx-gust-fly`) : il
+  apparaît à un angle et un rayon tirés une fois (`--w-a*`, `--w-s*`), file dans le sens des
+  aiguilles d'une montre jusqu'à `--w-e*` (visible ≈ 0,5-0,9 s ; étincelles plus vite) puis
+  s'efface ; tous décalés. Rotation, échelle et transparence seulement ; ni filtre, ni fusion, ni
+  masque, ni 3D. Mouvement réduit : rien ne s'affiche.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est
