@@ -1,7 +1,13 @@
 import { getUsersByIds } from "@app/core";
 import { getIdeaAuthorIds, listIdeaImageUrls } from "@app/ideas";
 import { presignGetStable } from "@app/storage";
-import { type Card, countSetCards, imageKeyFor, smallImageKeyFor } from "@app/tcg";
+import {
+  type Card,
+  countSetCards,
+  imageKeyFor,
+  revealSoundKeyFor,
+  smallImageKeyFor,
+} from "@app/tcg";
 
 import type { DuplicateCandidate } from "./forms";
 
@@ -63,6 +69,8 @@ export type CardFace = {
   /** `imageUrlLarge` : la grande illustration, quand `imageUrl` est sa version réduite. */
   card: Card & { author: string | null; imageUrlLarge: string | null };
   imageUrl: string | null;
+  /** Son propre de la carte dans sa version, joué à son retournement ; null : bruitages de rareté. */
+  revealSoundUrl: string | null;
   /** Nombre de cartes de son set (« 07/44 ») ; absent : carte hors set. */
   setSize?: number;
 };
@@ -76,21 +84,28 @@ export type CardFace = {
  * légendes, case à cocher) reste à chaque écran ; `GameCard` dessine la carte, la même partout.
  */
 export async function cardFaces(admin: Admin, cards: Card[]): Promise<CardFace[]> {
-  const [images, authors, sizes] = await Promise.all([
+  const [images, authors, sizes, sounds] = await Promise.all([
     cardImageUrls(admin, cards),
     cardAuthors(admin, cards),
     countSetCards(
       admin,
       cards.flatMap((c) => (c.setId ? [c.setId] : [])),
     ),
+    Promise.all(
+      cards.map((c) => {
+        const key = revealSoundKeyFor(c, c.layout);
+        return key ? presignGetStable(key) : null;
+      }),
+    ),
   ]);
-  return cards.map((card) => ({
+  return cards.map((card, i) => ({
     card: {
       ...card,
       author: authors.get(card.id) ?? null,
       imageUrlLarge: images.get(imageId(card))?.large ?? null,
     },
     imageUrl: images.get(imageId(card))?.url ?? null,
+    revealSoundUrl: sounds[i] ?? null,
     setSize: card.setId ? sizes.get(card.setId) : undefined,
   }));
 }

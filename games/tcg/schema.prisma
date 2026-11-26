@@ -89,6 +89,11 @@ model TcgCard {
   // réduite (illustrations envoyées avant), la carte montre l'illustration elle-même, comme avant.
   imageKeySmall     String?       @map("image_key_small")
   imageKeyFullSmall String?       @map("image_key_full_small")
+  // Son propre joué quand la carte se retourne dans un booster (MP3 dans le stockage, jamais une
+  // URL) : il remplace les bruitages du retournement. null : bruitages de sa rareté.
+  revealSoundKey     String?      @map("reveal_sound_key")
+  // Son propre de la version full art ; null : celui de la normale (`revealSoundKey`).
+  revealSoundKeyFull String?      @map("reveal_sound_key_full")
   // Cadrage de l'illustration (point central en % et zoom) : l'image n'est jamais rognée.
   imageFrame        Json?         @map("image_frame")
   // Cadrage de l'illustration en full art ; null : celui de la carte normale (imageFrame).

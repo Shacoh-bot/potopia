@@ -21,6 +21,11 @@ export async function packOf(admin: Admin, cards: Card[]): Promise<Pack> {
   const faces = await cardFaces(admin, cards);
   return {
     setSize: faces[0]?.setSize ?? 0,
-    cards: faces.map(({ card, imageUrl }) => ({ id: card.id, card, imageUrl })),
+    cards: faces.map(({ card, imageUrl, revealSoundUrl }) => ({
+      id: card.id,
+      card,
+      imageUrl,
+      revealSoundUrl,
+    })),
   };
 }

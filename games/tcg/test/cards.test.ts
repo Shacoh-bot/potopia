@@ -9,6 +9,7 @@ import {
   createCard,
   createSet,
   createCardImageUpload,
+  createCardSoundUpload,
   deleteCards,
   EFFECTS,
   effectStats,
@@ -30,6 +31,8 @@ import {
   paramsSchema,
   setCardStage,
   setCardImage,
+  setCardSound,
+  revealSoundKeyFor,
   smallImageKeyFor,
   isBlurryWhenZoomed,
   SNAP_CARDS,
@@ -1196,5 +1199,59 @@ describe("note admin", () => {
     await trashCards(ADMIN, [dup.id]);
     const [trashed] = await listCards(ADMIN, { trashed: true });
     expect(trashed).toMatchObject({ id: dup.id, adminNote: "Doublon" });
+  });
+});
+
+describe("son au retournement", () => {
+  // en-tête d'une trame MP3 (MPEG-1 couche III)
+  const mp3 = new Uint8Array([0xff, 0xfb, 0x90, 0x64, 0, 0, 0, 0]);
+  const send = async () => {
+    const { key, url } = await createCardSoundUpload(ADMIN, {
+      contentType: "audio/mpeg",
+      size: mp3.length,
+    });
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { "content-type": "audio/mpeg" },
+      body: mp3,
+    });
+    expect(res.status).toBe(200);
+    return key;
+  };
+
+  it("refuse un autre format ou un fichier trop lourd", async () => {
+    await expect(
+      createCardSoundUpload(ADMIN, { contentType: "audio/wav", size: 10 }),
+    ).rejects.toThrow();
+    await expect(
+      createCardSoundUpload(ADMIN, { contentType: "audio/mpeg", size: 3 * 1024 * 1024 }),
+    ).rejects.toThrow();
+    await expect(
+      createCardSoundUpload(MEMBER, { contentType: "audio/mpeg", size: 10 }),
+    ).rejects.toThrow();
+  });
+
+  it("se pose sur chaque version, la full art reprend celui de la normale, et se retire", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    expect(card).toMatchObject({ revealSoundKey: null, revealSoundKeyFull: null });
+    const normal = await send();
+    expect(normal).toMatch(/^sounds\/[0-9a-f-]{36}\.mp3$/);
+    const withNormal = await setCardSound(ADMIN, card.id, normal);
+    expect(withNormal.revealSoundKey).toBe(normal);
+    expect(revealSoundKeyFor(withNormal, "fullart")).toBe(normal);
+    const full = await send();
+    const both = await setCardSound(ADMIN, card.id, full, { version: "fullart" });
+    expect(both).toMatchObject({ revealSoundKey: normal, revealSoundKeyFull: full });
+    expect(revealSoundKeyFor(both, "normal")).toBe(normal);
+    expect(revealSoundKeyFor(both, "fullart")).toBe(full);
+    const cleared = await setCardSound(ADMIN, card.id, null, { version: "fullart" });
+    expect(revealSoundKeyFor(cleared, "fullart")).toBe(normal);
+  });
+
+  it("refuse une clé étrangère ou un son jamais envoyé", async () => {
+    const card = await createCard(ADMIN, { ...BASE, setId });
+    await expect(setCardSound(ADMIN, card.id, "cards/x.webp")).rejects.toThrow();
+    const { key } = await createCardSoundUpload(ADMIN, { contentType: "audio/mpeg", size: 8 });
+    await expect(setCardSound(ADMIN, card.id, key)).rejects.toThrow("Son introuvable");
   });
 });

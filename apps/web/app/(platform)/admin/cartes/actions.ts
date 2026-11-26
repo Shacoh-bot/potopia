@@ -12,8 +12,11 @@ import {
   moveCards,
   setCardStage,
   createCardImageUpload,
+  createCardSoundUpload,
   importCards,
   setCardImage,
+  setCardSound,
+  CARD_SOUND_TYPE,
   updateCard,
   updateCards,
   type CardImport,
@@ -119,6 +122,43 @@ export async function confirmCardImageAction(
       version: z.enum(CARD_LAYOUTS).optional().parse(version),
       smallKey: z.string().min(1).nullish().parse(smallKey),
     });
+  } catch (error) {
+    const message = inputError(error);
+    if (message === null) throw error;
+    return { error: message };
+  }
+  revalidatePath("/admin/cartes", "layout");
+  return null;
+}
+
+/** URL d'envoi présignée pour le son propre d'une carte (MP3). */
+export async function requestCardSoundAction(
+  size: number,
+): Promise<{ key: string; url: string } | { error: string }> {
+  const admin = await actionAdmin();
+  try {
+    return await createCardSoundUpload(admin, { contentType: CARD_SOUND_TYPE, size });
+  } catch (error) {
+    const message = inputError(error);
+    if (message === null) throw error;
+    return { error: message };
+  }
+}
+
+/** Pose (ou retire, avec `null`) le son propre d'une version de la carte (liée à son id par la page). */
+export async function confirmCardSoundAction(
+  id: string,
+  key: string | null,
+  version: CardLayout,
+): Promise<{ error: string } | null> {
+  const admin = await actionAdmin();
+  try {
+    await setCardSound(
+      admin,
+      z.string().min(1).parse(id),
+      z.string().min(1).nullable().parse(key),
+      { version: z.enum(CARD_LAYOUTS).parse(version) },
+    );
   } catch (error) {
     const message = inputError(error);
     if (message === null) throw error;

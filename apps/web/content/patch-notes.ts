@@ -88,6 +88,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Effet « Vent » refait : des bourrasques de lumière aux couleurs de l'illustration glissent vite le long des tourbillons peints, vers la droite en haut et vers la gauche en bas, avec étincelles et confettis.",
       },
+      {
+        admin: true,
+        text: "Cartes : une carte peut avoir son propre son (normale et full art, à envoyer dans l'éditeur). Il remplace les bruitages quand elle se retourne dans un booster et s'éteint en fondu à la carte suivante ; le banc d'essai le fait réécouter avec « Rejouer le retournement ».",
+      },
     ],
   },
   {
