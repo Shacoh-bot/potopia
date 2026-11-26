@@ -875,29 +875,36 @@ const Shadows = () => (
 
 /** Nombre de morceaux d'une traînée : le premier (la tête) est le plus net, la queue s'efface. */
 const WIND_PIECES = 4;
-const WIND_PIECE_OPACITY = [0.9, 0.55, 0.3, 0.12];
+const WIND_PIECE_OPACITY = [1, 0.68, 0.4, 0.16];
+/** Points par morceau : la traînée n'est pas un arc de cercle mais une courbe qui ondule. */
+const WIND_STEPS = 5;
 
 /**
- * Une traînée d'air : arc de cercle de rayon `r` (repère -100…100) dont la tête est à l'angle
- * `head` (degrés, 0 = à droite, sens des aiguilles d'une montre à l'écran) et la queue s'étend
- * sur `sweep` degrés DERRIÈRE elle, c'est-à-dire vers les angles croissants : le vent tourne en
- * sens inverse des aiguilles d'une montre. Rend un chemin SVG par morceau, de la tête à la queue.
+ * Une traînée d'air : sa tête est à l'angle `head` (degrés, 0 = à droite, sens des aiguilles
+ * d'une montre à l'écran) et au rayon `r` (repère -100…100) ; sa queue s'étend sur `sweep` degrés
+ * DERRIÈRE elle, vers les angles décroissants : le vent tourne dans le sens des aiguilles d'une
+ * montre. Pas une orbite : le rayon s'écarte le long de la queue (`grow`, en fraction de `r`) et
+ * ondule (`wave` d'amplitude, une vague et demie). Rend un chemin SVG par morceau, tête d'abord.
  */
-export function windTrail(r: number, head: number, sweep: number) {
-  const at = (deg: number) => {
-    const a = (deg * Math.PI) / 180;
-    return `${(r * Math.cos(a)).toFixed(2)} ${(r * Math.sin(a)).toFixed(2)}`;
+export function windTrail(r: number, head: number, sweep: number, grow = 0, wave = 0) {
+  const at = (t: number) => {
+    const a = ((head - sweep * t) * Math.PI) / 180;
+    const rr = r * (1 + grow * t + wave * Math.sin(t * Math.PI * 3));
+    return `${(rr * Math.cos(a)).toFixed(2)} ${(rr * Math.sin(a)).toFixed(2)}`;
   };
   return Array.from({ length: WIND_PIECES }, (_, k) => {
-    const from = head + (sweep * k) / WIND_PIECES;
-    const to = head + (sweep * (k + 1)) / WIND_PIECES;
-    return { d: `M ${at(from)} A ${r} ${r} 0 0 1 ${at(to)}`, opacity: WIND_PIECE_OPACITY[k] ?? 0 };
+    const pts = Array.from({ length: WIND_STEPS + 1 }, (_, i) =>
+      at((k + i / WIND_STEPS) / WIND_PIECES),
+    );
+    return { d: `M ${pts.join(" L ")}`, opacity: WIND_PIECE_OPACITY[k] ?? 0 };
   });
 }
 
 /**
- * Calques du vent, tirés une fois pour toutes : deux nappes de traînées (larges et lentes, fines
- * et rapides) et une nappe de grains emportés, plus rapide encore. Durées en secondes.
+ * Calques du vent, tirés une fois pour toutes : quatre nappes de traînées (des larges et lentes
+ * aux fines et rapides) et une nappe de grains emportés. Chaque calque a sa rafale (`gust` : un
+ * tour à vitesse inégale), sa durée, son décalage, son balancement et son souffle (apparitions,
+ * disparitions) : aucun ne tourne au même pas, ce qui casse le « cercle parfait ». Secondes.
  */
 export const WIND_LAYERS = (() => {
   const rnd = seeded(71);
@@ -905,27 +912,64 @@ export const WIND_LAYERS = (() => {
     Array.from({ length: count }, () => ({
       r: rMin + rnd() * (rMax - rMin),
       head: rnd() * 360,
-      sweep: 40 + rnd() * 50,
+      sweep: 60 + rnd() * 70,
       width: width * (0.7 + rnd() * 0.6),
+      grow: (rnd() - 0.35) * 0.5,
+      wave: 0.04 + rnd() * 0.08,
       gold: rnd() < 0.35,
     }));
-  const motes = Array.from({ length: 22 }, () => {
+  const motes = Array.from({ length: 26 }, () => {
     const r = 18 + rnd() * 74;
     const a = rnd() * 2 * Math.PI;
-    return { x: r * Math.cos(a), y: r * Math.sin(a), size: 0.6 + rnd() * 0.9 };
+    return { x: r * Math.cos(a), y: r * Math.sin(a), size: 0.7 + rnd() * 1 };
   });
   return [
-    { duration: 9, trails: trails(8, 50, 94, 3.2), motes: [] },
-    { duration: 5.5, trails: trails(9, 24, 86, 1.6), motes: [] },
-    { duration: 3.6, trails: [], motes },
+    {
+      gust: "a",
+      duration: 6.4,
+      delay: 0,
+      sway: 3.3,
+      breathe: 2.9,
+      trails: trails(6, 56, 94, 4.4),
+      motes: [],
+    },
+    {
+      gust: "b",
+      duration: 4.6,
+      delay: -1.7,
+      sway: 2.6,
+      breathe: 1.9,
+      trails: trails(6, 36, 84, 2.8),
+      motes: [],
+    },
+    {
+      gust: "a",
+      duration: 3.1,
+      delay: -0.9,
+      sway: 1.9,
+      breathe: 1.4,
+      trails: trails(7, 22, 78, 1.9),
+      motes: [],
+    },
+    {
+      gust: "b",
+      duration: 3.7,
+      delay: -2.6,
+      sway: 2.2,
+      breathe: 1.6,
+      trails: trails(5, 44, 92, 1.5),
+      motes: [],
+    },
+    { gust: "a", duration: 2.5, delay: -0.4, sway: 1.7, breathe: 1.2, trails: [], motes },
   ];
 })();
 
 /**
  * Vent : des traînées d'air et des grains emportés tourbillonnent autour du centre de
- * l'illustration, en sens inverse des aiguilles d'une montre (pensé pour la full art « Spinning
- * spinning » : la boule tourne). Trois calques dessinés une fois, qui ne font que tourner (et
- * respirer pour les grains) : rotation et transparence seulement, aucune fusion ni masque.
+ * l'illustration, dans le sens des aiguilles d'une montre (pensé pour la full art « Spinning
+ * spinning »), par rafales. Cinq calques dessinés une fois ; chacun tourne à vitesse inégale,
+ * se balance un peu et respire : rotation, déplacement et transparence seulement, ni fusion ni
+ * masque. Les réglages passent par des variables CSS pour que le mouvement réduit les coupe.
  */
 const Wind = ({ full }: EffectProps) => (
   <div style={{ ...fillAbs, overflow: "hidden" }}>
@@ -937,14 +981,18 @@ const Wind = ({ full }: EffectProps) => (
           className={
             layer.motes.length ? "tcg-vfx-wind-layer tcg-vfx-wind-motes" : "tcg-vfx-wind-layer"
           }
-          style={{
-            animationDuration: layer.motes.length
-              ? `${layer.duration}s, 2.4s`
-              : `${layer.duration}s`,
-          }}
+          style={
+            {
+              "--w-gust": `tcg-vfx-wind-gust-${layer.gust}`,
+              "--w-dur": `${layer.duration}s`,
+              "--w-delay": `${layer.delay}s`,
+              "--w-sway": `${layer.sway}s`,
+              "--w-breathe": `${layer.breathe}s`,
+            } as CSSProperties
+          }
         >
           {layer.trails.map((t, j) =>
-            windTrail(t.r, t.head, t.sweep).map((p, k) => (
+            windTrail(t.r, t.head, t.sweep, t.grow, t.wave).map((p, k) => (
               <path
                 key={`${j}-${k}`}
                 d={p.d}
@@ -953,6 +1001,7 @@ const Wind = ({ full }: EffectProps) => (
                 strokeOpacity={p.opacity}
                 strokeWidth={t.width * (1 - k * 0.15)}
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
             )),
           )}
