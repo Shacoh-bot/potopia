@@ -29,6 +29,8 @@ describe("aura simple des cartes", () => {
     const seconds = Number(/tcg-aura-breathe ([\d.]+)s/.exec(rule)?.[1]);
     expect(seconds).toBeGreaterThanOrEqual(3);
     expect(seconds).toBeLessThanOrEqual(4);
+    // « pas à pas » : par paliers, pas à chaque image (choix de l'utilisateur, 26/11)
+    expect(rule).toMatch(/tcg-aura-breathe [\d.]+s steps\(\d+\)/);
   });
 
   it("respire aussi sur la planche figée du Potodex", () => {

@@ -484,7 +484,7 @@
   );
 }
 /* Aura simple : une lueur douce qui suit le contour arrondi de la carte et respire lentement.
-   Une seule couche par carte : l'ombre est figée, seule l'opacité bouge (rien n'est repeint à chaque
+   Une seule couche par carte : l'ombre est figée, seule l'opacité bouge, par paliers (rien n'est repeint à chaque
    image). Épique très légère, légendaire dorée, SR carmin, SSR aux couleurs de son cadre ; rien pour
    commune, peu commune et rare (`CARD_AURA_FINISHES`). Partout où la carte est dessinée, Potodex
    compris, où elle respire aussi sur la planche figée. Le gros halo animé (`CardAura`) reste à
@@ -495,7 +495,9 @@
   border-radius: 22px;
   pointer-events: none;
   will-change: opacity;
-  animation: tcg-aura-breathe 3.4s ease-in-out infinite;
+  /* souffle « pas à pas » (choix de l'utilisateur, 26/11) : 8 paliers par demi-souffle, l'aura
+     n'est recalculée qu'environ 5 fois par seconde au lieu de chaque image. */
+  animation: tcg-aura-breathe 3.4s steps(8) infinite;
 }
 .tcg-aura[data-rarity="epic"] {
   --aura-min: 0.25;

@@ -878,7 +878,7 @@ rafraîchit le routeur client sans recharger la page.
   tout autour, puis aux effets. La SSR ajoute deux comètes d'énergie qui font le tour du cadre (`SsrComets`,
   « SSR-2 » du 22/11) ; la SR, un carmin qui tourne et des éclats dorés (`SrCarmine`, « SR-2 » du
   22/11). Aura simple (`.tcg-aura`, `CARD_AURA_FINISHES`, 26/11) : une lueur figée qui suit le
-  contour de la carte et respire en opacité (3,4 s), épique très légère, légendaire dorée, SR
+  contour de la carte et respire en opacité (3,4 s, « pas à pas » : 8 paliers par demi-souffle), épique très légère, légendaire dorée, SR
   carmin, SSR aux couleurs de son cadre, rien pour commune/peu commune/rare ; partout où la carte
   est dessinée, et elle respire aussi sur la planche figée du Potodex. Le gros halo animé
   (`CardAura`) n'est affiché qu'à l'ouverture des boosters (et au banc d'essai). Les deux
