@@ -86,7 +86,7 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
-        text: "Effet « Vent » refait : des bourrasques de lumière aux couleurs de l'illustration filent vite sur de grands arcs, vers la droite en haut et vers la gauche en bas, comme les bords d'un grand tourbillon, avec étincelles et confettis.",
+        text: "Effet « Vent » refait : des bourrasques de lumière aux couleurs de l'illustration glissent vite le long des tourbillons peints, vers la droite en haut et vers la gauche en bas, avec étincelles et confettis.",
       },
     ],
   },

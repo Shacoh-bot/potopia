@@ -875,6 +875,8 @@ const Shadows = () => (
 
 /** Passages d'un coup de vent : à chacun, il repart d'ailleurs. */
 export const WIND_HOPS = 4;
+/** Rayon du cercle de référence des traînées, avant passage sur leur courbe guide. */
+const WIND_R = 100;
 
 /**
  * Une traînée de lumière, comme celles peintes dans le fond de la carte : un arc de cercle de rayon
@@ -899,68 +901,68 @@ export function windStreak(sweep: number, width: number, radius: number, drift =
   return `M ${outer.join(" L ")} L ${inner.join(" L ")} A ${f(width)} ${f(width)} 0 0 1 ${outer[0]} Z`;
 }
 
+/**
+ * Courbes guides relevées sur l'illustration de la full art « Spinning spinning » (repère -70…70
+ * en largeur, -100…100 en hauteur) : le grand vortex peint autour de la boule, des bandes serrées
+ * et très aplaties qui la traversent (montant vers la droite) aux remous larges et plus ronds du
+ * fond. Ellipses autour du centre de la boule (`cx`, `cy`), demi-axes `rx`/`ry`, penchées de `tilt`
+ * degrés. Les traînées glissent le long de ces courbes.
+ */
+export const WIND_GUIDES = [
+  { cx: 3, cy: 12, rx: 58, ry: 24, tilt: -13 },
+  { cx: 3, cy: 11, rx: 64, ry: 32, tilt: -12 },
+  { cx: 2, cy: 10, rx: 71, ry: 42, tilt: -10 },
+  { cx: 2, cy: 9, rx: 78, ry: 52, tilt: -9 },
+  { cx: 1, cy: 8, rx: 86, ry: 62, tilt: -7 },
+  { cx: 1, cy: 7, rx: 94, ry: 72, tilt: -6 },
+  { cx: 0, cy: 6, rx: 103, ry: 82, tilt: -4 },
+  { cx: 0, cy: 5, rx: 112, ry: 90, tilt: -3 },
+] as const;
+
 /** Couleurs prises dans l'illustration : violets, roses, cyan, or. */
 const WIND_COLORS = ["#b36bff", "#ff5fcf", "#46d6ff", "#ffc84a", "#ff9ae3", "#8f7bff"];
 /** Étincelle à quatre branches (rayon 1), comme les éclats de la fête foraine du fond. */
 const SPARK = "M 0 -1 Q 0.16 -0.16 1 0 Q 0.16 0.16 0 1 Q -0.16 0.16 -1 0 Q -0.16 -0.16 0 -1 Z";
 
-/** Bande d'un passage : haut (gauche → droite), bas (droite → gauche), milieu (l'un ou l'autre). */
-export type WindBand = "haut" | "bas" | "milieu";
+/** Bande d'un passage : haut de la courbe (gauche → droite) ou bas (droite → gauche). */
+export type WindBand = "haut" | "bas";
 
 /**
- * Coups de vent, tirés une fois pour toutes, dans le repère de l'illustration (-70…70 en largeur,
- * -100…100 en hauteur). Chacun suit un arc de TRÈS grand rayon (`radius`, 220 à 400 : bien plus
- * grand que la carte, centre hors de la carte) dont il ne parcourt qu'une portion presque droite
- * (au plus ≈ 25°), puis s'efface : jamais de tour visible. En haut de la carte, le centre de l'arc
- * est loin en dessous et le trait file de gauche à droite ; en bas, le centre est loin au-dessus et
- * il file de droite à gauche ; au milieu, quelques traits font la transition. Ensemble : les deux
- * bords d'un grand tourbillon autour de la boule, sens des aiguilles d'une montre. À chaque passage
- * (`hops`), centre (`cx`, `cy`), angles de départ et d'arrivée (`angle`, `end`) et bande changent ;
- * `duration` : un passage (visible ≈ 0,32 × durée), `delay` négatif : tous décalés.
+ * Coups de vent, tirés une fois pour toutes. À chaque passage (`hops`), un coup de vent prend une
+ * courbe guide (`guide`, index de `WIND_GUIDES`) et en parcourt une portion (de `angle` à `end`,
+ * angle sur l'ellipse : -90 en haut, 90 en bas ; un quart de tour au plus), dans le sens des
+ * aiguilles d'une montre : en haut de la courbe il file de gauche à droite, en bas de droite à
+ * gauche. `duration` : un passage (visible ≈ 0,32 × durée), `delay` négatif : tous décalés.
  * `kind` : traînée de lumière (`streak` : forme `d`, halo `halo`, cœur clair `core`), étincelle
- * (`spark`) ou confetti (`confetti`). Secondes, degrés, unités du repère.
+ * (`spark`) ou confetti (`confetti`). Secondes, degrés.
  */
 export const WIND_GUSTS = (() => {
-  const rnd = seeded(83);
-  const pick = <T,>(list: T[]): T => list[Math.floor(rnd() * list.length)] as T;
+  const rnd = seeded(89);
+  const pick = <T,>(list: readonly T[]): T => list[Math.floor(rnd() * list.length)] as T;
   const gust = (kind: "streak" | "spark" | "confetti") => {
     const streak = kind === "streak";
     const duration = streak ? 1.5 + rnd() * 1.4 : 0.9 + rnd() * 0.8;
-    const radius = 220 + rnd() * 180;
-    const tail = 28 + rnd() * 34; // longueur de la queue, en unités
-    const sweep = (tail / radius) * (180 / Math.PI);
-    const width = 1.4 + rnd() * 1.2;
+    const sweep = 22 + rnd() * 22;
+    const width = 2.4 + rnd() * 1.6;
     const drift = (rnd() - 0.5) * 6;
     return {
       kind,
       duration,
       delay: -rnd() * duration * WIND_HOPS,
-      radius,
       color: pick(WIND_COLORS),
-      d: streak ? windStreak(sweep, width, radius, drift) : null,
-      halo: streak ? windStreak(sweep * 1.05, width * 2.6, radius, drift) : null,
-      core: streak ? windStreak(sweep * 0.8, width * 0.4, radius, drift) : null,
+      d: streak ? windStreak(sweep, width, WIND_R, drift) : null,
+      halo: streak ? windStreak(sweep * 1.05, width * 2.6, WIND_R, drift) : null,
+      core: streak ? windStreak(sweep * 0.8, width * 0.4, WIND_R, drift) : null,
       size: streak ? 0 : 1.8 + rnd() * 1.4,
       tilt: rnd() * 180,
       opacity: streak ? 0.75 + rnd() * 0.25 : 0.85 + rnd() * 0.15,
       hops: Array.from({ length: WIND_HOPS }, () => {
-        const u = rnd();
-        const band: WindBand = u < 0.44 ? "haut" : u < 0.88 ? "bas" : "milieu";
-        const y =
-          band === "haut" ? -95 + rnd() * 85 : band === "bas" ? 10 + rnd() * 85 : -15 + rnd() * 30;
-        // au milieu, le sens suit le côté où il passe (au-dessus : vers la droite)
-        const top = band === "haut" || (band === "milieu" && y < 0);
-        const x = -45 + rnd() * 90; // milieu du parcours de la tête
-        const travel = ((streak ? 45 + rnd() * 50 : 70 + rnd() * 60) / radius) * (180 / Math.PI);
-        // tête en haut du cercle (-90°, centre en dessous) ou en bas (90°, centre au-dessus)
-        const base = top ? -90 : 90;
-        return {
-          band,
-          cx: x,
-          cy: top ? y + radius : y - radius,
-          angle: base - travel / 2,
-          end: base + travel / 2,
-        };
+        const band: WindBand = rnd() < 0.5 ? "haut" : "bas";
+        const guide = Math.floor(rnd() * WIND_GUIDES.length);
+        const travel = streak ? 35 + rnd() * 40 : 55 + rnd() * 30;
+        // milieu du parcours : autour du haut (-90°) ou du bas (90°) de la courbe
+        const mid = (band === "haut" ? -90 : 90) + (rnd() - 0.5) * 70;
+        return { band, guide, angle: mid - travel / 2, end: mid + travel / 2 };
       }),
     };
   };
@@ -971,16 +973,29 @@ export const WIND_GUSTS = (() => {
   ];
 })();
 
+/** Position de la tête d'un coup de vent à l'angle `angle` de sa courbe guide (repère de l'image). */
+export function windHead(guide: number, angle: number): { x: number; y: number } {
+  const g = WIND_GUIDES[guide] ?? WIND_GUIDES[0];
+  const a = (angle * Math.PI) / 180;
+  const t = (g.tilt * Math.PI) / 180;
+  const ex = g.rx * Math.cos(a);
+  const ey = g.ry * Math.sin(a);
+  return {
+    x: g.cx + ex * Math.cos(t) - ey * Math.sin(t),
+    y: g.cy + ex * Math.sin(t) + ey * Math.cos(t),
+  };
+}
+
 /**
  * Vent : des bourrasques de lumière dans le style de la carte « Spinning spinning ». Des traînées
  * effilées (épaisses à la tête, très fines au bout), halo de couleur de l'image (violet, rose,
- * cyan, or) et cœur clair, filent sur de très grands arcs presque droits : de gauche à droite dans
- * la moitié haute, de droite à gauche dans la moitié basse, comme les deux bords d'un grand
- * tourbillon autour de la boule ; chacune apparaît, file très vite puis s'efface et repart
- * d'ailleurs ; des étincelles et confettis de fête foraine sont emportés plus vite encore. Tout
- * est dessiné une fois ; seuls le déplacement, la rotation et la transparence s'animent
- * (`tcg-vfx-gust-fly`) : ni filtre, ni fusion, ni masque, ni 3D. Le flou de mouvement est un halo
- * plus large et plus transparent sous chaque traînée.
+ * cyan, or) et cœur clair, glissent le long des tourbillons peints (`WIND_GUIDES`) : de gauche à
+ * droite en haut de chaque courbe, de droite à gauche en bas, un quart de tour au plus ; chacune
+ * apparaît, file très vite puis s'efface et repart d'une autre courbe ; des étincelles et
+ * confettis de fête foraine sont emportés plus vite encore. Tout est dessiné une fois ; seuls le
+ * déplacement, la rotation, l'échelle et la transparence s'animent (`tcg-vfx-gust-fly`) : ni
+ * filtre, ni fusion, ni masque, ni 3D. Le flou de mouvement est un halo plus large et plus
+ * transparent sous chaque traînée.
  */
 const Wind = ({ full }: EffectProps) => (
   <div style={{ ...fillAbs, overflow: "hidden" }}>
@@ -990,7 +1005,7 @@ const Wind = ({ full }: EffectProps) => (
       className="tcg-vfx-wind"
       aria-hidden
     >
-      <g transform={`translate(0 ${full ? 6 : 0})`}>
+      <g transform={`translate(0 ${full ? 0 : -6})`}>
         {WIND_GUSTS.map((g, i) => (
           <g
             key={i}
@@ -1001,12 +1016,18 @@ const Wind = ({ full }: EffectProps) => (
                 "--w-delay": `${g.delay}s`,
                 "--w-o": g.opacity,
                 ...Object.fromEntries(
-                  g.hops.flatMap((h, k) => [
-                    [`--w-x${k}`, `${h.cx.toFixed(1)}px`],
-                    [`--w-y${k}`, `${h.cy.toFixed(1)}px`],
-                    [`--w-a${k}`, `${h.angle.toFixed(2)}deg`],
-                    [`--w-e${k}`, `${h.end.toFixed(2)}deg`],
-                  ]),
+                  g.hops.flatMap((h, k) => {
+                    const c = WIND_GUIDES[h.guide] ?? WIND_GUIDES[0];
+                    return [
+                      [`--w-x${k}`, `${c.cx}px`],
+                      [`--w-y${k}`, `${c.cy}px`],
+                      [`--w-t${k}`, `${c.tilt}deg`],
+                      [`--w-sx${k}`, (c.rx / WIND_R).toFixed(3)],
+                      [`--w-sy${k}`, (c.ry / WIND_R).toFixed(3)],
+                      [`--w-a${k}`, `${h.angle.toFixed(1)}deg`],
+                      [`--w-e${k}`, `${h.end.toFixed(1)}deg`],
+                    ];
+                  }),
                 ),
               } as CSSProperties
             }
@@ -1019,7 +1040,7 @@ const Wind = ({ full }: EffectProps) => (
               </>
             ) : (
               <g
-                transform={`translate(${g.radius.toFixed(1)} 0) rotate(${g.tilt.toFixed(0)}) scale(${g.size.toFixed(2)})`}
+                transform={`translate(${WIND_R} 0) rotate(${g.tilt.toFixed(0)}) scale(${(g.size * 1.6).toFixed(2)})`}
               >
                 {g.kind === "spark" ? (
                   <>
