@@ -109,6 +109,10 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Booster : retourner une SR ou une SSR joue un son de victoire, un nouveau à chaque fois jusqu'à les avoir tous découverts. Le Potodex gagne un onglet « Sons » pour réécouter ceux déjà entendus (caché tant qu'on n'en a aucun).",
+      },
+      {
+        admin: true,
         text: "Cartes : le cadre, le nom, le coût et la puissance ne s'effacent plus quand on survole une carte dans Firefox (booster, Potodex, fiches) : inclinaison sans 3D réelle, même rendu.",
       },
       {

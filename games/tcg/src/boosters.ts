@@ -14,6 +14,7 @@ import {
   isDuplicateNote,
 } from "./card-rules";
 import { type Admin, assertAdmin, CardInputError, toCard, withSet } from "./cards";
+import { resetHeardVictorySounds } from "./victory-sounds";
 
 /*
  * Boosters et Potodex, en test : seuls les admins ouvrent des paquets (gratuits, illimités) et
@@ -627,5 +628,7 @@ export async function resetCollection(player: Player, opts?: { tx?: DbTx }): Pro
     await tx.tcgBoosterOpening.deleteMany({ where: { userId: player.id } });
     // les paquets tirés d'avance suivaient les anciennes garanties
     await tx.tcgPendingBooster.deleteMany({ where: { userId: player.id } });
+    // sons de victoire découverts : le prochain paquet les fait redécouvrir
+    await resetHeardVictorySounds(player, tx);
   }, opts);
 }

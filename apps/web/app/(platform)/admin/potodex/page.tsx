@@ -4,9 +4,11 @@ import {
   getAllCardsPotodex,
   getCompletePotodex,
   getPotodex,
+  getVictorySoundsDex,
   listSets,
+  showVictorySoundsTab,
 } from "@app/tcg";
-import { CARD_HEIGHT, CARD_WIDTH, GameCard, GameCardDefs } from "@app/tcg/ui";
+import { CARD_HEIGHT, CARD_WIDTH, GameCard, GameCardDefs, VictorySounds } from "@app/tcg/ui";
 import { buttonClasses, Card, cx, EmptyState } from "@app/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -37,16 +39,52 @@ const SLOT = 220;
  * n'est ni lue ni modifiée ; pas de remise à zéro. Admin seulement, comme toute la page.
  * `?complet=1&set=toutes` (onglet « Toutes les cartes », ouvert par défaut en mode complet) : toutes
  * les cartes du jeu, tous sets confondus, hors corbeille et doublons (`getAllCardsPotodex`).
+ * `?onglet=sons` : les sons de victoire découverts, à réécouter, avec « N / total ». L'onglet
+ * n'existe pas tant que le joueur n'en a découvert aucun (pas de divulgation) ; en mode complet,
+ * tous les sons actifs (`getVictorySoundsDex`).
  */
 export default async function AdminPotodexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ set?: string; page?: string; complet?: string }>;
+  searchParams: Promise<{ set?: string; page?: string; complet?: string; onglet?: string }>;
 }) {
   const admin = await getCurrentAdmin();
-  const sets = await listSets(admin);
-  const { set: code, page: pageParam, complet } = await searchParams;
+  const { set: code, page: pageParam, complet, onglet } = await searchParams;
   const complete = complet === "1";
+  const [sets, sounds] = await Promise.all([
+    listSets(admin),
+    getVictorySoundsDex(admin, { all: complete }),
+  ]);
+  const soundsTab = showVictorySoundsTab(sounds);
+  if (onglet === "sons" && soundsTab) {
+    return (
+      <Card
+        title={`Potodex · Sons ${complete ? "(complet)" : "(test)"}`}
+        action={
+          <Link
+            href={`/admin/potodex${complete ? "?complet=1" : ""}`}
+            className={buttonClasses({ variant: "ghost", size: "sm" })}
+          >
+            Retour aux cartes
+          </Link>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm">
+            <span className="text-text text-lg font-semibold tabular-nums">
+              {complete ? sounds.total : sounds.sounds.length}/{sounds.total}
+            </span>{" "}
+            <span className="text-muted">
+              {complete
+                ? "sons de victoire (aperçu admin : tout débloqué)"
+                : "sons de victoire découverts en retournant des SR et des SSR"}
+            </span>
+          </p>
+          <VictorySounds sounds={sounds.sounds} />
+        </div>
+      </Card>
+    );
+  }
   // en mode complet, sans set choisi : toutes les cartes
   const all = complete && (code === undefined || code === ALL_CARDS_CODE);
   const current = sets.find((s) => s.code === code) ?? sets[0];
@@ -102,7 +140,7 @@ export default async function AdminPotodexPage({
             </Link>
           </p>
         )}
-        {(complete || sets.length > 1) && (
+        {(complete || sets.length > 1 || soundsTab) && (
           <nav className="flex flex-wrap gap-2" aria-label="Sets">
             {complete && (
               <Link
@@ -129,6 +167,14 @@ export default async function AdminPotodexPage({
                 {s.code} · {s.name}
               </Link>
             ))}
+            {soundsTab && (
+              <Link
+                href={`/admin/potodex?onglet=sons${mode}`}
+                className="border-border text-muted rounded-full border px-3 py-1 text-sm"
+              >
+                Sons · {complete ? sounds.total : sounds.sounds.length}/{sounds.total}
+              </Link>
+            )}
           </nav>
         )}
 
