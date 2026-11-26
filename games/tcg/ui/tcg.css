@@ -1975,89 +1975,85 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
 }
 
-/* vent : traînées d'air et grains emportés qui tournent autour du centre de l'illustration, dans
-   le sens des aiguilles d'une montre, par rafales. Le disque est aplati (vu un peu de biais) ;
-   chaque calque est un dessin fixe qui tourne à vitesse inégale (rafale a ou b), se balance un
-   peu et respire, chacun à son pas (variables posées par Wind) : rotation, déplacement et
-   transparence seulement (compositeur). */
+/* vent : bourrasques. Chaque coup de vent (`.tcg-vfx-gust`, réglages posés par Wind) saute d'une
+   place à l'autre (`tcg-vfx-gust-hop`, 4 places, un saut par passage, quand le trait est invisible) ;
+   son trait se trace très vite le long de sa courbe en s'étirant puis s'efface
+   (`tcg-vfx-gust-draw`, tiret qui avance : `stroke-dashoffset`, et transparence). Les brins
+   (`.tcg-vfx-gust-mote`) passent plus vite. Ni 3D, ni filtre, ni fusion, ni masque. */
 .tcg-vfx-wind {
-  position: absolute;
-  left: 50%;
-  width: 180%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  scale: 1 0.8;
-}
-.tcg-vfx-wind-layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
-  animation:
-    var(--w-gust) var(--w-dur) linear var(--w-delay) infinite,
-    tcg-vfx-wind-sway var(--w-sway) ease-in-out var(--w-delay) infinite alternate,
-    tcg-vfx-wind-breathe var(--w-breathe) ease-in-out var(--w-delay) infinite alternate;
 }
-.tcg-vfx-wind-motes {
-  animation-name: var(--w-gust), tcg-vfx-wind-sway, tcg-vfx-wind-motes-breathe;
+.tcg-vfx-gust {
+  transform-origin: 0 0;
+  animation: tcg-vfx-gust-hop var(--w-hop) linear var(--w-delay) infinite;
 }
-@keyframes tcg-vfx-wind-gust-a {
+.tcg-vfx-gust-line {
+  opacity: 0;
+  stroke-dasharray: 50 300;
+  stroke-dashoffset: 50;
+  animation: tcg-vfx-gust-draw var(--w-dur) cubic-bezier(0.3, 0.6, 0.5, 1) var(--w-delay) infinite;
+}
+.tcg-vfx-gust-mote {
+  stroke-dasharray: 10 300;
+  stroke-dashoffset: 10;
+  animation-name: tcg-vfx-gust-mote;
+}
+@keyframes tcg-vfx-gust-hop {
+  0%,
+  24.9% {
+    transform: translate(var(--w-x0), var(--w-y0)) rotate(var(--w-a0));
+  }
+  25%,
+  49.9% {
+    transform: translate(var(--w-x1), var(--w-y1)) rotate(var(--w-a1));
+  }
+  50%,
+  74.9% {
+    transform: translate(var(--w-x2), var(--w-y2)) rotate(var(--w-a2));
+  }
+  75%,
+  100% {
+    transform: translate(var(--w-x3), var(--w-y3)) rotate(var(--w-a3));
+  }
+}
+@keyframes tcg-vfx-gust-draw {
   0% {
-    rotate: 0deg;
+    stroke-dashoffset: 50;
+    opacity: 0;
   }
-  30% {
-    rotate: 150deg;
+  5% {
+    opacity: 0.95;
   }
-  55% {
-    rotate: 200deg;
+  24% {
+    opacity: 0.8;
   }
-  80% {
-    rotate: 320deg;
+  32% {
+    stroke-dashoffset: -100;
+    opacity: 0;
   }
   100% {
-    rotate: 360deg;
+    stroke-dashoffset: -100;
+    opacity: 0;
   }
 }
-@keyframes tcg-vfx-wind-gust-b {
+@keyframes tcg-vfx-gust-mote {
   0% {
-    rotate: 0deg;
+    stroke-dashoffset: 10;
+    opacity: 0;
   }
-  20% {
-    rotate: 40deg;
+  5% {
+    opacity: 1;
   }
-  45% {
-    rotate: 190deg;
-  }
-  70% {
-    rotate: 245deg;
+  26% {
+    stroke-dashoffset: -100;
+    opacity: 0;
   }
   100% {
-    rotate: 360deg;
-  }
-}
-@keyframes tcg-vfx-wind-sway {
-  from {
-    translate: -3% 1.5%;
-  }
-  to {
-    translate: 3% -2%;
-  }
-}
-@keyframes tcg-vfx-wind-breathe {
-  from {
-    opacity: 0.5;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes tcg-vfx-wind-motes-breathe {
-  from {
-    opacity: 0.35;
-  }
-  to {
-    opacity: 1;
+    stroke-dashoffset: -100;
+    opacity: 0;
   }
 }
 
@@ -2069,7 +2065,8 @@ body:has(.tcg-opening, .tcg-still)::before {
   .tcg-vfx-rays,
   .tcg-vfx-fall,
   .tcg-vfx-shade,
-  .tcg-vfx-wind-layer {
+  .tcg-vfx-gust,
+  .tcg-vfx-gust-line {
     animation: none;
   }
   .tcg-glow[data-blink],

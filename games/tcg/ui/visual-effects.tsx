@@ -873,144 +873,122 @@ const Shadows = () => (
 
 /* ── Vent ── */
 
-/** Nombre de morceaux d'une traînée : le premier (la tête) est le plus net, la queue s'efface. */
-const WIND_PIECES = 4;
-const WIND_PIECE_OPACITY = [1, 0.68, 0.4, 0.16];
-/** Points par morceau : la traînée n'est pas un arc de cercle mais une courbe qui ondule. */
-const WIND_STEPS = 5;
+/** Positions successives d'un coup de vent : il saute ailleurs entre deux passages, invisible. */
+export const WIND_HOPS = 4;
 
 /**
- * Une traînée d'air : sa tête est à l'angle `head` (degrés, 0 = à droite, sens des aiguilles
- * d'une montre à l'écran) et au rayon `r` (repère -100…100) ; sa queue s'étend sur `sweep` degrés
- * DERRIÈRE elle, vers les angles décroissants : le vent tourne dans le sens des aiguilles d'une
- * montre. Pas une orbite : le rayon s'écarte le long de la queue (`grow`, en fraction de `r`) et
- * ondule (`wave` d'amplitude, une vague et demie). Rend un chemin SVG par morceau, tête d'abord.
+ * Tracé d'un trait de vent dans son repère : il part de l'origine et file vers +x sur `length`,
+ * légèrement courbé (`bend` : flèche relative, signe = côté), avec parfois une petite boucle au bout
+ * (`curl`), comme les coups de vent des dessins animés. Courbes de Bézier : un seul chemin.
  */
-export function windTrail(r: number, head: number, sweep: number, grow = 0, wave = 0) {
-  const at = (t: number) => {
-    const a = ((head - sweep * t) * Math.PI) / 180;
-    const rr = r * (1 + grow * t + wave * Math.sin(t * Math.PI * 3));
-    return `${(rr * Math.cos(a)).toFixed(2)} ${(rr * Math.sin(a)).toFixed(2)}`;
-  };
-  return Array.from({ length: WIND_PIECES }, (_, k) => {
-    const pts = Array.from({ length: WIND_STEPS + 1 }, (_, i) =>
-      at((k + i / WIND_STEPS) / WIND_PIECES),
-    );
-    return { d: `M ${pts.join(" L ")}`, opacity: WIND_PIECE_OPACITY[k] ?? 0 };
-  });
+export function windStreak(length: number, bend: number, curl: boolean): string {
+  const f = (n: number) => n.toFixed(2);
+  const sag = bend * length;
+  const end = `${f(length)} ${f(sag * 0.6)}`;
+  let d = `M 0 0 Q ${f(length * 0.5)} ${f(sag)} ${end}`;
+  if (curl) {
+    const s = length * 0.16 * Math.sign(bend || 1);
+    const k = length * 0.16;
+    d += ` c ${f(k)} 0 ${f(k * 1.3)} ${f(-s)} ${f(k * 0.6)} ${f(-s * 1.2)}`;
+    d += ` c ${f(-k * 0.6)} ${f(-s * 0.2)} ${f(-k * 0.8)} ${f(s * 0.5)} ${f(-k * 0.2)} ${f(s * 0.7)}`;
+  }
+  return d;
 }
 
 /**
- * Calques du vent, tirés une fois pour toutes : quatre nappes de traînées (des larges et lentes
- * aux fines et rapides) et une nappe de grains emportés. Chaque calque a sa rafale (`gust` : un
- * tour à vitesse inégale), sa durée, son décalage, son balancement et son souffle (apparitions,
- * disparitions) : aucun ne tourne au même pas, ce qui casse le « cercle parfait ». Secondes.
+ * Coups de vent, tirés une fois pour toutes. Repère : -70…70 en largeur, -100…100 en hauteur,
+ * centre du tourbillon à l'origine. Chaque coup a `WIND_HOPS` places, une par passage : à chaque
+ * place, il est orienté le long du tourbillon (sens des aiguilles d'une montre à l'écran), dévié au
+ * hasard. `duration` : un passage (le trait n'est visible qu'au premier tiers, ≈ 0,4-0,9 s),
+ * `delay` négatif : tous décalés. Les traits (`kind: "streak"`) sont longs et fins ; un brin
+ * (`kind: "mote"`) est un point qui file vite le long de sa courbe. Secondes.
  */
-export const WIND_LAYERS = (() => {
-  const rnd = seeded(71);
-  const trails = (count: number, rMin: number, rMax: number, width: number) =>
-    Array.from({ length: count }, () => ({
-      r: rMin + rnd() * (rMax - rMin),
-      head: rnd() * 360,
-      sweep: 60 + rnd() * 70,
-      width: width * (0.7 + rnd() * 0.6),
-      grow: (rnd() - 0.35) * 0.5,
-      wave: 0.04 + rnd() * 0.08,
-      gold: rnd() < 0.35,
-    }));
-  const motes = Array.from({ length: 26 }, () => {
-    const r = 18 + rnd() * 74;
+export const WIND_GUSTS = (() => {
+  const rnd = seeded(73);
+  const place = (rMin: number, rMax: number, jitter: number) => {
+    const r = rMin + rnd() * (rMax - rMin);
     const a = rnd() * 2 * Math.PI;
-    return { x: r * Math.cos(a), y: r * Math.sin(a), size: 0.7 + rnd() * 1 };
-  });
+    const x = Math.max(-66, Math.min(66, r * Math.cos(a) * 0.75));
+    const y = Math.max(-96, Math.min(96, r * Math.sin(a)));
+    const angle = (Math.atan2(y, x) * 180) / Math.PI + 90 + (rnd() - 0.5) * 2 * jitter;
+    return { x, y, angle };
+  };
+  const gust = (kind: "streak" | "mote") => {
+    const streak = kind === "streak";
+    const duration = streak ? 1.5 + rnd() * 1.4 : 0.9 + rnd() * 0.7;
+    return {
+      kind,
+      duration,
+      delay: -rnd() * duration * WIND_HOPS,
+      width: streak ? 1.2 + rnd() * 1.2 : 1.6 + rnd() * 0.8,
+      d: streak
+        ? windStreak(30 + rnd() * 32, (rnd() - 0.5) * 0.8, rnd() < 0.3)
+        : windStreak(24 + rnd() * 18, (rnd() - 0.5) * 0.6, false),
+      gold: rnd() < 0.2,
+      hops: Array.from({ length: WIND_HOPS }, () =>
+        streak ? place(14, 112, 28) : place(10, 100, 40),
+      ),
+    };
+  };
   return [
-    {
-      gust: "a",
-      duration: 6.4,
-      delay: 0,
-      sway: 3.3,
-      breathe: 2.9,
-      trails: trails(6, 56, 94, 4.4),
-      motes: [],
-    },
-    {
-      gust: "b",
-      duration: 4.6,
-      delay: -1.7,
-      sway: 2.6,
-      breathe: 1.9,
-      trails: trails(6, 36, 84, 2.8),
-      motes: [],
-    },
-    {
-      gust: "a",
-      duration: 3.1,
-      delay: -0.9,
-      sway: 1.9,
-      breathe: 1.4,
-      trails: trails(7, 22, 78, 1.9),
-      motes: [],
-    },
-    {
-      gust: "b",
-      duration: 3.7,
-      delay: -2.6,
-      sway: 2.2,
-      breathe: 1.6,
-      trails: trails(5, 44, 92, 1.5),
-      motes: [],
-    },
-    { gust: "a", duration: 2.5, delay: -0.4, sway: 1.7, breathe: 1.2, trails: [], motes },
+    ...Array.from({ length: 30 }, () => gust("streak")),
+    ...Array.from({ length: 18 }, () => gust("mote")),
   ];
 })();
 
 /**
- * Vent : des traînées d'air et des grains emportés tourbillonnent autour du centre de
- * l'illustration, dans le sens des aiguilles d'une montre (pensé pour la full art « Spinning
- * spinning »), par rafales. Cinq calques dessinés une fois ; chacun tourne à vitesse inégale,
- * se balance un peu et respire : rotation, déplacement et transparence seulement, ni fusion ni
- * masque. Les réglages passent par des variables CSS pour que le mouvement réduit les coupe.
+ * Vent : de vraies bourrasques, comme dans les dessins animés. Beaucoup de petits traits fins,
+ * blancs et translucides, apparaissent un peu partout sur l'illustration, filent très vite le long
+ * de leur courbe en s'étirant, puis s'effacent ; chacun repart ailleurs au passage suivant, tous
+ * décalés : aucune structure fixe. Ils suivent le tourbillon autour du centre de l'illustration
+ * (sens des aiguilles d'une montre ; pensé pour la full art « Spinning spinning »), avec des
+ * brins emportés plus vite encore. Animation : tracé du trait (`stroke-dashoffset`), transparence
+ * et sauts de place ; ni 3D, ni filtre, ni fusion, ni masque. Sur l'illustration seule.
  */
 const Wind = ({ full }: EffectProps) => (
   <div style={{ ...fillAbs, overflow: "hidden" }}>
-    <div className="tcg-vfx-wind" style={{ top: full ? "56%" : "50%" }}>
-      {WIND_LAYERS.map((layer, i) => (
-        <svg
-          key={i}
-          viewBox="-100 -100 200 200"
-          className={
-            layer.motes.length ? "tcg-vfx-wind-layer tcg-vfx-wind-motes" : "tcg-vfx-wind-layer"
-          }
-          style={
-            {
-              "--w-gust": `tcg-vfx-wind-gust-${layer.gust}`,
-              "--w-dur": `${layer.duration}s`,
-              "--w-delay": `${layer.delay}s`,
-              "--w-sway": `${layer.sway}s`,
-              "--w-breathe": `${layer.breathe}s`,
-            } as CSSProperties
-          }
-        >
-          {layer.trails.map((t, j) =>
-            windTrail(t.r, t.head, t.sweep, t.grow, t.wave).map((p, k) => (
-              <path
-                key={`${j}-${k}`}
-                d={p.d}
-                fill="none"
-                stroke={t.gold ? "#ffe9a8" : "#ffffff"}
-                strokeOpacity={p.opacity}
-                strokeWidth={t.width * (1 - k * 0.15)}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )),
-          )}
-          {layer.motes.map((m, j) => (
-            <circle key={j} cx={m.x} cy={m.y} r={m.size} fill="#fffbe8" />
-          ))}
-        </svg>
-      ))}
-    </div>
+    <svg
+      viewBox="-70 -100 140 200"
+      preserveAspectRatio="xMidYMid slice"
+      className="tcg-vfx-wind"
+      aria-hidden
+    >
+      <g transform={`translate(0 ${full ? 12 : 0})`}>
+        {WIND_GUSTS.map((g, i) => (
+          <g
+            key={i}
+            className="tcg-vfx-gust"
+            style={
+              {
+                "--w-dur": `${g.duration}s`,
+                "--w-delay": `${g.delay}s`,
+                "--w-hop": `${g.duration * WIND_HOPS}s`,
+                ...Object.fromEntries(
+                  g.hops.flatMap((h, k) => [
+                    [`--w-x${k}`, `${h.x.toFixed(1)}px`],
+                    [`--w-y${k}`, `${h.y.toFixed(1)}px`],
+                    [`--w-a${k}`, `${h.angle.toFixed(0)}deg`],
+                  ]),
+                ),
+              } as CSSProperties
+            }
+          >
+            <path
+              d={g.d}
+              pathLength={100}
+              className={
+                g.kind === "mote" ? "tcg-vfx-gust-line tcg-vfx-gust-mote" : "tcg-vfx-gust-line"
+              }
+              fill="none"
+              stroke={g.gold ? "#fff1c4" : "#ffffff"}
+              strokeWidth={g.width}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        ))}
+      </g>
+    </svg>
   </div>
 );
 

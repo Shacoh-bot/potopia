@@ -1203,12 +1203,15 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
   tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   `vent` (« Vent », place `art`, migration `tcg_visual_effects_vent`, `Wind`, pensé pour la full
-  art « Spinning spinning ») : traînées d'air (courbes SVG qui ondulent et s'écartent, la queue
-  s'efface) et grains emportés tournent autour du centre de l'illustration (56 % de haut en full
-  art), dans le sens des aiguilles d'une montre, sur un disque aplati. Cinq calques dessinés une
-  fois ; chacun tourne par rafales (keyframes `gust-a`/`gust-b` : un tour à vitesse inégale, 2,5 à
-  6,4 s, décalés), se balance (`sway`) et respire, réglés par variables CSS (`--w-*`) : rotation,
-  déplacement et transparence seulement, ni fusion ni masque. Mouvement réduit : traînées fixes.
+  art « Spinning spinning ») : de vraies bourrasques (v3). 30 traits de vent courts et fins
+  (blancs translucides, courbés, parfois une boucle au bout, `windStreak`) et 18 brins
+  apparaissent un peu partout, filent très vite en se traçant le long de leur courbe
+  (`stroke-dashoffset` + transparence, keyframes `gust-draw`/`gust-mote`, visibles ≈ 0,4-0,9 s)
+  puis s'effacent ; chaque coup de vent saute ailleurs entre deux passages (`gust-hop`, 4 places
+  tirées une fois, `WIND_GUSTS`), tous décalés : aucune structure fixe. Orientés le long du
+  tourbillon autour du centre de l'illustration (56 % de haut en full art), sens des aiguilles
+  d'une montre, déviés au hasard. Un seul SVG, réglages par variables CSS (`--w-*`) ; ni 3D, ni
+  filtre, ni fusion, ni masque. Mouvement réduit : rien ne s'affiche.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est
