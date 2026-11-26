@@ -871,6 +871,100 @@ const Shadows = () => (
   </div>
 );
 
+/* ── Vent ── */
+
+/** Nombre de morceaux d'une traînée : le premier (la tête) est le plus net, la queue s'efface. */
+const WIND_PIECES = 4;
+const WIND_PIECE_OPACITY = [0.9, 0.55, 0.3, 0.12];
+
+/**
+ * Une traînée d'air : arc de cercle de rayon `r` (repère -100…100) dont la tête est à l'angle
+ * `head` (degrés, 0 = à droite, sens des aiguilles d'une montre à l'écran) et la queue s'étend
+ * sur `sweep` degrés DERRIÈRE elle, c'est-à-dire vers les angles croissants : le vent tourne en
+ * sens inverse des aiguilles d'une montre. Rend un chemin SVG par morceau, de la tête à la queue.
+ */
+export function windTrail(r: number, head: number, sweep: number) {
+  const at = (deg: number) => {
+    const a = (deg * Math.PI) / 180;
+    return `${(r * Math.cos(a)).toFixed(2)} ${(r * Math.sin(a)).toFixed(2)}`;
+  };
+  return Array.from({ length: WIND_PIECES }, (_, k) => {
+    const from = head + (sweep * k) / WIND_PIECES;
+    const to = head + (sweep * (k + 1)) / WIND_PIECES;
+    return { d: `M ${at(from)} A ${r} ${r} 0 0 1 ${at(to)}`, opacity: WIND_PIECE_OPACITY[k] ?? 0 };
+  });
+}
+
+/**
+ * Calques du vent, tirés une fois pour toutes : deux nappes de traînées (larges et lentes, fines
+ * et rapides) et une nappe de grains emportés, plus rapide encore. Durées en secondes.
+ */
+export const WIND_LAYERS = (() => {
+  const rnd = seeded(71);
+  const trails = (count: number, rMin: number, rMax: number, width: number) =>
+    Array.from({ length: count }, () => ({
+      r: rMin + rnd() * (rMax - rMin),
+      head: rnd() * 360,
+      sweep: 40 + rnd() * 50,
+      width: width * (0.7 + rnd() * 0.6),
+      gold: rnd() < 0.35,
+    }));
+  const motes = Array.from({ length: 22 }, () => {
+    const r = 18 + rnd() * 74;
+    const a = rnd() * 2 * Math.PI;
+    return { x: r * Math.cos(a), y: r * Math.sin(a), size: 0.6 + rnd() * 0.9 };
+  });
+  return [
+    { duration: 9, trails: trails(8, 50, 94, 3.2), motes: [] },
+    { duration: 5.5, trails: trails(9, 24, 86, 1.6), motes: [] },
+    { duration: 3.6, trails: [], motes },
+  ];
+})();
+
+/**
+ * Vent : des traînées d'air et des grains emportés tourbillonnent autour du centre de
+ * l'illustration, en sens inverse des aiguilles d'une montre (pensé pour la full art « Spinning
+ * spinning » : la boule tourne). Trois calques dessinés une fois, qui ne font que tourner (et
+ * respirer pour les grains) : rotation et transparence seulement, aucune fusion ni masque.
+ */
+const Wind = ({ full }: EffectProps) => (
+  <div style={{ ...fillAbs, overflow: "hidden" }}>
+    <div className="tcg-vfx-wind" style={{ top: full ? "56%" : "50%" }}>
+      {WIND_LAYERS.map((layer, i) => (
+        <svg
+          key={i}
+          viewBox="-100 -100 200 200"
+          className={
+            layer.motes.length ? "tcg-vfx-wind-layer tcg-vfx-wind-motes" : "tcg-vfx-wind-layer"
+          }
+          style={{
+            animationDuration: layer.motes.length
+              ? `${layer.duration}s, 2.4s`
+              : `${layer.duration}s`,
+          }}
+        >
+          {layer.trails.map((t, j) =>
+            windTrail(t.r, t.head, t.sweep).map((p, k) => (
+              <path
+                key={`${j}-${k}`}
+                d={p.d}
+                fill="none"
+                stroke={t.gold ? "#ffe9a8" : "#ffffff"}
+                strokeOpacity={p.opacity}
+                strokeWidth={t.width * (1 - k * 0.15)}
+                strokeLinecap="round"
+              />
+            )),
+          )}
+          {layer.motes.map((m, j) => (
+            <circle key={j} cx={m.x} cy={m.y} r={m.size} fill="#fffbe8" />
+          ))}
+        </svg>
+      ))}
+    </div>
+  </div>
+);
+
 /** Rendu de chaque effet, par clé du catalogue. */
 export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   holo: { render: Holo },
@@ -905,6 +999,7 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   petales: { render: falling("petal") },
   feuilles: { render: falling("leaf") },
   ombres: { render: Shadows },
+  vent: { render: Wind },
 };
 
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */

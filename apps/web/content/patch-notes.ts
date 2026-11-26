@@ -76,6 +76,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Booster : le retournement d'une carte ne montre plus les deux côtés à la fois (retournement « doublé »).",
       },
+      {
+        admin: true,
+        text: "Cartes : nouvel effet « Vent » dans l'éditeur, des traînées d'air et des grains qui tourbillonnent autour de l'illustration.",
+      },
     ],
   },
   {
