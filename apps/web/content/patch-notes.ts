@@ -80,6 +80,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Cartes : nouvel effet « Vent » dans l'éditeur, des traînées d'air et des grains qui tourbillonnent autour de l'illustration.",
       },
+      {
+        admin: true,
+        text: "Effet « Vent » : il tourne maintenant dans l'autre sens, plus fort et plus vite, par rafales irrégulières, comme du vrai vent.",
+      },
     ],
   },
   {

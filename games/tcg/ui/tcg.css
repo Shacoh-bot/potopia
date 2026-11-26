@@ -1975,9 +1975,11 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
 }
 
-/* vent : traînées d'air et grains emportés qui tournent autour du centre de l'illustration, en
-   sens inverse des aiguilles d'une montre. Le disque est aplati (vu un peu de biais) ; chaque calque
-   est un dessin fixe qui ne fait que tourner : rotation et transparence seulement (compositeur). */
+/* vent : traînées d'air et grains emportés qui tournent autour du centre de l'illustration, dans
+   le sens des aiguilles d'une montre, par rafales. Le disque est aplati (vu un peu de biais) ;
+   chaque calque est un dessin fixe qui tourne à vitesse inégale (rafale a ou b), se balance un
+   peu et respire, chacun à son pas (variables posées par Wind) : rotation, déplacement et
+   transparence seulement (compositeur). */
 .tcg-vfx-wind {
   position: absolute;
   left: 50%;
@@ -1992,24 +1994,67 @@ body:has(.tcg-opening, .tcg-still)::before {
   width: 100%;
   height: 100%;
   overflow: visible;
-  animation: tcg-vfx-wind-spin linear infinite;
+  animation:
+    var(--w-gust) var(--w-dur) linear var(--w-delay) infinite,
+    tcg-vfx-wind-sway var(--w-sway) ease-in-out var(--w-delay) infinite alternate,
+    tcg-vfx-wind-breathe var(--w-breathe) ease-in-out var(--w-delay) infinite alternate;
 }
 .tcg-vfx-wind-motes {
-  animation:
-    tcg-vfx-wind-spin linear infinite,
-    tcg-vfx-wind-breathe ease-in-out infinite alternate;
+  animation-name: var(--w-gust), tcg-vfx-wind-sway, tcg-vfx-wind-motes-breathe;
 }
-@keyframes tcg-vfx-wind-spin {
-  from {
+@keyframes tcg-vfx-wind-gust-a {
+  0% {
     rotate: 0deg;
   }
+  30% {
+    rotate: 150deg;
+  }
+  55% {
+    rotate: 200deg;
+  }
+  80% {
+    rotate: 320deg;
+  }
+  100% {
+    rotate: 360deg;
+  }
+}
+@keyframes tcg-vfx-wind-gust-b {
+  0% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: 40deg;
+  }
+  45% {
+    rotate: 190deg;
+  }
+  70% {
+    rotate: 245deg;
+  }
+  100% {
+    rotate: 360deg;
+  }
+}
+@keyframes tcg-vfx-wind-sway {
+  from {
+    translate: -3% 1.5%;
+  }
   to {
-    rotate: -360deg;
+    translate: 3% -2%;
   }
 }
 @keyframes tcg-vfx-wind-breathe {
   from {
-    opacity: 0.45;
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes tcg-vfx-wind-motes-breathe {
+  from {
+    opacity: 0.35;
   }
   to {
     opacity: 1;

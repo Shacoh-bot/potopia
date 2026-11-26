@@ -1203,11 +1203,12 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
   tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   `vent` (« Vent », place `art`, migration `tcg_visual_effects_vent`, `Wind`, pensé pour la full
-  art « Spinning spinning ») : traînées d'air (arcs SVG dont la queue s'efface) et grains emportés
-  tournent autour du centre de l'illustration (56 % de haut en full art), en sens inverse des
-  aiguilles d'une montre, sur un disque aplati. Trois calques dessinés une fois qui ne font que
-  tourner (9 s, 5,5 s, 3,6 s ; les grains respirent) : rotation et transparence seulement, ni
-  fusion ni masque. Mouvement réduit : traînées fixes.
+  art « Spinning spinning ») : traînées d'air (courbes SVG qui ondulent et s'écartent, la queue
+  s'efface) et grains emportés tournent autour du centre de l'illustration (56 % de haut en full
+  art), dans le sens des aiguilles d'une montre, sur un disque aplati. Cinq calques dessinés une
+  fois ; chacun tourne par rafales (keyframes `gust-a`/`gust-b` : un tour à vitesse inégale, 2,5 à
+  6,4 s, décalés), se balance (`sway`) et respire, réglés par variables CSS (`--w-*`) : rotation,
+  déplacement et transparence seulement, ni fusion ni masque. Mouvement réduit : traînées fixes.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est

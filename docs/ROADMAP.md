@@ -610,7 +610,8 @@ catalogue, admin des cartes). Détails : section « Cartes du jeu » de [ARCHITE
       `tcg_visual_effects_energie` (ajout seul).
 - [x] Effet « Vent » (`vent`) : traînées d'air et grains qui tourbillonnent autour du centre de
       l'illustration (pour la full art « Spinning spinning ») ; rotation et transparence
-      seulement ; migration `tcg_visual_effects_vent` (ajout seul).
+      seulement ; migration `tcg_visual_effects_vent` (ajout seul). v2 : sens des aiguilles d'une
+      montre, plus fort, plus vite, rafales et trajectoires irrégulières (cinq calques).
 - [x] Plus de halo blanc qui suit la souris au survol d'une carte (calque `tcg-glare` retiré).
 - [x] Fiche d'une carte : bouton « ← Retour aux cartes » en haut à droite, qui ramène à la
       planche avec ses filtres.
