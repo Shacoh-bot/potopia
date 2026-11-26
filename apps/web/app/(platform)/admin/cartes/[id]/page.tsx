@@ -1,12 +1,18 @@
 import { getCard, isDuplicateNote, listCards, listSets, listVisualEffects } from "@app/tcg";
-import { CardEditor } from "@app/tcg/ui";
+import { CardEditor, CardSoundUpload } from "@app/tcg/ui";
 import { buttonClasses, Card } from "@app/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../../cartes/fonts";
-import { confirmCardImageAction, requestCardImageAction, updateCardAction } from "../actions";
+import {
+  confirmCardImageAction,
+  confirmCardSoundAction,
+  requestCardImageAction,
+  requestCardSoundAction,
+  updateCardAction,
+} from "../actions";
 import { MoveCardForm } from "../forms";
 import { cardFaces, duplicateCandidates, familiesOf } from "../images";
 import { boardHref, boardQuery, cardHref } from "../board-url";
@@ -178,6 +184,15 @@ export default async function AdminCardPage({
             request: requestCardImageAction,
             confirm: confirmCardImageAction.bind(null, card.id),
           }}
+        />
+        <CardSoundUpload
+          sounds={{
+            normal: normal?.revealSoundUrl ?? null,
+            fullart: full?.revealSoundUrl ?? null,
+          }}
+          fullHasOwn={!!card.revealSoundKeyFull}
+          request={requestCardSoundAction}
+          confirm={confirmCardSoundAction.bind(null, card.id)}
         />
       </div>
     </Card>

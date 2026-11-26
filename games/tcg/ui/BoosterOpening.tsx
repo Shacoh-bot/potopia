@@ -14,7 +14,15 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { revealRarity } from "../src/card-rules";
-import { flipSound, grabSound, landSound, openSound, tearSound } from "./booster-sounds";
+import {
+  grabSound,
+  landSound,
+  openSound,
+  preloadCardSound,
+  revealCardSound,
+  stopCardSound,
+  tearSound,
+} from "./booster-sounds";
 import { CardAura, hasAura, warmUpAuras } from "./CardAura";
 import { CardBack } from "./CardBack";
 import { cardImagesReady } from "./card-preload";
@@ -41,7 +49,13 @@ const PackScene = lazy(loadScene);
  */
 
 /** Une carte tirée, prête à afficher. */
-export type OpenedCard = { id: string; card: GameCardFields; imageUrl: string | null };
+export type OpenedCard = {
+  id: string;
+  card: GameCardFields;
+  imageUrl: string | null;
+  /** Son propre de la carte : il remplace les bruitages du retournement ; absent : ceux-ci. */
+  revealSoundUrl?: string | null;
+};
 
 /** Cadre de la vidéo (pixels). */
 const FRAME = { width: 1920, height: 1080 };
@@ -287,8 +301,9 @@ function OpeningCard({
     if (side !== "back" || !opened) return;
     setFaceMounted(true);
     setSide("face");
-    // une Alt Art se révèle avec le son de la SSR ; le halo reste celui de sa rareté
-    flipSound(revealRarity(opened.card));
+    // une Alt Art se révèle avec le son de la SSR ; le halo reste celui de sa rareté. Une carte
+    // avec son propre (Singham…) ne joue que lui.
+    revealCardSound(revealRarity(opened.card), opened.revealSoundUrl);
     onReveal();
     // La face ne suit la souris qu'une fois posée, sinon elle resterait de travers.
     window.setTimeout(() => setSettled(true), FLIP_MS);
@@ -591,6 +606,8 @@ export function BoosterOpening({
   // L'écran s'ouvre dans la page : on l'amène au centre de la fenêtre.
   useEffect(() => {
     root.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Écran fermé : le son propre d'une carte s'éteint avec lui.
+    return () => stopCardSound();
   }, []);
 
   // Cartes tirées montrées une fois leurs illustrations décodées : préchargées avant le clic
@@ -599,6 +616,7 @@ export function BoosterOpening({
   const [shown, setShown] = useState<OpenedCard[] | null>(null);
   useEffect(() => {
     if (!cards) return;
+    for (const c of cards) if (c.revealSoundUrl) preloadCardSound(c.revealSoundUrl);
     let live = true;
     void cardImagesReady(
       cards.map((c) => c.imageUrl),

@@ -130,3 +130,78 @@ export function flipSound(rarity: string) {
   play("flip", { rate: vary(0.95, 1.05) });
   play(revealSound(rarity), { at: 0.12 });
 }
+
+/*
+ * Son propre d'une carte (Singham…) : un fichier du stockage, joué par un élément <audio> (pas
+ * Web Audio : pas besoin d'en-têtes CORS du stockage). Il remplace les bruitages du retournement,
+ * part quand la face apparaît et s'arrête en fondu dès qu'une autre carte se retourne.
+ */
+
+/** Délai entre le geste et l'apparition de la face (`tcg-flip-out`, 0,31 s, puis la face). */
+export const FACE_APPEARS_S = 0.31;
+
+const warmed = new Map<string, HTMLAudioElement>();
+let playing: HTMLAudioElement | null = null;
+let pending: number | null = null;
+
+/** Télécharge d'avance le son propre d'une carte (cache du navigateur), sans le jouer. */
+export function preloadCardSound(url: string) {
+  if (typeof Audio === "undefined" || warmed.has(url)) return;
+  const audio = new Audio();
+  audio.preload = "auto";
+  audio.src = url;
+  warmed.set(url, audio);
+}
+
+/** Arrête le son propre en cours (fondu de `fadeS` secondes) et celui qui allait partir. */
+export function stopCardSound(fadeS = 0.4) {
+  if (pending !== null) window.clearTimeout(pending);
+  pending = null;
+  const audio = playing;
+  playing = null;
+  if (!audio) return;
+  const from = audio.volume;
+  const start = performance.now();
+  const step = () => {
+    const k = Math.min(1, (performance.now() - start) / (fadeS * 1000));
+    audio.volume = from * (1 - k);
+    if (k < 1) requestAnimationFrame(step);
+    else audio.pause();
+  };
+  requestAnimationFrame(step);
+}
+
+/** Joue le son propre d'une carte dans `at` secondes (à l'apparition de la face), au volume du site. */
+export function cardSound(url: string, { at = FACE_APPEARS_S }: { at?: number } = {}) {
+  stopCardSound();
+  if (typeof Audio === "undefined" || effectiveVolume() <= 0) return;
+  pending = window.setTimeout(() => {
+    pending = null;
+    const audio = new Audio(url);
+    audio.volume = Math.min(1, effectiveVolume());
+    playing = audio;
+    audio.addEventListener("ended", () => {
+      if (playing === audio) playing = null;
+    });
+    void audio.play().catch(() => {
+      if (playing === audio) playing = null;
+    });
+  }, at * 1000);
+}
+
+/**
+ * Retournement d'une carte dans un booster : son son propre s'il en a un (rien d'autre, pas même
+ * la révélation SR/SSR), sinon les bruitages de sa rareté. Le son propre précédent s'arrête en fondu.
+ */
+export function revealCardSound(rarity: string, soundUrl?: string | null) {
+  if (soundUrl) {
+    cardSound(soundUrl);
+    return;
+  }
+  stopCardSound();
+  flipSound(rarity);
+}
+
+onVolumeChange(() => {
+  if (playing) playing.volume = Math.min(1, effectiveVolume());
+});

@@ -216,7 +216,11 @@ passe d'une partie à l'autre sans rechargement.
   common, uncommon, rare, epic, legendary, sr, ssr), type, family?, cost (0 à 8), power,
   statsManual (défaut false : avec un effet, cost et power suivent sa carte Snap), effectKey?,
   effectParams? (JSON), effectText, flavor?, imageKey?, imageKeyFull? (illustration de la
-  version Alt Art ; null, elle reprend `imageKey`), imageFrame? (JSON : cadrage de
+  version Alt Art ; null, elle reprend `imageKey`), revealSoundKey?, revealSoundKeyFull? (son
+  propre MP3 joué au retournement dans un booster, clé `sounds/<uuid>.mp3`, 2 Mo au plus ; la
+  full art reprend celui de la normale, `revealSoundKeyFor` ; posé par `createCardSoundUpload` +
+  `setCardSound`, éditeur admin `CardSoundUpload` ; migration `tcg_card_reveal_sound`, ajout
+  seul), imageFrame? (JSON : cadrage de
   effectParams? (JSON), effectText, flavor?, adminNote? (note de l'admin, 120 caractères :
   « Doublon de … » ; jamais montrée aux joueurs, sans effet en jeu ; absente d'une modification,
   elle ne change pas ; migration `tcg_card_admin_note`, ajout seul), prepStage (étape de préparation
@@ -1545,9 +1549,11 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
   Chaque son varie un peu à chaque fois ; volume du site respecté.
 - `/admin/banc-cartes` : banc d'essai du rendu des cartes (`CardBench` de `@app/tcg/ui`), en
-  lecture seule. Les 80 premières cartes du jeu (hors corbeille), en une carte, en rangée de 5
+  lecture seule. Les 80 premières cartes du jeu (hors corbeille, celles à son propre en tête),
+  en une carte, en rangée de 5
   comme à l'ouverture d'un booster (même balisage `.tcg-opening-*`, auras, taille par `zoom` ou
-  par `transform`, bouton « Retourner ») ou en planche figée de 40. Rareté, version et effets
+  par `transform`, bouton « Rejouer le retournement », avec le son propre de la première carte
+  dans la version affichée) ou en planche figée de 40. Rareté, version et effets
   forçables. Strates à couper une à une (attribut `data-sans` du banc, règles `.tcg-bench` de
   `tcg.css`) : 3D, inclinaison, holo, effets, cadre, filets, bandeau, encadrés, pied, pastilles,
   halo, fusions, filtres, masques, animations ; la carte porte pour cela des repères

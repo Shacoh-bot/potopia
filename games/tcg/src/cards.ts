@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   CARD_IMAGE_TYPES,
+  CARD_SOUND_TYPE,
   CARD_LAYOUTS,
   CARD_LIMITS,
   CARD_RARITIES,
@@ -861,14 +862,26 @@ export async function deleteCards(
     }
     const keys = await tx.tcgCard.findMany({
       where: { id: { in: unique } },
-      select: { imageKey: true, imageKeyFull: true, imageKeySmall: true, imageKeyFullSmall: true },
+      select: {
+        imageKey: true,
+        imageKeyFull: true,
+        imageKeySmall: true,
+        imageKeyFullSmall: true,
+        revealSoundKey: true,
+        revealSoundKeyFull: true,
+      },
     });
     const { count } = await tx.tcgCard.deleteMany({ where: { id: { in: unique } } });
-    // les deux illustrations (normale et full art) et leurs versions réduites
+    // les deux illustrations (normale et full art), leurs versions réduites et les sons propres
     const imageKeys = keys.flatMap((k) =>
-      [k.imageKey, k.imageKeyFull, k.imageKeySmall, k.imageKeyFullSmall].filter(
-        (x): x is string => x !== null,
-      ),
+      [
+        k.imageKey,
+        k.imageKeyFull,
+        k.imageKeySmall,
+        k.imageKeyFullSmall,
+        k.revealSoundKey,
+        k.revealSoundKeyFull,
+      ].filter((x): x is string => x !== null),
     );
     return { deleted: count, imageKeys };
   }, opts);
@@ -953,6 +966,69 @@ export async function setCardImage(
         : { imageKey: checked, imageKeySmall: small },
     include: withSet,
   });
+  return toCard(row);
+}
+
+/* ── Son propre d'une carte (joué à son retournement dans un booster) ── */
+
+const soundUploadInput = z.object({
+  contentType: z.literal(CARD_SOUND_TYPE, "Format de son refusé : MP3 uniquement."),
+  size: z
+    .number()
+    .int()
+    .positive("Son vide.")
+    .max(CARD_LIMITS.soundBytes, "Son trop lourd (2 Mo maximum)."),
+});
+
+/** URL d'envoi présignée (5 min) pour le son propre d'une carte ; la clé est générée ici. */
+export async function createCardSoundUpload(
+  admin: Admin,
+  input: { contentType: string; size: number },
+): Promise<{ key: string; url: string }> {
+  assertAdmin(admin);
+  const { contentType, size } = soundUploadInput.parse(input);
+  const key = `sounds/${randomUUID()}.mp3`;
+  const url = await presignPut({ key, contentType, contentLength: size, expiresIn: 300 });
+  return { key, url };
+}
+
+const soundKey = z.string().regex(/^sounds\/[0-9a-f-]{36}\.mp3$/, "Clé de son invalide.");
+
+/**
+ * Pose le son propre envoyé (vérifié dans le stockage) sur une version de la carte : la normale
+ * (`revealSoundKey`, par défaut) ou la full art (`revealSoundKeyFull`). `null` le retire : la carte
+ * reprend les bruitages de sa rareté (la full art, le son de la normale). L'ancien fichier est
+ * supprimé du stockage.
+ */
+export async function setCardSound(
+  admin: Admin,
+  id: string,
+  key: string | null,
+  opts?: { tx?: DbTx; version?: CardLayout },
+): Promise<Card> {
+  assertAdmin(admin);
+  let checked: string | null = null;
+  if (key !== null) {
+    checked = soundKey.parse(key);
+    const info = await headObject(checked);
+    if (!info) throw new CardInputError("Son introuvable : l'envoi a échoué.");
+    if (info.contentLength > CARD_LIMITS.soundBytes) {
+      throw new CardInputError("Son trop lourd (2 Mo maximum).");
+    }
+  }
+  const full = opts?.version === "fullart";
+  const client = opts?.tx ?? db;
+  const before = await client.tcgCard.findUnique({
+    where: { id },
+    select: { revealSoundKey: true, revealSoundKeyFull: true },
+  });
+  const row = await client.tcgCard.update({
+    where: { id },
+    data: full ? { revealSoundKeyFull: checked } : { revealSoundKey: checked },
+    include: withSet,
+  });
+  const old = full ? before?.revealSoundKeyFull : before?.revealSoundKey;
+  if (old && old !== checked && !opts?.tx) await deleteObject(old).catch(() => undefined);
   return toCard(row);
 }
 
