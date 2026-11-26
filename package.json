@@ -10,6 +10,8 @@
     "build": "turbo run build",
     "test": "turbo run test --concurrency=1",
     "lint": "turbo run lint",
+    "test:rendu": "pnpm --filter @app/tcg test:rendu",
+    "test:rendu:docker": "pnpm --filter @app/tcg test:rendu:docker",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
