@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CARD_RARITIES, CARD_RARITY_LABELS, type CardRarityId } from "../src/card-rules";
 import { CardAura, hasAura } from "./CardAura";
 import { CardBack } from "./CardBack";
+import { cardSound, FACE_APPEARS_S, stopCardSound } from "./booster-sounds";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { RETIRED_EFFECTS } from "./effect-places";
 import { H, W } from "./v2";
@@ -11,7 +12,13 @@ import type { TopLayout } from "./v4";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
 /** Une carte prête à afficher (comme `cardFaces` de l'app la prépare). */
-export type BenchCard = { card: GameCardFields; imageUrl: string | null; setSize?: number };
+export type BenchCard = {
+  card: GameCardFields;
+  imageUrl: string | null;
+  setSize?: number;
+  /** Son propre de chaque version (joué par « Rejouer le retournement ») ; absent : aucun. */
+  sounds?: { normal: string | null; fullart: string | null };
+};
 
 type Mode = "une" | "rangee" | "planche";
 
@@ -40,6 +47,8 @@ const EFFECT_KEYS = Object.keys(VISUAL_EFFECTS).filter((k) => !RETIRED_EFFECTS.i
 
 /** Durée du demi-tour du booster (`tcg-flip-out` puis `tcg-flip-in`, 0,62 s), plus une marge. */
 const FLIP_MS = 650;
+/** La carte rejouée reste de dos ce temps-là avant son demi-tour (`BenchSlot`). */
+const BACK_MS = 400;
 
 /**
  * Banc d'essai des cartes (admin) : une carte, une rangée de 5 comme à l'ouverture d'un booster
@@ -76,6 +85,17 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
   const count = mode === "une" ? 1 : mode === "rangee" ? 5 : 40;
   const shown = Array.from({ length: count }, (_, n) => pick(n));
   const forced = layout || undefined;
+  // Son propre de la première carte montrée, dans la version affichée (forcée ou la sienne).
+  const firstSound = (() => {
+    const face = shown[0];
+    const version = (forced ?? face?.card.layout) === "fullart" ? "fullart" : "normal";
+    return face?.sounds?.[version] ?? null;
+  })();
+  function replay() {
+    setFlip((f) => f + 1);
+    if (firstSound) cardSound(firstSound, { at: BACK_MS / 1000 + FACE_APPEARS_S });
+    else stopCardSound();
+  }
   const toggle = (list: string[], key: string) =>
     list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
 
@@ -168,10 +188,10 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
               {booster && (
                 <button
                   type="button"
-                  onClick={() => setFlip((f) => f + 1)}
+                  onClick={replay}
                   className="border-border self-start rounded border px-3 py-1"
                 >
-                  Retourner (dos, puis demi-tour)
+                  Rejouer le retournement{firstSound ? " (avec son)" : ""}
                 </button>
               )}
             </div>
@@ -287,8 +307,8 @@ function BenchSlot({
   const [settled, setSettled] = useState(!flip);
   useEffect(() => {
     if (!flip) return;
-    const turn = window.setTimeout(() => setSide("face"), 400);
-    const rest = window.setTimeout(() => setSettled(true), 400 + FLIP_MS);
+    const turn = window.setTimeout(() => setSide("face"), BACK_MS);
+    const rest = window.setTimeout(() => setSettled(true), BACK_MS + FLIP_MS);
     return () => {
       window.clearTimeout(turn);
       window.clearTimeout(rest);

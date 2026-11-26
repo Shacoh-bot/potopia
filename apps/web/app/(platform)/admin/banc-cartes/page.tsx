@@ -1,4 +1,5 @@
-import { getAllCardsPotodex } from "@app/tcg";
+import { presignGetStable } from "@app/storage";
+import { getAllCardsPotodex, revealSoundKeyFor } from "@app/tcg";
 import { CardBench } from "@app/tcg/ui";
 import { Card } from "@app/ui";
 import type { Metadata } from "next";
@@ -8,7 +9,10 @@ import { cardFaces } from "../cartes/images";
 
 export const metadata: Metadata = { title: "Banc d'essai des cartes" };
 
-/** Cartes proposées au banc (les premières du jeu) : au-delà, les illustrations signées pèsent. */
+/**
+ * Cartes proposées au banc : celles qui ont un son propre d'abord (pour l'écouter avec « Rejouer le
+ * retournement »), puis les premières du jeu ; au-delà, les illustrations signées pèsent.
+ */
 const MAX_CARDS = 80;
 
 /**
@@ -20,14 +24,27 @@ const MAX_CARDS = 80;
 export default async function CardBenchPage() {
   const admin = await getCurrentAdmin();
   const dex = await getAllCardsPotodex(admin);
-  const cards = dex.entries.flatMap((e) => (e.found ? [e.card] : [])).slice(0, MAX_CARDS);
-  const faces = await cardFaces(admin, cards);
+  const all = dex.entries.flatMap((e) => (e.found ? [e.card] : []));
+  const voiced = (c: (typeof all)[number]) => !!(c.revealSoundKey || c.revealSoundKeyFull);
+  const cards = [...all.filter(voiced), ...all.filter((c) => !voiced(c))].slice(0, MAX_CARDS);
+  const faces = await Promise.all(
+    (await cardFaces(admin, cards)).map(async (face) => {
+      const [normal, fullart] = await Promise.all(
+        (["normal", "fullart"] as const).map((v) => {
+          const key = revealSoundKeyFor(face.card, v);
+          return key ? presignGetStable(key) : null;
+        }),
+      );
+      return { ...face, sounds: { normal: normal ?? null, fullart: fullart ?? null } };
+    }),
+  );
   return (
     <Card title="Banc d'essai des cartes">
       <div className={`${designFonts} flex flex-col gap-3`}>
         <p className="text-muted text-sm">
           Coupe les strates une à une pour voir laquelle fait disparaître une partie de la carte ou
-          fait chuter les images par seconde. Lecture seule : rien n&apos;est enregistré.
+          fait chuter les images par seconde. Les cartes à son propre sont en tête : « Rejouer le
+          retournement » le fait entendre. Lecture seule : rien n&apos;est enregistré.
         </p>
         <CardBench cards={faces} />
       </div>

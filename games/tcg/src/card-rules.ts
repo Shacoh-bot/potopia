@@ -36,6 +36,8 @@ export const CARD_LIMITS = {
   cost: { min: 0, max: 8 },
   power: { min: -20, max: 30 },
   imageBytes: 5 * 1024 * 1024,
+  // Son propre d'une carte (retournement) : un court extrait, 15 s environ.
+  soundBytes: 2 * 1024 * 1024,
 } as const;
 
 /**
@@ -56,6 +58,9 @@ export const CARD_IMAGE_TYPES = {
   "image/webp": "webp",
 } as const;
 export type CardImageType = keyof typeof CARD_IMAGE_TYPES;
+
+/** Format accepté pour le son propre d'une carte. */
+export const CARD_SOUND_TYPE = "audio/mpeg";
 
 export type CardSet = { id: string; code: string; name: string };
 
@@ -272,6 +277,16 @@ export function imageKeyFor(
   return version === "fullart" ? (card.imageKeyFull ?? card.imageKey) : card.imageKey;
 }
 
+/** Clé du son propre d'une version : la full art reprend celui de la normale sans le sien. */
+export function revealSoundKeyFor(
+  card: { revealSoundKey: string | null; revealSoundKeyFull?: string | null },
+  version: CardLayout,
+): string | null {
+  return version === "fullart"
+    ? (card.revealSoundKeyFull ?? card.revealSoundKey)
+    : card.revealSoundKey;
+}
+
 /**
  * Clé de la version réduite de l'illustration d'une version (celle de l'illustration que montre
  * `imageKeyFor`) ; null : pas de version réduite, la petite carte montre l'illustration elle-même.
@@ -382,6 +397,10 @@ export type Card = {
   /** Versions réduites (`CARD_IMAGE_SIZES.small`) ; null : aucune, envoyée avant leur arrivée. */
   imageKeySmall: string | null;
   imageKeyFullSmall: string | null;
+  /** Son propre joué au retournement (booster) ; null : bruitages de sa rareté. */
+  revealSoundKey: string | null;
+  /** Son propre de la full art ; null : celui de la normale (`revealSoundKeyFor`). */
+  revealSoundKeyFull: string | null;
   imageFrame: ImageFrame | null;
   /** Cadrage en full art ; null : celui de la carte normale (voir `frameFor`). */
   imageFrameFull: ImageFrame | null;

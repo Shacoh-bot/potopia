@@ -19,3 +19,4 @@ export { preloadBoosterSounds } from "./booster-sounds";
 export { CardFlip } from "./CardFlip";
 export { CardZoom, zoomToFit } from "./CardZoom";
 export { CardImagesUpload } from "./CardImagesUpload";
+export { CardSoundUpload } from "./CardSoundUpload";
