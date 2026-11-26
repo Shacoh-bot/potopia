@@ -1975,89 +1975,84 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
 }
 
-/* vent : traînées d'air et grains emportés qui tournent autour du centre de l'illustration, dans
-   le sens des aiguilles d'une montre, par rafales. Le disque est aplati (vu un peu de biais) ;
-   chaque calque est un dessin fixe qui tourne à vitesse inégale (rafale a ou b), se balance un
-   peu et respire, chacun à son pas (variables posées par Wind) : rotation, déplacement et
-   transparence seulement (compositeur). */
+/* vent : bourrasques de lumière (style de la carte « Spinning spinning »). Chaque coup de vent
+   (`.tcg-vfx-gust`, réglages posés par Wind) fait 4 passages par cycle : posé sur une courbe
+   guide (ellipse du vortex peint : centre `--w-x*`/`--w-y*`, pente `--w-t*`, demi-axes
+   `--w-sx*`/`--w-sy*`), il en parcourt une portion (`--w-a*` à `--w-e*`, un quart de tour au
+   plus) en se montrant à peine 8 % du cycle, puis s'efface et repart d'une autre courbe.
+   Déplacement, rotation, échelle et transparence seulement : ni filtre, ni fusion, ni masque,
+   ni 3D. */
 .tcg-vfx-wind {
-  position: absolute;
-  left: 50%;
-  width: 180%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  scale: 1 0.8;
-}
-.tcg-vfx-wind-layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
-  animation:
-    var(--w-gust) var(--w-dur) linear var(--w-delay) infinite,
-    tcg-vfx-wind-sway var(--w-sway) ease-in-out var(--w-delay) infinite alternate,
-    tcg-vfx-wind-breathe var(--w-breathe) ease-in-out var(--w-delay) infinite alternate;
 }
-.tcg-vfx-wind-motes {
-  animation-name: var(--w-gust), tcg-vfx-wind-sway, tcg-vfx-wind-motes-breathe;
+.tcg-vfx-gust {
+  opacity: 0;
+  transform-origin: 0 0;
+  animation: tcg-vfx-gust-fly var(--w-dur) linear var(--w-delay) infinite;
 }
-@keyframes tcg-vfx-wind-gust-a {
+@keyframes tcg-vfx-gust-fly {
   0% {
-    rotate: 0deg;
+    transform: translate(var(--w-x0), var(--w-y0)) rotate(var(--w-t0))
+      scale(var(--w-sx0), var(--w-sy0)) rotate(var(--w-a0));
+    opacity: 0;
   }
-  30% {
-    rotate: 150deg;
+  1.2%,
+  5.5% {
+    opacity: var(--w-o);
   }
-  55% {
-    rotate: 200deg;
+  8%,
+  24.9% {
+    transform: translate(var(--w-x0), var(--w-y0)) rotate(var(--w-t0))
+      scale(var(--w-sx0), var(--w-sy0)) rotate(var(--w-e0));
+    opacity: 0;
   }
-  80% {
-    rotate: 320deg;
+  25% {
+    transform: translate(var(--w-x1), var(--w-y1)) rotate(var(--w-t1))
+      scale(var(--w-sx1), var(--w-sy1)) rotate(var(--w-a1));
+    opacity: 0;
   }
+  26.2%,
+  30.5% {
+    opacity: var(--w-o);
+  }
+  33%,
+  49.9% {
+    transform: translate(var(--w-x1), var(--w-y1)) rotate(var(--w-t1))
+      scale(var(--w-sx1), var(--w-sy1)) rotate(var(--w-e1));
+    opacity: 0;
+  }
+  50% {
+    transform: translate(var(--w-x2), var(--w-y2)) rotate(var(--w-t2))
+      scale(var(--w-sx2), var(--w-sy2)) rotate(var(--w-a2));
+    opacity: 0;
+  }
+  51.2%,
+  55.5% {
+    opacity: var(--w-o);
+  }
+  58%,
+  74.9% {
+    transform: translate(var(--w-x2), var(--w-y2)) rotate(var(--w-t2))
+      scale(var(--w-sx2), var(--w-sy2)) rotate(var(--w-e2));
+    opacity: 0;
+  }
+  75% {
+    transform: translate(var(--w-x3), var(--w-y3)) rotate(var(--w-t3))
+      scale(var(--w-sx3), var(--w-sy3)) rotate(var(--w-a3));
+    opacity: 0;
+  }
+  76.2%,
+  80.5% {
+    opacity: var(--w-o);
+  }
+  83%,
   100% {
-    rotate: 360deg;
-  }
-}
-@keyframes tcg-vfx-wind-gust-b {
-  0% {
-    rotate: 0deg;
-  }
-  20% {
-    rotate: 40deg;
-  }
-  45% {
-    rotate: 190deg;
-  }
-  70% {
-    rotate: 245deg;
-  }
-  100% {
-    rotate: 360deg;
-  }
-}
-@keyframes tcg-vfx-wind-sway {
-  from {
-    translate: -3% 1.5%;
-  }
-  to {
-    translate: 3% -2%;
-  }
-}
-@keyframes tcg-vfx-wind-breathe {
-  from {
-    opacity: 0.5;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes tcg-vfx-wind-motes-breathe {
-  from {
-    opacity: 0.35;
-  }
-  to {
-    opacity: 1;
+    transform: translate(var(--w-x3), var(--w-y3)) rotate(var(--w-t3))
+      scale(var(--w-sx3), var(--w-sy3)) rotate(var(--w-e3));
+    opacity: 0;
   }
 }
 
@@ -2069,7 +2064,7 @@ body:has(.tcg-opening, .tcg-still)::before {
   .tcg-vfx-rays,
   .tcg-vfx-fall,
   .tcg-vfx-shade,
-  .tcg-vfx-wind-layer {
+  .tcg-vfx-gust {
     animation: none;
   }
   .tcg-glow[data-blink],

@@ -1203,12 +1203,16 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   (vêtements sombres, peau et nuages blancs restent hors du masque) ; une copie à la teinte
   tournée n'est gardée que dans ce masque. Mouvement réduit : teinte fixe.
   `vent` (« Vent », place `art`, migration `tcg_visual_effects_vent`, `Wind`, pensé pour la full
-  art « Spinning spinning ») : traînées d'air (courbes SVG qui ondulent et s'écartent, la queue
-  s'efface) et grains emportés tournent autour du centre de l'illustration (56 % de haut en full
-  art), dans le sens des aiguilles d'une montre, sur un disque aplati. Cinq calques dessinés une
-  fois ; chacun tourne par rafales (keyframes `gust-a`/`gust-b` : un tour à vitesse inégale, 2,5 à
-  6,4 s, décalés), se balance (`sway`) et respire, réglés par variables CSS (`--w-*`) : rotation,
-  déplacement et transparence seulement, ni fusion ni masque. Mouvement réduit : traînées fixes.
+  art « Spinning spinning ») : bourrasques de lumière dans le style de l'illustration (v3.3).
+  36 traînées effilées (`windStreak` : arc épais à la tête, nul au bout ; halo de couleur plus
+  large et pâle en guise de flou de mouvement, cœur clair) aux couleurs de l'image (violets,
+  roses, cyan, or), plus 12 étincelles et 10 confettis de fête foraine. Elles glissent le long
+  de 8 courbes guides relevées sur l'illustration (`WIND_GUIDES` : ellipses penchées du vortex
+  peint autour de la boule, des bandes serrées et aplaties aux remous larges du fond) : de gauche
+  à droite en haut de chaque courbe, de droite à gauche en bas, un quart de tour au plus. Chaque
+  coup de vent (`WIND_GUSTS`) fait 4 passages par cycle (`tcg-vfx-gust-fly`), chacun sur une
+  courbe tirée une fois, visible ≈ 0,5-0,9 s, tous décalés. Déplacement, rotation, échelle et
+  transparence seulement ; ni filtre, ni fusion, ni masque, ni 3D. Mouvement réduit : rien.
   Retirés du catalogue le 2026-11-12 (migration `tcg_visual_effects_retires`, les cartes qui les
   portaient les perdent) : `torches`, `popart`, `croquis`, `vitrail` et `onde` ; puis
   `holoclassique` (doublon de `holo`, migration `tcg_visual_effects_holoclassique`). `vitrail` est

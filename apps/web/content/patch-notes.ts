@@ -84,6 +84,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Effet « Vent » : il tourne maintenant dans l'autre sens, plus fort et plus vite, par rafales irrégulières, comme du vrai vent.",
       },
+      {
+        admin: true,
+        text: "Effet « Vent » refait : des bourrasques de lumière aux couleurs de l'illustration glissent vite le long des tourbillons peints, vers la droite en haut et vers la gauche en bas, avec étincelles et confettis.",
+      },
     ],
   },
   {
