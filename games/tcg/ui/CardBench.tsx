@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CARD_RARITIES, CARD_RARITY_LABELS, type CardRarityId } from "../src/card-rules";
 import { CardAura, hasAura } from "./CardAura";
 import { CardBack } from "./CardBack";
-import { cardSound, FACE_APPEARS_S, stopCardSound } from "./booster-sounds";
+import { cardSound, stopCardSound } from "./booster-sounds";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { RETIRED_EFFECTS } from "./effect-places";
 import { H, W } from "./v2";
@@ -93,7 +93,8 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
   })();
   function replay() {
     setFlip((f) => f + 1);
-    if (firstSound) cardSound(firstSound, { at: BACK_MS / 1000 + FACE_APPEARS_S });
+    // comme au booster : le son part au début du demi-tour
+    if (firstSound) cardSound(firstSound, { at: BACK_MS / 1000 });
     else stopCardSound();
   }
   const toggle = (list: string[], key: string) =>

@@ -123,22 +123,20 @@ export function landSound() {
 }
 
 /**
- * La carte se retourne, puis sa révélation : de la commune discrète à la SSR qui explose. La
- * révélation part quand la face apparaît (mi-parcours du demi-tour).
+ * La carte se retourne, avec sa révélation : de la commune discrète à la SSR qui explose. Tout
+ * part au DÉBUT du retournement, dès le geste (choix de l'utilisateur, 26/11/2026).
  */
 export function flipSound(rarity: string) {
   play("flip", { rate: vary(0.95, 1.05) });
-  play(revealSound(rarity), { at: 0.12 });
+  play(revealSound(rarity));
 }
 
 /*
  * Son propre d'une carte (Singham…) : un fichier du stockage, joué par un élément <audio> (pas
  * Web Audio : pas besoin d'en-têtes CORS du stockage). Il remplace les bruitages du retournement,
- * part quand la face apparaît et s'arrête en fondu dès qu'une autre carte se retourne.
+ * part au début du retournement (dès le geste) et s'arrête en fondu dès qu'une autre carte se
+ * retourne.
  */
-
-/** Délai entre le geste et l'apparition de la face (`tcg-flip-out`, 0,31 s, puis la face). */
-export const FACE_APPEARS_S = 0.31;
 
 const warmed = new Map<string, HTMLAudioElement>();
 let playing: HTMLAudioElement | null = null;
@@ -171,8 +169,8 @@ export function stopCardSound(fadeS = 0.4) {
   requestAnimationFrame(step);
 }
 
-/** Joue le son propre d'une carte dans `at` secondes (à l'apparition de la face), au volume du site. */
-export function cardSound(url: string, { at = FACE_APPEARS_S }: { at?: number } = {}) {
+/** Joue le son propre d'une carte dans `at` secondes (0 : tout de suite), au volume du site. */
+export function cardSound(url: string, { at = 0 }: { at?: number } = {}) {
   stopCardSound();
   if (typeof Audio === "undefined" || effectiveVolume() <= 0) return;
   pending = window.setTimeout(() => {
