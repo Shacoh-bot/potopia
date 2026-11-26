@@ -876,8 +876,12 @@ rafraîchit le routeur client sans recharger la page.
   (« S1 07/116 »). Pas de symbole d'édition : la rareté se voit au cadre (`RARITY_FRAME` : argent,
   vert, bleu, violet (épique), or, carmin, arc-en-ciel), uni et sans lumière venant d'un côté pour une épaisseur égale
   tout autour, puis aux effets. La SSR ajoute deux comètes d'énergie qui font le tour du cadre (`SsrComets`,
-  « SSR-2 » du 22/11) ; la SR, un carmin qui tourne, des éclats dorés et un halo carmin qui respire
-  (`SrCarmine`, « SR-2 » du 22/11 ; aura d'ouverture du booster carmin et or, `CardAura`). Les deux
+  « SSR-2 » du 22/11) ; la SR, un carmin qui tourne et des éclats dorés (`SrCarmine`, « SR-2 » du
+  22/11). Aura simple (`.tcg-aura`, `CARD_AURA_FINISHES`, 26/11) : une lueur figée qui suit le
+  contour de la carte et respire en opacité (3,4 s), épique très légère, légendaire dorée, SR
+  carmin, SSR aux couleurs de son cadre, rien pour commune/peu commune/rare ; partout où la carte
+  est dessinée, et elle respire aussi sur la planche figée du Potodex. Le gros halo animé
+  (`CardAura`) n'est affiché qu'à l'ouverture des boosters (et au banc d'essai). Les deux
   (`FRAME_MOTION`, `FrameRun`) : 4 bandes droites, une par bord, où un dégradé défile (translation
   seule, aucun masque ni rotation : 60 im/s visés dans Firefox). Bandeau court (n°70) : titre à la hauteur du mana, centré sur toute la
   largeur de la carte ; la planche du n°70 montre aussi les sept raretés. Le n°67 (`final-bandeau`) a le bandeau plein et

@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Potodex et fiches : une aura simple qui respire autour des cartes épiques (très légère), légendaires, SR et SSR, aux couleurs de leur rareté. Le gros halo reste réservé à l'ouverture des boosters.",
+      },
+      {
+        admin: true,
         text: "Cartes : le cadre, le nom, le coût et la puissance ne s'effacent plus quand on survole une carte dans Firefox (booster, Potodex, fiches) : inclinaison sans 3D réelle, même rendu.",
       },
       {
