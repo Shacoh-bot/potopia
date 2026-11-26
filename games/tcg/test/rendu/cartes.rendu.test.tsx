@@ -23,7 +23,11 @@ const FIGER = `*, *::before, *::after {
 }
 body { margin: 0; background: #1b1b22; font-family: "DejaVu Sans", sans-serif; }`;
 
-const STRATES = ["filets", "bandeau", "cadre", "encadres", "pied", "pastilles"];
+/** Strates qui doivent rester visibles ; la full art n'a pas d'encadrés, donc pas de filets. */
+const STRATES = {
+  normal: ["filets", "bandeau", "cadre", "encadres", "pied", "pastilles"],
+  fullart: ["bandeau", "cadre", "encadres", "pied", "pastilles"],
+} as const;
 const TOLERANCE = {
   comparatorName: "pixelmatch",
   comparatorOptions: { allowedMismatchedPixelRatio: 0.01 },
@@ -124,9 +128,9 @@ function tiltDe(hote: HTMLElement): HTMLElement {
   return tilt;
 }
 
-function stratesCachees(hote: HTMLElement): string[] {
+function stratesCachees(hote: HTMLElement, layout: CarteTest["layout"]): string[] {
   const carte = tiltDe(hote).getBoundingClientRect();
-  return STRATES.filter((s) => {
+  return STRATES[layout].filter((s) => {
     const repères = [...hote.querySelectorAll(`.tcg-strate-${s}`)];
     const elements = repères.flatMap((r) => [r, ...r.querySelectorAll("*")]);
     return !elements.some((e) => vu(e, carte));
@@ -137,7 +141,7 @@ describe("rendu des cartes", () => {
   for (const t of CARTES_TEST) {
     it(`${t.id} : au repos`, async () => {
       const hote = await poser(t);
-      expect(stratesCachees(hote)).toEqual([]);
+      expect(stratesCachees(hote, t.layout)).toEqual([]);
       await expect.element(page.getByTestId("carte")).toMatchScreenshot(`${t.id}-repos`, TOLERANCE);
     });
 
@@ -149,7 +153,7 @@ describe("rendu des cartes", () => {
       await prochaineImage();
       await prochaineImage();
       expect(tilt.hasAttribute("data-active")).toBe(true);
-      expect(stratesCachees(hote)).toEqual([]);
+      expect(stratesCachees(hote, t.layout)).toEqual([]);
       await expect
         .element(page.getByTestId("carte"))
         .toMatchScreenshot(`${t.id}-survol`, TOLERANCE);

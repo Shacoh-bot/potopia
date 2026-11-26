@@ -27,6 +27,6 @@ MSYS_NO_PATHCONV=1 docker run --rm --ipc=host --user pwuser \
     pnpm test:rendu "$@" || statut=$?
     rm -rf /sortie/.echecs
     [ -d test/rendu/__screenshots__ ] && cp -r test/rendu/__screenshots__ /sortie/
-    [ -d .vitest-attachments ] && cp -r .vitest-attachments /sortie/.echecs
+    [ -d .vitest/attachments ] && cp -r .vitest/attachments /sortie/.echecs
     exit $statut
   ' rendu "$@"

@@ -90,7 +90,8 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
-        text: "Cartes : filet de sécurité automatique. Avant chaque mise en ligne, les cartes de chaque rareté sont photographiées dans Firefox et Chrome, au repos et au survol : un changement de rendu ou une partie qui disparaît bloque la mise en ligne.",      },
+        text: "Cartes : filet de sécurité automatique. Avant chaque mise en ligne, les cartes de chaque rareté sont photographiées dans Firefox et Chrome, au repos et au survol : un changement de rendu ou une partie qui disparaît bloque la mise en ligne.",
+      },
     ],
   },
   {
