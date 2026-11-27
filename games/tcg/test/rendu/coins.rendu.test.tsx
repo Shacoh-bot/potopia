@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { GameCard, GameCardDefs } from "../../ui/GameCard";
+import { H, W } from "../../ui/v2";
+import { CORNER_T, FRAME_LOOP } from "../../ui/v5";
 import { carte } from "./cartes";
 
 /**
@@ -20,6 +22,10 @@ afterEach(() => {
 });
 
 describe("cadre SR/SSR : coins", () => {
+  it("tour de lumière recalé aux coins : FRAME_LOOP = 2 × (W + H) - 8 × CORNER_T", () => {
+    expect(FRAME_LOOP).toBe(2 * (W + H) - 8 * CORNER_T);
+  });
+
   for (const rarity of ["sr", "ssr"] as const) {
     it(`${rarity} : bandes coupées en biais, découpées en arrondi dedans et dehors`, () => {
       const hote = document.createElement("div");
@@ -40,7 +46,8 @@ describe("cadre SR/SSR : coins", () => {
         e.getBoundingClientRect(),
       );
       expect(bandes).toHaveLength(4);
-      // Bouts des bandes coupés en biais : les coins sont partagés le long de leur diagonale.
+      // Chaque bande porte sa découpe exacte (anneau du cadre entre ses deux diagonales) : la lumière
+      // animée sortait de la découpe du parent pendant qu'elle tournait.
       for (const e of hote.querySelectorAll<HTMLElement>(".tcg-frame-run__cut"))
         expect(getComputedStyle(e).clipPath).toMatch(/^polygon\(/);
       // Découpe : coins arrondis dehors ET dans l'angle intérieur du cadre (sinon le bord droit des
