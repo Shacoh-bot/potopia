@@ -9,6 +9,7 @@ import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { RETIRED_EFFECTS } from "./effect-places";
 import { H, W } from "./v2";
 import type { TopLayout } from "./v4";
+import { SPARK_VARIANTS, type SparkVariant } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
 /** Une carte prête à afficher (comme `cardFaces` de l'app la prépare). */
@@ -69,6 +70,8 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
   const [zoom, setZoom] = useState(true);
   const [auras, setAuras] = useState(true);
   const [flip, setFlip] = useState(0);
+  const [sparks, setSparks] = useState<SparkVariant>("actuel");
+  const [paced, setPaced] = useState(false);
 
   if (cards.length === 0) return <p className="text-muted text-sm">Aucune carte à afficher.</p>;
 
@@ -239,6 +242,35 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
         </fieldset>
       </div>
 
+      <fieldset className="border-border flex flex-col gap-2 rounded border p-3 text-sm">
+        <legend className="px-1 font-semibold">Options à choisir (refonte, étape 7)</legend>
+        <p className="text-muted text-xs">
+          Ces variantes ne changent que ce banc : le reste du site garde le rendu actuel.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span>Éclats dorés des SR :</span>
+          {SPARK_VARIANTS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              onClick={() => setSparks(v.key)}
+              aria-pressed={sparks === v.key}
+              className={`rounded-full border px-3 py-1 ${sparks === v.key ? "border-accent text-accent" : "border-border text-muted"}`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={paced} onChange={() => setPaced(!paced)} />
+          Mirage et énergie par paliers (2 changements par seconde au lieu de chaque image)
+        </label>
+        <p data-testid="banc-variante" className="font-semibold">
+          Variante active : {SPARK_VARIANTS.find((v) => v.key === sparks)?.label} ·{" "}
+          {paced ? "mirage et énergie par paliers" : "mirage et énergie actuels"}
+        </p>
+      </fieldset>
+
       <FrameMeter />
 
       <div className="tcg-bench" data-sans={off.join(" ") || undefined}>
@@ -246,7 +278,7 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
           <div className="flex flex-wrap gap-3">
             {shown.map((c, n) => (
               <Scaled key={n} scale={160 / W}>
-                <GameCard {...c} layout={forced} still />
+                <GameCard {...c} layout={forced} still sparks={sparks} pacedEffects={paced} />
               </Scaled>
             ))}
           </div>
@@ -257,6 +289,8 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
                 key={`${n}-${flip}`}
                 face={c}
                 layout={forced}
+                sparks={sparks}
+                paced={paced}
                 width={mode === "une" ? W : 200}
                 booster={booster}
                 zoom={zoom}
@@ -295,9 +329,13 @@ function BenchSlot({
   zoom,
   aura,
   flip,
+  sparks,
+  paced,
 }: {
   face: BenchCard;
   layout: TopLayout | undefined;
+  sparks: SparkVariant;
+  paced: boolean;
   width: number;
   booster: boolean;
   zoom: boolean;
@@ -324,6 +362,8 @@ function BenchSlot({
       setSize={face.setSize}
       layout={layout}
       hoverHalo={!booster}
+      sparks={sparks}
+      pacedEffects={paced}
     />
   );
   const sized = zoom ? (

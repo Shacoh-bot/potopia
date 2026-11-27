@@ -42,7 +42,25 @@ type EffectProps = {
   card: CardData;
   /** Mise en page : les effets qui redessinent l'illustration s'y règlent. */
   full: boolean;
+  /**
+   * Variante « par paliers » du banc d'essai (refonte, étape 7) : les filtres SVG animés (mirage,
+   * énergie) ne changent que 2 fois par seconde (`calcMode="discrete"`) au lieu de chaque image.
+   */
+  paced?: boolean;
 };
+
+/** Boucle `values` d'une animation SVG (étapes séparées par « ; ») tirée en `n` paliers égaux. */
+export function pacedValues(values: string, n: number): string {
+  const keys = values.split(";").map((v) => v.trim().split(/\s+/).map(Number));
+  const at = (t: number) => {
+    const x = t * (keys.length - 1);
+    const i = Math.min(Math.floor(x), keys.length - 2);
+    const a = keys[i] ?? [];
+    const b = keys[i + 1] ?? a;
+    return a.map((v, j) => Math.round((v + ((b[j] ?? v) - v) * (x - i)) * 10000) / 10000).join(" ");
+  };
+  return Array.from({ length: n }, (_, k) => at(k / n)).join(";");
+}
 
 type EffectDef = {
   render: ComponentType<EffectProps>;
@@ -460,7 +478,7 @@ const diff = (sign: 1 | -1) => {
  * (animée), n'est gardée que dans ce masque, avec un rayonnement flou en `screen`. Carte figée
  * ou mouvement réduit : teinte fixe, seulement un peu ravivée.
  */
-function LivingEnergy({ card, still }: EffectProps) {
+function LivingEnergy({ card, still, paced }: EffectProps) {
   const reduced = useReducedMotion();
   const moving = !still && !reduced;
   const id = moving ? "tcg-vfx-energie" : "tcg-vfx-energie-still";
@@ -491,7 +509,8 @@ function LivingEnergy({ card, still }: EffectProps) {
               <animate
                 attributeName="values"
                 dur="9s"
-                values="0;70;0;-70;0"
+                values={paced ? pacedValues("0;70;0;-70;0", 18) : "0;70;0;-70;0"}
+                {...(paced ? { calcMode: "discrete" } : null)}
                 repeatCount="indefinite"
               />
             )}
@@ -603,7 +622,7 @@ const Motes = () => (
  * Distorsion de chaleur : l'illustration ondule comme un mirage (filtre SVG de turbulence dont la
  * fréquence varie en boucle). Carte figée ou mouvement réduit : ondulation fixe, plus légère.
  */
-function HeatHaze({ card, still }: EffectProps) {
+function HeatHaze({ card, still, paced }: EffectProps) {
   const reduced = useReducedMotion();
   const moving = !still && !reduced;
   // Un id par variante : deux définitions identiques sous le même id ne gênent pas.
@@ -617,7 +636,12 @@ function HeatHaze({ card, still }: EffectProps) {
               <animate
                 attributeName="baseFrequency"
                 dur="6s"
-                values="0.012 0.06;0.016 0.09;0.012 0.06"
+                values={
+                  paced
+                    ? pacedValues("0.012 0.06;0.016 0.09;0.012 0.06", 12)
+                    : "0.012 0.06;0.016 0.09;0.012 0.06"
+                }
+                {...(paced ? { calcMode: "discrete" } : null)}
                 repeatCount="indefinite"
               />
             )}
@@ -1107,11 +1131,14 @@ export function VisualEffectLayer({
   effectKey,
   card,
   full = false,
+  paced,
 }: {
   effectKey: string | null | undefined;
   card: CardData;
   /** Full art (sinon carte normale). */
   full?: boolean;
+  /** Filtres animés par paliers (banc d'essai, étape 7) ; absent : chaque image. */
+  paced?: boolean;
 }) {
   const def = effectKey ? VISUAL_EFFECTS[effectKey] : undefined;
   if (!def) return null;
@@ -1119,7 +1146,7 @@ export function VisualEffectLayer({
   return (
     <div className="tcg-vfx" aria-hidden data-effect={effectKey}>
       {/* Toujours animé, même sur une planche (carte figée) : voir l'en-tête du module. */}
-      <Effect still={false} card={card} full={full} />
+      <Effect still={false} card={card} full={full} {...(paced ? { paced } : null)} />
     </div>
   );
 }

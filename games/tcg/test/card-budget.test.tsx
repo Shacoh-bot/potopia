@@ -62,11 +62,14 @@ const ANIMABLES = new Set(["transform", "opacity", "scale", "rotate", "translate
  * - tcg-glitch : tranches de l'image au survol seulement, 5 à-coups (steps) par 0,7 s ; en
  *   transform il faudrait 5 copies de l'illustration ;
  * - tcg-shock-lens : rayon de l'anneau-loupe d'un point lumineux (petit disque) ; effet lourd,
- *   à pré-calculer à l'étape 7.
+ *   à pré-calculer à l'étape 7 ;
+ * - tcg-sr-spark-sprite : variante « image pré-calculée » des éclats SR, au banc d'essai seulement
+ *   (étape 7) : 30 paliers de `background-position` en 2,4 s, une seule boîte par carte.
  */
 const EXCEPTIONS_ANIMEES: Record<string, string[]> = {
   "tcg-glitch": ["clip-path"],
   "tcg-shock-lens": ["--tcg-shock"],
+  "tcg-sr-spark-sprite": ["background-position"],
 };
 
 /**

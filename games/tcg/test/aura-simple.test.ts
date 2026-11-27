@@ -34,7 +34,12 @@ describe("aura simple des cartes", () => {
   });
 
   it("respire aussi sur la planche figée du Potodex", () => {
-    const still = css.split(".tcg-still:not([data-live]) :not(")[1]?.split(")")[0] ?? "";
+    // Espaces ramenés à un seul : le sélecteur peut tenir sur plusieurs lignes (prettier).
+    const still =
+      css
+        .replace(/\s+/g, " ")
+        .split(/\.tcg-still:not\(\[data-live\]\) :not\( ?/)[1]
+        ?.split(")")[0] ?? "";
     expect(still).toContain(".tcg-aura");
   });
 });
