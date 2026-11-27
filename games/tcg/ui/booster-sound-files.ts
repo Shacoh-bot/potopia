@@ -8,9 +8,15 @@ import { CARD_RARITIES } from "../src/card-rules";
 /** Dossier public des sons. */
 export const BOOSTER_SOUNDS_BASE = "/audio/tcg/";
 
-/** Révélation d'une carte : un son par rareté, du plus discret (commune) au plus fort (SSR). */
+/**
+ * Révélation d'une carte : un son par rareté, du plus discret (commune) au plus fort (SSR). La SR
+ * prend le son favori « Affinage SR 2 » (validé par l'utilisateur le 25/11/2026, joué avec un son de
+ * victoire depuis le 27/11/2026) ; l'ancien `reveal-sr.mp3` reste dans le dossier, inutilisé.
+ */
 export const revealSound = (rarity: string) =>
-  `reveal-${(CARD_RARITIES as readonly string[]).includes(rarity) ? rarity : "common"}`;
+  rarity === "sr"
+    ? "reveal-sr-affinage"
+    : `reveal-${(CARD_RARITIES as readonly string[]).includes(rarity) ? rarity : "common"}`;
 
 /** Tous les sons, sans extension (`.mp3`). */
 export const BOOSTER_SOUNDS = [

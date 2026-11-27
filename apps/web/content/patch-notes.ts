@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Booster : une SR ou une SSR retournée joue en même temps un son de victoire tiré au hasard et son son de rareté (le favori « Affinage SR 2 » pour la SR). Son de victoire : 25 s au plus, fondu à la fin. L'aura est là dès la fin du retournement.",
+      },
+      {
+        admin: true,
         text: "Effet Énergie (ex. Spinning spinning) : les zones vives de l'illustration sont calculées une seule fois, seule leur teinte tourne ensuite (carte graphique). Même aspect, moins de calcul à chaque image.",
       },
       {
