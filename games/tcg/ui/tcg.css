@@ -2644,3 +2644,12 @@ body:has(.tcg-opening, .tcg-still)::before {
   will-change: transform;
   cursor: grabbing;
 }
+
+/* PROTOTYPE (banc seulement, notes/cartes-ultra-legeres.md) : niveau de détail « image fixe ».
+   Sur la planche, une carte non survolée n'anime plus rien (cadre SR/SSR, effets, holo) : elle reste
+   sur sa première image. La carte survolée (`data-live`) retrouve tout. */
+.tcg-bench[data-repos="fige"] .tcg-still:not([data-live]) *,
+.tcg-bench[data-repos="fige"] .tcg-still:not([data-live]) *::before,
+.tcg-bench[data-repos="fige"] .tcg-still:not([data-live]) *::after {
+  animation-play-state: paused !important;
+}

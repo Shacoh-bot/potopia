@@ -88,6 +88,7 @@ export function CardBench({
   const [paced, setPaced] = useState(false);
   const [boardSize, setBoardSize] = useState(pageSize);
   const [dragLite, setDragLite] = useState(true);
+  const [restStill, setRestStill] = useState(false);
 
   if (cards.length === 0) return <p className="text-muted text-sm">Aucune carte à afficher.</p>;
 
@@ -212,6 +213,14 @@ export function CardBench({
                 <input type="checkbox" checked={dragLite} onChange={() => setDragLite(!dragLite)} />
                 Effets en pause pendant un glisser
               </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={restStill}
+                  onChange={() => setRestStill(!restStill)}
+                />
+                Prototype : cartes figées au repos (seule la carte survolée s&apos;anime)
+              </label>
               <p className="text-muted text-xs">
                 Clic : la carte en grand. Glisser : la carte change de place.
               </p>
@@ -319,6 +328,7 @@ export function CardBench({
         className="tcg-bench"
         data-sans={off.join(" ") || undefined}
         data-glisser={dragLite ? undefined : "plein"}
+        data-repos={restStill ? "fige" : undefined}
       >
         {mode === "planche" ? (
           <BenchBoard
