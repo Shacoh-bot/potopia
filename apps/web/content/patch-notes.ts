@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Booster : l'aura derrière les cartes (épique, légendaire, SR, SSR) devient une vidéo en boucle pré-calculée, même aspect, au lieu d'un calcul à chaque image. Banc des cartes : case « Aura en rendu direct » pour comparer.",
+      },
+      {
+        admin: true,
         text: "Booster : le son d'une carte (victoire SR/SSR, son propre) part dès l'appui sur la carte, avec le retournement.",
       },
       {

@@ -1,5 +1,18 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { AURA_MARGIN, MARGIN_UNITS, makeSparks, type Room, sparkPoints } from "../ui/CardAura";
+import {
+  AURA_MARGIN,
+  AURA_VIDEO_RARITIES,
+  MARGIN_UNITS,
+  auraMask,
+  auraVideoUrl,
+  hasAura,
+  makeSparks,
+  type Room,
+  sparkPoints,
+} from "../ui/CardAura";
 
 // Canevas d'une aura de carte de 240 px affichée (tampon allégé à 0,75).
 const W = Math.round(240 * (1 + 2 * AURA_MARGIN) * 0.75);
@@ -46,5 +59,37 @@ describe("sparkPoints (étincelles des auras)", () => {
       const n = sparkPoints(sparks, t, tight, W, H, out);
       for (let i = 0; i < n; i++) expect(out[i * 4]).toBeGreaterThan(cardLeft - 20 * k);
     }
+  });
+});
+
+describe("auras en vidéo pré-calculée (27/11)", () => {
+  const publicDir = fileURLToPath(new URL("../../../apps/web/public", import.meta.url));
+
+  it("une vidéo WebM par rareté à aura animée (rare = halo CSS seul), légère", () => {
+    for (const r of ["epic", "legendary", "sr", "ssr"]) expect(hasAura(r)).toBe(true);
+    expect([...AURA_VIDEO_RARITIES]).toEqual(["epic", "legendary", "sr", "ssr"]);
+    for (const r of AURA_VIDEO_RARITIES) {
+      const file = join(publicDir, auraVideoUrl(r));
+      expect(existsSync(file), file).toBe(true);
+      const bytes = readFileSync(file);
+      // En-tête EBML (WebM) ; moins de 1,5 Mo chacune.
+      expect([...bytes.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+      expect(bytes.length).toBeLessThan(1.5 * 1024 * 1024);
+    }
+  });
+
+  it("aucun masque quand la place est pleine des 4 côtés", () => {
+    expect(auraMask([MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS])).toBeNull();
+  });
+
+  it("masque : un dégradé par côté plus court, transparent avant le cadre", () => {
+    const mask = auraMask([100, MARGIN_UNITS, MARGIN_UNITS, 50]);
+    expect(mask?.match(/linear-gradient/g)).toHaveLength(2);
+    expect(mask).toContain("linear-gradient(to right, transparent");
+    expect(mask).toContain("linear-gradient(to top, transparent");
+    // Gauche : nul à 0,95 × 100 unités du bord de la carte, plein à 0,5 × 100 (boîte de 828).
+    const w = 360 + 2 * MARGIN_UNITS;
+    expect(mask).toContain(`transparent ${(((MARGIN_UNITS - 95) / w) * 100).toFixed(2)}%`);
+    expect(mask).toContain(`#000 ${(((MARGIN_UNITS - 50) / w) * 100).toFixed(2)}%`);
   });
 });

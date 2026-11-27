@@ -2504,7 +2504,8 @@ body:has(.tcg-opening, .tcg-still)::before {
   z-index: -1;
   pointer-events: none;
 }
-.tcg-aura canvas {
+.tcg-aura canvas,
+.tcg-aura video {
   position: absolute;
   inset: 0;
   width: 100%;
