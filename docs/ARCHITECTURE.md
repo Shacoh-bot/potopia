@@ -877,10 +877,10 @@ rafraîchit le routeur client sans recharger la page.
   vert, bleu, violet (épique), or, carmin, arc-en-ciel), uni et sans lumière venant d'un côté pour une épaisseur égale
   tout autour, puis aux effets. La SSR ajoute deux comètes d'énergie qui font le tour du cadre (`SsrComets`,
   « SSR-2 » du 22/11) ; la SR, un carmin qui tourne et des éclats dorés (`SrCarmine`, « SR-2 » du
-  22/11). Aura simple (`.tcg-aura`, `CARD_AURA_FINISHES`, 26/11) : une lueur figée qui suit le
-  contour de la carte et respire en opacité (3,4 s, « pas à pas » : 8 paliers par demi-souffle), épique très légère, légendaire dorée, SR
-  carmin, SSR aux couleurs de son cadre, rien pour commune/peu commune/rare ; partout où la carte
-  est dessinée, et elle respire aussi sur la planche figée du Potodex. Le gros halo animé
+  22/11). Aura simple (`.tcg-aura`, `CARD_AURA_FINISHES`, 26/11) : une lueur fixe qui suit le
+  contour de la carte, sans aucune animation depuis le 27/11 (la respiration coûtait trop sur le
+  Potodex), épique très légère, légendaire dorée, SR carmin, SSR aux couleurs de son cadre, rien
+  pour commune/peu commune/rare ; partout où la carte est dessinée, Potodex compris. Le gros halo animé
   (`CardAura`) n'est affiché qu'à l'ouverture des boosters (et au banc d'essai). Les deux
   (`FRAME_MOTION`, `FrameRun`) : 4 bandes droites, une par bord, où un dégradé défile (translation
   seule, aucun masque ni rotation : 60 im/s visés dans Firefox). Bandeau court (n°70) : titre à la hauteur du mana, centré sur toute la
@@ -1572,8 +1572,9 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
 - `/admin/potodex` : toutes les cartes du set, chaque version à part (case « AA » pour l'Alt
   Art), celles trouvées avec leur nombre d'exemplaires, les autres en noir avec seulement leur
   numéro (et « AA » pour une Alt Art) ; compteur « versions trouvées/total », paquets ouverts,
-  bouton « Remettre à zéro ». Paginé : 24 cases par page (`?page=`, `paginate`, barre `Pagination`
-  de l'admin des cartes), et seules les illustrations de la page affichée sont signées ; cases de
+  bouton « Remettre à zéro ». Paginé : 12 cases par page (`POTODEX_PAGE_SIZE`, 24 avant le 27/11 ; `?page=`, `paginate`,
+  barre `Pagination` de l'admin des cartes avec `prefetchNeighbours` : pages voisines préchargées en
+  entier, le clic n'attend plus le serveur), et seules les illustrations de la page affichée sont signées ; cases de
   220 px. Miniatures et grande carte passent par `Scaled` : boîte à la
   taille finale (`CARD_WIDTH`/`CARD_HEIGHT` de `@app/tcg/ui`), carte mise à l'échelle par
   `transform`. Pas de `zoom` : sous Firefox, il décale les calques 3D d'une carte vivante
