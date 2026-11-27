@@ -42,6 +42,7 @@ export {
   listSets,
   listVisualEffects,
   moveCards,
+  moveCardsToStage,
   setCardStage,
   setCardImage,
   createCardSoundUpload,

@@ -28,6 +28,7 @@ import {
   listCards,
   listVisualEffects,
   moveCards,
+  moveCardsToStage,
   paramsSchema,
   setCardStage,
   setCardImage,
@@ -860,6 +861,42 @@ describe("étapes de préparation", () => {
     const a = await createCard(ADMIN, { ...BASE });
     await expect(setCardStage(ADMIN, [a.id], "finie")).rejects.toThrow(CardInputError);
     expect((await getCard(ADMIN, a.id))?.prepStage).toBe("todo");
+  });
+
+  it("range une carte d'un set dans la réserve à l'étape choisie (le set est renuméroté)", async () => {
+    const a = await createCard(ADMIN, { ...BASE, name: "A", setId });
+    const b = await createCard(ADMIN, { ...BASE, name: "B", setId });
+    expect(await moveCardsToStage(ADMIN, [a.id], "described")).toEqual({ moved: 1, staged: 1 });
+    expect(await getCard(ADMIN, a.id)).toMatchObject({
+      setId: null,
+      number: null,
+      prepStage: "described",
+    });
+    expect(await getCard(ADMIN, b.id)).toMatchObject({ setId, number: 1, prepStage: "todo" });
+  });
+
+  it("sort une carte de la corbeille vers la réserve à l'étape choisie", async () => {
+    const a = await createCard(ADMIN, { ...BASE });
+    await trashCards(ADMIN, [a.id]);
+    expect(await moveCardsToStage(ADMIN, [a.id], "integration")).toEqual({ moved: 1, staged: 1 });
+    expect(await getCard(ADMIN, a.id)).toMatchObject({
+      deletedAt: null,
+      setId: null,
+      prepStage: "integration",
+    });
+  });
+
+  it("change seulement l'étape d'une carte déjà dans la réserve ; même étape : rien", async () => {
+    const a = await createCard(ADMIN, { ...BASE });
+    expect(await moveCardsToStage(ADMIN, [a.id], "illustrated")).toEqual({ moved: 0, staged: 1 });
+    expect(await moveCardsToStage(ADMIN, [a.id], "illustrated")).toEqual({ moved: 0, staged: 0 });
+    expect(await getCard(ADMIN, a.id)).toMatchObject({ setId: null, prepStage: "illustrated" });
+  });
+
+  it("refuse une étape inconnue sans sortir la carte de son set", async () => {
+    const a = await createCard(ADMIN, { ...BASE, setId });
+    await expect(moveCardsToStage(ADMIN, [a.id], "finie")).rejects.toThrow(CardInputError);
+    expect(await getCard(ADMIN, a.id)).toMatchObject({ setId, number: 1, prepStage: "todo" });
   });
 });
 
