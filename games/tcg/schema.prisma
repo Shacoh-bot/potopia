@@ -227,3 +227,40 @@ model TcgPendingBooster {
   @@map("pending_boosters")
   @@schema("tcg")
 }
+
+// Son de victoire : joué au retournement d'une SR ou d'une SSR dans un booster (au hasard, un son
+// pas encore entendu par le joueur d'abord). La liste vient de la page admin « Sons de victoire »
+// (synchronisation d'un dossier `liste.json` + mp3) : rien dans le dépôt. `id` : celui de la liste
+// (« vic-01 »). Un son retiré de la liste n'est pas supprimé (découvertes gardées), il est inactif.
+model TcgVictorySound {
+  id        String   @id
+  title     String
+  soundKey  String   @map("sound_key")
+  // Taille du fichier envoyé (octets) : un fichier changé dans la liste est renvoyé.
+  bytes     Int
+  active    Boolean  @default(true)
+  // Ordre de la liste.
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  heard TcgHeardVictorySound[]
+
+  @@map("victory_sounds")
+  @@schema("tcg")
+}
+
+// Son de victoire déjà découvert par un joueur (Potodex, onglet « Sons »), `count` fois.
+model TcgHeardVictorySound {
+  userId  String   @map("user_id")
+  soundId String   @map("sound_id")
+  count   Int      @default(1)
+  firstAt DateTime @default(now()) @map("first_at")
+
+  sound TcgVictorySound @relation(fields: [soundId], references: [id], onDelete: Cascade)
+
+  @@id([userId, soundId])
+  @@index([soundId])
+  @@map("heard_victory_sounds")
+  @@schema("tcg")
+}

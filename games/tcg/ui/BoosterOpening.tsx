@@ -55,6 +55,11 @@ export type OpenedCard = {
   imageUrl: string | null;
   /** Son propre de la carte : il remplace les bruitages du retournement ; absent : ceux-ci. */
   revealSoundUrl?: string | null;
+  /**
+   * Son de victoire tiré pour cette SR/SSR (serveur, sans répétition par joueur) : il remplace les
+   * bruitages de sa rareté. Le son propre de la carte passe avant.
+   */
+  victorySoundUrl?: string | null;
 };
 
 /** Cadre de la vidéo (pixels). */
@@ -302,8 +307,8 @@ function OpeningCard({
     setFaceMounted(true);
     setSide("face");
     // une Alt Art se révèle avec le son de la SSR ; le halo reste celui de sa rareté. Une carte
-    // avec son propre (Singham…) ne joue que lui.
-    revealCardSound(revealRarity(opened.card), opened.revealSoundUrl);
+    // avec son propre (Singham…) ne joue que lui ; une SR/SSR, son son de victoire tiré.
+    revealCardSound(revealRarity(opened.card), opened.revealSoundUrl ?? opened.victorySoundUrl);
     onReveal();
     // La face ne suit la souris qu'une fois posée, sinon elle resterait de travers.
     window.setTimeout(() => setSettled(true), FLIP_MS);
@@ -616,7 +621,10 @@ export function BoosterOpening({
   const [shown, setShown] = useState<OpenedCard[] | null>(null);
   useEffect(() => {
     if (!cards) return;
-    for (const c of cards) if (c.revealSoundUrl) preloadCardSound(c.revealSoundUrl);
+    for (const c of cards) {
+      const url = c.revealSoundUrl ?? c.victorySoundUrl;
+      if (url) preloadCardSound(url);
+    }
     let live = true;
     void cardImagesReady(
       cards.map((c) => c.imageUrl),

@@ -1557,6 +1557,19 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   froissement en saisissant le paquet, déchirure qui suit la souris, souffle de lumière à
   l'ouverture, cartes qui se posent, retournement suivi d'une note ou d'un arpège selon la rareté.
   Chaque son varie un peu à chaque fois ; volume du site respecté.
+- Sons de victoire (`src/victory-sounds.ts`, tables `tcg.victory_sounds` et
+  `tcg.heard_victory_sounds`, migration `tcg_victory_sounds`, ajout seul) : au retournement d'une SR
+  ou d'une SSR, un son de victoire remplace les bruitages de rareté (le son propre d'une carte passe
+  avant). Tiré côté serveur à l'ouverture du paquet (`withVictorySounds` de
+  `admin/boosters/pack.ts`, jamais pour le paquet tiré d'avance) : par joueur, un son jamais entendu
+  au hasard jusqu'à les avoir tous découverts, puis vrai hasard (`pickVictorySound`,
+  `drawVictorySounds`). Lu par `<audio>` comme le son propre (fondu quand une autre carte se
+  retourne ou qu'on quitte l'ouverture). Potodex `?onglet=sons` : sons découverts et « N / total »,
+  onglet absent tant qu'aucun n'est découvert (`showVictorySoundsTab`) ; mode complet : tous. La
+  liste n'est pas dans le dépôt : `/admin/sons-victoire` synchronise un dossier (`liste.json` de
+  Poto-Son + mp3 ; `planVictorySync` garde les `ecarte: false`, n'envoie que les nouveaux ou
+  changés ; `syncVictorySounds` désactive les retirés sans les supprimer). Clés
+  `sounds/victory/<uuid>.mp3`, 6 Mo au plus. La remise à zéro de la collection de test les vide.
 - `/admin/banc-cartes` : banc d'essai du rendu des cartes (`CardBench` de `@app/tcg/ui`), en
   lecture seule. Les 80 premières cartes du jeu (hors corbeille, celles à son propre en tête),
   en une carte, en rangée de 5

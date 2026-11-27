@@ -120,3 +120,15 @@ export {
   type Forced,
   type PotodexEntry,
 } from "./boosters";
+export {
+  createVictorySoundUpload,
+  drawVictorySounds,
+  getVictorySoundsDex,
+  listVictorySounds,
+  pickVictorySound,
+  showVictorySoundsTab,
+  syncVictorySounds,
+  VICTORY_RARITIES,
+  VICTORY_SOUND_BYTES,
+  type VictorySound,
+} from "./victory-sounds";

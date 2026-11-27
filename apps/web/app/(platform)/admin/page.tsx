@@ -10,6 +10,7 @@ import {
   FlaskConical,
   Layers,
   Lightbulb,
+  Music,
   Package,
   Smile,
   Trophy,
@@ -61,6 +62,12 @@ const SECTIONS = (ideasCount: number) => [
     title: "Potodex complet",
     description: "Aperçu du Potodex avec toutes les cartes débloquées (lecture seule).",
     icon: BookOpenCheck,
+  },
+  {
+    href: "/admin/sons-victoire",
+    title: "Sons de victoire",
+    description: "Sons joués au retournement des SR et SSR : synchroniser le dossier de la liste.",
+    icon: Music,
   },
   {
     href: "/admin/banc-cartes",

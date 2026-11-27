@@ -20,3 +20,5 @@ export { CardFlip } from "./CardFlip";
 export { CardZoom, zoomToFit } from "./CardZoom";
 export { CardImagesUpload } from "./CardImagesUpload";
 export { CardSoundUpload } from "./CardSoundUpload";
+export { VictorySounds } from "./VictorySounds";
+export { planVictorySync, type VictorySyncItem } from "./victory-plan";

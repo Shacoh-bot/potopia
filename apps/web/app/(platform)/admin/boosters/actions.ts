@@ -4,7 +4,7 @@ import { CardInputError, openBooster, resetCollection } from "@app/tcg";
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { actionAdmin } from "@/lib/session";
-import { type Pack, packOf } from "./pack";
+import { type Pack, packOf, withVictorySounds } from "./pack";
 
 export type OpenResult = ({ ok: true; next: Pack } & Pack) | { ok: false; error: string };
 
@@ -17,7 +17,10 @@ export async function openBoosterAction(setCode: string): Promise<OpenResult> {
   const admin = await actionAdmin();
   try {
     const { cards, next } = await openBooster(admin, { setCode }, { test: true });
-    const [pack, nextPack] = await Promise.all([packOf(admin, cards), packOf(admin, next)]);
+    const [pack, nextPack] = await Promise.all([
+      packOf(admin, cards).then((p) => withVictorySounds(admin, p)),
+      packOf(admin, next),
+    ]);
     revalidatePath("/admin/potodex");
     // compteur des garanties sous le paquet
     revalidatePath("/admin/boosters");

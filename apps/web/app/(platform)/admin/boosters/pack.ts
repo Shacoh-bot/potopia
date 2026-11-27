@@ -1,4 +1,4 @@
-import type { Card } from "@app/tcg";
+import { type Card, drawVictorySounds, VICTORY_RARITIES } from "@app/tcg";
 import type { OpenedCard } from "@app/tcg/ui";
 import { cardFaces } from "../cartes/images";
 
@@ -6,6 +6,7 @@ import { cardFaces } from "../cartes/images";
 export type Pack = { cards: OpenedCard[]; setSize: number };
 
 type Admin = { discordId: string | null };
+type Player = Admin & { id: string };
 
 /**
  * Cartes d'un paquet telles que le navigateur les reçoit : mêmes données que le menu « Cartes »
@@ -28,4 +29,27 @@ export async function packOf(admin: Admin, cards: Card[]): Promise<Pack> {
       revealSoundUrl,
     })),
   };
+}
+
+/**
+ * Paquet OUVERT : chaque SR/SSR sans son propre reçoit un son de victoire, tiré pour le joueur (pas
+ * de répétition avant d'avoir tout découvert) et noté comme découvert. Jamais pour le paquet tiré
+ * d'avance (`packOf` seul) : on ne découvre un son qu'en ouvrant. Une panne du tirage laisse les
+ * bruitages de rareté, le paquet s'ouvre quand même.
+ */
+export async function withVictorySounds(player: Player, pack: Pack): Promise<Pack> {
+  const slots = pack.cards.flatMap((c, i) =>
+    !c.revealSoundUrl && VICTORY_RARITIES.includes(c.card.rarity) ? [i] : [],
+  );
+  const drawn = await drawVictorySounds(player, slots.length).catch((error: unknown) => {
+    console.error("Sons de victoire :", error);
+    return [];
+  });
+  const cards = [...pack.cards];
+  slots.forEach((slot, i) => {
+    const sound = drawn[i];
+    const card = cards[slot];
+    if (sound && card) cards[slot] = { ...card, victorySoundUrl: sound.url };
+  });
+  return { ...pack, cards };
 }
