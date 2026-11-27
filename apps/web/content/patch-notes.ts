@@ -74,6 +74,10 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Cartes SSR : la lueur autour du cadre s'arrête net au coin arrondi, en s'amincissant ; plus de fin croissant de lumière qui dépassait du coin.",
+      },
+      {
+        admin: true,
         text: "Booster : l'aura derrière les cartes (épique, légendaire, SR, SSR) devient une vidéo en boucle pré-calculée, même aspect, au lieu d'un calcul à chaque image. Banc des cartes : case « Aura en rendu direct » pour comparer.",
       },
       {

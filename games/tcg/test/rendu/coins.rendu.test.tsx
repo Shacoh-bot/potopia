@@ -3,8 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { GameCard, GameCardDefs } from "../../ui/GameCard";
-import { H, W } from "../../ui/v2";
-import { CORNER_T, FRAME_LOOP } from "../../ui/v5";
+import { H, R, W } from "../../ui/v2";
+import { bandClip, CORNER_T, FRAME_LOOP } from "../../ui/v5";
 import { carte } from "./cartes";
 
 /**
@@ -67,6 +67,36 @@ describe("cadre SR/SSR : coins", () => {
           bandes.some((b) => x >= b.left && x <= b.right && y >= b.top && y <= b.bottom),
           `coin ${x},${y}`,
         ).toBe(true);
+    });
+  }
+  // Fin croissant de lueur SSR hors du coin arrondi (vu par l'utilisateur, 27/11) : la lueur extérieure
+  // (4 px) s'arrête au bout de l'arrondi de la carte, en biseau ; plus aucun point de la découpe d'une
+  // bande dans le coin, hors du rayon R de l'arrondi.
+  for (const [len, out] of [
+    [W, 4],
+    [H, 4],
+    [W, 0],
+  ] as const) {
+    it(`découpe d'une bande (longueur ${len}, lueur ${out}) : rien hors de l'arrondi du coin`, () => {
+      const c = out + R;
+      const L = len + 2 * out;
+      const points = [...bandClip(len, out).matchAll(/(-?[\d.]+)px (-?[\d.]+)px/g)].map((m) => [
+        Number(m[1]),
+        Number(m[2]),
+      ]);
+      expect(points.length).toBeGreaterThan(10);
+      for (const [x = 0, y = 0] of points) {
+        if (y >= c) continue;
+        // 0,75 px de chevauchement sur la diagonale (anticrénelage) : tolérance de 0,8 px
+        if (x < c) expect(Math.hypot(x - c, y - c), `${x},${y}`).toBeLessThanOrEqual(R + 0.8);
+        if (x > L - c)
+          expect(Math.hypot(x - (L - c), y - c), `${x},${y}`).toBeLessThanOrEqual(R + 0.8);
+      }
+      // la lueur garde toute son épaisseur hors des coins
+      if (out) {
+        expect(points).toContainEqual([c + 2 * out, 0]);
+        expect(points).toContainEqual([L - c - 2 * out, 0]);
+      }
     });
   }
 });

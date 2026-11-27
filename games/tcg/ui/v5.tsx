@@ -296,26 +296,16 @@ export function bandClip(len: number, out: number, thick: number = FRAME): strin
   const L = len + 2 * out;
   const ri = R - thick;
   const k = Math.SQRT1_2;
-  const glowX = out ? Math.sqrt((R + out) ** 2 - R ** 2) : 0;
-  // angle où l'arc de la lueur croise le bord de la carte (y = out)
-  const ga = (Math.atan2(-R, -glowX) * 180) / Math.PI + 360;
+  // Lueur (SSR) : elle naît au bout de l'arrondi de la carte (épaisseur 0) et prend toute son
+  // épaisseur `out` sur 2 × `out` px, en biseau. Avant, un arc de rayon R + out la prolongeait au-dessus
+  // du coin arrondi : fin croissant de lueur hors de l'arrondi (vu par l'utilisateur, 27/11).
   const start = [
-    // coin de départ : diagonale, arc du bord de la carte, (lueur : palier puis arc de la lueur)
+    // coin de départ : diagonale, arc du bord de la carte, (lueur : biseau jusqu'à son épaisseur)
     `${(c - R * k).toFixed(2)}px ${(c - R * k).toFixed(2)}px`,
     ...arcPoints(c, c, R, 225, 270).slice(1),
-    ...(out
-      ? [`${(c - glowX).toFixed(2)}px ${out}px`, ...arcPoints(c, c, R + out, ga, 270).slice(1)]
-      : []),
+    ...(out ? [`${c + 2 * out}px 0px`] : []),
   ];
-  const end = [
-    ...(out
-      ? [
-          ...arcPoints(L - c, c, R + out, 270, 540 - ga).slice(0, -1),
-          `${(L - c + glowX).toFixed(2)}px ${out}px`,
-        ]
-      : []),
-    ...arcPoints(L - c, c, R, 270, 315),
-  ];
+  const end = [...(out ? [`${L - c - 2 * out}px 0px`] : []), ...arcPoints(L - c, c, R, 270, 315)];
   const inner = [...arcPoints(L - c, c, ri, 315, 270), ...arcPoints(c, c, ri, 270, 225)];
   // Diagonales poussées de 0,75 px vers le coin : les deux bandes s'y chevauchent d'un trait, sinon
   // l'anticrénelage de leurs bords laisse un fil sombre sur la diagonale (même teinte des deux côtés).
