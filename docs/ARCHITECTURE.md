@@ -1087,13 +1087,15 @@ power?, statsManual?, effectKey?, effectParams?, effectText? }] }` (cost et powe
   la carte survolée redevient vivante, comme dans sa fiche : inclinaison 3D vers le pointeur,
   ombre et animations (une seule à la fois, pas sur mobile faute de survol ;
   `still-hover.ts` écoute le survol sur le lien, la carte y étant insensible au pointeur, et
-  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante. Exception : l'effet
-  visuel de la carte (calque `.tcg-vfx` : pétales, braises, fumée…) tourne toujours, survolé ou
-  non ; figé, il restait dans une pose artificielle (pétales alignés). Niveaux de détail (refonte,
-  étape 8, 27/11) : hors survol, les effets lourds (`EFFETS_LOURDS` : aquarelle, glitch, mirage,
-  vitrail, énergie) sont en pause (`data-lourd` dans tcg.css, `watchFrozenSvg` pour leurs filtres
-  SVG animés, aussi hors de l'écran), les éclats SR sont retirés et les grains d'effets
-  (poussières, braises, bulles, reflets du vitrail) réduits à un sur trois ; au survol tout revient
+  `Tilt` pose `data-live` sur la carte) ; l'éditeur garde la carte vivante. Image fixe au repos
+  (cartes ultra légères, option 1, 27/11) : `StillCard` laisse la carte s'animer `REPOS_MS`
+  (1,2 s) puis pose `data-repos` ; tcg.css met alors en pause toutes ses animations là où elles en
+  sont (cadre SR/SSR, effet visuel `.tcg-vfx`, holo) et `watchFrozenSvg` ses animations SVG. Au
+  survol tout reprend ; quittée, la carte se fige sur l'instant courant. La carte en grand (zoom)
+  et la révélation du booster n'utilisent pas `still` : toujours vivantes. Niveaux de détail
+  (étape 8) : éclats SR retirés et grains d'effets (poussières, braises, bulles, reflets du
+  vitrail) réduits à un sur trois hors survol ; `EFFETS_LOURDS` (`data-lourd`) signale les effets
+  qui repeignent (leurs filtres SVG s'arrêtent aussi hors de l'écran)
   (`test/rendu/planche.rendu.test.tsx`, Firefox + Chrome). Plus de reflet blanc qui
   suit le pointeur au survol (ancien calque `tcg-glare`, retiré le 2026-11-22) : holo, paillettes
   et effets restent dosés par `--glare` (1 sous le pointeur).

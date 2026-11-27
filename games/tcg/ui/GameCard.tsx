@@ -3,6 +3,7 @@ import { serialLabel } from "./card-fit";
 import type { CardData } from "./cards";
 import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
+import { StillCard } from "./StillCard";
 import type { TopLayout } from "./v4";
 import { FinalCard, type SparkVariant } from "./v5";
 
@@ -81,7 +82,10 @@ export function GameCard({
   layout?: TopLayout;
   /** Nombre de cartes du set, pour le numéro « 07/44 ». */
   setSize?: number;
-  /** Carte figée (sans 3D ni animation), pour les planches de nombreuses cartes. */
+  /**
+   * Carte figée, pour les planches de nombreuses cartes : sans 3D, image fixe au repos (toutes ses
+   * animations en pause), vivante au survol (`StillCard`).
+   */
   still?: boolean;
   /** Auteur de l'idée d'origine, en pied de carte (« idée de … ») ; absent : celui de `card`. */
   author?: string | null;
@@ -134,6 +138,6 @@ export function GameCard({
       pacedEffects={pacedEffects}
     />
   );
-  if (still) return <div className="tcg-still">{face}</div>;
+  if (still) return <StillCard>{face}</StillCard>;
   return face;
 }

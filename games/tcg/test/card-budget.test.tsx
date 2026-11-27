@@ -267,9 +267,10 @@ describe("filet de sécurité des cartes", () => {
   });
 
   it("planche : tout effet qui repeint (SVG animé, animation de la liste blanche) est déclaré lourd", () => {
-    // Étape 8 (niveaux de détail) : sur une planche non survolée, seuls les effets de EFFETS_LOURDS
-    // sont mis en pause (tcg.css, `data-lourd`, et `watchFrozenSvg` pour le SVG animé). Un effet
-    // qui repeint sans y figurer tournerait sur les 40 cartes d'une planche.
+    // Étape 8 (niveaux de détail) : un effet qui repeint doit figurer dans EFFETS_LOURDS
+    // (`data-lourd`). Au repos sur une planche, tout est en pause (image fixe, StillCard) ; mais hors
+    // de l'écran sur une carte vivante, seul le SVG animé des effets lourds est arrêté
+    // (`watchFrozenSvg`).
     const repeignantes = Object.keys(EXCEPTIONS_ANIMEES).filter((c) => c !== "tcg-sr-spark-sprite");
     for (const cle of Object.keys(VISUAL_EFFECTS)) {
       for (const layout of ["normal", "fullart"] as const) {

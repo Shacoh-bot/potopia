@@ -3,14 +3,15 @@ import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { GameCard, GameCardDefs } from "../../ui/GameCard";
+import { REPOS_MS } from "../../ui/StillCard";
 import { carte } from "./cartes";
 
 /**
- * Niveaux de détail des planches (refonte, étape 8), dans Firefox et Chrome : une carte figée
- * (`GameCard still`, Potodex et planches de l'admin) non survolée n'anime que transform et opacity
- * (aucun repeint), ses effets lourds sont en pause (animations CSS et SVG), ses éclats SR sont
- * retirés et ses grains d'effets réduits à un sur trois. Survolée (`data-live`, posé par `Tilt`),
- * elle retrouve tout.
+ * Image fixe au repos (cartes ultra légères, option 1) et niveaux de détail (étape 8), dans Firefox
+ * et Chrome : une carte figée (`GameCard still` : Potodex, planches de l'admin, banc) non survolée
+ * n'a, après `REPOS_MS`, plus aucune animation qui tourne (CSS ni SVG), ses éclats SR sont retirés
+ * et ses grains d'effets réduits à un sur trois. Survolée (`data-live`, posé par `Tilt`), elle
+ * retrouve tout (cadre SR/SSR et effets compris) ; quittée, elle se fige à nouveau.
  */
 const ANIMABLES = new Set(["transform", "opacity", "translate", "rotate", "scale", "visibility"]);
 const HORS_PROPRIETES = new Set(["offset", "computedOffset", "easing", "composite"]);
@@ -42,10 +43,18 @@ async function poser(t: (typeof PLANCHE)[number]): Promise<HTMLElement> {
       </>,
     ),
   );
-  await prochaineImage();
-  await prochaineImage();
   const still = hote.querySelector<HTMLElement>(".tcg-still");
   if (!still) throw new Error("Carte sans .tcg-still.");
+  // Firefox simule un mouvement du pointeur après une mise en page : si le pointeur du test est
+  // resté sur la zone de la carte, `Tilt` la croit survolée (`data-live`). C'était l'instabilité
+  // en CI (vitrail/énergie « en cours » hors survol). On attend la mise au repos puis on retire
+  // ce faux survol : `pointerenter` ne revient pas tant que le pointeur ne sort pas.
+  const fin = performance.now() + REPOS_MS + 3000;
+  while (!("repos" in still.dataset) && performance.now() < fin) await prochaineImage();
+  if (!("repos" in still.dataset)) throw new Error("Carte jamais mise au repos (data-repos).");
+  delete still.dataset.live;
+  await prochaineImage();
+  await prochaineImage();
   return still;
 }
 
@@ -66,6 +75,7 @@ function animations(carte: HTMLElement) {
       return {
         nom: (a as CSSAnimation).animationName ?? "?",
         lourd: !!cible.closest(".tcg-vfx[data-lourd]"),
+        cadre: !!cible.closest(".tcg-frame-run, .tcg-frame-run__cut, .tcg-frame-run__light"),
         enCours: a.playState === "running",
         repeint: [...props].filter((p) => !ANIMABLES.has(p)),
       };
@@ -75,21 +85,22 @@ function animations(carte: HTMLElement) {
 const affiches = (carte: HTMLElement, sel: string) =>
   [...carte.querySelectorAll(sel)].filter((e) => getComputedStyle(e).display !== "none").length;
 
-const svgLourds = (carte: HTMLElement) =>
-  [...carte.querySelectorAll<SVGSVGElement>(".tcg-vfx[data-lourd] svg")].filter((s) =>
-    s.querySelector("animate"),
+const svgAnimes = (carte: HTMLElement) =>
+  [...carte.querySelectorAll<SVGSVGElement>("svg")].filter((s) =>
+    s.querySelector("animate, animateTransform"),
   );
 
 describe("planche : carte figée non survolée", () => {
   for (const t of PLANCHE) {
-    it(`${t.id} : aucune animation qui repeint hors survol, tout revient au survol`, async () => {
+    it(`${t.id} : image fixe au repos (aucune animation en cours), tout revient au survol`, async () => {
       const carte = await poser(t);
 
       const repos = animations(carte);
-      const repeintes = repos.filter((a) => a.enCours && (a.lourd || a.repeint.length));
-      expect(repeintes, JSON.stringify(repeintes)).toEqual([]);
+      expect(repos.length).toBeGreaterThan(0);
+      const enCours = repos.filter((a) => a.enCours);
+      expect(enCours, JSON.stringify(enCours)).toEqual([]);
       expect(repos.filter((a) => a.lourd).length).toBeGreaterThan(0);
-      const svgs = svgLourds(carte);
+      const svgs = svgAnimes(carte);
       expect(svgs.length).toBeGreaterThan(0);
       expect(svgs.map((s) => s.animationsPaused())).toEqual(svgs.map(() => true));
       expect(affiches(carte, ".tcg-sr-spark, .tcg-sr-spark-group, .tcg-sr-spark-sprite")).toBe(0);
@@ -100,8 +111,10 @@ describe("planche : carte figée non survolée", () => {
       carte.dataset.live = "";
       await prochaineImage();
       await prochaineImage();
-      const vivantes = animations(carte);
-      expect(vivantes.some((a) => a.lourd && a.enCours)).toBe(true);
+      const vivantes = animations(carte).filter((a) => a.enCours);
+      expect(vivantes.some((a) => a.lourd)).toBe(true);
+      // Cadre animé des SR/SSR : vivant au survol seulement.
+      expect(vivantes.some((a) => a.cadre)).toBe(true);
       expect(svgs.map((s) => s.animationsPaused())).toEqual(svgs.map(() => false));
       expect(affiches(carte, ".tcg-vfx-mote, .tcg-vfx-ember")).toBe(grains);
       if (t.card.rarity === "sr") {
@@ -110,6 +123,8 @@ describe("planche : carte figée non survolée", () => {
 
       delete carte.dataset.live;
       await prochaineImage();
+      await prochaineImage();
+      expect(animations(carte).filter((a) => a.enCours)).toEqual([]);
       expect(svgs.map((s) => s.animationsPaused())).toEqual(svgs.map(() => true));
     });
   }

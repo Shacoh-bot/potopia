@@ -867,13 +867,14 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
 }
 
-/* Carte figée (`GameCard still`, planches de l'admin) : sans 3D, sans animation ni reflet, et sans
-   grande ombre floue. Des dizaines de cartes vivantes à l'écran rendent le défilement saccadé.
+/* Carte figée (`GameCard still` : Potodex, planches de l'admin, banc) : sans 3D, sans reflet, et
+   sans grande ombre floue. Des dizaines de cartes vivantes à l'écran rendent le défilement saccadé.
    La carte survolée redevient vivante (une seule à la fois) : `Tilt` lui pose `data-live` (pas
    `:hover` : la planche la rend insensible au pointeur, sous son lien ; voir still-hover.ts).
-   Exception : l'effet visuel de la carte (`.tcg-vfx` : pétales, braises, fumée…) tourne toujours,
-   survolée ou non ; figé, il restait dans une pose artificielle (pétales alignés). De même pour
-   le cadre animé des SR et SSR (`.tcg-frame-run`, éclats `.tcg-sr-spark`) : animé en permanence. */
+   Les animations de la carte elle-même (inclinaison, holo, pastilles…) sont retirées (pose de
+   base) ; celles de l'effet visuel (`.tcg-vfx`), du cadre des SR/SSR et des éclats sont seulement
+   mises en pause au repos (règle « Image fixe au repos » plus bas) : retirées, elles restaient dans
+   une pose artificielle (pétales alignés). */
 .tcg-still:not([data-live]) .tcg-tilt,
 .tcg-still:not([data-live]) .tcg-depth,
 .tcg-still:not([data-live]) .tcg-layer {
@@ -917,20 +918,20 @@ body:has(.tcg-opening, .tcg-still)::before {
   transition: none !important;
 }
 
-/* Niveaux de détail (refonte, étape 8) : sur une planche, la carte non survolée n'a plus aucune
-   animation qui repeint, et pas de particules fines (à 160-220 px de large, elles ne se voient
-   presque pas et chacune coûte une boîte animée). Survolée (`data-live`), elle retrouve tout : le
-   rendu survolé est inchangé.
-   - Effets lourds (`data-lourd`, liste `EFFETS_LOURDS` de visual-effects.tsx : filtre, fusion ou
-     masque qui repeint à chaque image) : animations en pause (reprise là où elles en étaient) ; leurs
-     animations SVG sont mises en pause par `watchFrozenSvg`.
-   - Éclats des SR (toutes variantes) : retirés ; le cadre animé dit déjà la rareté.
-   - Grains des effets (poussières, braises, bulles, reflets du vitrail) : un sur trois gardé, pour
-     que l'effet reste reconnaissable. */
-.tcg-still:not([data-live]) .tcg-vfx[data-lourd] *,
-.tcg-still:not([data-live]) .tcg-vfx[data-lourd] *::before,
-.tcg-still:not([data-live]) .tcg-vfx[data-lourd] *::after {
+/* Image fixe au repos (cartes ultra légères, option 1, 27/11) : sur une planche, la carte non
+   survolée n'anime plus rien. `StillCard` pose `data-repos` un instant après l'affichage (REPOS_MS) :
+   toutes ses animations (cadre SR/SSR, effets, holo, grains) se mettent en pause là où elles en
+   sont, ses transitions sont coupées et `watchFrozenSvg` arrête ses animations SVG. Survolée
+   (`data-live`), elle reprend tout ; quittée, elle se fige à nouveau sur l'instant courant. Mesures
+   (notes/cartes-ultra-legeres.md) : 40 SR au repos, Firefox logiciel 4 → 19-35 i/s.
+   Niveaux de détail (étape 8), dès l'affichage : pas d'éclats SR (le cadre dit déjà la rareté), et
+   un grain sur trois pour les effets à particules fines (poussières, braises, bulles, reflets du
+   vitrail), invisibles à 160-220 px de large et coûteux en boîtes. */
+.tcg-still[data-repos]:not([data-live]) *,
+.tcg-still[data-repos]:not([data-live]) *::before,
+.tcg-still[data-repos]:not([data-live]) *::after {
   animation-play-state: paused !important;
+  transition: none !important;
 }
 .tcg-still:not([data-live]) :is(.tcg-sr-spark, .tcg-sr-spark-group, .tcg-sr-spark-sprite),
 .tcg-still:not([data-live])

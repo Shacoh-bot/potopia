@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { watchOffscreen } from "../ui/offscreen-pause";
+import { watchFrozenSvg, watchOffscreen } from "../ui/offscreen-pause";
 
 /** Observateur factice : garde le rappel et les options, pour simuler l'entrée et la sortie d'écran. */
 function fakeObserver() {
@@ -70,5 +70,52 @@ describe("pause des cartes hors de l'écran (refonte, étape 6)", () => {
     for (const c of [".tcg-frame-run__light", ".tcg-aura", ".tcg-sr-spark"])
       expect(arret, c).toContain(c);
     expect(arret).toMatch(/animation: none/);
+  });
+});
+
+describe("image fixe au repos (cartes figées, option 1)", () => {
+  it("tcg.css met en pause toutes les animations d'une carte figée au repos, pas survolée", () => {
+    expect(css).toMatch(
+      /\.tcg-still\[data-repos\]:not\(\[data-live\]\) \*,\s*\.tcg-still\[data-repos\]:not\(\[data-live\]\) \*::before,\s*\.tcg-still\[data-repos\]:not\(\[data-live\]\) \*::after \{\s*animation-play-state: paused !important;\s*transition: none !important;\s*\}/,
+    );
+  });
+
+  it("watchFrozenSvg : SVG en pause au repos, repris au survol, figé à nouveau ensuite", () => {
+    const etat = { pause: 0, reprise: 0 };
+    const svg = {
+      pauseAnimations: () => etat.pause++,
+      unpauseAnimations: () => etat.reprise++,
+    };
+    const card = { dataset: {} as DOMStringMap } as HTMLElement;
+    const el = {
+      closest: (sel: string) => (sel === ".tcg-still" ? card : null),
+      querySelectorAll: () => [svg],
+    } as unknown as HTMLElement;
+    let rappel: (() => void) | undefined;
+    let options: MutationObserverInit | undefined;
+    class Fake {
+      constructor(cb: () => void) {
+        rappel = cb;
+      }
+      observe(_: Node, o: MutationObserverInit) {
+        options = o;
+      }
+      disconnect() {}
+    }
+    const stop = watchFrozenSvg(el, Fake as unknown as typeof MutationObserver);
+    expect(options?.attributeFilter).toEqual(["data-live", "data-repos"]);
+    expect(options?.subtree).toBe(true);
+    expect(etat).toEqual({ pause: 0, reprise: 1 });
+    card.dataset.repos = "";
+    rappel?.();
+    expect(etat.pause).toBe(1);
+    card.dataset.live = "";
+    rappel?.();
+    expect(etat.reprise).toBe(2);
+    delete card.dataset.live;
+    rappel?.();
+    expect(etat.pause).toBe(2);
+    stop?.();
+    expect(etat.reprise).toBe(3);
   });
 });
