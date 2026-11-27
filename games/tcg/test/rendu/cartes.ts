@@ -19,7 +19,7 @@ export const EFFETS_POINTEUR = ["vitrail", "lampe", "metal"];
 
 export type CarteTest = { id: string; card: GameCardFields; layout: "normal" | "fullart" };
 
-function carte(rarity: CardRarityId, effets: string[]): GameCardFields {
+export function carte(rarity: CardRarityId, effets: string[]): GameCardFields {
   return {
     name: "Grenouille d'essai",
     rarity,

@@ -1,6 +1,7 @@
 "use client";
 
-import { type ComponentType, type CSSProperties, useEffect, useId, useState } from "react";
+import { type ComponentType, type CSSProperties, useEffect, useId, useRef, useState } from "react";
+import { watchFrozenSvg } from "./offscreen-pause";
 import type { CardData } from "./cards";
 import { faction, PremiumArt } from "./premium";
 import { ExtraArt, type ExtraStyle } from "./snap-styles";
@@ -28,7 +29,9 @@ import { ExtraArt, type ExtraStyle } from "./snap-styles";
  * Sur les planches (cartes figées), l'effet tourne quand même, survolé ou non : tcg.css ne coupe
  * pas les animations du calque `.tcg-vfx`, et les effets JS reçoivent `still` à faux. Figé, il
  * restait dans une pose artificielle (pétales alignés). Le `still` des effets (image fixe) reste
- * prévu, mais le calque le passe toujours à faux.
+ * prévu, mais le calque le passe toujours à faux. Exceptions (étape 8, niveaux de détail) : les
+ * effets lourds (`EFFETS_LOURDS`) s'arrêtent sur une planche hors survol, et les particules fines
+ * n'y gardent qu'un grain sur trois (tcg.css).
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
  * (éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
@@ -1126,6 +1129,24 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
   vent: { render: Wind },
 };
 
+/**
+ * Effets « lourds » (refonte, étape 8 : niveaux de détail) : ceux qui repeignent leur calque à
+ * chaque image (filtre SVG animé, fusion ou masque sur une image qui bouge). Mesures de l'étape 7,
+ * planche de 40 cartes avec cet effet seul (Chrome GPU / Firefox logiciel, sans effet 60 / 28-34
+ * i/s) : aquarelle 60 / 17-19, glitch 60 / 11-18, mirage 43-46 / 6,5, vitrail 40-44 / 4,5,
+ * énergie 38-43 / 2,1. Sur une planche (carte figée), ils restent arrêtés tant que la carte n'est
+ * pas survolée : tcg.css met leurs animations CSS en pause (`data-lourd`) et `watchFrozenSvg` leurs
+ * animations SVG ; même arrêt hors de l'écran (`data-hors-ecran`). Les autres effets (pétales,
+ * braises, fumée…) ne bougent qu'en transform/opacity et tournent toujours.
+ */
+export const EFFETS_LOURDS: ReadonlySet<string> = new Set([
+  "aquarelle",
+  "glitch",
+  "mirage",
+  "vitrail",
+  "energie",
+]);
+
 /** L'effet visuel d'une carte ; rien si la clé est vide ou que son rendu n'est pas (encore) codé. */
 export function VisualEffectLayer({
   effectKey,
@@ -1141,11 +1162,21 @@ export function VisualEffectLayer({
   paced?: boolean;
 }) {
   const def = effectKey ? VISUAL_EFFECTS[effectKey] : undefined;
+  const lourd = !!effectKey && EFFETS_LOURDS.has(effectKey);
+  const ref = useRef<HTMLDivElement>(null);
+  // Animations SVG (SMIL) des effets lourds : tcg.css ne peut pas les arrêter (voir EFFETS_LOURDS).
+  useEffect(() => (lourd && ref.current && watchFrozenSvg(ref.current)) || undefined, [lourd]);
   if (!def) return null;
   const Effect = def.render;
   return (
-    <div className="tcg-vfx" aria-hidden data-effect={effectKey}>
-      {/* Toujours animé, même sur une planche (carte figée) : voir l'en-tête du module. */}
+    <div
+      ref={ref}
+      className="tcg-vfx"
+      aria-hidden
+      data-effect={effectKey}
+      data-lourd={lourd ? "" : undefined}
+    >
+      {/* Toujours animé, même sur une planche (carte figée), sauf effet lourd : voir l'en-tête. */}
       <Effect still={false} card={card} full={full} {...(paced ? { paced } : null)} />
     </div>
   );
