@@ -82,6 +82,10 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Banc d'essai des cartes : variantes à choisir pour les éclats dorés des SR (6 éclats, 3 groupes, image pré-calculée) et mirage/énergie par paliers, avec la variante active affichée. Le reste du site ne change pas.",
+      },
+      {
+        admin: true,
         text: "Cartes : reflets du cadre cuits dans son image, halo du nom sans filtre, effets de l'illustration dans un calque à part. Plus aucune fusion sur une carte sans effet. Firefox : cadre un peu plus coloré, comme dans Chrome.",
       },
     ],

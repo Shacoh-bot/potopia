@@ -641,6 +641,51 @@
     transform: scale(0.6) rotate(35deg);
   }
 }
+/* Variantes des éclats SR du banc d'essai (refonte, étape 7, `SparkVariant` de v5.tsx). Le site garde
+   les 14 éclats animés ; ces règles ne servent qu'aux variantes choisies au banc.
+   - `groupes` : éclats fixes (pose du pic), 3 groupes dont seule l'opacité bouge.
+   - `image` : planche de 30 vues pré-calculées (scripts/eclats-sr-sprite.mjs, 312 × 432 par vue,
+     marge de 6 px autour de la carte), avancée par paliers. */
+.tcg-sr-spark--fixe {
+  animation: none;
+  opacity: 1;
+  transform: rotate(20deg);
+}
+.tcg-sr-spark-group {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  animation: tcg-sr-spark-group 2.4s ease-in-out infinite;
+}
+@keyframes tcg-sr-spark-group {
+  0%,
+  55%,
+  100% {
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0;
+  }
+}
+.tcg-sr-spark-sprite {
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 312px;
+  height: 432px;
+  pointer-events: none;
+  background: url("/tcg/eclats-sr.png") 0 0 / 3000% 100% no-repeat;
+  animation: tcg-sr-spark-sprite 2.4s steps(30, jump-none) infinite;
+}
+@keyframes tcg-sr-spark-sprite {
+  to {
+    background-position: 100% 0;
+  }
+}
 /* Écrans pleins de cartes animées (ouverture de booster, planches du Potodex) : les lueurs
    d'ambiance du thème (body::before, plein écran) s'arrêtent. Leur dérive de 40 s ne se voit pas,
    mais elle force la recomposition de tout l'écran à chaque image (coûteux dans Firefox). */
@@ -657,7 +702,9 @@ body:has(.tcg-opening, .tcg-still)::before {
 @media (prefers-reduced-motion: reduce) {
   .tcg-frame-run__light,
   .tcg-aura,
-  .tcg-sr-spark {
+  .tcg-sr-spark,
+  .tcg-sr-spark-group,
+  .tcg-sr-spark-sprite {
     animation: none;
   }
 }
@@ -850,11 +897,36 @@ body:has(.tcg-opening, .tcg-still)::before {
 .tcg-still:not([data-live]) .tcg-depth {
   box-shadow: none !important;
 }
-.tcg-still:not([data-live]) :not(.tcg-vfx, .tcg-vfx *, .tcg-frame-run *, .tcg-sr-spark, .tcg-aura),
 .tcg-still:not([data-live])
-  :not(.tcg-vfx, .tcg-vfx *, .tcg-frame-run *, .tcg-sr-spark, .tcg-aura)::before,
+  :not(
+    .tcg-vfx,
+    .tcg-vfx *,
+    .tcg-frame-run *,
+    .tcg-sr-spark,
+    .tcg-sr-spark-group,
+    .tcg-sr-spark-sprite,
+    .tcg-aura
+  ),
 .tcg-still:not([data-live])
-  :not(.tcg-vfx, .tcg-vfx *, .tcg-frame-run *, .tcg-sr-spark, .tcg-aura)::after {
+  :not(
+    .tcg-vfx,
+    .tcg-vfx *,
+    .tcg-frame-run *,
+    .tcg-sr-spark,
+    .tcg-sr-spark-group,
+    .tcg-sr-spark-sprite,
+    .tcg-aura
+  )::before,
+.tcg-still:not([data-live])
+  :not(
+    .tcg-vfx,
+    .tcg-vfx *,
+    .tcg-frame-run *,
+    .tcg-sr-spark,
+    .tcg-sr-spark-group,
+    .tcg-sr-spark-sprite,
+    .tcg-aura
+  )::after {
   animation: none !important;
   transition: none !important;
 }
