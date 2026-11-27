@@ -72,6 +72,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Cartes : cadres SR et SSR, orbite, éclat, holo, lampe, métal et vitrail bougent sans redessiner la carte à chaque image (glissements et rotations seulement). Même rendu, moins de travail pour le navigateur, surtout Firefox.",
       },
+      {
+        admin: true,
+        text: "Cartes : cadres SR et SSR et filets dorés des encadrés dessinés une fois en image (un élément au lieu de ~220 traits), bandes lumineuses simplifiées : 50 à 75 éléments par carte au lieu de 146 à 295. Même rendu.",
+      },
     ],
   },
   {

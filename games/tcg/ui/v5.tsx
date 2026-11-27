@@ -6,7 +6,7 @@ import { GlowPoints } from "./GlowPoints";
 import { Art, fill, Layer, R, Shell } from "./v2";
 import { effectTextSize, FOOTER_GAP, footerFontSize } from "./card-fit";
 import { effectPlace, isRetiredEffect } from "./effect-places";
-import { FrameRing } from "./frame-ring";
+import { FrameRing, type RingSpec } from "./frame-ring";
 import { VisualEffectLayer } from "./visual-effects";
 import {
   BADGE,
@@ -302,28 +302,31 @@ function FrameRun({
     const shift = (((along - out) % period) + period) % period;
     along += len;
     return (
+      // Bande d'un bord : posée au coin, tournée vers son bord (une seule boîte qui découpe ; avant
+      // l'étape 4, une boîte tournée vide contenait la boîte qui découpe, même géométrie).
       <div
         key={rot}
-        className="tcg-frame-run__edge"
-        style={{ left: x + out, top: y + out, transform: `rotate(${rot}deg)` }}
+        className="tcg-frame-run__cut"
+        style={{
+          left: x + out,
+          top: y + out,
+          width: len + 2 * out,
+          height: thick,
+          transform: `rotate(${rot}deg) translate(${-out}px, ${-out}px)`,
+        }}
       >
         <div
-          className="tcg-frame-run__cut"
-          style={{ left: -out, top: -out, width: len + 2 * out, height: thick }}
-        >
-          <div
-            className={`tcg-frame-run__light ${light}`}
-            // Le décalage du bord est porté par `left` (fixe) : l'animation n'a plus de var() à
-            // résoudre à chaque image, elle fait glisser la bande d'une période (classe du
-            // dégradé). Largeur juste suffisante : de -période à 0, la bande couvre toujours le bord.
-            style={{
-              left: -period - shift,
-              width: len + 2 * out + period + shift,
-              backgroundSize: `${period}px 100%`,
-              animationDuration: `${seconds}s`,
-            }}
-          />
-        </div>
+          className={`tcg-frame-run__light ${light}`}
+          // Le décalage du bord est porté par `left` (fixe) : l'animation n'a plus de var() à
+          // résoudre à chaque image, elle fait glisser la bande d'une période (classe du
+          // dégradé). Largeur juste suffisante : de -période à 0, la bande couvre toujours le bord.
+          style={{
+            left: -period - shift,
+            width: len + 2 * out + period + shift,
+            backgroundSize: `${period}px 100%`,
+            animationDuration: `${seconds}s`,
+          }}
+        />
       </div>
     );
   });
@@ -331,7 +334,7 @@ function FrameRun({
 function SsrComets() {
   return (
     <>
-      <div aria-hidden className="tcg-frame-run tcg-frame-run--glow">
+      <div aria-hidden className="tcg-frame-run tcg-frame-run--glow tcg-strate-cadre">
         <FrameRun
           light="tcg-frame-run__light--comets"
           period={2 * (W + H)}
@@ -340,7 +343,7 @@ function SsrComets() {
           out={4}
         />
       </div>
-      <div aria-hidden className="tcg-frame-run">
+      <div aria-hidden className="tcg-frame-run tcg-strate-cadre">
         <FrameRun
           light="tcg-frame-run__light--comets"
           period={2 * (W + H)}
@@ -371,7 +374,7 @@ const SR_SPARKS: [number, number, number, number, number][] = [
 function SrCarmine() {
   return (
     <>
-      <div aria-hidden className="tcg-frame-run">
+      <div aria-hidden className="tcg-frame-run tcg-strate-cadre">
         <FrameRun light="tcg-frame-run__light--carmine" period={720} seconds={3.2} thick={FRAME} />
       </div>
       {SR_SPARKS.map(([x, y, size, delay, seconds]) => (
@@ -650,18 +653,29 @@ const PANEL_GOLD =
  * Filets très fins des encadrés (ligne de type, effet) dans le style du dos : un filet doré de
  * 1 px à la place de la bordure, doublé à l'intérieur d'un liseré cyan à peine visible.
  */
+function trimRing(h: number): RingSpec {
+  return { background: PANEL_GOLD, width: 1, radius: 8, w: W - 2 * SIDE, h, segments: 48 };
+}
+const TEXT_HEIGHT = H - TEXT.top - TEXT.bottom;
+
+/**
+ * Anneaux à dégradé des cartes, pré-dessinés en images (bloc généré de tcg.css) : cadres SR et SSR,
+ * filets des deux encadrés. Un anneau à dégradé absent de cette liste n'a pas d'image.
+ */
+export const PREDRAWN_RINGS: RingSpec[] = [
+  ...Object.values(RARITY_FRAME)
+    .filter((bg) => !bg.startsWith("#"))
+    .map((background) => ({ background, width: FRAME })),
+  trimRing(TYPE.height),
+  trimRing(TEXT_HEIGHT),
+];
+
 function PanelTrim({ h }: { h: number }) {
   return (
     <div className="tcg-strate-filets" style={{ display: "contents" }}>
-      {/* Filet dessiné (pas un calque troué par clip-path, qui se peignait parfois plein : aplat doré). */}
-      <FrameRing
-        background={PANEL_GOLD}
-        width={1}
-        radius={8}
-        w={W - 2 * SIDE}
-        h={h}
-        segments={48}
-      />
+      {/* Filet dessiné (pas un calque troué par clip-path, qui se peignait parfois plein : aplat
+          doré), pré-dessiné en image : un seul élément. */}
+      <FrameRing {...trimRing(h)} />
       <div
         aria-hidden
         style={{
@@ -833,19 +847,28 @@ export function FinalCard({
         <Band card={card} layout={layout} shape={band} bare={bare} />
       </div>
 
-      {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. */}
+      {/* Bordure de la carte, après le bandeau : elle en recouvre le bord. Socle fixe (étape 4) :
+          les parties animées (aura, lumières SR/SSR) sont dans des calques frères, le cadre et ses
+          filets ne sont jamais repeints. L'aura n'a qu'une ombre extérieure : hors du cadre. */}
+      {CARD_AURA_FINISHES.includes(finish) && (
+        <div aria-hidden className="tcg-aura tcg-strate-cadre" data-rarity={finish} />
+      )}
+      <Layer
+        z={10}
+        className="tcg-strate-cadre tcg-socle"
+        style={{ ...fill, borderRadius: R, pointerEvents: "none" }}
+      >
+        {/* Cadre dessiné (trait SVG ou image pré-dessinée), sans découpe : il ne peut plus se
+            peindre sur toute la carte. */}
+        <FrameRing background={RARITY_FRAME[finish]} width={FRAME} />
+      </Layer>
+      {FRAME_MOTION[finish] === "comets" && <SsrComets />}
+      {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
       <Layer
         z={10}
         className="tcg-strate-cadre"
         style={{ ...fill, borderRadius: R, pointerEvents: "none" }}
       >
-        {/* Cadre dessiné en SVG, sans découpe : il ne peut plus se peindre sur toute la carte. */}
-        {CARD_AURA_FINISHES.includes(finish) && (
-          <div aria-hidden className="tcg-aura" data-rarity={finish} />
-        )}
-        <FrameRing background={RARITY_FRAME[finish]} width={FRAME} />
-        {FRAME_MOTION[finish] === "comets" && <SsrComets />}
-        {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
         <div
           style={{
             ...fill,
@@ -916,7 +939,7 @@ export function FinalCard({
             ...panel,
           }}
         >
-          {!bare && <PanelTrim h={H - TEXT.top - TEXT.bottom} />}
+          {!bare && <PanelTrim h={TEXT_HEIGHT} />}
           <div>{card.effect}</div>
           {card.flavor && (
             <div
@@ -951,14 +974,14 @@ export function FinalCard({
       {/* Coût et puissance en dernier : toujours au-dessus du reste, sans sertissage. */}
       <Layer
         z={80}
-        className="tcg-strate-pastilles"
+        className="tcg-strate-pastilles tcg-socle"
         style={{ left: -2, top: -2, zIndex: 5, scale: String(BADGE), transformOrigin: "0 0" }}
       >
         <ImageCost value={card.cost} />
       </Layer>
       <Layer
         z={80}
-        className="tcg-strate-pastilles"
+        className="tcg-strate-pastilles tcg-socle"
         style={{
           right: -2,
           bottom: -2,

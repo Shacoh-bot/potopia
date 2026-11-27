@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FrameRing, paintAt, parseRingPaint, ringSegments } from "../ui/frame-ring";
+import { FrameRing, paintAt, parseRingPaint, ringSegments, ringSvg } from "../ui/frame-ring";
 import { RARITY_FRAME } from "../ui/v5";
 
 type Node = { type?: unknown; props?: Record<string, unknown> } | Node[] | null | undefined;
@@ -25,13 +25,21 @@ describe("anneau de cadre dessiné (FrameRing)", () => {
   });
 
   it("n'a ni clip-path ni masque : rien qu'un navigateur puisse lâcher (aplat de rareté au survol)", () => {
-    for (const bg of [RARITY_FRAME.sr, RARITY_FRAME.ssr, RARITY_FRAME.epic]) {
+    // Couleur unie : un trait SVG.
+    const uni = renderToStaticMarkup(FrameRing({ background: RARITY_FRAME.epic, width: 7 }));
+    expect(uni).toMatch(/^<svg/);
+    expect(uni).not.toMatch(/clip|mask|background/i);
+    expect(uni.match(/fill="none"/g)?.length).toBe(uni.match(/<rect/g)?.length);
+    // Dégradé (SR, SSR) : un seul élément, l'image pré-dessinée de l'anneau en fond (étape 4).
+    for (const bg of [RARITY_FRAME.sr, RARITY_FRAME.ssr]) {
       const html = renderToStaticMarkup(FrameRing({ background: bg, width: 7 }));
-      expect(html).toMatch(/^<svg/);
+      expect(html).toMatch(/^<div[^>]*class-name="tcg-ring tcg-ring-[0-9a-z]+"/);
       expect(html).not.toMatch(/clip|mask/i);
-      // Aucun fond plein : seulement des traits (fill none).
-      expect(html).not.toMatch(/background/);
-      expect(html.match(/fill="none"/g)?.length).toBe(html.match(/<rect/g)?.length);
+      // L'image : seulement des traits (fill none), sans découpe.
+      const svg = ringSvg({ background: bg, width: 7 });
+      expect(svg).not.toMatch(/clip|mask/i);
+      expect(svg).toContain("<g fill='none'");
+      expect(svg.match(/<use /g)?.length).toBe(121);
     }
   });
 
