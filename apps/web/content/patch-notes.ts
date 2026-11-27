@@ -68,7 +68,10 @@ export const PATCH_NOTES = parsePatchNotes([
     title: "Cartes : effets plus légers à afficher",
     publicTitle: "Petites retouches",
     items: [
-      "Booster : le son d'une carte (victoire SR/SSR, son propre) part dès l'appui sur la carte, avec le retournement.",
+      {
+        admin: true,
+        text: "Booster : le son d'une carte (victoire SR/SSR, son propre) part dès l'appui sur la carte, avec le retournement.",
+      },
       {
         admin: true,
         text: "Cartes SR : les 14 éclats dorés deviennent une seule image animée pré-calculée, partout. Banc des cartes : plus de choix d'éclats, et le son de « Rejouer le retournement » part dès le clic.",
