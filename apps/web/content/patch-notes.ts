@@ -68,7 +68,10 @@ export const PATCH_NOTES = parsePatchNotes([
     title: "Cartes : effets plus légers à afficher",
     publicTitle: "Petites retouches",
     items: [
-      "Cartes SR et SSR : plus de petit carré de lumière aux coins du cadre (en haut à gauche et en bas à droite).",
+      {
+        admin: true,
+        text: "Cartes SR et SSR : plus de petit carré de lumière aux coins du cadre (en haut à gauche et en bas à droite).",
+      },
       {
         admin: true,
         text: "Booster : le son d'une carte (victoire SR/SSR, son propre) part dès l'appui sur la carte, avec le retournement.",
