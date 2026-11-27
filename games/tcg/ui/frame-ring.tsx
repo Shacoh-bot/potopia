@@ -183,16 +183,55 @@ export type RingSpec = {
   w?: number;
   h?: number;
   segments?: number;
+  /**
+   * Polissage du dos (reflets clairs et creux sombres en diagonale, fusion « soft-light ») cuit
+   * dans l'image : le cadre de la carte. Avant l'étape 5, un calque soft-light posé sur le cadre
+   * ET sur les lumières SR/SSR, re-fusionné à chaque image tant qu'elles bougent.
+   */
+  polish?: boolean;
 };
 
 function full(spec: RingSpec): Required<RingSpec> {
-  return { radius: R, w: W, h: H, segments: 120, ...spec };
+  return { radius: R, w: W, h: H, segments: 120, polish: false, ...spec };
+}
+
+/**
+ * Polissage (ancien `#tcg-back-polish` de `SnapDefs`) sur la bande du cadre (même tracé que
+ * l'ancien `BackStyleFrame`), en fusion soft-light avec l'anneau dessiné juste avant. Dans une
+ * image, la fusion est calculée une fois, quand l'image est dessinée.
+ */
+function polishSvg(s: Required<RingSpec>): string {
+  const { w, h, radius: r, width: f } = s;
+  const ri = Math.max(r - f, 0);
+  const band =
+    `M${r} 0H${w - r}A${r} ${r} 0 0 1 ${w} ${r}V${h - r}A${r} ${r} 0 0 1 ${w - r} ${h}H${r}A${r} ${r} 0 0 1 0 ${h - r}V${r}A${r} ${r} 0 0 1 ${r} 0Z` +
+    `M${r} ${f}H${w - r}A${ri} ${ri} 0 0 1 ${w - f} ${r}V${h - r}A${ri} ${ri} 0 0 1 ${w - r} ${h - f}H${r}A${ri} ${ri} 0 0 1 ${f} ${h - r}V${r}A${ri} ${ri} 0 0 1 ${r} ${f}Z`;
+  const stops: [number, string, number][] = [
+    [0, "#fff", 0.55],
+    [0.18, "#000", 0.4],
+    [0.42, "#fff", 0.6],
+    [0.6, "#000", 0.4],
+    [0.82, "#fff", 0.3],
+    [1, "#000", 0.5],
+  ];
+  const grad = stops
+    .map(([o, c, a]) => `<stop offset='${o}' stop-color='${c}' stop-opacity='${a}'/>`)
+    .join("");
+  return `<defs><linearGradient id='p' x1='0' y1='0' x2='1' y2='1'>${grad}</linearGradient></defs><path d='${band}' fill-rule='evenodd' fill='url(#p)' style='mix-blend-mode:soft-light'/>`;
 }
 
 /** Classe CSS de l'image pré-dessinée d'un anneau (empreinte de sa géométrie et de sa couleur). */
 export function ringClass(spec: RingSpec): string {
   const s = full(spec);
-  const key = [s.background, s.width, s.radius, s.w, s.h, s.segments].join("|");
+  const key = [
+    s.background,
+    s.width,
+    s.radius,
+    s.w,
+    s.h,
+    s.segments,
+    ...(s.polish ? ["p"] : []),
+  ].join("|");
   let hash = 5381;
   for (let i = 0; i < key.length; i++) hash = ((hash * 33) ^ key.charCodeAt(i)) >>> 0;
   return `tcg-ring-${hash.toString(36)}`;
@@ -212,8 +251,9 @@ export function ringSvg(spec: RingSpec): string {
   const rect = `<rect id='r' x='${num(half)}' y='${num(half)}' width='${num(s.w - s.width)}' height='${num(s.h - s.width)}' rx='${num(Math.max(s.radius - half, 0))}'/>`;
   const open = `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='${s.w}' height='${s.h}' viewBox='0 0 ${s.w} ${s.h}'>`;
   const g = `<g fill='none' stroke-width='${num(s.width)}'>`;
+  const polish = s.polish ? polishSvg(s) : "";
   if (paint.kind === "solid")
-    return `${open}${g}${rect.replace("id='r' ", `stroke='${paint.color}' `)}</g></svg>`;
+    return `${open}${g}${rect.replace("id='r' ", `stroke='${paint.color}' `)}</g>${polish}</svg>`;
   const ring = ringSegments(paint, s.w, s.h, s.width, s.radius, s.segments);
   const uses = ring.segments
     .map(
@@ -221,7 +261,7 @@ export function ringSvg(spec: RingSpec): string {
         `<use xlink:href='#r' stroke='${seg.color}' stroke-dasharray='${num(seg.length)} ${num(ring.perimeter)}' stroke-dashoffset='${num(-seg.offset)}'/>`,
     )
     .join("");
-  return `${open}${g}<defs>${rect}</defs><use xlink:href='#r' stroke='${ring.base}'/>${uses}</g></svg>`;
+  return `${open}${g}<defs>${rect}</defs><use xlink:href='#r' stroke='${ring.base}'/>${uses}</g>${polish}</svg>`;
 }
 
 /** Règles CSS des anneaux pré-dessinés (bloc généré de tcg.css, voir test/frame-ring-images). */
@@ -259,6 +299,7 @@ export function FrameRing({
   w = W,
   h = H,
   segments = 120,
+  polish = false,
   style,
 }: RingSpec & { style?: CSSProperties }) {
   const paint = parseRingPaint(background) ?? { kind: "solid" as const, color: "#888888" };
@@ -269,8 +310,8 @@ export function FrameRing({
     pointerEvents: "none",
     ...style,
   };
-  if (paint.kind !== "solid") {
-    const cls = ringClass({ background, width, radius, w, h, segments });
+  if (paint.kind !== "solid" || polish) {
+    const cls = ringClass({ background, width, radius, w, h, segments, polish });
     return (
       <div aria-hidden className={`tcg-ring ${cls}`} style={{ width: w, height: h, ...box }} />
     );
