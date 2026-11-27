@@ -2,6 +2,8 @@
 
 import {
   CARD_LAYOUTS,
+  CARD_PREP_STAGE_LABELS,
+  CARD_PREP_STAGES,
   CardInputError,
   type CardLayout,
   createCard,
@@ -10,6 +12,7 @@ import {
   listCards,
   trashCards,
   moveCards,
+  moveCardsToStage,
   setCardStage,
   createCardImageUpload,
   createCardSoundUpload,
@@ -273,6 +276,9 @@ export async function stageCardAction(
   return null;
 }
 
+/** Préfixe d'une destination « réserve à une étape » du menu « Déplacer vers… » (`stage:described`). */
+const STAGE_TARGET = "stage:";
+
 const plural = (n: number, word: string) =>
   `${n} carte${n > 1 ? "s" : ""} ${word}${n > 1 ? "s" : ""}`;
 
@@ -280,6 +286,7 @@ const plural = (n: number, word: string) =>
  * Range les cartes cochées (`ids`) dans un set ou dans la réserve (`target` = « reserve »), ce qui
  * les sort de la corbeille ; `target` = « trash » les met à la corbeille, « duplicate » au doublon
  * (corbeille, marquées « Doublon », doublons de la carte `duplicateOf`), « delete » supprime pour de bon celles de la corbeille.
+ * « stage:<étape> » les range dans la réserve à cette étape de préparation (`CARD_PREP_STAGES`).
  */
 export async function moveCardsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const admin = await actionAdmin();
@@ -303,6 +310,15 @@ export async function moveCardsAction(_prev: FormState, formData: FormData): Pro
       revalidatePath("/admin/cartes", "layout");
       if (formData.get("back") === "on") redirect("/admin/cartes?set=corbeille");
       return { status: "ok", message: `${plural(deleted, "supprimée")} définitivement.` };
+    }
+    if (target.startsWith(STAGE_TARGET)) {
+      const stage = z.enum(CARD_PREP_STAGES).parse(target.slice(STAGE_TARGET.length));
+      const { moved, staged } = await moveCardsToStage(admin, ids, stage);
+      revalidatePath("/admin/cartes", "layout");
+      const label = CARD_PREP_STAGE_LABELS[stage];
+      return moved + staged === 0
+        ? { status: "ok", message: `Déjà dans la réserve, étape « ${label} ».` }
+        : { status: "ok", message: `Dans la réserve, étape « ${label} ».` };
     }
     const { moved } = await moveCards(admin, ids, target === "reserve" ? null : target);
     revalidatePath("/admin/cartes", "layout");

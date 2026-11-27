@@ -758,6 +758,29 @@ export async function setCardStage(
 }
 
 /**
+ * Range des cartes dans la réserve à une étape de préparation (menu « Déplacer vers… » de la page
+ * d'une carte) : `moveCards` vers la réserve (hors set, hors corbeille) puis `setCardStage`, dans
+ * une seule transaction. Une carte déjà dans la réserve à cette étape ne change pas.
+ */
+export async function moveCardsToStage(
+  admin: Admin,
+  ids: string[],
+  stage: string,
+  opts?: { tx?: DbTx },
+): Promise<{ moved: number; staged: number }> {
+  assertAdmin(admin);
+  // Étape vérifiée avant tout déplacement.
+  if (!(CARD_PREP_STAGES as readonly string[]).includes(stage)) {
+    throw new CardInputError("Étape de préparation inconnue.");
+  }
+  return withTx(async (tx) => {
+    const { moved } = await moveCards(admin, ids, null, { tx });
+    const { staged } = await setCardStage(admin, ids, stage, { tx });
+    return { moved, staged };
+  }, opts);
+}
+
+/**
  * Met des cartes à la corbeille (doublons, essais…) : elles sortent de leur set (renuméroté) et
  * des listes, mais restent en base ; `moveCards` les en sort. Une carte de base n'y va qu'avec
  * ses variantes. Avec `duplicate`, les cartes vont au « Doublon » : la corbeille, avec la marque

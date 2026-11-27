@@ -925,7 +925,10 @@ et modifient les cartes.
   place). Les étapes ne concernent que les cartes en préparation, dans la réserve : dans
   /admin/cartes, la réserve a un onglet par étape plus « Toutes » (filtres, `?etape=`), et des
   coches sous chacune de ses cartes la classent en un clic ; à la dernière étape, un bouton par set
-  l'y range (`moveCards`). Un set montre toutes ses cartes, sans onglet d'étape ni coches (l'étape
+  l'y range (`moveCards`). Sur la fiche d'une carte, le menu « Déplacer vers… » propose aussi
+  « Réserve · 1. » à « 4. » : la carte va dans la réserve (hors set, hors corbeille) et prend cette
+  étape (`moveCardsToStage` = `moveCards` + `setCardStage` en une transaction ; déjà dans la
+  réserve, son étape actuelle n'est pas proposée). Un set montre toutes ses cartes, sans onglet d'étape ni coches (l'étape
   reste en base, sans effet ; `placeCards`, `inPreparation` dans `admin/cartes/stages.ts`). Sous chaque carte de la planche (miniatures), les boutons
   « Normale » et « Full art » la montrent sur place dans cette version (`CardVersionSwitch`, les deux
   versions préparées par `cardFaces`), grisés pour une version qu'elle n'a pas (`cardVersions`) ;
