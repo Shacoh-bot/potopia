@@ -931,6 +931,29 @@ body:has(.tcg-opening, .tcg-still)::before {
   transition: none !important;
 }
 
+/* Niveaux de détail (refonte, étape 8) : sur une planche, la carte non survolée n'a plus aucune
+   animation qui repeint, et pas de particules fines (à 160-220 px de large, elles ne se voient
+   presque pas et chacune coûte une boîte animée). Survolée (`data-live`), elle retrouve tout : le
+   rendu survolé est inchangé.
+   - Effets lourds (`data-lourd`, liste `EFFETS_LOURDS` de visual-effects.tsx : filtre, fusion ou
+     masque qui repeint à chaque image) : animations en pause (reprise là où elles en étaient) ; leurs
+     animations SVG sont mises en pause par `watchFrozenSvg`.
+   - Éclats des SR (toutes variantes) : retirés ; le cadre animé dit déjà la rareté.
+   - Grains des effets (poussières, braises, bulles, reflets du vitrail) : un sur trois gardé, pour
+     que l'effet reste reconnaissable. */
+.tcg-still:not([data-live]) .tcg-vfx[data-lourd] *,
+.tcg-still:not([data-live]) .tcg-vfx[data-lourd] *::before,
+.tcg-still:not([data-live]) .tcg-vfx[data-lourd] *::after {
+  animation-play-state: paused !important;
+}
+.tcg-still:not([data-live]) :is(.tcg-sr-spark, .tcg-sr-spark-group, .tcg-sr-spark-sprite),
+.tcg-still:not([data-live])
+  :is(.tcg-vfx-mote, .tcg-vfx-ember, .tcg-vfx-bubble, .tcg-vfx-vitrail-glint):not(
+    :nth-child(3n + 1 of .tcg-vfx-mote, .tcg-vfx-ember, .tcg-vfx-bubble, .tcg-vfx-vitrail-glint)
+  ) {
+  display: none;
+}
+
 /* Carte retournable (`CardFlip`) : on la fait tourner en glissant à l'horizontale. Tout est à plat
    (aucun `preserve-3d`) : seul le côté tourné vers nous est visible (`data-back`, posé par
    `CardFlip` selon l'angle) ; le dos, retourné une fois de plus, se lit à l'endroit. */

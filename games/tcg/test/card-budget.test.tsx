@@ -2,7 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { GameCard } from "../ui/GameCard";
-import { CARTES_TEST } from "./rendu/cartes";
+import { EFFETS_LOURDS, VISUAL_EFFECTS } from "../ui/visual-effects";
+import { CARTES_TEST, carte } from "./rendu/cartes";
 
 /**
  * Filet de sécurité de la refonte du rendu des cartes (notes : refonte-cartes.md, étape 2) : un
@@ -262,6 +263,25 @@ describe("filet de sécurité des cartes", () => {
         new RegExp(`class="(?:[^"]* )?${c}[ "]`).test(r.html),
       );
       expect(vivantes.length, `${r.id} ${vivantes}`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("planche : tout effet qui repeint (SVG animé, animation de la liste blanche) est déclaré lourd", () => {
+    // Étape 8 (niveaux de détail) : sur une planche non survolée, seuls les effets de EFFETS_LOURDS
+    // sont mis en pause (tcg.css, `data-lourd`, et `watchFrozenSvg` pour le SVG animé). Un effet
+    // qui repeint sans y figurer tournerait sur les 40 cartes d'une planche.
+    const repeignantes = Object.keys(EXCEPTIONS_ANIMEES).filter((c) => c !== "tcg-sr-spark-sprite");
+    for (const cle of Object.keys(VISUAL_EFFECTS)) {
+      for (const layout of ["normal", "fullart"] as const) {
+        const html = renderToStaticMarkup(
+          <GameCard card={carte("common", [cle])} imageUrl="data:," layout={layout} still />,
+        );
+        const vfx = html.slice(html.indexOf('class="tcg-vfx"'));
+        const repeint =
+          vfx.includes("<animate") || repeignantes.some((c) => vfx.includes(`class="${c}`));
+        if (repeint) expect(EFFETS_LOURDS.has(cle), `${cle} (${layout})`).toBe(true);
+        if (EFFETS_LOURDS.has(cle)) expect(vfx, cle).toMatch(/class="tcg-vfx"[^>]*data-lourd=""/);
+      }
     }
   });
 

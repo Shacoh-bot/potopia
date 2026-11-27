@@ -82,6 +82,10 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Potodex et planches : une carte non survolée met en pause ses effets lourds (mirage, énergie, vitrail, aquarelle, glitch), sans éclats dorés SR et avec un grain d'effet sur trois. Au survol, elle redevient complète.",
+      },
+      {
+        admin: true,
         text: "Banc d'essai des cartes : variantes à choisir pour les éclats dorés des SR (6 éclats, 3 groupes, image pré-calculée) et mirage/énergie par paliers, avec la variante active affichée. Le reste du site ne change pas.",
       },
       {

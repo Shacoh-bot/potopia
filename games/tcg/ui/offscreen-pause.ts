@@ -25,3 +25,36 @@ export function watchOffscreen(
     delete el.dataset.horsEcran;
   };
 }
+
+/**
+ * Niveaux de détail (refonte, étape 8) : met en pause les animations SVG (SMIL : `<animate>` des
+ * filtres du mirage et de l'énergie) contenues dans `el` tant que la carte est figée sur une planche
+ * sans être survolée (`.tcg-still` sans `data-live`) ou loin de l'écran (`.tcg-tilt` avec
+ * `data-hors-ecran`). Le CSS ne sait pas arrêter le SMIL. Reprise là où elles en étaient, au premier
+ * survol : le rendu survolé est inchangé. Sans MutationObserver (rendu serveur) : rien. Renvoie de
+ * quoi arrêter l'observation (et relance les animations).
+ */
+export function watchFrozenSvg(
+  el: HTMLElement,
+  Observer: typeof MutationObserver | undefined = globalThis.MutationObserver,
+): (() => void) | null {
+  const card = el.closest<HTMLElement>(".tcg-still");
+  const tilt = el.closest<HTMLElement>(".tcg-tilt");
+  if (!Observer || (!card && !tilt)) return null;
+  const svgs = () => [...el.querySelectorAll<SVGSVGElement>("svg")];
+  const sync = () => {
+    const frozen = (card && !("live" in card.dataset)) || (tilt && "horsEcran" in tilt.dataset);
+    for (const svg of svgs()) {
+      if (frozen) svg.pauseAnimations?.();
+      else svg.unpauseAnimations?.();
+    }
+  };
+  const mo = new Observer(sync);
+  if (card) mo.observe(card, { attributes: true, attributeFilter: ["data-live"] });
+  if (tilt) mo.observe(tilt, { attributes: true, attributeFilter: ["data-hors-ecran"] });
+  sync();
+  return () => {
+    mo.disconnect();
+    for (const svg of svgs()) svg.unpauseAnimations?.();
+  };
+}
