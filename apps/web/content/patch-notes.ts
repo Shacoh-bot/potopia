@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Cartes SSR : la lueur autour du cadre s'arrête net au coin arrondi, en s'amincissant ; plus de fin croissant de lumière qui dépassait du coin.",
+      },
+      {
+        admin: true,
         text: "Admin des cartes : sur la fiche d'une carte, « Déplacer vers… » propose aussi les étapes de la réserve (1. À traiter, 2. Illustration ok, 3. Description et effet ok, 4. À intégrer à un set) : la carte quitte son set ou la corbeille et prend l'étape choisie.",
       },
       {
