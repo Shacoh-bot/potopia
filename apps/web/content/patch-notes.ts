@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Effet Énergie (ex. Spinning spinning) : les zones vives de l'illustration sont calculées une seule fois, seule leur teinte tourne ensuite (carte graphique). Même aspect, moins de calcul à chaque image.",
+      },
+      {
+        admin: true,
         text: "Cartes SSR : la lueur autour du cadre s'arrête net au coin arrondi, en s'amincissant ; plus de fin croissant de lumière qui dépassait du coin.",
       },
       {

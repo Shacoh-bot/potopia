@@ -1337,6 +1337,88 @@ body:has(.tcg-opening, .tcg-still)::before {
   mix-blend-mode: screen;
   opacity: 0.6;
 }
+/* Teinte de l'énergie : seul ce calque tourne (filtre CSS, carte graphique) ; la couche masquée
+   qu'il contient (filtre SVG fixe) n'est jamais recalculée. Même courbe que l'ancien `<animate>`
+   SVG : 0 ; 70 ; 0 ; -70 ; 0 en 9 s, linéaire. Paliers (banc) : 18 valeurs, 2 par seconde. */
+.tcg-vfx-energie-hue {
+  will-change: filter;
+  animation: tcg-energie-hue 9s linear infinite;
+}
+.tcg-vfx-energie-hue--paliers {
+  animation: tcg-energie-hue-paliers 9s steps(1, end) infinite;
+}
+@keyframes tcg-energie-hue {
+  0%,
+  50%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  25% {
+    filter: hue-rotate(70deg);
+  }
+  75% {
+    filter: hue-rotate(-70deg);
+  }
+}
+@keyframes tcg-energie-hue-paliers {
+  0.0% {
+    filter: hue-rotate(0deg);
+  }
+  5.56% {
+    filter: hue-rotate(15.56deg);
+  }
+  11.11% {
+    filter: hue-rotate(31.11deg);
+  }
+  16.67% {
+    filter: hue-rotate(46.67deg);
+  }
+  22.22% {
+    filter: hue-rotate(62.22deg);
+  }
+  27.78% {
+    filter: hue-rotate(62.22deg);
+  }
+  33.33% {
+    filter: hue-rotate(46.67deg);
+  }
+  38.89% {
+    filter: hue-rotate(31.11deg);
+  }
+  44.44% {
+    filter: hue-rotate(15.56deg);
+  }
+  50.0% {
+    filter: hue-rotate(0deg);
+  }
+  55.56% {
+    filter: hue-rotate(-15.56deg);
+  }
+  61.11% {
+    filter: hue-rotate(-31.11deg);
+  }
+  66.67% {
+    filter: hue-rotate(-46.67deg);
+  }
+  72.22% {
+    filter: hue-rotate(-62.22deg);
+  }
+  77.78% {
+    filter: hue-rotate(-62.22deg);
+  }
+  83.33% {
+    filter: hue-rotate(-46.67deg);
+  }
+  88.89% {
+    filter: hue-rotate(-31.11deg);
+  }
+  94.44% {
+    filter: hue-rotate(-15.56deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+  }
+}
 @keyframes tcg-energie-pulse {
   0%,
   100% {
@@ -1347,7 +1429,8 @@ body:has(.tcg-opening, .tcg-still)::before {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tcg-vfx-energie {
+  .tcg-vfx-energie,
+  .tcg-vfx-energie-hue {
     animation: none;
   }
 }
