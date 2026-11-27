@@ -562,6 +562,13 @@ function rendererReady(r: Renderer): boolean {
  */
 export function warmUpAuras() {
   if (typeof window === "undefined") return;
+  // Auras en vidéo : on charge les vidéos d'avance (cache du navigateur), pas de WebGL.
+  if (videoPossible()) {
+    for (const rarity of AURA_VIDEO_RARITIES) {
+      void fetch(auraVideoUrl(rarity)).catch(() => undefined);
+    }
+    return;
+  }
   measureGradientGrowth();
   const r = getRenderer();
   if (!r) return;
@@ -662,15 +669,216 @@ function renderAura(r: Renderer, f: AuraFrame): number {
 }
 
 /**
+ * Pré-calcul (`scripts/aura-video.mjs`) : dessine l'instant `t` de l'aura de `rarity` dans `target`
+ * (canevas 2D, toute sa taille, place pleine de chaque côté). Faux si le contexte n'est pas prêt.
+ */
+export function paintAuraFrame(rarity: string, t: number, target: HTMLCanvasElement): boolean {
+  const pal = PALETTES[rarity as Rarity];
+  const r = getRenderer();
+  const ctx = target.getContext("2d");
+  if (!pal || !r || !ctx || !rendererReady(r)) return false;
+  const sparks = makeSparks(pal.sparks);
+  const points = new Float32Array(sparks.length * 5 * POINT_FLOATS);
+  const room: Room = [MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS];
+  const { width: w, height: h } = target;
+  const n = renderAura(r, { pal, sparks, points, room, w, h, t });
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.globalAlpha = 1;
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(r.canvas, 0, 0);
+  if (!r.webglSparks) {
+    const fx = document.createElement("canvas");
+    fx.width = w;
+    fx.height = h;
+    const fx2d = fx.getContext("2d");
+    if (fx2d) drawSparks2d(fx2d, points, n, pal.spark ?? pal.mid);
+    ctx.drawImage(fx, 0, 0);
+  }
+  return true;
+}
+
+/**
+ * Auras en vidéo (27/11, « triche » validée par l'utilisateur : l'aura ne varie jamais) : une
+ * boucle pré-calculée par rareté (`scripts/aura-video.mjs`, WebM VP9 avec transparence), tirée du
+ * rendu direct ci-dessus. Plus aucun calcul par image : le navigateur décode la vidéo (souvent
+ * par la carte graphique). Repli sur le rendu direct si la vidéo, ou sa transparence, n'est pas lue.
+ */
+export const AURA_VIDEO_RARITIES = ["epic", "legendary", "sr", "ssr"] as const;
+export function auraVideoUrl(rarity: string): string {
+  return `/tcg/aura/${rarity}.webm`;
+}
+/** Vidéo avec transparence lisible ici : vrai, faux, ou inconnu tant qu'aucune n'a été lue. */
+let videoAlpha: boolean | undefined;
+function videoPossible(): boolean {
+  if (videoAlpha !== undefined) return videoAlpha;
+  if (typeof document === "undefined") return true;
+  if (!document.createElement("video").canPlayType('video/webm; codecs="vp09.00.10.08"')) {
+    videoAlpha = false;
+  }
+  return videoAlpha ?? true;
+}
+/** Contrôlé une fois, sur la première image lue : son coin (hors de la lumière) est transparent. */
+function alphaShown(v: HTMLVideoElement): boolean {
+  if (videoAlpha !== undefined) return videoAlpha;
+  try {
+    const c = document.createElement("canvas");
+    c.width = c.height = 1;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    if (!x) return true;
+    x.drawImage(v, 0, 0, 2, 2, 0, 0, 1, 1);
+    videoAlpha = (x.getImageData(0, 0, 1, 1).data[3] ?? 255) < 16;
+  } catch {
+    return true;
+  }
+  return videoAlpha;
+}
+
+/**
+ * Masque CSS de la vidéo quand le cadre qui découpe l'aura (`data-aura-bounds`) est plus près que
+ * la marge : même extinction que le rendu direct (pleine jusqu'à FADE_FROM, nulle à FADE_TO de la
+ * place). Nul si la place est pleine des 4 côtés.
+ */
+export function auraMask(room: Room): string | null {
+  const size = [2 * HW, 2 * HW, 2 * HH, 2 * HH].map((s) => s + 2 * MARGIN_UNITS);
+  const dir = ["to right", "to left", "to bottom", "to top"];
+  const parts: string[] = [];
+  room.forEach((r, i) => {
+    if (r >= MARGIN_UNITS) return;
+    const at = (ox: number) => `${(((MARGIN_UNITS - ox) / (size[i] ?? 1)) * 100).toFixed(2)}%`;
+    const mid = ((FADE_FROM + FADE_TO) / 2) * r;
+    parts.push(
+      `linear-gradient(${dir[i]}, transparent ${at(FADE_TO * r)}, rgb(0 0 0 / 0.5) ${at(mid)}, #000 ${at(FADE_FROM * r)})`,
+    );
+  });
+  return parts.length ? parts.join(", ") : null;
+}
+
+/** Place de chaque côté de la carte avant le cadre `bounds` (repère du prototype). */
+function measureRoom(el: HTMLElement, bounds: HTMLElement | null, room: Room) {
+  const card = el.parentElement?.getBoundingClientRect();
+  if (!bounds || !card || card.width <= 0) return;
+  const b = bounds.getBoundingClientRect();
+  const unit = card.width / (2 * HW);
+  const sides = [
+    card.left - b.left,
+    b.right - card.right,
+    card.top - b.top,
+    b.bottom - card.bottom,
+  ];
+  sides.forEach((v, i) => (room[i] = Math.min(MARGIN_UNITS, Math.max(1, v / unit))));
+}
+
+/**
  * Aura derrière une carte. À poser dans un parent `position: relative` de la taille de la carte,
  * avant elle : elle déborde de `AURA_MARGIN` × la largeur de la carte tout autour, sans capter le
- * pointeur.
+ * pointeur. Vidéo pré-calculée par défaut ; `live` : rendu direct (banc d'essai, comparaison).
  */
-export function CardAura({ rarity, className }: { rarity: string; className?: string }) {
+export function CardAura({
+  rarity,
+  className,
+  live = false,
+}: {
+  rarity: string;
+  className?: string;
+  live?: boolean;
+}) {
   const pal = PALETTES[rarity as Rarity];
+  const [video, setVideo] = useState(true);
   if (rarity === "rare") return <div aria-hidden className={`tcg-aura-rare ${className ?? ""}`} />;
   if (!pal) return null;
+  if (video && !live) {
+    return <AuraVideo rarity={rarity} className={className} onFail={setVideo} />;
+  }
   return <AuraCanvas pal={pal} className={className} />;
+}
+
+/** Boîte = carte + marge (fraction de la largeur) de chaque côté, centrée verticalement. */
+const AURA_BOX: CSSProperties = {
+  left: `${-AURA_MARGIN * 100}%`,
+  width: `${(1 + 2 * AURA_MARGIN) * 100}%`,
+  top: "50%",
+  transform: "translateY(-50%)",
+  aspectRatio: `${2 * HW * (1 + 2 * AURA_MARGIN)} / ${2 * HH + 4 * HW * AURA_MARGIN}`,
+};
+
+function AuraVideo({
+  rarity,
+  className,
+  onFail,
+}: {
+  rarity: string;
+  className?: string;
+  onFail: (video: false) => void;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const vid = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = box.current;
+    const v = vid.current;
+    if (!el || !v) return;
+    if (!videoPossible()) {
+      onFail(false);
+      return;
+    }
+    const fail = () => onFail(false);
+    const onData = () => {
+      if (!alphaShown(v)) fail();
+    };
+    v.addEventListener("loadeddata", onData);
+    v.addEventListener("error", fail);
+    if (v.readyState >= 2) onData();
+
+    // Cadre qui découpe l'aura (écran d'ouverture) : elle s'éteint avant lui (masque CSS).
+    const bounds = el.closest<HTMLElement>("[data-aura-bounds]");
+    const room: Room = [MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS, MARGIN_UNITS];
+    const resize = () => {
+      measureRoom(el, bounds, room);
+      const mask = auraMask(room);
+      el.style.maskImage = mask ?? "";
+      el.style.maskComposite = mask ? "intersect" : "";
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    if (bounds) ro.observe(bounds);
+    ro.observe(el);
+
+    // Lecture en boucle ; arrêt hors écran ; « réduire les animations » : première image, fixe.
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let visible = true;
+    const update = () => {
+      if (!reduced && visible) void v.play().catch(() => undefined);
+      else v.pause();
+    };
+    const io = new IntersectionObserver(([entry]) => {
+      visible = !!entry?.isIntersecting;
+      update();
+    });
+    io.observe(el);
+    update();
+
+    return () => {
+      v.removeEventListener("loadeddata", onData);
+      v.removeEventListener("error", fail);
+      io.disconnect();
+      ro.disconnect();
+    };
+  }, [onFail]);
+
+  return (
+    <div ref={box} aria-hidden className={`tcg-aura ${className ?? ""}`} style={AURA_BOX}>
+      <video
+        ref={vid}
+        src={auraVideoUrl(rarity)}
+        muted
+        loop
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+      />
+    </div>
+  );
 }
 
 function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
@@ -709,18 +917,7 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
           c.height = h;
         }
       }
-      const card = el.parentElement?.getBoundingClientRect();
-      if (bounds && card && card.width > 0) {
-        const b = bounds.getBoundingClientRect();
-        const unit = card.width / (2 * HW);
-        const sides = [
-          card.left - b.left,
-          b.right - card.right,
-          card.top - b.top,
-          b.bottom - card.bottom,
-        ];
-        sides.forEach((v, i) => (room[i] = Math.min(MARGIN_UNITS, Math.max(1, v / unit))));
-      }
+      measureRoom(el, bounds, room);
     };
 
     /** Dessine l'instant `t` ; faux si le contexte partagé n'est pas encore prêt. */
@@ -790,18 +987,9 @@ function AuraCanvas({ pal, className }: { pal: Palette; className?: string }) {
     };
   }, [pal, restored]);
 
-  // Boîte = carte + marge (fraction de la largeur) de chaque côté : largeur en % de la carte,
-  // hauteur par le rapport d'aspect, centrée verticalement.
-  const style: CSSProperties = {
-    left: `${-AURA_MARGIN * 100}%`,
-    width: `${(1 + 2 * AURA_MARGIN) * 100}%`,
-    top: "50%",
-    transform: "translateY(-50%)",
-    aspectRatio: `${2 * HW * (1 + 2 * AURA_MARGIN)} / ${2 * HH + 4 * HW * AURA_MARGIN}`,
-  };
   // Second canevas : étincelles au canevas 2D, seulement en repli (sinon vide, sans contexte).
   return (
-    <div ref={box} aria-hidden className={`tcg-aura ${className ?? ""}`} style={style}>
+    <div ref={box} aria-hidden className={`tcg-aura ${className ?? ""}`} style={AURA_BOX}>
       <canvas ref={glCanvas} />
       <canvas ref={fxCanvas} />
     </div>
