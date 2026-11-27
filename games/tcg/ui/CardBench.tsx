@@ -85,6 +85,8 @@ export function CardBench({
   const [booster, setBooster] = useState(true);
   const [zoom, setZoom] = useState(true);
   const [auras, setAuras] = useState(true);
+  // Aura en rendu direct (WebGL, l'ancienne) au lieu de la vidéo pré-calculée : comparaison.
+  const [auraLive, setAuraLive] = useState(false);
   const [flip, setFlip] = useState(0);
   const [paced, setPaced] = useState(false);
   const [boardSize, setBoardSize] = useState(pageSize);
@@ -236,6 +238,10 @@ export function CardBench({
                 <input type="checkbox" checked={auras} onChange={() => setAuras(!auras)} />
                 Auras
               </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={auraLive} onChange={() => setAuraLive(!auraLive)} />
+                Aura en rendu direct (ancienne, sinon vidéo)
+              </label>
               {booster && (
                 <button
                   type="button"
@@ -331,6 +337,7 @@ export function CardBench({
                 booster={booster}
                 zoom={zoom}
                 aura={auras}
+                auraLive={auraLive}
                 flip={flip > 0}
               />
             ))}
@@ -430,6 +437,7 @@ function BenchSlot({
   booster,
   zoom,
   aura,
+  auraLive = false,
   flip,
   paced,
 }: {
@@ -440,6 +448,7 @@ function BenchSlot({
   booster: boolean;
   zoom: boolean;
   aura: boolean;
+  auraLive?: boolean;
   flip: boolean;
 }) {
   const [side, setSide] = useState<"back" | "face">(flip ? "back" : "face");
@@ -484,7 +493,7 @@ function BenchSlot({
   const showAura = aura && settled && hasAura(face.card.rarity);
   return (
     <div className="tcg-opening-slot relative" style={{ width, height: H * scale }}>
-      {showAura && <CardAura rarity={face.card.rarity} />}
+      {showAura && <CardAura rarity={face.card.rarity} live={auraLive} />}
       {booster ? (
         <div
           className="tcg-opening-card"

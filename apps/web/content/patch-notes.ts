@@ -74,6 +74,10 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Booster : l'aura derrière les cartes (épique, légendaire, SR, SSR) devient une vidéo en boucle pré-calculée, même aspect, au lieu d'un calcul à chaque image. Banc des cartes : case « Aura en rendu direct » pour comparer.",
+      },
+      {
+        admin: true,
         text: "Admin des cartes : sur la fiche d'une carte, « Déplacer vers… » propose aussi les étapes de la réserve (1. À traiter, 2. Illustration ok, 3. Description et effet ok, 4. À intégrer à un set) : la carte quitte son set ou la corbeille et prend l'étape choisie.",
       },
       {
