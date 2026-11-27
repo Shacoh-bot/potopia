@@ -627,36 +627,9 @@
     transform: scale(0.6) rotate(35deg);
   }
 }
-/* Variantes des éclats SR du banc d'essai (refonte, étape 7, `SparkVariant` de v5.tsx). Le site garde
-   les 14 éclats animés ; ces règles ne servent qu'aux variantes choisies au banc.
-   - `groupes` : éclats fixes (pose du pic), 3 groupes dont seule l'opacité bouge.
-   - `image` : planche de 30 vues pré-calculées (scripts/eclats-sr-sprite.mjs, 312 × 432 par vue,
-     marge de 6 px autour de la carte), avancée par paliers. */
-.tcg-sr-spark--fixe {
-  animation: none;
-  opacity: 1;
-  transform: rotate(20deg);
-}
-.tcg-sr-spark-group {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  animation: tcg-sr-spark-group 2.4s ease-in-out infinite;
-}
-@keyframes tcg-sr-spark-group {
-  0%,
-  55%,
-  100% {
-    opacity: 0;
-  }
-  70% {
-    opacity: 1;
-  }
-  85% {
-    opacity: 0;
-  }
-}
+/* Éclats SR du site : planche de 30 vues pré-calculées (scripts/eclats-sr-sprite.mjs, 312 × 432
+   par vue, marge de 6 px autour de la carte), avancée par paliers. Les règles `.tcg-sr-spark`
+   au-dessus ne servent plus qu'au script, qui dessine l'image avec elles (choix du 27/11). */
 .tcg-sr-spark-sprite {
   position: absolute;
   left: -6px;
@@ -689,7 +662,6 @@ body:has(.tcg-opening, .tcg-still)::before {
   .tcg-frame-run__light,
   .tcg-aura,
   .tcg-sr-spark,
-  .tcg-sr-spark-group,
   .tcg-sr-spark-sprite {
     animation: none;
   }

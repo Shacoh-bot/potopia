@@ -5,13 +5,12 @@ import { CARD_RARITIES, CARD_RARITY_LABELS, type CardRarityId } from "../src/car
 import { CardAura, hasAura } from "./CardAura";
 import { CardBack } from "./CardBack";
 import { moveItem, useBenchDrag } from "./bench-drag";
-import { cardSound, stopCardSound } from "./booster-sounds";
+import { cardSound, preloadCardSound, stopCardSound } from "./booster-sounds";
 import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { RETIRED_EFFECTS } from "./effect-places";
 import { H, W } from "./v2";
 import type { TopLayout } from "./v4";
-import { SPARK_VARIANTS, type SparkVariant } from "./v5";
 import { VISUAL_EFFECTS } from "./visual-effects";
 
 /** Une carte prête à afficher (comme `cardFaces` de l'app la prépare). */
@@ -50,8 +49,11 @@ const EFFECT_KEYS = Object.keys(VISUAL_EFFECTS).filter((k) => !RETIRED_EFFECTS.i
 
 /** Durée du demi-tour du booster (`tcg-flip-out` puis `tcg-flip-in`, 0,62 s), plus une marge. */
 const FLIP_MS = 650;
-/** La carte rejouée reste de dos ce temps-là avant son demi-tour (`BenchSlot`). */
-const BACK_MS = 400;
+/**
+ * La carte rejouée reste de dos ce temps-là avant son demi-tour (`BenchSlot`) : 2-3 images, le
+ * temps d'afficher le dos. Le son part au clic, comme au booster (choix de l'utilisateur, 27/11).
+ */
+const BACK_MS = 50;
 
 /**
  * Banc d'essai des cartes (admin) : une carte, une rangée de 5 comme à l'ouverture d'un booster
@@ -84,7 +86,6 @@ export function CardBench({
   const [zoom, setZoom] = useState(true);
   const [auras, setAuras] = useState(true);
   const [flip, setFlip] = useState(0);
-  const [sparks, setSparks] = useState<SparkVariant>("actuel");
   const [paced, setPaced] = useState(false);
   const [boardSize, setBoardSize] = useState(pageSize);
   const [dragLite, setDragLite] = useState(true);
@@ -110,10 +111,14 @@ export function CardBench({
     const version = (forced ?? face?.card.layout) === "fullart" ? "fullart" : "normal";
     return face?.sounds?.[version] ?? null;
   })();
+  // préchargé : au clic sur « Rejouer », il part sans attendre le fichier
+  useEffect(() => {
+    if (firstSound) preloadCardSound(firstSound);
+  }, [firstSound]);
   function replay() {
     setFlip((f) => f + 1);
-    // comme au booster : le son part au début du demi-tour
-    if (firstSound) cardSound(firstSound, { at: BACK_MS / 1000 });
+    // comme au booster : le son part dès le clic, avec le demi-tour
+    if (firstSound) cardSound(firstSound);
     else stopCardSound();
   }
   const toggle = (list: string[], key: string) =>
@@ -285,31 +290,17 @@ export function CardBench({
       </div>
 
       <fieldset className="border-border flex flex-col gap-2 rounded border p-3 text-sm">
-        <legend className="px-1 font-semibold">Options à choisir (refonte, étape 7)</legend>
+        <legend className="px-1 font-semibold">Option à choisir (refonte, étape 7)</legend>
         <p className="text-muted text-xs">
-          Ces variantes ne changent que ce banc : le reste du site garde le rendu actuel.
+          Cette option ne change que ce banc : le reste du site garde le rendu actuel. Les éclats
+          des SR sont l'image animée pré-calculée partout (choix du 27/11).
         </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <span>Éclats dorés des SR :</span>
-          {SPARK_VARIANTS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => setSparks(v.key)}
-              aria-pressed={sparks === v.key}
-              className={`rounded-full border px-3 py-1 ${sparks === v.key ? "border-accent text-accent" : "border-border text-muted"}`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={paced} onChange={() => setPaced(!paced)} />
           Mirage et énergie par paliers (2 changements par seconde au lieu de chaque image)
         </label>
         <p data-testid="banc-variante" className="font-semibold">
-          Variante active : {SPARK_VARIANTS.find((v) => v.key === sparks)?.label} ·{" "}
-          {paced ? "mirage et énergie par paliers" : "mirage et énergie actuels"}
+          Variante active : {paced ? "mirage et énergie par paliers" : "mirage et énergie actuels"}
         </p>
       </fieldset>
 
@@ -325,7 +316,6 @@ export function CardBench({
             key={boardSize}
             shown={shown}
             layout={forced}
-            sparks={sparks}
             paced={paced}
             fontClass={fontClass}
           />
@@ -336,7 +326,6 @@ export function CardBench({
                 key={`${n}-${flip}`}
                 face={c}
                 layout={forced}
-                sparks={sparks}
                 paced={paced}
                 width={mode === "une" ? W : 200}
                 booster={booster}
@@ -360,13 +349,11 @@ export function CardBench({
 function BenchBoard({
   shown,
   layout,
-  sparks,
   paced,
   fontClass,
 }: {
   shown: BenchCard[];
   layout: TopLayout | undefined;
-  sparks: SparkVariant;
   paced: boolean;
   fontClass?: string;
 }) {
@@ -399,7 +386,7 @@ function BenchBoard({
               }}
             >
               <Scaled scale={160 / W}>
-                <GameCard {...c} layout={layout} still sparks={sparks} pacedEffects={paced} />
+                <GameCard {...c} layout={layout} still pacedEffects={paced} />
               </Scaled>
             </div>
           );
@@ -412,7 +399,6 @@ function BenchBoard({
             imageUrl={open.imageUrl}
             setSize={open.setSize}
             layout={layout}
-            sparks={sparks}
             pacedEffects={paced}
           />
         </CardZoom>
@@ -445,12 +431,10 @@ function BenchSlot({
   zoom,
   aura,
   flip,
-  sparks,
   paced,
 }: {
   face: BenchCard;
   layout: TopLayout | undefined;
-  sparks: SparkVariant;
   paced: boolean;
   width: number;
   booster: boolean;
@@ -478,7 +462,6 @@ function BenchSlot({
       setSize={face.setSize}
       layout={layout}
       hoverHalo={!booster}
-      sparks={sparks}
       pacedEffects={paced}
     />
   );
