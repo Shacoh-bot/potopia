@@ -2627,3 +2627,20 @@ body:has(.tcg-opening, .tcg-still)::before {
 .tcg-bench[data-sans~="anims"] *::after {
   animation-play-state: paused !important;
 }
+
+/* Banc : glisser une carte de la planche (`useBenchDrag`, bench-drag.ts). Pendant le geste
+   (`data-glisse` sur le banc), toutes les animations sont en pause, sur la carte déplacée comme
+   sur les autres : rien ne repeint, seul le calque de la carte déplacée bouge. Au repos, rien ne
+   change. `data-glisser="plein"` (case du banc décochée) garde les effets, pour comparer. */
+.tcg-bench[data-glisse]:not([data-glisser="plein"]) *,
+.tcg-bench[data-glisse]:not([data-glisser="plein"]) *::before,
+.tcg-bench[data-glisse]:not([data-glisser="plein"]) *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+.tcg-bench [data-glisse-carte] {
+  position: relative;
+  z-index: 20;
+  will-change: transform;
+  cursor: grabbing;
+}
