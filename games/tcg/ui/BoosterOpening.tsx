@@ -20,6 +20,7 @@ import {
   openSound,
   preloadCardSound,
   revealCardSound,
+  warmAudio,
   stopCardSound,
   tearSound,
 } from "./booster-sounds";
@@ -332,6 +333,12 @@ function OpeningCard({
         data-rarity={opened?.card.rarity}
         aria-busy={!opened}
         aria-label={faceUp && opened ? `Voir ${opened.card.name} en grand` : "Retourner la carte"}
+        // Souris : la carte se retourne (et son son part) dès l'appui, pas au relâcher du clic.
+        // Doigt : l'appui peut être un défilement, on attend le clic (mais la sortie son s'ouvre).
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse" && e.button === 0 && side === "back") reveal();
+          else warmAudio();
+        }}
         onClick={reveal}
       >
         <span className="tcg-opening-turn">

@@ -380,8 +380,12 @@ function SsrComets() {
     </div>
   );
 }
-/** Éclats dorés de la SR-2 : [x, y, taille, départ (s), durée (s)], posés sur le cadre. */
-const SR_SPARKS: [number, number, number, number, number][] = [
+/**
+ * Éclats dorés de la SR-2 : [x, y, taille, départ (s), durée (s)], posés sur le cadre. Source de
+ * l'image pré-calculée (`games/tcg/scripts/eclats-sr-sprite.mjs` relit ce tableau) : la carte ne
+ * les dessine plus un par un.
+ */
+export const SR_SPARKS: [number, number, number, number, number][] = [
   [86.1, 3.5, 9, -0.27, 2.36],
   [131.4, 3.5, 12, -0.75, 2.21],
   [222.9, 3.5, 9, -3.0, 2.64],
@@ -398,71 +402,18 @@ const SR_SPARKS: [number, number, number, number, number][] = [
   [3.5, 64.2, 12, -2.7, 2.46],
 ];
 /**
- * Variantes des éclats de la SR-2 (refonte, étape 7 : choix de l'utilisateur au banc d'essai, le
- * rendu du site reste « actuel »). Le coût d'une planche de SR est le nombre d'éléments animés.
- * - `actuel` : 14 éclats, chacun animé à son rythme (14 animations par carte).
- * - `moins` : 6 des 14 éclats (`SR_SPARKS_FEW`), même animation (6 animations).
- * - `groupes` : les 14 éclats, fixes, en 3 groupes qui s'allument ensemble (3 animations
- *   d'opacité ; plus de rotation ni de grossissement propre à chaque éclat).
- * - `image` : une image animée pré-calculée (`/tcg/eclats-sr.png`, planche de 30 vues des 14
- *   éclats sur 2,4 s, `games/tcg/scripts/eclats-sr-sprite.mjs`) qui avance par paliers (`steps`) :
- *   1 animation, 12,5 vues par seconde, tous les éclats au même rythme de 2,4 s.
+ * Cadre de la SR-2 : liseré carmin qui court, et ses 14 éclats dorés en une image animée
+ * pré-calculée (`/tcg/eclats-sr.png`, planche de 30 vues sur 2,4 s,
+ * `games/tcg/scripts/eclats-sr-sprite.mjs`) qui avance par paliers (`steps`) : 1 animation par
+ * carte au lieu de 14 (choix de l'utilisateur au banc d'essai, 27/11/2026).
  */
-export type SparkVariant = "actuel" | "moins" | "groupes" | "image";
-export const SPARK_VARIANTS: { key: SparkVariant; label: string }[] = [
-  { key: "actuel", label: "Actuel : 14 éclats" },
-  { key: "moins", label: "Moins d'éclats : 6" },
-  { key: "groupes", label: "3 groupes qui scintillent ensemble" },
-  { key: "image", label: "Image animée pré-calculée" },
-];
-/** Les 6 éclats gardés par la variante `moins` (2 par grand bord, 1 en haut, 1 en bas). */
-export const SR_SPARKS_FEW = [1, 3, 5, 8, 11, 13];
-/** Variante `groupes` : groupe (0 à 2) de chaque éclat, pour que chaque bord en ait de chaque. */
-const SR_SPARK_GROUP = [0, 1, 2, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2];
-function sparkStyle(x: number, y: number, size: number): CSSProperties {
-  return { left: x, top: y, "--s": `${size}px` } as CSSProperties;
-}
-function SrCarmine({ sparks = "actuel" }: { sparks?: SparkVariant }) {
+function SrCarmine() {
   return (
     <>
       <div aria-hidden className="tcg-frame-run tcg-strate-cadre">
         <FrameRun light="tcg-frame-run__light--carmine" period={720} seconds={3.2} thick={FRAME} />
       </div>
-      {sparks === "image" ? (
-        <div aria-hidden className="tcg-sr-spark-sprite" />
-      ) : sparks === "groupes" ? (
-        [0, 1, 2].map((g) => (
-          <div
-            key={g}
-            aria-hidden
-            className="tcg-sr-spark-group"
-            style={{ animationDelay: `${-0.8 * g}s` }}
-          >
-            {SR_SPARKS.filter((_, i) => SR_SPARK_GROUP[i] === g).map(([x, y, size]) => (
-              <div
-                key={`${x},${y}`}
-                className="tcg-sr-spark tcg-sr-spark--fixe"
-                style={sparkStyle(x, y, size)}
-              />
-            ))}
-          </div>
-        ))
-      ) : (
-        SR_SPARKS.filter((_, i) => sparks !== "moins" || SR_SPARKS_FEW.includes(i)).map(
-          ([x, y, size, delay, seconds]) => (
-            <div
-              key={`${x},${y}`}
-              aria-hidden
-              className="tcg-sr-spark"
-              style={{
-                ...sparkStyle(x, y, size),
-                animationDelay: `${delay}s`,
-                animationDuration: `${seconds}s`,
-              }}
-            />
-          ),
-        )
-      )}
+      <div aria-hidden className="tcg-sr-spark-sprite" />
     </>
   );
 }
@@ -775,7 +726,6 @@ export function FinalCard({
   visualEffects = [],
   refined = false,
   hoverHalo = false,
-  sparks,
   pacedEffects,
 }: {
   card: CardData;
@@ -795,8 +745,6 @@ export function FinalCard({
   refined?: boolean;
   /** Halo doux de la couleur de la rareté autour de la carte, au survol seulement. */
   hoverHalo?: boolean;
-  /** Éclats des SR (banc d'essai, étape 7) ; absent : `actuel`. */
-  sparks?: SparkVariant;
   /** Mirage et énergie par paliers (banc d'essai, étape 7) ; absent : chaque image. */
   pacedEffects?: boolean;
 }) {
@@ -955,7 +903,7 @@ export function FinalCard({
         <FrameRing background={RARITY_FRAME[finish]} width={FRAME} polish />
       </Layer>
       {FRAME_MOTION[finish] === "comets" && <SsrComets />}
-      {FRAME_MOTION[finish] === "carmine" && <SrCarmine sparks={sparks} />}
+      {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
       <Layer
         z={10}
         className="tcg-strate-cadre"

@@ -70,6 +70,14 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Booster : le son d'une carte (victoire SR/SSR, son propre) part dès l'appui sur la carte, avec le retournement.",
+      },
+      {
+        admin: true,
+        text: "Cartes SR : les 14 éclats dorés deviennent une seule image animée pré-calculée, partout. Banc des cartes : plus de choix d'éclats, et le son de « Rejouer le retournement » part dès le clic.",
+      },
+      {
+        admin: true,
         text: "Potodex et planches de cartes : au repos, chaque carte devient une image fixe (cadre et effets arrêtés sur un instant) ; elle s'anime au survol, en grand et à l'ouverture d'un booster. Beaucoup moins de travail pour le navigateur quand il y a des dizaines de cartes.",
       },
       {

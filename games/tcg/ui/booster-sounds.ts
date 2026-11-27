@@ -53,6 +53,15 @@ function output(): { ctx: AudioContext; out: GainNode } | null {
   return { ctx, out: volume };
 }
 
+/**
+ * Ouvre la sortie son dès l'appui (pointerdown), avant le clic qui retourne la carte : la création
+ * ou la reprise du contexte audio (ouverture de la carte son, plusieurs dizaines de ms) est faite
+ * quand le son part. Sans effet tant qu'aucun geste n'a eu lieu (le navigateur refuserait).
+ */
+export function warmAudio() {
+  if (effectiveVolume() > 0) output();
+}
+
 onVolumeChange(() => {
   if (ctx && volume) volume.gain.setTargetAtTime(effectiveVolume(), ctx.currentTime, 0.02);
 });
@@ -169,22 +178,37 @@ export function stopCardSound(fadeS = 0.4) {
   requestAnimationFrame(step);
 }
 
-/** Joue le son propre d'une carte dans `at` secondes (0 : tout de suite), au volume du site. */
+/**
+ * Joue le son propre d'une carte dans `at` secondes (0 : tout de suite, dans le geste même), au
+ * volume du site. Il part de l'élément préchargé par `preloadCardSound` s'il est libre : un
+ * `new Audio(url)` refait la lecture du fichier et son décodage avant de jouer, d'où le retard au
+ * clic constaté par l'utilisateur (27/11/2026).
+ */
 export function cardSound(url: string, { at = 0 }: { at?: number } = {}) {
   stopCardSound();
   if (typeof Audio === "undefined" || effectiveVolume() <= 0) return;
-  pending = window.setTimeout(() => {
+  const start = () => {
     pending = null;
-    const audio = new Audio(url);
+    const ready = warmed.get(url);
+    // l'élément préchargé peut être encore en fondu de sortie (même carte rejouée) : copie alors
+    const audio = ready && ready.paused ? ready : new Audio(url);
+    if (!ready) warmed.set(url, audio);
+    if (audio.currentTime > 0) audio.currentTime = 0;
     audio.volume = Math.min(1, effectiveVolume());
     playing = audio;
-    audio.addEventListener("ended", () => {
-      if (playing === audio) playing = null;
-    });
+    audio.addEventListener(
+      "ended",
+      () => {
+        if (playing === audio) playing = null;
+      },
+      { once: true },
+    );
     void audio.play().catch(() => {
       if (playing === audio) playing = null;
     });
-  }, at * 1000);
+  };
+  if (at > 0) pending = window.setTimeout(start, at * 1000);
+  else start();
 }
 
 /**

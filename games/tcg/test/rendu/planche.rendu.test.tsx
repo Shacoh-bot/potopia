@@ -103,7 +103,7 @@ describe("planche : carte figée non survolée", () => {
       const svgs = svgAnimes(carte);
       expect(svgs.length).toBeGreaterThan(0);
       expect(svgs.map((s) => s.animationsPaused())).toEqual(svgs.map(() => true));
-      expect(affiches(carte, ".tcg-sr-spark, .tcg-sr-spark-group, .tcg-sr-spark-sprite")).toBe(0);
+      expect(affiches(carte, ".tcg-sr-spark-sprite")).toBe(0);
       const grains = carte.querySelectorAll(".tcg-vfx-mote, .tcg-vfx-ember").length;
       expect(grains).toBeGreaterThan(0);
       expect(affiches(carte, ".tcg-vfx-mote, .tcg-vfx-ember")).toBe(Math.ceil(grains / 3));
@@ -118,7 +118,7 @@ describe("planche : carte figée non survolée", () => {
       expect(svgs.map((s) => s.animationsPaused())).toEqual(svgs.map(() => false));
       expect(affiches(carte, ".tcg-vfx-mote, .tcg-vfx-ember")).toBe(grains);
       if (t.card.rarity === "sr") {
-        expect(affiches(carte, ".tcg-sr-spark")).toBeGreaterThan(0);
+        expect(affiches(carte, ".tcg-sr-spark-sprite")).toBe(1);
       }
 
       delete carte.dataset.live;

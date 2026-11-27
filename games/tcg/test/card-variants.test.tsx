@@ -3,13 +3,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CardBench } from "../ui/CardBench";
 import { GameCard } from "../ui/GameCard";
-import { SPARK_VARIANTS, SR_SPARKS_FEW } from "../ui/v5";
 import { pacedValues } from "../ui/visual-effects";
 import { CARTES_TEST } from "./rendu/cartes";
 
 /**
- * Refonte, étape 7 : variantes à choisir au banc d'essai (éclats des SR, mirage et énergie par
- * paliers). Le rendu du site ne change pas : sans option, la carte est celle d'avant.
+ * Refonte, étape 7 : éclats des SR en image animée pré-calculée (choix de l'utilisateur, 27/11),
+ * et mirage et énergie par paliers, option du banc d'essai seulement.
  */
 const sr = CARTES_TEST.find((t) => t.card.rarity === "sr");
 if (!sr) throw new Error("aucune SR dans les cartes de test");
@@ -18,20 +17,10 @@ const carteSr = (props: Partial<Parameters<typeof GameCard>[0]> = {}) =>
 const compte = (html: string, classe: string) =>
   (html.match(new RegExp(`class="${classe}[" ]`, "g")) ?? []).length;
 
-describe("variantes de l'étape 7 (banc d'essai)", () => {
-  it("sans option, la carte SR est identique à la variante « actuel »", () => {
-    expect(carteSr()).toBe(carteSr({ sparks: "actuel", pacedEffects: false }));
-    expect(compte(carteSr(), "tcg-sr-spark")).toBe(14);
-  });
-
-  it("chaque variante d'éclats a le nombre d'éléments animés annoncé", () => {
-    expect(compte(carteSr({ sparks: "moins" }), "tcg-sr-spark")).toBe(SR_SPARKS_FEW.length);
-    const groupes = carteSr({ sparks: "groupes" });
-    expect(compte(groupes, "tcg-sr-spark-group")).toBe(3);
-    expect(compte(groupes, "tcg-sr-spark tcg-sr-spark--fixe")).toBe(14);
-    const image = carteSr({ sparks: "image" });
-    expect(compte(image, "tcg-sr-spark-sprite")).toBe(1);
-    expect(compte(image, "tcg-sr-spark")).toBe(0);
+describe("éclats SR et options du banc d'essai", () => {
+  it("une carte SR porte ses éclats en une seule image animée", () => {
+    expect(compte(carteSr(), "tcg-sr-spark-sprite")).toBe(1);
+    expect(compte(carteSr(), "tcg-sr-spark")).toBe(0);
   });
 
   it("l'image pré-calculée existe : 30 vues de 312 × 432", () => {
@@ -58,12 +47,11 @@ describe("variantes de l'étape 7 (banc d'essai)", () => {
     expect(pacedValues("0.012 0.06;0.016 0.09;0.012 0.06", 2)).toBe("0.012 0.06;0.016 0.09");
   });
 
-  it("le banc propose les 4 variantes d'éclats et affiche la variante active", () => {
+  it("le banc n'a plus de choix d'éclats et affiche l'option active", () => {
     const html = renderToStaticMarkup(
       <CardBench cards={[{ card: sr.card, imageUrl: "data:," }]} />,
     ).replaceAll("&#x27;", "'");
-    for (const v of SPARK_VARIANTS) expect(html).toContain(v.label);
-    expect(html).toContain("Variante active : Actuel : 14 éclats");
-    expect(html).toContain("mirage et énergie actuels");
+    expect(html).not.toContain("Éclats dorés des SR");
+    expect(html).toContain("Variante active : mirage et énergie actuels");
   });
 });

@@ -5,7 +5,7 @@ import { PremiumDefs } from "./premium";
 import { SnapDefs } from "./snap";
 import { StillCard } from "./StillCard";
 import type { TopLayout } from "./v4";
-import { FinalCard, type SparkVariant } from "./v5";
+import { FinalCard } from "./v5";
 
 /** Ce qu'il faut d'une carte pour l'afficher (la carte enregistrée, ou le formulaire en cours). */
 export type GameCardFields = Pick<
@@ -73,7 +73,6 @@ export function GameCard({
   still = false,
   author,
   hoverHalo = true,
-  sparks,
   pacedEffects,
 }: {
   card: GameCardFields;
@@ -94,8 +93,6 @@ export function GameCard({
    * réservée à l'ouverture des boosters, qui coupe ce halo.
    */
   hoverHalo?: boolean;
-  /** Variante des éclats des SR, pour le banc d'essai (étape 7) ; absente : le rendu du site. */
-  sparks?: SparkVariant;
   /** Mirage et énergie par paliers, pour le banc d'essai (étape 7) ; absent : le rendu du site. */
   pacedEffects?: boolean;
 }) {
@@ -134,7 +131,6 @@ export function GameCard({
       visualEffects={visualEffectsFor(card, layout)}
       refined
       hoverHalo={hoverHalo}
-      sparks={sparks}
       pacedEffects={pacedEffects}
     />
   );

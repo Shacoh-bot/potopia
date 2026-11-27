@@ -23,10 +23,10 @@ if (!bloc) throw new Error("SR_SPARKS introuvable dans v5.tsx");
 const eclats = [...bloc.matchAll(/\[([-\d., ]+)\]/g)].map((m) => m[1].split(",").map(Number));
 if (eclats.length !== 14) throw new Error(`14 éclats attendus, ${eclats.length} lus`);
 
-// Règles des éclats, relues dans tcg.css (de `.tcg-sr-spark {` jusqu'aux variantes du banc).
+// Règles des éclats, relues dans tcg.css (de `.tcg-sr-spark {` jusqu'au commentaire de la planche).
 const css = readFileSync(join(ici, "../ui/tcg.css"), "utf8");
 const debut = css.indexOf(".tcg-sr-spark {");
-const fin = css.indexOf("/* Variantes des éclats SR du banc");
+const fin = css.indexOf("/* Éclats SR du site : planche");
 if (debut < 0 || fin < debut) throw new Error("règles .tcg-sr-spark introuvables dans tcg.css");
 
 const vues = Array.from({ length: VUES }, (_, k) => {
