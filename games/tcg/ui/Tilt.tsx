@@ -5,7 +5,10 @@ import { watchStillHover } from "./still-hover";
 
 /**
  * Carte qui s'incline vers le pointeur, avec reflet et holo qui suivent (classes de tcg.css).
- * Les effets lisent --mx/--my (%), --x (0 à 1) et --rx/--ry, posées ici sans re-rendu React.
+ * Les effets lisent --mx/--my (%), --x (0 à 1), --rx/--ry et --mr, posées ici sans re-rendu React.
+ * --mr : distance du pointeur au coin le plus loin, en diagonales de la carte (0,5 à 1) ; un
+ * effet qui suit le pointeur s'en sert pour garder le rayon « farthest-corner » d'un dégradé
+ * déplacé par `translate`/`scale` (holo, tcg.css), sans repeindre.
  * Dans une carte figée (planche), elle suit le survol de son parent (`watchStillHover`) et pose
  * `data-live` sur la carte : tcg.css lui rend alors 3D, reflet et animations.
  */
@@ -41,6 +44,10 @@ export function Tilt({
     el.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
     el.style.setProperty("--ry", `${((x - 0.5) * 18).toFixed(2)}deg`);
     el.style.setProperty("--rx", `${((0.5 - y) * 18).toFixed(2)}deg`);
+    const w = el.offsetWidth || 1;
+    const h = el.offsetHeight || 1;
+    const far = Math.hypot(Math.max(x, 1 - x) * w, Math.max(y, 1 - y) * h);
+    el.style.setProperty("--mr", (far / Math.hypot(w, h)).toFixed(4));
     if (!("active" in el.dataset)) el.dataset.active = "";
   }
 
@@ -56,7 +63,7 @@ export function Tilt({
     rect.current = null;
     const el = ref.current;
     if (!el) return;
-    for (const v of ["--mx", "--my", "--x", "--rx", "--ry"]) el.style.removeProperty(v);
+    for (const v of ["--mx", "--my", "--x", "--rx", "--ry", "--mr"]) el.style.removeProperty(v);
     delete el.dataset.active;
   }
 

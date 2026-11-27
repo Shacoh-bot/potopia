@@ -26,16 +26,30 @@ const PLAFOND_ELEMENTS = 295;
  */
 const ANIMABLES = new Set(["transform", "opacity", "scale", "rotate", "translate", "visibility"]);
 
-/** Animations qui repeignent encore, à reprendre à l'étape 3 (animations compositeur). */
+/**
+ * Animations qui repeignent encore (liste blanche motivée). Étape 3 : orbite, prisme, liseré,
+ * éclat, cadres SR/SSR et soleil du vitrail passés en transform ; restent :
+ * - tcg-glitch : tranches de l'image au survol seulement, 5 à-coups (steps) par 0,7 s ; en
+ *   transform il faudrait 5 copies de l'illustration ;
+ * - tcg-shock-lens : rayon de l'anneau-loupe d'un point lumineux (petit disque) ; effet lourd,
+ *   à pré-calculer à l'étape 7.
+ */
 const EXCEPTIONS_ANIMEES: Record<string, string[]> = {
-  "tcg-orbit": ["--tcg-angle"],
-  "tcg-sweep": ["left"],
   "tcg-glitch": ["clip-path"],
-  "tcg-frame-run-720": ["background-position-x"],
-  "tcg-frame-run-1440": ["background-position-x"],
-  "tcg-vitrail-sun": ["-webkit-mask-position", "mask-position"],
   "tcg-shock-lens": ["--tcg-shock"],
 };
+
+/**
+ * Règles dont le fond ou le masque suit le pointeur (var(--mx/--my) dans background ou mask) :
+ * repeintes à chaque mouvement. Étape 3 : holo, lampe, métal et vitrail passés en translate.
+ * Restent : `.tcg-holo`/`.tcg-sparkle` (anciennes maquettes v2/premium, hors carte du jeu) et le
+ * trou des ombres (effet lourd, étape 7).
+ */
+const REPEINTS_AU_POINTEUR = [
+  ".tcg-holo",
+  ".tcg-sparkle",
+  ".tcg-tilt[data-active] .tcg-vfx-shadows",
+];
 
 /** Fusions de couleurs (`mix-blend-mode`) par fichier : à faire baisser (étape 5, fusions cuites). */
 const FUSIONS: Record<string, number> = {
@@ -73,6 +87,7 @@ const STRATES_ATTENDUES = {
 describe("filet de sécurité des cartes", () => {
   const rendus = CARTES_TEST.map((t) => ({
     id: t.id,
+    layout: t.layout,
     html: renderToStaticMarkup(<GameCard card={t.card} imageUrl="data:," layout={t.layout} />),
   }));
 
@@ -98,9 +113,7 @@ describe("filet de sécurité des cartes", () => {
     const strates = ["filets", "bandeau", "cadre", "encadres", "pied", "pastilles"];
     for (const r of rendus) {
       const presentes = strates.filter((s) => r.html.includes(`tcg-strate-${s}`));
-      expect(presentes, r.id).toEqual(
-        STRATES_ATTENDUES[r.id.endsWith("-normale") ? "normal" : "fullart"],
-      );
+      expect(presentes, r.id).toEqual(STRATES_ATTENDUES[r.layout]);
     }
   });
 
@@ -113,5 +126,14 @@ describe("filet de sécurité des cartes", () => {
 
   it("tcg.css n'anime que transform et opacity, hors exceptions connues", () => {
     expect(animationsDe(css)).toEqual(EXCEPTIONS_ANIMEES);
+  });
+
+  it("aucun fond ni masque ne suit le pointeur, hors exceptions connues", () => {
+    const regles = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, , corps]) =>
+        /(?:^|[\s;])(?:-webkit-)?(?:background|mask)[\w-]*\s*:[^;]*var\(--m[xy]/.test(corps ?? ""),
+      )
+      .map(([, sel]) => (sel ?? "").trim().replace(/\s+/g, " "));
+    expect(regles).toEqual(REPEINTS_AU_POINTEUR);
   });
 });

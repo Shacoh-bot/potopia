@@ -53,7 +53,11 @@ type EffectDef = {
  * carte (CSS seul, d'après les variables posées par `Tilt`) ; invisible sans pointeur sur la carte.
  */
 function Holo() {
-  return <div className="tcg-vfx-holo" />;
+  return (
+    <div className="tcg-vfx-holo">
+      <div className="tcg-vfx-holo-lens" />
+    </div>
+  );
 }
 
 /* ── Éclair ── */
@@ -417,7 +421,9 @@ function StainedGlass({ card }: EffectProps) {
         <PremiumArt card={card} />
       </div>
       <div className="tcg-vfx-vitrail-lit">
-        <PremiumArt card={card} />
+        <div className="tcg-vfx-vitrail-art">
+          <PremiumArt card={card} />
+        </div>
       </div>
       {GLINTS.map((g, i) => (
         <span

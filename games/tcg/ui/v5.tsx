@@ -314,10 +314,11 @@ function FrameRun({
           <div
             className={`tcg-frame-run__light ${light}`}
             // Le décalage du bord est porté par `left` (fixe) : l'animation n'a plus de var() à
-            // résoudre à chaque image, elle fait glisser le fond d'une période (classe du dégradé).
+            // résoudre à chaque image, elle fait glisser la bande d'une période (classe du
+            // dégradé). Largeur juste suffisante : de -période à 0, la bande couvre toujours le bord.
             style={{
               left: -period - shift,
-              width: len + 2 * out + 2 * period + shift,
+              width: len + 2 * out + period + shift,
               backgroundSize: `${period}px 100%`,
               animationDuration: `${seconds}s`,
             }}
