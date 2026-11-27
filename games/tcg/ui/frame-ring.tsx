@@ -175,9 +175,82 @@ export function ringSegments(
   return { perimeter, base, segments };
 }
 
+/** Géométrie et couleur d'un anneau (mêmes défauts que `FrameRing`). */
+export type RingSpec = {
+  background: string;
+  width: number;
+  radius?: number;
+  w?: number;
+  h?: number;
+  segments?: number;
+};
+
+function full(spec: RingSpec): Required<RingSpec> {
+  return { radius: R, w: W, h: H, segments: 120, ...spec };
+}
+
+/** Classe CSS de l'image pré-dessinée d'un anneau (empreinte de sa géométrie et de sa couleur). */
+export function ringClass(spec: RingSpec): string {
+  const s = full(spec);
+  const key = [s.background, s.width, s.radius, s.w, s.h, s.segments].join("|");
+  let hash = 5381;
+  for (let i = 0; i < key.length; i++) hash = ((hash * 33) ^ key.charCodeAt(i)) >>> 0;
+  return `tcg-ring-${hash.toString(36)}`;
+}
+
+const num = (n: number) => String(Math.round(n * 1000) / 1000);
+
+/**
+ * Anneau à dégradé en document SVG autonome : exactement les traits de l'ancien `FrameRing`
+ * (tour de la couleur moyenne, puis un segment par couleur), dessinés une fois dans une image.
+ * Dans une image, l'identifiant `r` ne sort pas du document : aucun conflit entre cartes.
+ */
+export function ringSvg(spec: RingSpec): string {
+  const s = full(spec);
+  const paint = parseRingPaint(s.background) ?? { kind: "solid" as const, color: "#888888" };
+  const half = s.width / 2;
+  const rect = `<rect id='r' x='${num(half)}' y='${num(half)}' width='${num(s.w - s.width)}' height='${num(s.h - s.width)}' rx='${num(Math.max(s.radius - half, 0))}'/>`;
+  const open = `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='${s.w}' height='${s.h}' viewBox='0 0 ${s.w} ${s.h}'>`;
+  const g = `<g fill='none' stroke-width='${num(s.width)}'>`;
+  if (paint.kind === "solid")
+    return `${open}${g}${rect.replace("id='r' ", `stroke='${paint.color}' `)}</g></svg>`;
+  const ring = ringSegments(paint, s.w, s.h, s.width, s.radius, s.segments);
+  const uses = ring.segments
+    .map(
+      (seg) =>
+        `<use xlink:href='#r' stroke='${seg.color}' stroke-dasharray='${num(seg.length)} ${num(ring.perimeter)}' stroke-dashoffset='${num(-seg.offset)}'/>`,
+    )
+    .join("");
+  return `${open}${g}<defs>${rect}</defs><use xlink:href='#r' stroke='${ring.base}'/>${uses}</g></svg>`;
+}
+
+/** Règles CSS des anneaux pré-dessinés (bloc généré de tcg.css, voir test/frame-ring-images). */
+export function ringCss(specs: RingSpec[]): string {
+  const seen = new Set<string>();
+  return specs
+    .filter((spec) => {
+      const c = ringClass(spec);
+      return seen.has(c) ? false : (seen.add(c), true);
+    })
+    .map((spec) => {
+      const svg = ringSvg(spec)
+        .replace(/%/g, "%25")
+        .replace(/#/g, "%23")
+        .replace(/</g, "%3C")
+        .replace(/>/g, "%3E");
+      return `.${ringClass(spec)} {\n  background-image: url("data:image/svg+xml,${svg}");\n}`;
+    })
+    .join("\n");
+}
+
 /**
  * Anneau de cadre d'une boîte `w × h` (par défaut la carte), d'épaisseur `width`, rayon extérieur
  * `radius`. Posé en `position: absolute` en haut à gauche de son parent (`style` pour le décaler).
+ *
+ * Couleur unie : un trait SVG. Dégradé : un seul élément dont le fond est l'image pré-dessinée de
+ * l'anneau (classe `ringClass`, règle générée dans tcg.css) ; avant la refonte (étape 4), 49 à 121
+ * traits SVG par anneau, soit ~220 éléments par carte SR/SSR. L'anneau doit figurer dans
+ * `PREDRAWN_RINGS` (v5.tsx) ; le test le vérifie pour toutes les cartes du filet.
  */
 export function FrameRing({
   background,
@@ -187,55 +260,34 @@ export function FrameRing({
   h = H,
   segments = 120,
   style,
-}: {
-  background: string;
-  width: number;
-  radius?: number;
-  w?: number;
-  h?: number;
-  segments?: number;
-  style?: CSSProperties;
-}) {
+}: RingSpec & { style?: CSSProperties }) {
   const paint = parseRingPaint(background) ?? { kind: "solid" as const, color: "#888888" };
-  const half = width / 2;
-  const rect = {
-    x: half,
-    y: half,
-    width: w - width,
-    height: h - width,
-    rx: Math.max(radius - half, 0),
-    fill: "none",
-    strokeWidth: width,
+  const box: CSSProperties = {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    pointerEvents: "none",
+    ...style,
   };
-  let body;
-  if (paint.kind === "solid") {
-    body = <rect {...rect} stroke={paint.color} />;
-  } else {
-    const ring = ringSegments(paint, w, h, width, radius, segments);
-    body = (
-      <>
-        <rect {...rect} stroke={ring.base} />
-        {ring.segments.map((s) => (
-          <rect
-            key={s.offset}
-            {...rect}
-            stroke={s.color}
-            strokeDasharray={`${s.length} ${ring.perimeter}`}
-            strokeDashoffset={-s.offset}
-          />
-        ))}
-      </>
+  if (paint.kind !== "solid") {
+    const cls = ringClass({ background, width, radius, w, h, segments });
+    return (
+      <div aria-hidden className={`tcg-ring ${cls}`} style={{ width: w, height: h, ...box }} />
     );
   }
+  const half = width / 2;
   return (
-    <svg
-      aria-hidden
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none", ...style }}
-    >
-      {body}
+    <svg aria-hidden width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={box}>
+      <rect
+        x={half}
+        y={half}
+        width={w - width}
+        height={h - width}
+        rx={Math.max(radius - half, 0)}
+        fill="none"
+        strokeWidth={width}
+        stroke={paint.color}
+      />
     </svg>
   );
 }

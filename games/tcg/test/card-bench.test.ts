@@ -15,6 +15,6 @@ describe("banc d'essai des cartes (CardBench)", () => {
       (m) => m[1],
     );
     expect(marks.length).toBeGreaterThanOrEqual(6);
-    for (const mark of marks) expect(v5).toContain(`className="${mark}"`);
+    for (const mark of marks) expect(v5).toMatch(new RegExp(`className="[^"]*${mark}[ "]`));
   });
 });

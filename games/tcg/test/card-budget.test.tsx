@@ -16,9 +16,32 @@ const css = sansCommentaires(read("tcg.css"));
 
 /**
  * Plafond d'éléments HTML/SVG par carte (rendu serveur) : 295 le 26/11, SR normale (commune 146, full
- * art 48-197). Cible de la refonte : 80.
+ * art 48-197). Étape 4 (socle fixe) : anneaux à dégradé pré-dessinés en images (~220 traits SVG de
+ * moins) et bandes SR/SSR d'une boîte par bord : 49-52 (commune à légendaire), SR 73-74, SSR 68-69,
+ * 75 avec trois effets au pointeur. Cible de la refonte (80) atteinte.
  */
-const PLAFOND_ELEMENTS = 295;
+const PLAFOND_ELEMENTS = 75;
+
+/** Classes des parties animées d'une carte : jamais dans un calque du socle (`tcg-socle`). */
+const ANIMEES = /tcg-frame-run|tcg-sr-spark|tcg-aura|tcg-vfx|tcg-glare|tcg-reveal/;
+
+/** Contenus des éléments de classe `tcg-socle` (HTML du rendu serveur, bien formé). */
+function socles(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<div class="[^"]*\btcg-socle\b[^"]*"/g)) {
+    let depth = 0;
+    const re = /<(\/?)div\b[^>]*>/g;
+    re.lastIndex = m.index ?? 0;
+    for (let t = re.exec(html); t; t = re.exec(html)) {
+      depth += t[1] ? -1 : 1;
+      if (depth === 0) {
+        out.push(html.slice(m.index, re.lastIndex));
+        break;
+      }
+    }
+  }
+  return out;
+}
 
 /**
  * Propriétés qu'une animation peut faire varier sans repeindre la carte : le compositeur s'en
@@ -98,6 +121,14 @@ describe("filet de sécurité des cartes", () => {
     expect(Math.max(...Object.values(comptes)), JSON.stringify(comptes)).toBeLessThanOrEqual(
       PLAFOND_ELEMENTS,
     );
+  });
+
+  it("le socle (cadre, pastilles) n'a aucun enfant animé", () => {
+    for (const r of rendus) {
+      const s = socles(r.html);
+      expect(s.length, r.id).toBeGreaterThanOrEqual(3);
+      for (const bloc of s) expect(bloc, r.id).not.toMatch(ANIMEES);
+    }
   });
 
   it("aucune carte n'utilise de 3D réelle", () => {
