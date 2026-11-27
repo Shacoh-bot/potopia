@@ -92,6 +92,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Cartes : reflets du cadre cuits dans son image, halo du nom sans filtre, effets de l'illustration dans un calque à part. Plus aucune fusion sur une carte sans effet. Firefox : cadre un peu plus coloré, comme dans Chrome.",
       },
+      {
+        admin: true,
+        text: "Potodex : l'aura des cartes épiques, légendaires, SR et SSR ne respire plus, elle reste fixe (bien plus léger). 12 cartes par page au lieu de 24, et la page suivante est préparée à l'avance : le changement de page est presque immédiat.",
+      },
     ],
   },
   {

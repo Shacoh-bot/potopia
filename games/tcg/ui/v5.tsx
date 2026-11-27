@@ -76,7 +76,7 @@ export const RARITY_FRAME: Record<CardFinish, string> = {
 };
 /** Cadre animé selon la rareté : SSR = deux comètes d'énergie (`SsrComets`), SR = carmin étoilé d'or (`SrCarmine`). */
 /**
- * Raretés qui ont une aura simple (lueur qui respire autour de la carte, `.tcg-aura`) : épique très
+ * Raretés qui ont une aura simple (lueur fixe autour de la carte, `.tcg-aura`, sans animation) : épique très
  * légère, légendaire, SR, SSR. Commune, peu commune et rare n'en ont pas.
  */
 export const CARD_AURA_FINISHES: readonly CardFinish[] = ["epic", "legendary", "sr", "ssr"];

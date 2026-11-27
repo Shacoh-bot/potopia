@@ -553,24 +553,19 @@
     #4a0020
   );
 }
-/* Aura simple : une lueur douce qui suit le contour arrondi de la carte et respire lentement.
-   Une seule couche par carte : l'ombre est figée, seule l'opacité bouge, par paliers (rien n'est repeint à chaque
-   image). Épique très légère, légendaire dorée, SR carmin, SSR aux couleurs de son cadre ; rien pour
-   commune, peu commune et rare (`CARD_AURA_FINISHES`). Partout où la carte est dessinée, Potodex
-   compris, où elle respire aussi sur la planche figée. Le gros halo animé (`CardAura`) reste à
-   l'ouverture des boosters. */
+/* Aura simple : une lueur douce qui suit le contour arrondi de la carte, FIXE (aucune animation :
+   choix de l'utilisateur, 27/11, la respiration coûtait trop sur le Potodex). Une seule couche par
+   carte, une ombre figée dessinée une fois. Épique très légère, légendaire dorée, SR carmin, SSR aux
+   couleurs de son cadre ; rien pour commune, peu commune et rare (`CARD_AURA_FINISHES`). Partout où
+   la carte est dessinée, Potodex compris. Le gros halo animé (`CardAura`) reste à l'ouverture des
+   boosters. */
 .tcg-aura {
   position: absolute;
   inset: 0;
   border-radius: 22px;
   pointer-events: none;
-  will-change: opacity;
-  /* souffle « pas à pas » (choix de l'utilisateur, 26/11) : 8 paliers par demi-souffle, l'aura
-     n'est recalculée qu'environ 5 fois par seconde au lieu de chaque image. */
-  animation: tcg-aura-breathe 3.4s steps(8) infinite;
 }
 .tcg-aura[data-rarity="epic"] {
-  --aura-min: 0.25;
   box-shadow: 0 0 12px 2px rgb(164 92 255 / 0.4);
 }
 .tcg-aura[data-rarity="legendary"] {
@@ -589,15 +584,6 @@
     6px -4px 22px 6px rgb(255 106 181 / 0.75),
     0 0 26px 4px rgb(255 211 106 / 0.35),
     0 0 4px 1px rgb(255 255 255 / 0.85);
-}
-@keyframes tcg-aura-breathe {
-  0%,
-  100% {
-    opacity: var(--aura-min, 0.35);
-  }
-  50% {
-    opacity: 1;
-  }
 }
 /* SR-2 : petit éclat doré (croix fine + point) ; seules l'opacité et l'échelle bougent. */
 .tcg-sr-spark {

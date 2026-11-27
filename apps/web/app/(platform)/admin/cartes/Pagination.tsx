@@ -26,15 +26,29 @@ export function pageList(page: number, count: number): (number | "…")[] {
 const cell =
   "inline-flex h-9 min-w-9 items-center justify-center rounded-full px-2 text-sm tabular-nums transition-colors";
 
-/** Pagination « < 1 2 … 5 > » : flèches, première et dernière page toujours accessibles. */
+/**
+ * Préchargement d'un lien de page : avec `neighbours`, la page précédente et la suivante sont
+ * préchargées en entier (`true` : rendu serveur compris, gardé quelques minutes par le routeur), le
+ * clic les affiche sans attendre le serveur ; les autres gardent le préchargement par défaut de Next.
+ */
+export function pagePrefetch(page: number, to: number, neighbours: boolean): true | undefined {
+  return neighbours && Math.abs(to - page) === 1 ? true : undefined;
+}
+
+/**
+ * Pagination « < 1 2 … 5 > » : flèches, première et dernière page toujours accessibles.
+ * `prefetchNeighbours` : précharge en entier les pages voisines (`pagePrefetch`).
+ */
 export function Pagination({
   page,
   count,
   href,
+  prefetchNeighbours = false,
 }: {
   page: number;
   count: number;
   href: (page: number) => string;
+  prefetchNeighbours?: boolean;
 }) {
   if (count <= 1) return null;
   const arrow = (to: number, label: string, icon: ReactNode) =>
@@ -45,6 +59,7 @@ export function Pagination({
     ) : (
       <Link
         href={href(to)}
+        prefetch={pagePrefetch(page, to, prefetchNeighbours)}
         aria-label={label}
         className={cx(cell, "text-muted hover:bg-surface-hover hover:text-text")}
       >
@@ -77,6 +92,7 @@ export function Pagination({
           <Link
             key={p}
             href={href(p)}
+            prefetch={pagePrefetch(page, p, prefetchNeighbours)}
             aria-label={`Page ${p}`}
             className={cx(cell, "text-muted hover:bg-surface-hover hover:text-text")}
           >

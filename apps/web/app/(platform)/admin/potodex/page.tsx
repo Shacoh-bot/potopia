@@ -14,7 +14,7 @@ import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { Pagination } from "../cartes/Pagination";
 import { cardFaces, imageId } from "../cartes/images";
-import { paginate } from "./paginate";
+import { paginate, POTODEX_PAGE_SIZE } from "./paginate";
 import { PotodexCard } from "./PotodexCard";
 import { ResetCollectionButton } from "./ResetCollectionButton";
 import { Scaled } from "./Scaled";
@@ -24,17 +24,13 @@ export const metadata: Metadata = { title: "Potodex" };
 /** Largeur d'une case (px) ; la carte (`CARD_WIDTH` à l'échelle 1) y est réduite. */
 const SLOT = 220;
 /**
- * Cases par page : au-delà, la planche devient lourde (cartes, effets, illustrations signées). Seules
- * les illustrations de la page affichée sont demandées au stockage.
- */
-const PAGE_SIZE = 24;
-
-/**
  * Potodex de l'admin connecté (test) : toutes les cartes du set, dans l'ordre, chaque version à part
  * (la normale, puis l'Alt Art, « AA »). Une version trouvée s'affiche avec son nombre
  * d'exemplaires ; une version pas encore tirée reste noire, avec seulement son numéro et, pour
  * l'Alt Art, la mention AA (le serveur n'envoie rien d'autre). Une carte trouvée s'ouvre en grand au clic.
- * Paginé (`?page=`), `PAGE_SIZE` cases par page.
+ * Paginé (`?page=`), `POTODEX_PAGE_SIZE` cases par page ; seules les illustrations de la page affichée
+ * sont demandées au stockage. Les pages voisines sont préchargées (`prefetchNeighbours`) : le clic sur
+ * « page suivante » n'attend plus le serveur.
  *
  * `?complet=1` : aperçu « tout débloqué » (lien « Potodex complet » de l'admin), le même Potodex
  * comme si chaque version était trouvée. Lecture seule (`getCompletePotodex`) : la vraie collection
@@ -69,13 +65,13 @@ export default async function AdminPotodexPage({
       : await getPotodex(admin, { setCode });
   // le mode (vrai Potodex ou aperçu complet) suit les liens des sets et des pages
   const mode = complete ? "&complet=1" : "";
-  const { page, pageCount, shown } = paginate(dex.entries, pageParam, PAGE_SIZE);
+  const { page, pageCount, shown } = paginate(dex.entries, pageParam, POTODEX_PAGE_SIZE);
   const found = shown.flatMap((e) => (e.found ? [e.card] : []));
   // mêmes données que le menu « Cartes » : image, « idée de … », taille du set
   const faces = new Map((await cardFaces(admin, found)).map((f) => [imageId(f.card), f]));
   const pageHref = (p: number) =>
     `/admin/potodex?set=${dex.set.code}${mode}${p > 1 ? `&page=${p}` : ""}`;
-  const pager = <Pagination page={page} count={pageCount} href={pageHref} />;
+  const pager = <Pagination page={page} count={pageCount} href={pageHref} prefetchNeighbours />;
   const pad = (n: number) => String(n).padStart(2, "0");
   const percent = dex.total ? Math.round((dex.found / dex.total) * 100) : 0;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paginate } from "@/app/(platform)/admin/potodex/paginate";
+import { paginate, POTODEX_PAGE_SIZE } from "@/app/(platform)/admin/potodex/paginate";
 
 const cards = Array.from({ length: 50 }, (_, i) => i + 1);
 
@@ -19,5 +19,10 @@ describe("pagination du Potodex", () => {
   it("set vide ou petit : une seule page", () => {
     expect(paginate([], "2", 24)).toEqual({ page: 1, pageCount: 1, shown: [] });
     expect(paginate(cards.slice(0, 10), undefined, 24).pageCount).toBe(1);
+  });
+
+  it("12 cartes par page (planche plus légère, choix du 27/11)", () => {
+    expect(POTODEX_PAGE_SIZE).toBe(12);
+    expect(paginate(cards, "2", POTODEX_PAGE_SIZE).shown).toEqual(cards.slice(12, 24));
   });
 });
