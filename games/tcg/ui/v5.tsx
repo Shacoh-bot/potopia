@@ -277,6 +277,68 @@ function Band({
  * elle : chaque bande de bord porte les deux, lueur (les `out` px du dehors, couleurs à 45 %) et
  * lumière du cadre, et une seule découpe en chemin garde les formes d'avant (`frameRunClip`).
  */
+/** Points d'un arc de cercle (centre `cx`,`cy`, rayon `r`), de l'angle `a0` à `a1` (degrés). */
+function arcPoints(cx: number, cy: number, r: number, a0: number, a1: number, steps = 8): string[] {
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const a = ((a0 + ((a1 - a0) * i) / steps) * Math.PI) / 180;
+    return `${(cx + r * Math.cos(a)).toFixed(2)}px ${(cy + r * Math.sin(a)).toFixed(2)}px`;
+  });
+}
+/**
+ * Découpe exacte d'une bande du cadre, dans son repère (le long de +x, bord extérieur en y = 0,
+ * boîte de `len + 2 * out` × `out + R`) : la part de l'anneau du cadre (et de la lueur de la SSR,
+ * `out` px dehors) entre les diagonales de ses deux coins. Même forme que `frameRunClip`, mais posée
+ * sur la bande elle-même : la lumière animée (calque du compositeur) sortait de la découpe d'un
+ * parent plus haut, et montrait un coin carré pendant qu'elle tournait (vu par l'utilisateur, 27/11).
+ */
+export function bandClip(len: number, out: number, thick: number = FRAME): string {
+  const c = out + R;
+  const L = len + 2 * out;
+  const ri = R - thick;
+  const k = Math.SQRT1_2;
+  const glowX = out ? Math.sqrt((R + out) ** 2 - R ** 2) : 0;
+  // angle où l'arc de la lueur croise le bord de la carte (y = out)
+  const ga = (Math.atan2(-R, -glowX) * 180) / Math.PI + 360;
+  const start = [
+    // coin de départ : diagonale, arc du bord de la carte, (lueur : palier puis arc de la lueur)
+    `${(c - R * k).toFixed(2)}px ${(c - R * k).toFixed(2)}px`,
+    ...arcPoints(c, c, R, 225, 270).slice(1),
+    ...(out
+      ? [`${(c - glowX).toFixed(2)}px ${out}px`, ...arcPoints(c, c, R + out, ga, 270).slice(1)]
+      : []),
+  ];
+  const end = [
+    ...(out
+      ? [
+          ...arcPoints(L - c, c, R + out, 270, 540 - ga).slice(0, -1),
+          `${(L - c + glowX).toFixed(2)}px ${out}px`,
+        ]
+      : []),
+    ...arcPoints(L - c, c, R, 270, 315),
+  ];
+  const inner = [...arcPoints(L - c, c, ri, 315, 270), ...arcPoints(c, c, ri, 270, 225)];
+  // Diagonales poussées de 0,75 px vers le coin : les deux bandes s'y chevauchent d'un trait, sinon
+  // l'anticrénelage de leurs bords laisse un fil sombre sur la diagonale (même teinte des deux côtés).
+  const push = (pt: string | undefined, dx: number) => {
+    const [x = "0", y = "0"] = (pt ?? "").replace(/px/g, "").split(" ");
+    return `${(Number(x) + dx).toFixed(2)}px ${y}px`;
+  };
+  start[0] = push(start[0], -0.75);
+  inner[inner.length - 1] = push(inner.at(-1), -0.75);
+  end[end.length - 1] = push(end.at(-1), 0.75);
+  inner[0] = push(inner[0], 0.75);
+  return `polygon(${[...start, ...end, ...inner].join(", ")})`;
+}
+/**
+ * Recalage de la lumière aux coins : deux bandes se rejoignent sur la diagonale du coin, où la
+ * phase de l'une monte quand celle de l'autre descend (saut de teinte visible, 27/11). Chaque bande
+ * reprend la phase de la précédente au milieu de l'anneau sur la diagonale (à `CORNER_T` px du coin,
+ * ≈ R - (R + rayon intérieur) / 2 × √½ = 8,9) : le tour de lumière compte 2 × CORNER_T de moins
+ * par coin. Tour entier : FRAME_LOOP px (1368), période des dégradés (SSR 1368, SR la moitié).
+ */
+export const CORNER_T = 9;
+/** 2 × (W + H) - 8 × CORNER_T (W et H sont définis plus bas ; test rendu/coins.rendu.test.tsx). */
+export const FRAME_LOOP = 1368;
 type FrameMotion = "comets" | "carmine";
 /** Les 4 bords dans le sens horaire : coin de départ, angle, longueur (W et H sont définis plus bas). */
 function frameEdges(): [x: number, y: number, rot: number, len: number][] {
@@ -291,7 +353,6 @@ function FrameRun({
   light,
   period,
   seconds,
-  thick,
   out = 0,
 }: {
   /** Classe du dégradé (`tcg-frame-run__light--…`). */
@@ -300,8 +361,6 @@ function FrameRun({
   period: number;
   /** Durée pour parcourir une période. */
   seconds: number;
-  /** Épaisseur de la bande sur le cadre. */
-  thick: number;
   /** Lueur hors de la carte, de `out` px, portée par la même bande (dégradé du dessus, à 45 %). */
   out?: number;
 }) {
@@ -311,13 +370,13 @@ function FrameRun({
   // lueur, comme l'étaient les 2 jeux de bandes).
   const background = out
     ? {
-        backgroundSize: `${period}px ${out}px, ${period}px ${thick}px`,
+        backgroundSize: `${period}px ${out}px, ${period}px ${R}px`,
         backgroundPosition: `0 0, 0 ${out}px`,
       }
     : { backgroundSize: `${period}px 100%` };
   return frameEdges().map(([x, y, rot, len]) => {
     const shift = (((along - out) % period) + period) % period;
-    along += len;
+    along += len - 2 * CORNER_T;
     return (
       // Bande d'un bord : posée au coin, tournée vers son bord (une seule boîte qui découpe ; avant
       // l'étape 4, une boîte tournée vide contenait la boîte qui découpe, même géométrie).
@@ -328,7 +387,14 @@ function FrameRun({
           left: x + out,
           top: y + out,
           width: len + 2 * out,
-          height: out + thick,
+          // Épaisseur R : la bande couvre tout l'angle arrondi du cadre, et ses deux bouts sont
+          // coupés en biais (45°, de l'angle de la carte vers l'intérieur) : chaque coin est partagé
+          // par ses deux bandes le long de sa diagonale, sans recouvrement. Avant (épaisseur `thick`,
+          // bouts droits), la lumière s'arrêtait dans l'angle sur des lignes droites et deux bandes
+          // s'y recouvraient : petit carré aux coins (vu par l'utilisateur, 27/11 ; test
+          // rendu/coins.rendu.test.tsx). La découpe du cadre (`frameRunClip`) garde l'anneau.
+          height: out + R,
+          clipPath: bandClip(len, out),
           transform: `rotate(${rot}deg) translate(${-out}px, ${-out}px)`,
         }}
       >
@@ -348,19 +414,30 @@ function FrameRun({
     );
   });
 }
+/** Contour d'un rectangle arrondi (décalé de `o`, rayon `r`), sens horaire. */
+const roundRect = (o: number, r: number, w: number, h: number) =>
+  `M${o + r},${o}H${o + w - r}A${r},${r} 0 0 1 ${o + w},${o + r}V${o + h - r}` +
+  `A${r},${r} 0 0 1 ${o + w - r},${o + h}H${o + r}A${r},${r} 0 0 1 ${o},${o + h - r}` +
+  `V${o + r}A${r},${r} 0 0 1 ${o + r},${o}Z`;
+/** Même contour en sens inverse : avec la règle « nonzero », il retire sa zone. */
+const roundRectBack = (o: number, r: number, w: number, h: number) =>
+  `M${o + r},${o}A${r},${r} 0 0 0 ${o},${o + r}V${o + h - r}` +
+  `A${r},${r} 0 0 0 ${o + r},${o + h}H${o + w - r}A${r},${r} 0 0 0 ${o + w},${o + h - r}` +
+  `V${o + r}A${r},${r} 0 0 0 ${o + w - r},${o}Z`;
 /**
- * Découpe des bandes avec lueur (boîte agrandie de `out` px de chaque côté) : l'ancienne boîte de
- * la lueur (rayon R + out) moins le rectangle de la carte, plus la carte arrondie (rayon R).
- * Règle « nonzero » : anneau extérieur et carte dans le sens horaire, rectangle en sens inverse.
+ * Découpe des bandes du cadre (boîte agrandie de `out` px de chaque côté pour la lueur de la SSR) :
+ * l'ancienne boîte de la lueur (rayon R + out) moins le rectangle de la carte, plus la carte
+ * arrondie (rayon R), moins l'intérieur du cadre arrondi (épaisseur `thick`, rayon R - thick).
+ * Sans ce dernier retrait, le bord intérieur droit des bandes débordait dans l'angle intérieur
+ * arrondi du cadre : petit carré de lumière aux coins (vu par l'utilisateur, 27/11).
+ * Règle « nonzero » : contours dans le sens horaire, rectangle et intérieur en sens inverse.
  */
-export function frameRunClip(out: number): string {
-  const rr = (o: number, r: number, w: number, h: number) =>
-    `M${o + r},${o}H${o + w - r}A${r},${r} 0 0 1 ${o + w},${o + r}V${o + h - r}` +
-    `A${r},${r} 0 0 1 ${o + w - r},${o + h}H${o + r}A${r},${r} 0 0 1 ${o},${o + h - r}` +
-    `V${o + r}A${r},${r} 0 0 1 ${o + r},${o}Z`;
-  const outer = rr(0, R + out, W + 2 * out, H + 2 * out);
+export function frameRunClip(out: number, thick: number = FRAME): string {
+  const inner = roundRectBack(out + thick, R - thick, W - 2 * thick, H - 2 * thick);
+  if (!out) return `path("${roundRect(0, R, W, H)}${inner}")`;
+  const outer = roundRect(0, R + out, W + 2 * out, H + 2 * out);
   const card = `M${out},${out}V${out + H}H${out + W}V${out}Z`;
-  return `path("${outer}${card}${rr(out, R, W, H)}")`;
+  return `path("${outer}${card}${roundRect(out, R, W, H)}${inner}")`;
 }
 const SSR_GLOW = 4;
 function SsrComets() {
@@ -372,9 +449,8 @@ function SsrComets() {
     >
       <FrameRun
         light="tcg-frame-run__light--comets"
-        period={2 * (W + H)}
+        period={FRAME_LOOP}
         seconds={2.6}
-        thick={FRAME}
         out={SSR_GLOW}
       />
     </div>
@@ -410,8 +486,12 @@ export const SR_SPARKS: [number, number, number, number, number][] = [
 function SrCarmine() {
   return (
     <>
-      <div aria-hidden className="tcg-frame-run tcg-strate-cadre">
-        <FrameRun light="tcg-frame-run__light--carmine" period={720} seconds={3.2} thick={FRAME} />
+      <div
+        aria-hidden
+        className="tcg-frame-run tcg-strate-cadre"
+        style={{ clipPath: frameRunClip(0) }}
+      >
+        <FrameRun light="tcg-frame-run__light--carmine" period={FRAME_LOOP / 2} seconds={3.2} />
       </div>
       <div aria-hidden className="tcg-sr-spark-sprite" />
     </>
