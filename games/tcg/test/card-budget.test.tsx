@@ -65,11 +65,16 @@ const ANIMABLES = new Set(["transform", "opacity", "scale", "rotate", "translate
  * - tcg-shock-lens : rayon de l'anneau-loupe d'un point lumineux (petit disque) ; effet lourd,
  *   à pré-calculer à l'étape 7 ;
  * - tcg-sr-spark-sprite : éclats SR en image pré-calculée (choix du 27/11) : 30 paliers de `background-position` en 2,4 s, une seule boîte par carte.
+ * - tcg-energie-hue (et -paliers) : teinte de l'énergie (`hue-rotate` seul, calque à part,
+ *   `will-change: filter`) sur sa couche masquée calculée une fois (energy-layer.ts) ; remplace
+ *   l'`<animate>` SVG qui recalculait toute la chaîne de filtres sur l'illustration (27/11).
  */
 const EXCEPTIONS_ANIMEES: Record<string, string[]> = {
   "tcg-glitch": ["clip-path"],
   "tcg-shock-lens": ["--tcg-shock"],
   "tcg-sr-spark-sprite": ["background-position"],
+  "tcg-energie-hue": ["filter"],
+  "tcg-energie-hue-paliers": ["filter"],
 };
 
 /**
@@ -281,6 +286,34 @@ describe("filet de sécurité des cartes", () => {
           vfx.includes("<animate") || repeignantes.some((c) => vfx.includes(`class="${c}`));
         if (repeint) expect(EFFETS_LOURDS.has(cle), `${cle} (${layout})`).toBe(true);
         if (EFFETS_LOURDS.has(cle)) expect(vfx, cle).toMatch(/class="tcg-vfx"[^>]*data-lourd=""/);
+      }
+    }
+  });
+
+  it("énergie : plus d'animation qui repeint l'illustration, seule la teinte tourne (CSS)", () => {
+    const sr = CARTES_TEST.find((t) => t.card.rarity === "sr")?.card;
+    if (!sr) throw new Error("carte SR de test manquante");
+    const card = { ...sr, visualEffectKeys: ["energie"], visualEffectKeysFull: ["energie"] };
+    for (const paced of [false, true]) {
+      const html = renderToStaticMarkup(
+        <GameCard card={card} imageUrl="data:," layout="normal" pacedEffects={paced} />,
+      );
+      const vfx = html.slice(html.indexOf('data-effect="energie"'));
+      expect(vfx).not.toContain("<animate");
+      expect(vfx).not.toContain("hueRotate");
+      // Couche masquée et rayonnement : chacun sous un calque de teinte.
+      expect(vfx.match(/class="tcg-vfx-energie-hue/g)?.length).toBe(2);
+      expect(vfx.includes("tcg-vfx-energie-hue--paliers")).toBe(paced);
+    }
+    // Les images clés de la teinte ne font varier que `hue-rotate` (rien d'autre à repeindre).
+    for (const nom of ["tcg-energie-hue", "tcg-energie-hue-paliers"]) {
+      const debut = css.indexOf(`@keyframes ${nom} {`);
+      const corps = debut < 0 ? "" : css.slice(debut, css.indexOf("\n}", debut));
+      const valeurs = [...corps.matchAll(/([\w-]+)\s*:\s*([^;]+);/g)];
+      expect(valeurs.length, nom).toBeGreaterThanOrEqual(3);
+      for (const [, prop, val] of valeurs) {
+        expect(prop, nom).toBe("filter");
+        expect(val, nom).toMatch(/^hue-rotate\(-?[\d.]+deg\)$/);
       }
     }
   });

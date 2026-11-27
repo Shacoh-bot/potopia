@@ -40,8 +40,11 @@ describe("éclats SR et options du banc d'essai", () => {
         renderToStaticMarkup(
           <GameCard card={card} imageUrl="data:," layout="normal" pacedEffects={paced} />,
         );
+      // Énergie : teinte en CSS (27/11), paliers par une autre animation ; mirage : SVG discret.
+      const marque = fx === "energie" ? "tcg-vfx-energie-hue--paliers" : 'calcMode="discrete"';
+      expect(html(false)).not.toContain(marque);
       expect(html(false)).not.toContain("discrete");
-      expect(html(true)).toContain('calcMode="discrete"');
+      expect(html(true)).toContain(marque);
     }
     expect(pacedValues("0;70;0;-70;0", 4)).toBe("0;70;0;-70");
     expect(pacedValues("0.012 0.06;0.016 0.09;0.012 0.06", 2)).toBe("0.012 0.06;0.016 0.09");

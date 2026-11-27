@@ -100,8 +100,9 @@ describe("planche : carte figée non survolée", () => {
       const enCours = repos.filter((a) => a.enCours);
       expect(enCours, JSON.stringify(enCours)).toEqual([]);
       expect(repos.filter((a) => a.lourd).length).toBeGreaterThan(0);
+      // Animations SVG restantes en pause. L'énergie n'en a plus (27/11 : teinte en CSS sur sa
+      // couche calculée une fois), d'où aucun minimum ici.
       const svgs = svgAnimes(carte);
-      expect(svgs.length).toBeGreaterThan(0);
       expect(svgs.map((s) => s.animationsPaused())).toEqual(svgs.map(() => true));
       expect(affiches(carte, ".tcg-sr-spark-sprite")).toBe(0);
       const grains = carte.querySelectorAll(".tcg-vfx-mote, .tcg-vfx-ember").length;

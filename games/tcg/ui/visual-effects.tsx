@@ -1,6 +1,7 @@
 "use client";
 
 import { type ComponentType, type CSSProperties, useEffect, useId, useRef, useState } from "react";
+import { energyLayerUrl } from "./energy-layer";
 import { watchFrozenSvg } from "./offscreen-pause";
 import type { CardData } from "./cards";
 import { faction, PremiumArt } from "./premium";
@@ -470,23 +471,59 @@ const diff = (sign: 1 | -1) => {
   return `${k} ${-k} 0 0 0  0 ${k} ${-k} 0 0  ${-k} 0 ${k} 0 0  0 0 0 0 1`;
 };
 
+/** Couche masquée de l'énergie (image calculée une fois), ou `null` tant qu'elle manque. */
+function useEnergyLayer(src: string | null): string | null {
+  const [layer, setLayer] = useState<{ src: string; url: string } | null>(null);
+  useEffect(() => {
+    if (!src) return;
+    let live = true;
+    void energyLayerUrl(src).then((url) => {
+      if (live && url) setLayer({ src, url });
+    });
+    return () => {
+      live = false;
+    };
+  }, [src]);
+  return layer && layer.src === src ? layer.url : null;
+}
+
 /**
  * Énergie vivante : seules les zones vives et saturées de l'illustration (volutes d'énergie,
  * magie, flammes colorées) pulsent et changent lentement de teinte ; le reste (personnages, décor,
- * nuages blancs) ne bouge pas. Filtre SVG : la saturation est estimée par les écarts entre canaux
- * (les deux signes, additionnés), multipliée par la luminosité (au-dessus d'un seuil : les
- * vêtements sombres restent hors du masque) ; une copie de l'image, à la teinte tournée
- * (animée), n'est gardée que dans ce masque, avec un rayonnement flou en `screen`. Carte figée
- * ou mouvement réduit : teinte fixe, seulement un peu ravivée.
+ * nuages blancs) ne bouge pas. Filtre SVG FIXE : la saturation est estimée par les écarts entre
+ * canaux (les deux signes, additionnés), multipliée par la luminosité (au-dessus d'un seuil : les
+ * vêtements sombres restent hors du masque) ; seule la partie de l'image dans ce masque est
+ * gardée, avec un rayonnement flou en `screen`.
+ *
+ * La teinte ne tourne plus dans le filtre (avant : `<animate>` SVG, toute la chaîne recalculée
+ * sur l'illustration à chaque image, ~3 i/s dans Firefox logiciel) : la couche masquée ne change
+ * jamais, elle est calculée une fois par illustration en image (energy-layer.ts, même calcul ;
+ * le filtre SVG, fixe, ne sert qu'en attendant ou si le calcul est impossible), et seule sa
+ * teinte tourne en CSS (`hue-rotate` sur un calque à part, même courbe 0 ; 70 ; 0 ; -70 ; 0 en
+ * 9 s, rayonnement compris), ce que la carte graphique fait à peu de frais. Même résultat : la
+ * rotation de teinte est un calcul par pixel qui commute avec le masque (opacité) et avec le
+ * flou. Carte figée ou mouvement réduit : teinte fixe.
  */
 function LivingEnergy({ card, still, paced }: EffectProps) {
   const reduced = useReducedMotion();
   const moving = !still && !reduced;
-  const id = moving ? "tcg-vfx-energie" : "tcg-vfx-energie-still";
+  const hue = moving
+    ? `tcg-vfx-energie-hue${paced ? " tcg-vfx-energie-hue--paliers" : ""}`
+    : undefined;
+  const layer = useEnergyLayer(card.imageUrl);
+  const masked = layer ? (
+    <div style={fillAbs}>
+      <PremiumArt card={{ ...card, imageUrl: layer, imageUrlLarge: null }} />
+    </div>
+  ) : (
+    <div style={{ ...fillAbs, filter: "url(#tcg-vfx-energie)" }}>
+      <PremiumArt card={card} />
+    </div>
+  );
   return (
     <div style={{ ...fillAbs, overflow: "hidden" }}>
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
-        <filter id={id} colorInterpolationFilters="sRGB">
+        <filter id="tcg-vfx-energie" colorInterpolationFilters="sRGB">
           <feColorMatrix in="SourceGraphic" type="matrix" values={diff(1)} result="d1" />
           <feColorMatrix in="SourceGraphic" type="matrix" values={diff(-1)} result="d2" />
           <feComposite in="d1" in2="d2" operator="arithmetic" k2="1" k3="1" result="spread" />
@@ -505,27 +542,18 @@ function LivingEnergy({ card, still, paced }: EffectProps) {
             result="lum"
           />
           <feComposite in="sat" in2="lum" operator="arithmetic" k1="1" result="mask" />
-          <feColorMatrix in="SourceGraphic" type="hueRotate" values="0" result="hue">
-            {moving && (
-              <animate
-                attributeName="values"
-                dur="9s"
-                values={paced ? pacedValues("0;70;0;-70;0", 18) : "0;70;0;-70;0"}
-                {...(paced ? { calcMode: "discrete" } : null)}
-                repeatCount="indefinite"
-              />
-            )}
-          </feColorMatrix>
-          <feComposite in="hue" in2="mask" operator="in" />
+          <feComposite in="SourceGraphic" in2="mask" operator="in" />
         </filter>
       </svg>
       <PremiumArt card={card} />
-      <div className="tcg-vfx-energie" style={{ filter: `url(#${id})` }}>
-        <PremiumArt card={card} />
+      <div className="tcg-vfx-energie">
+        <div className={hue} style={fillAbs}>
+          {masked}
+        </div>
       </div>
       <div className="tcg-vfx-energie tcg-vfx-energie-bloom">
-        <div style={{ ...fillAbs, filter: `url(#${id})` }}>
-          <PremiumArt card={card} />
+        <div className={hue} style={fillAbs}>
+          {masked}
         </div>
       </div>
     </div>
