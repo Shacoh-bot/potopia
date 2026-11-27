@@ -84,8 +84,6 @@ const CARD_WIDTH = 300;
 const CARD_RATIO = 360 / 504;
 /** Durée du demi-tour d'une carte (ms), comme tcg-flip-out puis tcg-flip-in (2 × 0,31 s) dans tcg.css. */
 const FLIP_MS = 620;
-/** Fondu d'arrivée de l'aura d'une carte posée (`tcg-aura-in`). */
-const AURA_IN_MS = 700;
 /** Effacement de la vidéo quand les cartes prennent le relais (`.tcg-opening-video`). */
 const VIDEO_FADE_MS = 450;
 /** Attente maximale (ms) des illustrations des cartes tirées, avant de les afficher quand même. */
@@ -308,8 +306,9 @@ function OpeningCard({
     setFaceMounted(true);
     setSide("face");
     // une Alt Art se révèle avec le son de la SSR ; le halo reste celui de sa rareté. Une carte
-    // avec son propre (Singham…) ne joue que lui ; une SR/SSR, son son de victoire tiré.
-    revealCardSound(revealRarity(opened.card), opened.revealSoundUrl ?? opened.victorySoundUrl);
+    // avec son propre (Singham…) ne joue que lui ; une SR/SSR, sa révélation ET son son de victoire
+    // tiré, ensemble (choix de l'utilisateur, 27/11/2026).
+    revealCardSound(revealRarity(opened.card), opened.revealSoundUrl, opened.victorySoundUrl);
     onReveal();
     // La face ne suit la souris qu'une fois posée, sinon elle resterait de travers.
     window.setTimeout(() => setSettled(true), FLIP_MS);
@@ -320,10 +319,15 @@ function OpeningCard({
   return (
     <div
       className="tcg-opening-slot absolute"
+      data-settled={settled ? "" : undefined}
       style={{ ...to, transform: start, transitionDuration: placed ? undefined : "0s" }}
     >
-      {/* Aura de la carte, derrière elle (et sous les cartes voisines), une fois retournée. */}
-      {settled && opened && hasAura(opened.card.rarity) && <CardAura rarity={opened.card.rarity} />}
+      {/* Aura de la carte, derrière elle (et sous les cartes voisines) : montée dès le début du
+          demi-tour, invisible, elle finit son fondu (`tcg-aura-in`) quand la carte est retournée.
+          Montée à la fin, la vidéo arrivait après un temps mort (utilisateur, 27/11/2026). */}
+      {side === "face" && opened && hasAura(opened.card.rarity) && (
+        <CardAura rarity={opened.card.rarity} />
+      )}
       <button
         type="button"
         className="tcg-opening-card"
@@ -493,7 +497,8 @@ export function BoosterWarmUp({
         },
         warmUpRest(performance.now() - started.current, {
           videoGoneAt: WARM_UP_VIDEO_OUT + VIDEO_FADE_MS,
-          settleMs: FLIP_MS + AURA_IN_MS,
+          // l'aura (`tcg-aura-in`) finit son fondu avec le demi-tour : rien à attendre après
+          settleMs: FLIP_MS,
         }),
       );
       cancel = () => window.clearTimeout(timer);

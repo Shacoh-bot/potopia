@@ -1564,8 +1564,10 @@ module `games/tcg`, `src/boosters.ts`). Décidé le 2026-11-13 :
   Chaque son varie un peu à chaque fois ; volume du site respecté.
 - Sons de victoire (`src/victory-sounds.ts`, tables `tcg.victory_sounds` et
   `tcg.heard_victory_sounds`, migration `tcg_victory_sounds`, ajout seul) : au retournement d'une SR
-  ou d'une SSR, un son de victoire remplace les bruitages de rareté (le son propre d'une carte passe
-  avant). Tiré côté serveur à l'ouverture du paquet (`withVictorySounds` de
+  ou d'une SSR, un son de victoire part EN MÊME TEMPS que les bruitages de rareté (même geste ; la SR
+  prend le favori « Affinage SR 2 », `reveal-sr-affinage.mp3`), 25 s au plus avec fondu sur les 3
+  dernières (`VICTORY_MAX_S`, `cappedGain` de `ui/booster-sounds.ts`) ; le son propre d'une carte
+  passe avant et joue seul. Tiré côté serveur à l'ouverture du paquet (`withVictorySounds` de
   `admin/boosters/pack.ts`, jamais pour le paquet tiré d'avance) : par joueur, un son jamais entendu
   au hasard jusqu'à les avoir tous découverts, puis vrai hasard (`pickVictorySound`,
   `drawVictorySounds`). Lu par `<audio>` comme le son propre (fondu quand une autre carte se

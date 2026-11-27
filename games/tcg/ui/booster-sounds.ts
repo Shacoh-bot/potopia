@@ -149,7 +149,29 @@ export function flipSound(rarity: string) {
 
 const warmed = new Map<string, HTMLAudioElement>();
 let playing: HTMLAudioElement | null = null;
+/** Durée maximale du son en cours (`cardSound`, option `maxS`), `null` : entier. */
+let playingMax: number | null = null;
 let pending: number | null = null;
+
+/**
+ * Sons de victoire (« sons randoms ») : 25 s au plus ; un son plus long s'éteint en fondu sur ses
+ * 3 dernières secondes, jamais coupé net (choix de l'utilisateur, 27/11/2026).
+ */
+export const VICTORY_MAX_S = 25;
+export const VICTORY_FADE_S = 3;
+
+/**
+ * Gain (0 à 1) d'un son limité à `maxS` secondes, à la position `t` (s) de sa lecture : 1, puis
+ * fondu linéaire sur les `fadeS` dernières secondes, 0 à `maxS` et au-delà.
+ */
+export function cappedGain(t: number, maxS = VICTORY_MAX_S, fadeS = VICTORY_FADE_S): number {
+  if (t <= maxS - fadeS) return 1;
+  return Math.max(0, Math.min(1, (maxS - t) / fadeS));
+}
+
+/** Volume d'un son propre : celui du site, fois le fondu de fin s'il est limité. */
+const cardVolume = (audio: HTMLAudioElement, maxS: number | null) =>
+  Math.min(1, effectiveVolume()) * (maxS === null ? 1 : cappedGain(audio.currentTime, maxS));
 
 /** Télécharge d'avance le son propre d'une carte (cache du navigateur), sans le jouer. */
 export function preloadCardSound(url: string) {
@@ -166,6 +188,7 @@ export function stopCardSound(fadeS = 0.4) {
   pending = null;
   const audio = playing;
   playing = null;
+  playingMax = null;
   if (!audio) return;
   const from = audio.volume;
   const start = performance.now();
@@ -182,9 +205,10 @@ export function stopCardSound(fadeS = 0.4) {
  * Joue le son propre d'une carte dans `at` secondes (0 : tout de suite, dans le geste même), au
  * volume du site. Il part de l'élément préchargé par `preloadCardSound` s'il est libre : un
  * `new Audio(url)` refait la lecture du fichier et son décodage avant de jouer, d'où le retard au
- * clic constaté par l'utilisateur (27/11/2026).
+ * clic constaté par l'utilisateur (27/11/2026). `maxS` : durée maximale, fondu de sortie avant
+ * (`cappedGain`, suivi de la position de lecture), arrêt à `maxS`.
  */
-export function cardSound(url: string, { at = 0 }: { at?: number } = {}) {
+export function cardSound(url: string, { at = 0, maxS }: { at?: number; maxS?: number } = {}) {
   stopCardSound();
   if (typeof Audio === "undefined" || effectiveVolume() <= 0) return;
   const start = () => {
@@ -194,8 +218,10 @@ export function cardSound(url: string, { at = 0 }: { at?: number } = {}) {
     const audio = ready && ready.paused ? ready : new Audio(url);
     if (!ready) warmed.set(url, audio);
     if (audio.currentTime > 0) audio.currentTime = 0;
-    audio.volume = Math.min(1, effectiveVolume());
+    const max = maxS ?? null;
+    audio.volume = cardVolume(audio, max);
     playing = audio;
+    playingMax = max;
     audio.addEventListener(
       "ended",
       () => {
@@ -206,6 +232,25 @@ export function cardSound(url: string, { at = 0 }: { at?: number } = {}) {
     void audio.play().catch(() => {
       if (playing === audio) playing = null;
     });
+    if (max === null) return;
+    // Fondu de fin : position suivie toutes les 50 ms (et à chaque `timeupdate`, seul signal
+    // d'un onglet en arrière-plan), jusqu'à l'arrêt à `max`, la fin du son ou un autre son.
+    const track = () => {
+      if (playing !== audio) {
+        window.clearInterval(timer);
+        audio.removeEventListener("timeupdate", track);
+        return;
+      }
+      audio.volume = cardVolume(audio, max);
+      if (audio.currentTime >= max) {
+        audio.pause();
+        playing = null;
+        playingMax = null;
+        track();
+      }
+    };
+    const timer = window.setInterval(track, 50);
+    audio.addEventListener("timeupdate", track);
   };
   if (at > 0) pending = window.setTimeout(start, at * 1000);
   else start();
@@ -213,17 +258,24 @@ export function cardSound(url: string, { at = 0 }: { at?: number } = {}) {
 
 /**
  * Retournement d'une carte dans un booster : son son propre s'il en a un (rien d'autre, pas même
- * la révélation SR/SSR), sinon les bruitages de sa rareté. Le son propre précédent s'arrête en fondu.
+ * la révélation SR/SSR), sinon les bruitages de sa rareté, et EN MÊME TEMPS (même geste, même
+ * instant) son son de victoire tiré s'il en a un (SR/SSR, 25 s au plus : choix de l'utilisateur,
+ * 27/11/2026). Le son propre précédent s'arrête en fondu.
  */
-export function revealCardSound(rarity: string, soundUrl?: string | null) {
+export function revealCardSound(
+  rarity: string,
+  soundUrl?: string | null,
+  victoryUrl?: string | null,
+) {
   if (soundUrl) {
     cardSound(soundUrl);
     return;
   }
   stopCardSound();
   flipSound(rarity);
+  if (victoryUrl) cardSound(victoryUrl, { maxS: VICTORY_MAX_S });
 }
 
 onVolumeChange(() => {
-  if (playing) playing.volume = Math.min(1, effectiveVolume());
+  if (playing) playing.volume = cardVolume(playing, playingMax);
 });

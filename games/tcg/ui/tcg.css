@@ -2411,15 +2411,28 @@ body:has(.tcg-opening, .tcg-still)::before {
     visibility: visible;
   }
 }
-/* La carte révélée prend son aura (`CardAura`, posée derrière elle dans la case) : elle apparaît
-   en fondu une fois la carte posée. Les anciens halos (ombres portées) sont remplacés. */
+/* La carte révélée prend son aura (`CardAura`, posée derrière elle dans la case). Montée dès le
+   début du demi-tour (la vidéo a le temps de démarrer), elle reste invisible pendant que le dos
+   tourne, puis apparaît pendant que la face se pose : entière à la fin du demi-tour (0,62 s,
+   FLIP_MS), jamais après (utilisateur, 27/11/2026). Les anciens halos sont remplacés. */
 .tcg-opening-slot > .tcg-aura,
 .tcg-opening-slot > .tcg-aura-rare {
-  animation: tcg-aura-in 0.7s ease-out both;
+  animation: tcg-aura-in 0.62s linear both;
+}
+/* Carte posée (fin du demi-tour, comptée depuis le clic) : aura entière d'office, même si le
+   fondu, parti à la première image après le clic, n'a pas fini (machine lente). */
+.tcg-opening-slot[data-settled] > .tcg-aura,
+.tcg-opening-slot[data-settled] > .tcg-aura-rare {
+  animation: none;
+  opacity: 1;
 }
 @keyframes tcg-aura-in {
-  from {
+  0%,
+  50% {
     opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
 .tcg-opening-button {
