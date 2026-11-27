@@ -23,6 +23,12 @@ const css = sansCommentaires(read("tcg.css"));
  */
 const PLAFOND_ELEMENTS = 74;
 
+/**
+ * Bandes animées des cadres SR/SSR par carte (`tcg-frame-run__light`, une par bord). Étape 6 : la
+ * lueur de la SSR est portée par les bandes du cadre, 8 → 4.
+ */
+const PLAFOND_BANDES = 4;
+
 /** Classes des parties animées d'une carte : jamais dans un calque du socle (`tcg-socle`). */
 const ANIMEES = /tcg-frame-run|tcg-sr-spark|tcg-aura|tcg-vfx|tcg-glare|tcg-reveal/;
 
@@ -186,6 +192,15 @@ describe("filet de sécurité des cartes", () => {
     );
   });
 
+  it("lumières SR/SSR : au plus 4 bandes animées par carte", () => {
+    // Étape 6 : le coût d'un cadre animé suit le nombre d'éléments animés (planche de 40 SSR, Chrome
+    // GPU : 8 bandes 29-33 im/s, 4 bandes 47-54). La SSR avait 8 bandes (lueur à part), plus que 4.
+    const comptes = Object.fromEntries(
+      rendus.map((r) => [r.id, r.html.match(/tcg-frame-run__light /g)?.length ?? 0]),
+    );
+    expect(Math.max(...Object.values(comptes)), JSON.stringify(comptes)).toBe(PLAFOND_BANDES);
+  });
+
   it("le socle (cadre, pastilles) n'a aucun enfant animé", () => {
     for (const r of rendus) {
       const s = socles(r.html);
@@ -226,6 +241,24 @@ describe("filet de sécurité des cartes", () => {
     for (const [id, n] of Object.entries(comptes)) {
       const plafond = SANS_EFFET.test(id) ? 0 : (PLAFOND_FUSIONS[id] ?? PLAFOND_FUSIONS_DEFAUT);
       expect(n, `${id} ${JSON.stringify(comptes)}`).toBeLessThanOrEqual(plafond);
+    }
+  });
+
+  it("au plus 1 effet lourd vivant par carte (animation hors transform/opacity)", () => {
+    // Classes qui portent une animation de la liste blanche (repeinte à chaque image).
+    const lourdes = new Set<string>();
+    for (const [, sel, corps] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const nom = (corps ?? "").match(/animation(?:-name)?\s*:\s*([\w-]+)/)?.[1];
+      if (!nom || !(nom in EXCEPTIONS_ANIMEES)) continue;
+      for (const c of (sel ?? "").match(/\.tcg-[\w-]+/g) ?? []) lourdes.add(c.slice(1));
+    }
+    lourdes.delete("tcg-tilt");
+    expect(lourdes.size).toBeGreaterThan(0);
+    for (const r of rendus) {
+      const vivantes = [...lourdes].filter((c) =>
+        new RegExp(`class="(?:[^"]* )?${c}[ "]`).test(r.html),
+      );
+      expect(vivantes.length, `${r.id} ${vivantes}`).toBeLessThanOrEqual(1);
     }
   });
 

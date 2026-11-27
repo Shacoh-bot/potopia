@@ -78,6 +78,10 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Cartes SSR : la lueur autour du cadre est portée par ses lumières (4 animations au lieu de 8, même rendu). Une carte hors de l'écran met ses animations en pause.",
+      },
+      {
+        admin: true,
         text: "Cartes : reflets du cadre cuits dans son image, halo du nom sans filtre, effets de l'illustration dans un calque à part. Plus aucune fusion sur une carte sans effet. Firefox : cadre un peu plus coloré, comme dans Chrome.",
       },
     ],

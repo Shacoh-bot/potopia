@@ -467,11 +467,10 @@
   overflow: hidden;
   pointer-events: none;
 }
-/* Lueur qui déborde de la carte : bandes de 4 px juste à l'extérieur du cadre. */
+/* SSR : les bandes portent aussi la lueur qui déborde de la carte (4 px dehors). Boîte agrandie,
+   découpée par un chemin (v5.tsx, frameRunClip) : coins arrondis de la lueur et de la carte. */
 .tcg-frame-run--glow {
-  inset: -4px;
-  border-radius: 26px;
-  opacity: 0.45;
+  border-radius: 0;
 }
 .tcg-frame-run__cut {
   position: absolute;
@@ -502,25 +501,42 @@
     translate: 1440px;
   }
 }
-/* SSR-2 : deux comètes par tour (la tête, rose, en avant). */
+/* SSR-2 : deux comètes par tour (la tête, rose, en avant). Premier fond : la lueur du dehors, mêmes
+   comètes à 45 % (l'opacité de l'ancien calque de lueur, étape 6) ; second : la lumière du cadre. */
 .tcg-frame-run__light--comets {
   /* période : un tour de cadre, 2 × (300 + 420) px */
   animation-name: tcg-frame-run-1440;
-  background-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    transparent 6.1%,
-    rgb(103 232 249 / 0.9) 19.4%,
-    #fff 24.4%,
-    #ff2d7a 27.2%,
-    transparent 31.1%,
-    transparent 56.1%,
-    rgb(168 85 247 / 0.9) 69.4%,
-    #fff 74.4%,
-    #ff2d7a 77.2%,
-    transparent 81.1%,
-    transparent 100%
-  );
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 6.1%,
+      rgb(103 232 249 / 0.405) 19.4%,
+      rgb(255 255 255 / 0.45) 24.4%,
+      rgb(255 45 122 / 0.45) 27.2%,
+      transparent 31.1%,
+      transparent 56.1%,
+      rgb(168 85 247 / 0.405) 69.4%,
+      rgb(255 255 255 / 0.45) 74.4%,
+      rgb(255 45 122 / 0.45) 77.2%,
+      transparent 81.1%,
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 6.1%,
+      rgb(103 232 249 / 0.9) 19.4%,
+      #fff 24.4%,
+      #ff2d7a 27.2%,
+      transparent 31.1%,
+      transparent 56.1%,
+      rgb(168 85 247 / 0.9) 69.4%,
+      #fff 74.4%,
+      #ff2d7a 77.2%,
+      transparent 81.1%,
+      transparent 100%
+    );
 }
 /* SR-2 : carmin vif, reflets roses. */
 .tcg-frame-run__light--carmine {
@@ -630,6 +646,13 @@
    mais elle force la recomposition de tout l'écran à chaque image (coûteux dans Firefox). */
 body:has(.tcg-opening, .tcg-still)::before {
   animation-play-state: paused;
+}
+/* Budget (refonte, étape 6) : carte hors de l'écran (`data-hors-ecran`, posé par Tilt avec un
+   IntersectionObserver) : toutes ses animations s'arrêtent là où elles sont, et reprennent au retour. */
+.tcg-tilt[data-hors-ecran] *,
+.tcg-tilt[data-hors-ecran] *::before,
+.tcg-tilt[data-hors-ecran] *::after {
+  animation-play-state: paused !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .tcg-frame-run__light,

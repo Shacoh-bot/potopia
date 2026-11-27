@@ -270,6 +270,12 @@ function Band({
  * saut. (Un disque conique qui tourne dans les bandes tombait à ~20 im/s par carte, Firefox
  * invisible ; un anneau masqué, à ~14.) Les angles intérieurs arrondis ne sont pas traversés :
  * on y voit la couleur fixe du cadre (`RARITY_FRAME`), de la même teinte.
+ *
+ * Étape 6 de la refonte : le coût est le NOMBRE d'éléments animés par carte (Chrome GPU, planche
+ * de 40 SSR : 8 bandes 29-33 im/s, 4 bandes 47-54, 1 bande 60 ; ni la découpe arrondie ni la forme
+ * de l'animation n'y changent rien). La lueur extérieure de la SSR n'a donc plus ses 4 bandes à
+ * elle : chaque bande de bord porte les deux, lueur (les `out` px du dehors, couleurs à 45 %) et
+ * lumière du cadre, et une seule découpe en chemin garde les formes d'avant (`frameRunClip`).
  */
 type FrameMotion = "comets" | "carmine";
 /** Les 4 bords dans le sens horaire : coin de départ, angle, longueur (W et H sont définis plus bas). */
@@ -294,12 +300,21 @@ function FrameRun({
   period: number;
   /** Durée pour parcourir une période. */
   seconds: number;
-  /** Épaisseur de la bande. */
+  /** Épaisseur de la bande sur le cadre. */
   thick: number;
-  /** Bande hors de la carte, de `out` px (lueur) ; 0 : sur le cadre. */
+  /** Lueur hors de la carte, de `out` px, portée par la même bande (dégradé du dessus, à 45 %). */
   out?: number;
 }) {
   let along = 0;
+  // Avec lueur : 2 fonds superposés dans la bande, la lueur sur les `out` px du dehors, la lumière
+  // du cadre sur les `thick` px suivants (même phase : le décalage est compté depuis le coin de la
+  // lueur, comme l'étaient les 2 jeux de bandes).
+  const background = out
+    ? {
+        backgroundSize: `${period}px ${out}px, ${period}px ${thick}px`,
+        backgroundPosition: `0 0, 0 ${out}px`,
+      }
+    : { backgroundSize: `${period}px 100%` };
   return frameEdges().map(([x, y, rot, len]) => {
     const shift = (((along - out) % period) + period) % period;
     along += len;
@@ -313,7 +328,7 @@ function FrameRun({
           left: x + out,
           top: y + out,
           width: len + 2 * out,
-          height: thick,
+          height: out + thick,
           transform: `rotate(${rot}deg) translate(${-out}px, ${-out}px)`,
         }}
       >
@@ -325,7 +340,7 @@ function FrameRun({
           style={{
             left: -period - shift,
             width: len + 2 * out + period + shift,
-            backgroundSize: `${period}px 100%`,
+            ...background,
             animationDuration: `${seconds}s`,
           }}
         />
@@ -333,27 +348,36 @@ function FrameRun({
     );
   });
 }
+/**
+ * Découpe des bandes avec lueur (boîte agrandie de `out` px de chaque côté) : l'ancienne boîte de
+ * la lueur (rayon R + out) moins le rectangle de la carte, plus la carte arrondie (rayon R).
+ * Règle « nonzero » : anneau extérieur et carte dans le sens horaire, rectangle en sens inverse.
+ */
+export function frameRunClip(out: number): string {
+  const rr = (o: number, r: number, w: number, h: number) =>
+    `M${o + r},${o}H${o + w - r}A${r},${r} 0 0 1 ${o + w},${o + r}V${o + h - r}` +
+    `A${r},${r} 0 0 1 ${o + w - r},${o + h}H${o + r}A${r},${r} 0 0 1 ${o},${o + h - r}` +
+    `V${o + r}A${r},${r} 0 0 1 ${o + r},${o}Z`;
+  const outer = rr(0, R + out, W + 2 * out, H + 2 * out);
+  const card = `M${out},${out}V${out + H}H${out + W}V${out}Z`;
+  return `path("${outer}${card}${rr(out, R, W, H)}")`;
+}
+const SSR_GLOW = 4;
 function SsrComets() {
   return (
-    <>
-      <div aria-hidden className="tcg-frame-run tcg-frame-run--glow tcg-strate-cadre">
-        <FrameRun
-          light="tcg-frame-run__light--comets"
-          period={2 * (W + H)}
-          seconds={2.6}
-          thick={4}
-          out={4}
-        />
-      </div>
-      <div aria-hidden className="tcg-frame-run tcg-strate-cadre">
-        <FrameRun
-          light="tcg-frame-run__light--comets"
-          period={2 * (W + H)}
-          seconds={2.6}
-          thick={FRAME}
-        />
-      </div>
-    </>
+    <div
+      aria-hidden
+      className="tcg-frame-run tcg-frame-run--glow tcg-strate-cadre"
+      style={{ inset: -SSR_GLOW, clipPath: frameRunClip(SSR_GLOW) }}
+    >
+      <FrameRun
+        light="tcg-frame-run__light--comets"
+        period={2 * (W + H)}
+        seconds={2.6}
+        thick={FRAME}
+        out={SSR_GLOW}
+      />
+    </div>
   );
 }
 /** Éclats dorés de la SR-2 : [x, y, taille, départ (s), durée (s)], posés sur le cadre. */
