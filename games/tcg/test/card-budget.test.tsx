@@ -18,9 +18,10 @@ const css = sansCommentaires(read("tcg.css"));
  * Plafond d'éléments HTML/SVG par carte (rendu serveur) : 295 le 26/11, SR normale (commune 146, full
  * art 48-197). Étape 4 (socle fixe) : anneaux à dégradé pré-dessinés en images (~220 traits SVG de
  * moins) et bandes SR/SSR d'une boîte par bord : 49-52 (commune à légendaire), SR 73-74, SSR 68-69,
- * 75 avec trois effets au pointeur. Cible de la refonte (80) atteinte.
+ * 75 avec trois effets au pointeur. Cible de la refonte (80) atteinte. Étape 5 : trait du polissage
+ * et chaîne SVG des cadres unis dans l'image du cadre, 48-51, SR 73-74, SSR 68-69, pointeur 74.
  */
-const PLAFOND_ELEMENTS = 75;
+const PLAFOND_ELEMENTS = 74;
 
 /** Classes des parties animées d'une carte : jamais dans un calque du socle (`tcg-socle`). */
 const ANIMEES = /tcg-frame-run|tcg-sr-spark|tcg-aura|tcg-vfx|tcg-glare|tcg-reveal/;
@@ -76,18 +77,79 @@ const REPEINTS_AU_POINTEUR = [
 
 /** Fusions de couleurs (`mix-blend-mode`) par fichier : à faire baisser (étape 5, fusions cuites). */
 const FUSIONS: Record<string, number> = {
+  // Étape 5 : polissage du cadre cuit dans son image (fusion calculée une fois au dessin).
+  "frame-ring.tsx": 1,
   "tcg.css": 33,
   "CardBench.tsx": 1,
   "premium.tsx": 1,
   "snap-styles.tsx": 14,
   "snap.tsx": 3,
   "v2.tsx": 2,
-  "v5.tsx": 1,
+  "v5.tsx": 0,
   "visual-effects.tsx": 2,
 };
 const FICHIERS_UI = readdirSync(new URL("../ui/", import.meta.url)).filter((f) =>
   /\.(tsx?|css)$/.test(f),
 );
+
+/**
+ * Classes dont une règle de tcg.css pose une fusion (`mix-blend-mode`) ou un filtre (`filter`,
+ * `backdrop-filter`) : la dernière partie de chaque sélecteur de ces règles.
+ */
+const CLASSES_FUSION = new Set(
+  [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, , corps]) =>
+      /(?:^|[\s;])(?:mix-blend-mode|(?:-webkit-)?(?:backdrop-)?filter)\s*:\s*(?!none)/.test(
+        corps ?? "",
+      ),
+    )
+    .flatMap(([, sel]) =>
+      (sel ?? "")
+        .split(",")
+        .flatMap((s) => [
+          ...(
+            s
+              .trim()
+              .split(/[\s>+~]+/)
+              .pop() ?? ""
+          ).matchAll(/\.([\w-]+)/g),
+        ])
+        .map((m) => m[1] ?? ""),
+    ),
+);
+
+/**
+ * Fusions et filtres présents dans le rendu d'une carte : styles en ligne, attributs SVG `filter`
+ * et éléments d'une classe de `CLASSES_FUSION`. Chacun force un groupe de rendu à part.
+ */
+function fusionsEtFiltres(html: string): number {
+  let n = 0;
+  for (const [balise] of html.matchAll(/<[a-zA-Z][^>]*>/g)) {
+    const style = balise.match(/style="([^"]*)"/)?.[1] ?? "";
+    n += style.match(/(?:mix-blend-mode|(?:backdrop-)?filter):(?!none)/g)?.length ?? 0;
+    if (/\sfilter="url\(/.test(balise)) n++;
+    const classes = balise.match(/class="([^"]*)"/)?.[1]?.split(/\s+/) ?? [];
+    if (classes.some((c) => CLASSES_FUSION.has(c))) n++;
+  }
+  return n;
+}
+
+/**
+ * Plafond de fusions et filtres par carte (`fusionsEtFiltres`). Étape 4 : 2 sans effet (polissage
+ * soft-light du cadre, halo drop-shadow du titre), 5 avec trois effets, 15-16 avec trois effets au
+ * pointeur. Étape 5 (fusions cuites) : polissage dans l'image du cadre, halo du titre en ombres de
+ * texte : 0, 3 et 13-14 ; restent le contour du titre sans bandeau (full art sans encadrés : chaîne
+ * de drop-shadow, pas reproduite à l'identique en ombres de texte), le flou des encadrés de la full
+ * art et les fusions propres aux effets (holo, lampe, métal…), dans le groupe isolé de l'illustration.
+ */
+const PLAFOND_FUSIONS_DEFAUT = 3;
+const PLAFOND_FUSIONS: Record<string, number> = {
+  "rare-pointeur": 13,
+  "legendary-pointeur": 14,
+};
+
+/** Cartes sans effet : aucune fusion ni aucun filtre. */
+const SANS_EFFET = /-normale$/;
 
 function animationsDe(feuille: string): Record<string, string[]> {
   const out: Record<string, string[]> = {};
@@ -118,6 +180,7 @@ describe("filet de sécurité des cartes", () => {
     const comptes = Object.fromEntries(
       rendus.map((r) => [r.id, r.html.match(/<[a-zA-Z]/g)?.length ?? 0]),
     );
+    if (process.env.BUDGET_LOG) console.log(JSON.stringify(comptes));
     expect(Math.max(...Object.values(comptes)), JSON.stringify(comptes)).toBeLessThanOrEqual(
       PLAFOND_ELEMENTS,
     );
@@ -150,8 +213,19 @@ describe("filet de sécurité des cartes", () => {
 
   it("aucune fusion de couleurs en plus", () => {
     for (const f of FICHIERS_UI) {
-      const n = sansCommentaires(read(f)).match(/mix-blend-mode|mixBlendMode/g)?.length ?? 0;
+      // Hors images en data URL (anneaux pré-dessinés : fusion cuite, calculée une fois).
+      const source = sansCommentaires(read(f)).replace(/url\("data:[^"]*"\)/g, "");
+      const n = source.match(/mix-blend-mode|mixBlendMode/g)?.length ?? 0;
       expect(n, f).toBeLessThanOrEqual(FUSIONS[f] ?? 0);
+    }
+  });
+
+  it("fusions et filtres vivants par carte sous leur plafond", () => {
+    const comptes = Object.fromEntries(rendus.map((r) => [r.id, fusionsEtFiltres(r.html)]));
+    if (process.env.BUDGET_LOG) console.log(JSON.stringify(comptes));
+    for (const [id, n] of Object.entries(comptes)) {
+      const plafond = SANS_EFFET.test(id) ? 0 : (PLAFOND_FUSIONS[id] ?? PLAFOND_FUSIONS_DEFAUT);
+      expect(n, `${id} ${JSON.stringify(comptes)}`).toBeLessThanOrEqual(plafond);
     }
   });
 

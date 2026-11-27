@@ -57,11 +57,23 @@ describe("anneaux pré-dessinés", () => {
     expect(vus).toBeGreaterThan(0);
   });
 
-  it("l'image reprend les traits de l'ancien anneau (tour + un trait par segment)", () => {
+  it("l'image reprend les traits de l'ancien anneau (tour + un trait par segment, polissage)", () => {
     for (const spec of PREDRAWN_RINGS) {
       const svg = ringSvg(spec);
       const paint = parseRingPaint(spec.background);
-      if (!paint || paint.kind === "solid") throw new Error(`anneau uni : ${spec.background}`);
+      if (!paint) throw new Error(`couleur illisible : ${spec.background}`);
+      expect(ringClass(spec)).toMatch(/^tcg-ring-[0-9a-z]+$/);
+      expect(svg).not.toMatch(/"/);
+      // Polissage cuit (cadres, étape 5) : bande du cadre en soft-light, après l'anneau.
+      if (spec.polish)
+        expect(svg).toMatch(/<\/g><defs><linearGradient id='p'.*soft-light'\/><\/svg>$/);
+      else expect(svg).not.toContain("soft-light");
+      if (paint.kind === "solid") {
+        // Cadre uni : un seul trait, sa couleur ; pré-dessiné seulement pour le polissage.
+        expect(spec.polish).toBe(true);
+        expect(svg).toContain(`stroke='${paint.color}'`);
+        continue;
+      }
       const n = spec.segments ?? 120;
       const ring = ringSegments(
         paint,
@@ -73,8 +85,6 @@ describe("anneaux pré-dessinés", () => {
       );
       expect(svg.match(/<use /g)?.length).toBe(n + 1);
       expect(svg).toContain(`stroke='${ring.base}'`);
-      expect(svg).not.toMatch(/"/);
-      expect(ringClass(spec)).toMatch(/^tcg-ring-[0-9a-z]+$/);
     }
   });
 });

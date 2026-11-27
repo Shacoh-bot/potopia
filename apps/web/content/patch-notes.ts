@@ -76,6 +76,10 @@ export const PATCH_NOTES = parsePatchNotes([
         admin: true,
         text: "Cartes : cadres SR et SSR et filets dorés des encadrés dessinés une fois en image (un élément au lieu de ~220 traits), bandes lumineuses simplifiées : 50 à 75 éléments par carte au lieu de 146 à 295. Même rendu.",
       },
+      {
+        admin: true,
+        text: "Cartes : reflets du cadre cuits dans son image, halo du nom sans filtre, effets de l'illustration dans un calque à part. Plus aucune fusion sur une carte sans effet. Firefox : cadre un peu plus coloré, comme dans Chrome.",
+      },
     ],
   },
   {

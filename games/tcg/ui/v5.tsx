@@ -223,6 +223,8 @@ function Band({
           : `0 ${TITLE.inset - left}px`,
         overflow: "hidden",
         ...finalPanel(card, layout, bare),
+        // Contour du titre sans bandeau : chaîne de drop-shadow gardée (étape 5 : en ombres de
+        // texte, le contour autour du halo n'était pas le même ; full art sans encadrés seulement).
         ...(plain ? { textShadow: "none", filter: TITLE_OUTLINE } : null),
         border: 0,
         borderBottom: plain ? 0 : "1px solid rgb(255 255 255 / 0.14)",
@@ -443,7 +445,12 @@ function FitTitle({ title, width }: { title: string; width: number }) {
     );
   }
   return (
+    // Halo cyan : ombres de texte d'une copie du titre
+    // posée dessous (`.tcg-title::before`, même boîte de grille), plus de filtre `drop-shadow`
+    // (étape 5). Sur le titre lui-même, une ombre de texte passerait sur le dégradé et le noircirait.
     <span
+      className="tcg-title"
+      data-title={title}
       style={{
         // Même police que « POTOMON » au dos de la carte, en majuscules.
         fontFamily: font("rajdhani", "Rajdhani, sans-serif"),
@@ -452,25 +459,32 @@ function FitTitle({ title, width }: { title: string; width: number }) {
         letterSpacing: "0.04em",
         // Effet de « POTOMON » au dos : italique, dégradé blanc → cyan, halo cyan.
         fontStyle: "italic",
-        backgroundImage: "linear-gradient(180deg, #ffffff 30%, #67e8f9 100%)",
-        WebkitBackgroundClip: "text",
-        backgroundClip: "text",
-        color: "transparent",
-        filter: "drop-shadow(0 0 2.5px rgb(103 232 249 / 0.75))",
-        // L'italique penche à droite : un peu d'air pour ne pas couper la dernière lettre.
-        paddingInline: "0.15em",
         fontSize: size,
         lineHeight: twoLines ? 1.1 : 1.2,
         textAlign: "center",
         maxWidth: "100%",
-        overflow: "hidden",
-        display: "-webkit-box",
-        WebkitBoxOrient: "vertical",
-        WebkitLineClamp: twoLines ? 2 : 1,
-        wordBreak: "break-word",
+        display: "grid",
+        ["--tcg-title-lines" as string]: twoLines ? 2 : 1,
       }}
     >
-      {title}
+      <span
+        style={{
+          gridArea: "1 / 1",
+          backgroundImage: "linear-gradient(180deg, #ffffff 30%, #67e8f9 100%)",
+          WebkitBackgroundClip: "text",
+          backgroundClip: "text",
+          color: "transparent",
+          // L'italique penche à droite : un peu d'air pour ne pas couper la dernière lettre.
+          paddingInline: "0.15em",
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitBoxOrient: "vertical",
+          WebkitLineClamp: twoLines ? 2 : 1,
+          wordBreak: "break-word",
+        }}
+      >
+        {title}
+      </span>
     </span>
   );
 }
@@ -596,24 +610,18 @@ const W = 300;
 const H = 420;
 
 /**
- * Cadre repris du dos de la carte, posé sur la bordure de rareté : polissage en diagonale,
- * plaques d'angle dorées, gemmes cyan (haut) et magenta (bas) dans les coins libres (le coût et
- * la puissance couvrent les deux autres). La plaque du haut et son losange restent au dos.
+ * Cadre repris du dos de la carte, posé sur la bordure de rareté : filet doré, plaques d'angle dorées, gemmes cyan (haut) et magenta (bas) dans les coins libres (le coût et
+ * la puissance couvrent les deux autres). La plaque du haut et son losange restent au dos. Le
+ * polissage en diagonale (soft-light) est cuit dans l'image du cadre (`FrameRing polish`, étape 5) :
+ * il ne passe plus sur les lumières SR/SSR, qui n'ont plus de fusion au-dessus d'elles.
  */
 function BackStyleFrame({ refined = false }: { refined?: boolean }) {
-  const band = `M${R} 0 H${W - R} A${R} ${R} 0 0 1 ${W} ${R} V${H - R} A${R} ${R} 0 0 1 ${W - R} ${H} H${R} A${R} ${R} 0 0 1 0 ${H - R} V${R} A${R} ${R} 0 0 1 ${R} 0 Z M${R} ${FRAME} H${W - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - FRAME} ${R} V${H - R} A${R - FRAME} ${R - FRAME} 0 0 1 ${W - R} ${H - FRAME} H${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${FRAME} ${H - R} V${R} A${R - FRAME} ${R - FRAME} 0 0 1 ${R} ${FRAME} Z`;
   return (
     <svg
       aria-hidden
       viewBox={`0 0 ${W} ${H}`}
       style={{ ...fill, width: "100%", height: "100%", overflow: "visible" }}
     >
-      <path
-        d={band}
-        fillRule="evenodd"
-        fill="url(#tcg-back-polish)"
-        style={{ mixBlendMode: "soft-light" }}
-      />
       {/* Filet doré le long du bord intérieur. */}
       <rect
         // Carte du jeu : le filet chevauche le bord du cadre de couleur (aucun jour entre les deux).
@@ -663,9 +671,8 @@ const TEXT_HEIGHT = H - TEXT.top - TEXT.bottom;
  * filets des deux encadrés. Un anneau à dégradé absent de cette liste n'a pas d'image.
  */
 export const PREDRAWN_RINGS: RingSpec[] = [
-  ...Object.values(RARITY_FRAME)
-    .filter((bg) => !bg.startsWith("#"))
-    .map((background) => ({ background, width: FRAME })),
+  // Cadres de toutes les raretés, polissage du dos cuit dans l'image (étape 5).
+  ...Object.values(RARITY_FRAME).map((background) => ({ background, width: FRAME, polish: true })),
   trimRing(TYPE.height),
   trimRing(TEXT_HEIGHT),
 ];
@@ -767,12 +774,18 @@ export function FinalCard({
       {hoverHalo && <div aria-hidden className="tcg-hover-halo" data-rarity={finish} />}
       {full ? (
         <>
-          <Art card={card} />
-          {/* Full art : l'illustration redessinée (or, aquarelle…) reste sous le texte. */}
-          {imageEffects.length > 0 && (
-            <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
-              {effects(imageEffects)}
+          {/* Full art : l'illustration redessinée (or, aquarelle…) reste sous le texte. Groupe isolé
+              (étape 5) : les fusions des effets (holo « color »…) ne lisent que l'illustration, pas
+              toute la carte ; même image, l'illustration couvre la carte. */}
+          {imageEffects.length > 0 ? (
+            <div style={{ ...fill, borderRadius: R, isolation: "isolate" }}>
+              <Art card={card} />
+              <div style={{ ...fill, borderRadius: R, overflow: "hidden" }}>
+                {effects(imageEffects)}
+              </div>
             </div>
+          ) : (
+            <Art card={card} />
           )}
           {/* Points lumineux : accrochés à l'image, qui couvre toute la carte. */}
           {glow && (
@@ -798,6 +811,9 @@ export function FinalCard({
           <div
             style={{
               ...windowBox(STYLE),
+              // Groupe isolé (étape 5) : les fusions des effets de l'illustration (holo « color »…)
+              // ne lisent que la fenêtre (fond opaque : même image), pas toute la carte.
+              isolation: "isolate",
               ...(band === "court"
                 ? {
                     top: FINAL_ART.top,
@@ -860,7 +876,7 @@ export function FinalCard({
       >
         {/* Cadre dessiné (trait SVG ou image pré-dessinée), sans découpe : il ne peut plus se
             peindre sur toute la carte. */}
-        <FrameRing background={RARITY_FRAME[finish]} width={FRAME} />
+        <FrameRing background={RARITY_FRAME[finish]} width={FRAME} polish />
       </Layer>
       {FRAME_MOTION[finish] === "comets" && <SsrComets />}
       {FRAME_MOTION[finish] === "carmine" && <SrCarmine />}
