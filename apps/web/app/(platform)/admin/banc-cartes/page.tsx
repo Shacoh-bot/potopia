@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { getCurrentAdmin } from "@/lib/session";
 import { designFonts } from "../../cartes/fonts";
 import { cardFaces } from "../cartes/images";
+import { POTODEX_PAGE_SIZE } from "../potodex/paginate";
 
 export const metadata: Metadata = { title: "Banc d'essai des cartes" };
 
@@ -46,7 +47,7 @@ export default async function CardBenchPage() {
           fait chuter les images par seconde. Les cartes à son propre sont en tête : « Rejouer le
           retournement » le fait entendre. Lecture seule : rien n&apos;est enregistré.
         </p>
-        <CardBench cards={faces} />
+        <CardBench cards={faces} pageSize={POTODEX_PAGE_SIZE} fontClass={designFonts} />
       </div>
     </Card>
   );

@@ -4,7 +4,9 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CARD_RARITIES, CARD_RARITY_LABELS, type CardRarityId } from "../src/card-rules";
 import { CardAura, hasAura } from "./CardAura";
 import { CardBack } from "./CardBack";
+import { moveItem, useBenchDrag } from "./bench-drag";
 import { cardSound, stopCardSound } from "./booster-sounds";
+import { CardZoom } from "./CardZoom";
 import { GameCard, GameCardDefs, type GameCardFields } from "./GameCard";
 import { RETIRED_EFFECTS } from "./effect-places";
 import { H, W } from "./v2";
@@ -53,12 +55,24 @@ const BACK_MS = 400;
 
 /**
  * Banc d'essai des cartes (admin) : une carte, une rangée de 5 comme à l'ouverture d'un booster
- * (auras, face retournable, `zoom`), ou une planche de 40 comme le Potodex. Rareté, version et
+ * (auras, face retournable, `zoom`), ou une planche comme le Potodex (`pageSize` cartes, celui du
+ * Potodex, ou plus pour mesurer) : un clic ouvre la carte en grand comme au Potodex (`CardZoom`),
+ * un glisser la déplace (effets en pause pendant le geste, `useBenchDrag`). Rareté, version et
  * effets peuvent être forcés ; chaque strate se coupe à part ; un compteur donne les images par
  * seconde et les images longues. Sert à trouver, dans le vrai navigateur de l'admin, la strate qui
  * fait disparaître une partie de la carte ou qui ralentit. Rien n'est écrit.
  */
-export function CardBench({ cards }: { cards: BenchCard[] }) {
+export function CardBench({
+  cards,
+  pageSize = 12,
+  fontClass,
+}: {
+  cards: BenchCard[];
+  /** Cartes par page du Potodex : nombre de cartes de la planche par défaut. */
+  pageSize?: number;
+  /** Polices des cartes, pour la carte ouverte en grand (rendue dans `body`). */
+  fontClass?: string;
+}) {
   const [mode, setMode] = useState<Mode>("une");
   const [index, setIndex] = useState(0);
   const [rarity, setRarity] = useState<CardRarityId | "">("");
@@ -72,6 +86,8 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
   const [flip, setFlip] = useState(0);
   const [sparks, setSparks] = useState<SparkVariant>("actuel");
   const [paced, setPaced] = useState(false);
+  const [boardSize, setBoardSize] = useState(pageSize);
+  const [dragLite, setDragLite] = useState(true);
 
   if (cards.length === 0) return <p className="text-muted text-sm">Aucune carte à afficher.</p>;
 
@@ -85,7 +101,7 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
     };
     return { ...face, card };
   };
-  const count = mode === "une" ? 1 : mode === "rangee" ? 5 : 40;
+  const count = mode === "une" ? 1 : mode === "rangee" ? 5 : boardSize;
   const shown = Array.from({ length: count }, (_, n) => pick(n));
   const forced = layout || undefined;
   // Son propre de la première carte montrée, dans la version affichée (forcée ou la sienne).
@@ -114,7 +130,7 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
               [
                 ["une", "Une carte"],
                 ["rangee", "Rangée de 5 (booster)"],
-                ["planche", "Planche de 40 (Potodex)"],
+                ["planche", `Planche de ${boardSize} (Potodex)`],
               ] as const
             ).map(([m, label]) => (
               <button
@@ -175,6 +191,32 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
               </select>
             </label>
           </div>
+          {mode === "planche" && (
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-2">
+                Cartes sur la planche
+                <select
+                  value={boardSize}
+                  onChange={(e) => setBoardSize(Number(e.target.value))}
+                  className="border-border bg-surface rounded border px-2 py-1"
+                >
+                  {[...new Set([pageSize, 24, 40, 80])].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                      {n === pageSize ? " (comme le Potodex)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={dragLite} onChange={() => setDragLite(!dragLite)} />
+                Effets en pause pendant un glisser
+              </label>
+              <p className="text-muted text-xs">
+                Clic : la carte en grand. Glisser : la carte change de place.
+              </p>
+            </div>
+          )}
           {mode !== "planche" && (
             <div className="flex flex-col gap-1">
               <label className="flex items-center gap-2">
@@ -273,15 +315,20 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
 
       <FrameMeter />
 
-      <div className="tcg-bench" data-sans={off.join(" ") || undefined}>
+      <div
+        className="tcg-bench"
+        data-sans={off.join(" ") || undefined}
+        data-glisser={dragLite ? undefined : "plein"}
+      >
         {mode === "planche" ? (
-          <div className="flex flex-wrap gap-3">
-            {shown.map((c, n) => (
-              <Scaled key={n} scale={160 / W}>
-                <GameCard {...c} layout={forced} still sparks={sparks} pacedEffects={paced} />
-              </Scaled>
-            ))}
-          </div>
+          <BenchBoard
+            key={boardSize}
+            shown={shown}
+            layout={forced}
+            sparks={sparks}
+            paced={paced}
+            fontClass={fontClass}
+          />
         ) : (
           <div className="flex flex-wrap items-start gap-6 p-4">
             {shown.map((c, n) => (
@@ -302,6 +349,75 @@ export function CardBench({ cards }: { cards: BenchCard[] }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Planche du banc, comme celle du Potodex : un clic (ou Entrée) ouvre la carte en grand et vivante
+ * (`CardZoom`, comme `PotodexCard`) ; un glisser la change de place (`useBenchDrag`). L'ordre ne
+ * vit que dans le banc : rien n'est écrit.
+ */
+function BenchBoard({
+  shown,
+  layout,
+  sparks,
+  paced,
+  fontClass,
+}: {
+  shown: BenchCard[];
+  layout: TopLayout | undefined;
+  sparks: SparkVariant;
+  paced: boolean;
+  fontClass?: string;
+}) {
+  const [order, setOrder] = useState(() => shown.map((_, n) => n));
+  const [zoomed, setZoomed] = useState<number | null>(null);
+  const drag = useBenchDrag((from, to) => setOrder((o) => moveItem(o, from, to)));
+  const open = zoomed === null ? undefined : shown[zoomed];
+  return (
+    <>
+      <div className="flex flex-wrap gap-3">
+        {order.map((n, place) => {
+          const c = shown[n];
+          if (!c) return null;
+          return (
+            <div
+              key={n}
+              data-place={place}
+              role="button"
+              tabIndex={0}
+              aria-label={`Voir ${c.card.name} en grand (glisser pour la déplacer)`}
+              className="focus-visible:outline-accent cursor-grab touch-none rounded-[12px] select-none focus-visible:outline-2 focus-visible:outline-offset-4"
+              {...drag.handlers(place)}
+              onClick={() => {
+                if (!drag.wasDrag()) setZoomed(n);
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                setZoomed(n);
+              }}
+            >
+              <Scaled scale={160 / W}>
+                <GameCard {...c} layout={layout} still sparks={sparks} pacedEffects={paced} />
+              </Scaled>
+            </div>
+          );
+        })}
+      </div>
+      {open && (
+        <CardZoom label={open.card.name} fontClass={fontClass} onClose={() => setZoomed(null)}>
+          <GameCard
+            card={open.card}
+            imageUrl={open.imageUrl}
+            setSize={open.setSize}
+            layout={layout}
+            sparks={sparks}
+            pacedEffects={paced}
+          />
+        </CardZoom>
+      )}
+    </>
   );
 }
 

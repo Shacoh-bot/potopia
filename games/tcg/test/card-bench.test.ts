@@ -18,3 +18,20 @@ describe("banc d'essai des cartes (CardBench)", () => {
     for (const mark of marks) expect(v5).toMatch(new RegExp(`className="[^"]*${mark}[ "]`));
   });
 });
+
+describe("glisser une carte du banc (bench-drag)", () => {
+  it("moveItem déplace un élément et décale les autres", async () => {
+    const { moveItem } = await import("../ui/bench-drag");
+    expect(moveItem([0, 1, 2, 3], 0, 2)).toEqual([1, 2, 0, 3]);
+    expect(moveItem([0, 1, 2, 3], 3, 1)).toEqual([0, 3, 1, 2]);
+    expect(moveItem([0, 1, 2], 1, 1)).toEqual([0, 1, 2]);
+    expect(moveItem([0, 1, 2], 0, 9)).toEqual([0, 1, 2]);
+  });
+
+  it("pendant un glisser, tcg.css met toutes les animations du banc en pause", () => {
+    const rule =
+      /\.tcg-bench\[data-glisse\]:not\(\[data-glisser="plein"\]\) \*::after \{[^}]*animation-play-state: paused !important;/;
+    expect(css).toMatch(rule);
+    expect(css).toContain(".tcg-bench [data-glisse-carte] {");
+  });
+});

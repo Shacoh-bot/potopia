@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Banc des cartes : la planche montre autant de cartes qu'une page du Potodex (ou plus, au choix), un clic ouvre la carte en grand comme au Potodex, et on peut glisser une carte pour la changer de place ; ses effets se mettent en pause pendant le geste, pour qu'il reste fluide.",
+      },
+      {
+        admin: true,
         text: "Cartes : cadres SR et SSR, orbite, éclat, holo, lampe, métal et vitrail bougent sans redessiner la carte à chaque image (glissements et rotations seulement). Même rendu, moins de travail pour le navigateur, surtout Firefox.",
       },
       {
