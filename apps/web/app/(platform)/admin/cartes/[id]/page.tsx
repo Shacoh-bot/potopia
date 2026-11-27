@@ -1,4 +1,12 @@
-import { getCard, isDuplicateNote, listCards, listSets, listVisualEffects } from "@app/tcg";
+import {
+  CARD_PREP_STAGE_LABELS,
+  CARD_PREP_STAGES,
+  getCard,
+  isDuplicateNote,
+  listCards,
+  listSets,
+  listVisualEffects,
+} from "@app/tcg";
 import { CardEditor, CardSoundUpload } from "@app/tcg/ui";
 import { buttonClasses, Card } from "@app/ui";
 import type { Metadata } from "next";
@@ -59,10 +67,20 @@ export default async function AdminCardPage({
   const setTargets = sets
     .filter((s) => trashed || s.id !== card.setId)
     .map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` }));
+  // Réserve à une étape de préparation (1. à 4.) : y range la carte (hors set, hors corbeille) et
+  // lui donne l'étape ; déjà dans la réserve, son étape actuelle n'est pas proposée.
+  const inReserve = !trashed && !card.setId;
+  const stageTargets = CARD_PREP_STAGES.filter((s) => !inReserve || s !== card.prepStage).map(
+    (s) => ({
+      id: `stage:${s}`,
+      label: `Réserve · ${CARD_PREP_STAGES.indexOf(s) + 1}. ${CARD_PREP_STAGE_LABELS[s]}`,
+    }),
+  );
   // À la corbeille : la ranger la restaure, ou la supprimer pour de bon.
   const targets = trashed
     ? [
         { id: "", label: "Réserve (restaurer)" },
+        ...stageTargets,
         ...setTargets,
         // Déjà au « Doublon » : en changer (ou en choisir) la carte d'origine.
         { id: "duplicate", label: isDuplicateNote(card.adminNote) ? "Doublon de…" : "Doublon" },
@@ -70,6 +88,7 @@ export default async function AdminCardPage({
       ]
     : [
         ...(card.setId ? [{ id: "", label: "Réserve (hors set)" }] : []),
+        ...stageTargets,
         ...setTargets,
         { id: "duplicate", label: "Doublon" },
         { id: "trash", label: "Corbeille" },

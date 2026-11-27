@@ -74,6 +74,14 @@ export const PATCH_NOTES = parsePatchNotes([
       },
       {
         admin: true,
+        text: "Admin des cartes : sur la fiche d'une carte, « Déplacer vers… » propose aussi les étapes de la réserve (1. À traiter, 2. Illustration ok, 3. Description et effet ok, 4. À intégrer à un set) : la carte quitte son set ou la corbeille et prend l'étape choisie.",
+      },
+      {
+        admin: true,
+        text: "Cartes SR et SSR : plus de petit carré de lumière aux coins du cadre (en haut à gauche et en bas à droite).",
+      },
+      {
+        admin: true,
         text: "Booster : le son d'une carte (victoire SR/SSR, son propre) part dès l'appui sur la carte, avec le retournement.",
       },
       {

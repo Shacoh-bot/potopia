@@ -486,26 +486,26 @@
      répète, c'est la même image qu'en déplaçant le fond. (Avant l'inclinaison à plat, un calque
      composé sortait parfois de la découpe arrondie sur la carte inclinée en 3D ; plus de 3D réelle
      depuis, le filet de rendu le vérifie au survol.) */
-  animation: tcg-frame-run-720 3s linear infinite;
+  animation: tcg-frame-run-684 3s linear infinite;
 }
 /* Une animation par période de dégradé, en valeurs fixes : avec des var() dans les clés, Chrome
    recalcule le style de chaque bande à chaque image. Le décalage propre à chaque bord est dans
    son `left` (v5.tsx, FrameRun). */
-@keyframes tcg-frame-run-720 {
+@keyframes tcg-frame-run-684 {
   to {
-    translate: 720px;
+    translate: 684px;
   }
 }
-@keyframes tcg-frame-run-1440 {
+@keyframes tcg-frame-run-1368 {
   to {
-    translate: 1440px;
+    translate: 1368px;
   }
 }
 /* SSR-2 : deux comètes par tour (la tête, rose, en avant). Premier fond : la lueur du dehors, mêmes
    comètes à 45 % (l'opacité de l'ancien calque de lueur, étape 6) ; second : la lumière du cadre. */
 .tcg-frame-run__light--comets {
-  /* période : un tour de cadre, 2 × (300 + 420) px */
-  animation-name: tcg-frame-run-1440;
+  /* période : un tour de lumière, FRAME_LOOP (v5.tsx) = 2 × (300 + 420) - 8 × 9 px */
+  animation-name: tcg-frame-run-1368;
   background-image:
     linear-gradient(
       90deg,

@@ -591,8 +591,8 @@ export function MoveCardsForm({
 }
 
 /**
- * Déplacement d'une seule carte (page de la carte) vers un set, la réserve ou la corbeille, dès
- * le choix dans le menu ; à la corbeille, suppression définitive (confirmée, puis retour à la
+ * Déplacement d'une seule carte (page de la carte) vers un set, la réserve (à une étape de
+ * préparation au choix) ou la corbeille, dès le choix dans le menu ; à la corbeille, suppression définitive (confirmée, puis retour à la
  * corbeille).
  */
 export function MoveCardForm({
