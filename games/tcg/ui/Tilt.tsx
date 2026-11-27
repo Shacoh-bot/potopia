@@ -1,6 +1,7 @@
 "use client";
 
 import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
+import { watchOffscreen } from "./offscreen-pause";
 import { watchStillHover } from "./still-hover";
 
 /**
@@ -83,6 +84,8 @@ export function Tilt({
     );
   }, []);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  // Hors de l'écran, la carte n'anime rien (`data-hors-ecran`, tcg.css).
+  useEffect(() => (ref.current && watchOffscreen(ref.current)) ?? undefined, []);
 
   return (
     <div
