@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Potodex et planches de cartes : au repos, chaque carte devient une image fixe (cadre et effets arrêtés sur un instant) ; elle s'anime au survol, en grand et à l'ouverture d'un booster. Beaucoup moins de travail pour le navigateur quand il y a des dizaines de cartes.",
+      },
+      {
+        admin: true,
         text: "Banc des cartes : la planche montre autant de cartes qu'une page du Potodex (ou plus, au choix), un clic ouvre la carte en grand comme au Potodex, et on peut glisser une carte pour la changer de place ; ses effets se mettent en pause pendant le geste, pour qu'il reste fluide.",
       },
       {

@@ -27,12 +27,13 @@ export function watchOffscreen(
 }
 
 /**
- * Niveaux de détail (refonte, étape 8) : met en pause les animations SVG (SMIL : `<animate>` des
- * filtres du mirage et de l'énergie) contenues dans `el` tant que la carte est figée sur une planche
- * sans être survolée (`.tcg-still` sans `data-live`) ou loin de l'écran (`.tcg-tilt` avec
- * `data-hors-ecran`). Le CSS ne sait pas arrêter le SMIL. Reprise là où elles en étaient, au premier
- * survol : le rendu survolé est inchangé. Sans MutationObserver (rendu serveur) : rien. Renvoie de
- * quoi arrêter l'observation (et relance les animations).
+ * Niveaux de détail : met en pause les animations SVG (SMIL : `<animate>` des filtres du mirage et
+ * de l'énergie, points lumineux…) contenues dans `el` tant que la carte est figée au repos sur une
+ * planche (`.tcg-still` avec `data-repos`, sans `data-live` : voir StillCard.tsx) ou loin de l'écran
+ * (`.tcg-tilt` avec `data-hors-ecran`). Le CSS ne sait pas arrêter le SMIL. Reprise là où elles en
+ * étaient, au survol : le rendu survolé est inchangé. Les SVG ajoutés plus tard dans une carte figée
+ * sont pris aussi. Sans MutationObserver (rendu serveur) : rien. Renvoie de quoi arrêter
+ * l'observation (et relance les animations).
  */
 export function watchFrozenSvg(
   el: HTMLElement,
@@ -43,14 +44,22 @@ export function watchFrozenSvg(
   if (!Observer || (!card && !tilt)) return null;
   const svgs = () => [...el.querySelectorAll<SVGSVGElement>("svg")];
   const sync = () => {
-    const frozen = (card && !("live" in card.dataset)) || (tilt && "horsEcran" in tilt.dataset);
+    const frozen =
+      (card && "repos" in card.dataset && !("live" in card.dataset)) ||
+      (tilt && "horsEcran" in tilt.dataset);
     for (const svg of svgs()) {
       if (frozen) svg.pauseAnimations?.();
       else svg.unpauseAnimations?.();
     }
   };
   const mo = new Observer(sync);
-  if (card) mo.observe(card, { attributes: true, attributeFilter: ["data-live"] });
+  if (card)
+    mo.observe(card, {
+      attributes: true,
+      attributeFilter: ["data-live", "data-repos"],
+      childList: true,
+      subtree: true,
+    });
   if (tilt) mo.observe(tilt, { attributes: true, attributeFilter: ["data-hors-ecran"] });
   sync();
   return () => {

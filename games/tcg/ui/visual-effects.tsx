@@ -26,12 +26,10 @@ import { ExtraArt, type ExtraStyle } from "./snap-styles";
  * - `frame` : sur toute la carte, au-dessus de la bordure mais sous les encadrés (effets de cadre).
  * Un effet `image` redessine l'illustration (or, pop art, aquarelle…) : il se pose juste sur elle,
  * sous tout le reste, dans les deux mises en page, et sous les autres effets de l'illustration.
- * Sur les planches (cartes figées), l'effet tourne quand même, survolé ou non : tcg.css ne coupe
- * pas les animations du calque `.tcg-vfx`, et les effets JS reçoivent `still` à faux. Figé, il
- * restait dans une pose artificielle (pétales alignés). Le `still` des effets (image fixe) reste
- * prévu, mais le calque le passe toujours à faux. Exceptions (étape 8, niveaux de détail) : les
- * effets lourds (`EFFETS_LOURDS`) s'arrêtent sur une planche hors survol, et les particules fines
- * n'y gardent qu'un grain sur trois (tcg.css).
+ * Sur les planches (cartes figées), l'effet tourne un instant puis se met en pause là où il en est
+ * (image fixe au repos, `StillCard` et tcg.css) ; il reprend au survol. Les effets JS reçoivent
+ * `still` à faux : retiré, l'effet restait dans une pose artificielle (pétales alignés). Les
+ * particules fines n'y gardent qu'un grain sur trois (tcg.css, étape 8).
  *
  * Plusieurs effets reprennent tels quels les styles des anciennes propositions de design
  * (éclat, liserés, prisme, halo, néon, aurore : classes `tcg-…` de
@@ -1134,10 +1132,9 @@ export const VISUAL_EFFECTS: Record<string, EffectDef> = {
  * chaque image (filtre SVG animé, fusion ou masque sur une image qui bouge). Mesures de l'étape 7,
  * planche de 40 cartes avec cet effet seul (Chrome GPU / Firefox logiciel, sans effet 60 / 28-34
  * i/s) : aquarelle 60 / 17-19, glitch 60 / 11-18, mirage 43-46 / 6,5, vitrail 40-44 / 4,5,
- * énergie 38-43 / 2,1. Sur une planche (carte figée), ils restent arrêtés tant que la carte n'est
- * pas survolée : tcg.css met leurs animations CSS en pause (`data-lourd`) et `watchFrozenSvg` leurs
- * animations SVG ; même arrêt hors de l'écran (`data-hors-ecran`). Les autres effets (pétales,
- * braises, fumée…) ne bougent qu'en transform/opacity et tournent toujours.
+ * énergie 38-43 / 2,1. Sur une planche, comme tout effet, ils s'arrêtent au repos (image fixe,
+ * `StillCard`) ; leurs animations SVG s'arrêtent aussi hors de l'écran (`data-hors-ecran`, via
+ * `watchFrozenSvg`). `data-lourd` les signale (tests de budget et de rendu).
  */
 export const EFFETS_LOURDS: ReadonlySet<string> = new Set([
   "aquarelle",
@@ -1176,7 +1173,7 @@ export function VisualEffectLayer({
       data-effect={effectKey}
       data-lourd={lourd ? "" : undefined}
     >
-      {/* Toujours animé, même sur une planche (carte figée), sauf effet lourd : voir l'en-tête. */}
+      {/* Animé ; sur une planche, en pause au repos (image fixe) : voir l'en-tête. */}
       <Effect still={false} card={card} full={full} {...(paced ? { paced } : null)} />
     </div>
   );
