@@ -1,12 +1,6 @@
 /* Effets des cartes premium (games/tcg/ui) : inclinaison 3D, reflet, holo, cadres animés.
    Les variables --mx/--my (position du pointeur, %) et --rx/--ry (angles) sont posées par <Tilt>. */
 
-@property --tcg-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .tcg-tilt {
   --mx: 50%;
   --my: 35%;
@@ -92,22 +86,18 @@
   }
 }
 
-/* Cadre animé : un liseré lumineux qui fait le tour de la carte. */
-.tcg-orbit {
+/* Cadre animé : un liseré lumineux qui fait le tour de la carte. Le dégradé conique ne bouge pas :
+   il est peint une fois dans un carré plus grand que la carte, centré sur elle, qui tourne
+   (`rotate`, compositeur, aucun repeint) sous le masque en anneau. Tourner le carré de θ donne
+   exactement le dégradé « from θ » d'avant. */
+.tcg-orbit,
+.tcg-prism,
+.tcg-flow {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 3px;
+  overflow: hidden;
   pointer-events: none;
-  background: conic-gradient(
-    from var(--tcg-angle),
-    transparent 0deg,
-    var(--orbit, #ffd76a) 40deg,
-    #fff 60deg,
-    var(--orbit, #ffd76a) 80deg,
-    transparent 140deg,
-    transparent 360deg
-  );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -115,12 +105,37 @@
   mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
-  animation: tcg-orbit 4s linear infinite;
+}
+.tcg-orbit::before,
+.tcg-prism::before,
+.tcg-flow::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Couvre la carte à tous les angles : 250 % de la largeur > diagonale (carte 5 × 7). */
+  width: 250%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  animation: tcg-spin 4s linear infinite;
+}
+.tcg-orbit {
+  padding: 3px;
+}
+.tcg-orbit::before {
+  background: conic-gradient(
+    transparent 0deg,
+    var(--orbit, #ffd76a) 40deg,
+    #fff 60deg,
+    var(--orbit, #ffd76a) 80deg,
+    transparent 140deg,
+    transparent 360deg
+  );
 }
 
-@keyframes tcg-orbit {
+@keyframes tcg-spin {
   to {
-    --tcg-angle: 360deg;
+    rotate: 360deg;
   }
 }
 
@@ -199,13 +214,15 @@
   mix-blend-mode: overlay;
   animation: tcg-sweep 4.2s ease-in-out infinite;
 }
+/* Le reflet glisse par `translate` (compositeur) : de left -60 % à 130 % de la carte, soit
+   190 % / 38 % = 5 fois sa propre largeur. */
 @keyframes tcg-sweep {
   0%,
   55% {
-    left: -60%;
+    translate: 0;
   }
   100% {
-    left: 130%;
+    translate: 500%;
   }
 }
 
@@ -239,28 +256,11 @@
 
 /* Cadre prismatique : un dégradé arc-en-ciel qui tourne lentement autour de la carte. */
 .tcg-prism {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
   padding: var(--prism-w, 7px);
-  pointer-events: none;
-  background: conic-gradient(
-    from var(--tcg-angle),
-    #ff6ab5,
-    #ffd36a,
-    #7dffb0,
-    #6ad5ff,
-    #b88bff,
-    #ff6ab5
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
-  animation: tcg-orbit 6s linear infinite;
+}
+.tcg-prism::before {
+  background: conic-gradient(#ff6ab5, #ffd36a, #7dffb0, #6ad5ff, #b88bff, #ff6ab5);
+  animation-duration: 6s;
 }
 
 /* Lignes de balayage (variante néon). */
@@ -430,9 +430,10 @@
   top: 0;
   height: 100%;
   background-repeat: repeat-x;
-  /* La lumière glisse par la position du fond, pas par un `transform` : un calque composé à part
-     sous la découpe arrondie de `.tcg-frame-run` sortait parfois de cette découpe sur la carte
-     inclinée (bandes carrées aux coins). Peinte dans la carte, elle reste découpée. */
+  /* La bande glisse d'une période par `translate` (compositeur, aucun repeint) : le dégradé se
+     répète, c'est la même image qu'en déplaçant le fond. (Avant l'inclinaison à plat, un calque
+     composé sortait parfois de la découpe arrondie sur la carte inclinée en 3D ; plus de 3D réelle
+     depuis, le filet de rendu le vérifie au survol.) */
   animation: tcg-frame-run-720 3s linear infinite;
 }
 /* Une animation par période de dégradé, en valeurs fixes : avec des var() dans les clés, Chrome
@@ -440,12 +441,12 @@
    son `left` (v5.tsx, FrameRun). */
 @keyframes tcg-frame-run-720 {
   to {
-    background-position-x: 720px;
+    translate: 720px;
   }
 }
 @keyframes tcg-frame-run-1440 {
   to {
-    background-position-x: 1440px;
+    translate: 1440px;
   }
 }
 /* SSR-2 : deux comètes par tour (la tête, rose, en avant). */
@@ -587,23 +588,15 @@ body:has(.tcg-opening, .tcg-still)::before {
 
 /* ───────────── Deuxième vague (v2.tsx) ───────────── */
 
-/* Liseré d'énergie qui court autour de la carte (couleurs dans --flow). */
+/* Liseré d'énergie qui court autour de la carte (couleurs dans --flow) : carré qui tourne sous le
+   masque en anneau, comme `.tcg-orbit`. */
 .tcg-flow {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
   padding: 4px;
-  pointer-events: none;
-  background: conic-gradient(from var(--tcg-angle), var(--flow, #9aa7ff, #fff, #9aa7ff));
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box exclude,
-    linear-gradient(#000 0 0);
   filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.5));
-  animation: tcg-orbit 3.2s linear infinite;
+}
+.tcg-flow::before {
+  background: conic-gradient(var(--flow, #9aa7ff, #fff, #9aa7ff));
+  animation-duration: 3.2s;
 }
 
 /* Halo intérieur qui respire. */
@@ -743,12 +736,12 @@ body:has(.tcg-opening, .tcg-still)::before {
     transition: none;
   }
   .tcg-sparkle,
-  .tcg-orbit,
-  .tcg-prism,
+  .tcg-orbit::before,
+  .tcg-prism::before,
   .tcg-glitch-red,
   .tcg-glitch-cyan,
   .tcg-glitch-slice,
-  .tcg-flow,
+  .tcg-flow::before,
   .tcg-breathe,
   .tcg-torch,
   .tcg-aurora,
@@ -892,10 +885,46 @@ body:has(.tcg-opening, .tcg-still)::before {
 /* holo : bandes arc-en-ciel qui glissent avec le pointeur (--mx/--my posées par <Tilt>), plus
    vives autour de lui. Seulement quand le pointeur bouge sur la carte : invisible au repos, la
    carte garde ses couleurs. Fusion « color » : la carte prend la teinte des bandes mais garde
-   sa luminosité, point par point ; l'holo ne l'éclaircit ni ne l'assombrit. */
+   sa luminosité, point par point ; l'holo ne l'éclaircit ni ne l'assombrit.
+   Rien n'est repeint quand le pointeur bouge (seulement `translate`/`scale`, compositeur) :
+   - `-lens` porte le masque rond : 4 × la carte, centrée sur son coin haut gauche, posée sur le
+     pointeur (translate) et agrandie de --mr (distance au coin le plus loin / diagonale, posée par
+     <Tilt>) ; son dégradé (rayon 2 diagonales, arrêt à 32,5 %) tombe alors à 65 % du rayon
+     « farthest-corner » autour du pointeur, comme avant ;
+   - `-lens::before` porte les bandes (2,6 × la carte) : l'agrandissement est annulé (scale 1/--mr)
+     et elles glissent de -1,6 × la carte × --mx, comme l'ancien `background-position`. */
 .tcg-vfx-holo {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  mix-blend-mode: color;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tcg-tilt[data-active] .tcg-vfx-holo {
+  opacity: 0.55;
+}
+.tcg-vfx-holo-lens {
+  position: absolute;
+  left: -200%;
+  top: -200%;
+  width: 400%;
+  height: 400%;
+  translate: calc(var(--mx, 50%) / 4) calc(var(--my, 35%) / 4);
+  scale: var(--mr, 0.6036);
+  -webkit-mask-image: radial-gradient(circle farthest-corner, #000 0%, rgb(0 0 0 / 0.3) 32.5%);
+  mask-image: radial-gradient(circle farthest-corner, #000 0%, rgb(0 0 0 / 0.3) 32.5%);
+}
+.tcg-vfx-holo-lens::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 65%;
+  height: 65%;
+  transform-origin: 0 0;
+  transform: translate(calc(var(--mx, 50%) * -1), calc(var(--my, 35%) * -1));
+  scale: calc(1 / var(--mr, 0.6036));
   background: repeating-linear-gradient(
     115deg,
     rgb(255 60 190) 0%,
@@ -905,24 +934,10 @@ body:has(.tcg-opening, .tcg-still)::before {
     rgb(170 90 255) 28%,
     rgb(255 60 190) 35%
   );
-  background-size: 260% 260%;
-  background-position: var(--mx, 50%) var(--my, 35%);
-  mix-blend-mode: color;
-  -webkit-mask-image: radial-gradient(
-    circle at var(--mx, 50%) var(--my, 35%),
-    #000 0%,
-    rgb(0 0 0 / 0.3) 65%
-  );
-  mask-image: radial-gradient(
-    circle at var(--mx, 50%) var(--my, 35%),
-    #000 0%,
-    rgb(0 0 0 / 0.3) 65%
-  );
-  opacity: 0;
-  transition: opacity 0.3s;
 }
-.tcg-tilt[data-active] .tcg-vfx-holo {
-  opacity: 0.55;
+.tcg-tilt[data-active] .tcg-vfx-holo-lens,
+.tcg-tilt[data-active] .tcg-vfx-holo-lens::before {
+  will-change: transform;
 }
 
 /* eclair : part d'un bord ; cœur blanc, lueur cyan, grand halo flou violet et cyan (bloom), point
@@ -1052,16 +1067,21 @@ body:has(.tcg-opening, .tcg-still)::before {
 
 /* vitrail : la lumière traverse le verre. `-lit` est l'illustration plus claire et plus saturée,
    rognée en rond autour du « soleil » : un masque deux fois plus grand que la carte, dont le
-   centre tombe en (100% - position) ; il dérive au repos et suit le pointeur au survol. Les
+   centre tombe en (100% - position) ; il dérive au repos et suit le pointeur au survol. Le masque
+   se déplace par `translate` (compositeur) et l'image `-art` dedans, du déplacement inverse :
+   elle reste en place, seul le rond bouge (même image que l'ancien `mask-position`). Les
    plombs, noirs, restent noirs même éclaircis. `-bloom` fait rayonner les couleurs du verre
    (copie floutée en `screen`, qui respire) ; `-glint` : éclats en étoile, tour à tour. */
-.tcg-vfx-vitrail-lit,
 .tcg-vfx-vitrail-bloom {
   position: absolute;
   inset: 0;
 }
 .tcg-vfx-vitrail-lit {
-  filter: brightness(1.5) saturate(1.55) contrast(1.06);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 200%;
+  height: 200%;
   -webkit-mask-image: radial-gradient(
     circle closest-side,
     #000 0,
@@ -1069,16 +1089,28 @@ body:has(.tcg-opening, .tcg-still)::before {
     transparent 48%
   );
   mask-image: radial-gradient(circle closest-side, #000 0, rgb(0 0 0 / 0.55) 22%, transparent 48%);
-  -webkit-mask-size: 200% 200%;
-  mask-size: 200% 200%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   animation: tcg-vitrail-sun 14s ease-in-out infinite;
 }
+.tcg-vfx-vitrail-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  height: 50%;
+  filter: brightness(1.5) saturate(1.55) contrast(1.06);
+  animation: tcg-vitrail-sun-art 14s ease-in-out infinite;
+}
+/* Ancien mask-position p : masque en -p × la carte (translate -p/2 de sa taille, 2 × la carte),
+   image en +p × la carte. */
 .tcg-tilt[data-active] .tcg-vfx-vitrail-lit {
   animation: none;
-  -webkit-mask-position: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
-  mask-position: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
+  translate: calc((var(--mx, 50%) - 100%) / 2) calc((var(--my, 35%) - 100%) / 2);
+}
+.tcg-tilt[data-active] .tcg-vfx-vitrail-art {
+  animation: none;
+  translate: calc(100% - var(--mx, 50%)) calc(100% - var(--my, 35%));
 }
 .tcg-vfx-vitrail-bloom {
   filter: blur(7px) brightness(1.25) saturate(1.9);
@@ -1104,19 +1136,29 @@ body:has(.tcg-opening, .tcg-still)::before {
   opacity: 0;
   animation: tcg-vitrail-glint 6s ease-in-out infinite;
 }
+/* Soleil aux positions 30 % 75 %, 75 % 60 %, 50 % 30 % (ancien mask-position). */
 @keyframes tcg-vitrail-sun {
   0%,
   100% {
-    -webkit-mask-position: 30% 75%;
-    mask-position: 30% 75%;
+    translate: -15% -37.5%;
   }
   33% {
-    -webkit-mask-position: 75% 60%;
-    mask-position: 75% 60%;
+    translate: -37.5% -30%;
   }
   66% {
-    -webkit-mask-position: 50% 30%;
-    mask-position: 50% 30%;
+    translate: -25% -15%;
+  }
+}
+@keyframes tcg-vitrail-sun-art {
+  0%,
+  100% {
+    translate: 30% 75%;
+  }
+  33% {
+    translate: 75% 60%;
+  }
+  66% {
+    translate: 50% 30%;
   }
 }
 @keyframes tcg-vitrail-breathe {
@@ -1140,13 +1182,16 @@ body:has(.tcg-opening, .tcg-still)::before {
 }
 @media (prefers-reduced-motion: reduce) {
   .tcg-vfx-vitrail-lit,
+  .tcg-vfx-vitrail-art,
   .tcg-vfx-vitrail-bloom,
   .tcg-vfx-vitrail-glint {
     animation: none;
   }
   .tcg-vfx-vitrail-lit {
-    -webkit-mask-position: 50% 60%;
-    mask-position: 50% 60%;
+    translate: -25% -30%;
+  }
+  .tcg-vfx-vitrail-art {
+    translate: 50% 60%;
   }
 }
 
@@ -1178,21 +1223,30 @@ body:has(.tcg-opening, .tcg-still)::before {
 }
 
 /* lampe : tout est assombri sauf un rond de lumière autour du pointeur ; au repos, rond large au
-   centre et pénombre légère. */
+   centre et pénombre légère. Le rond est peint une fois au centre d'un calque 2 × la carte, posé
+   sur le pointeur par `translate` (compositeur, aucun repeint). */
 .tcg-vfx-lamp {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at var(--mx, 50%) var(--my, 35%),
-    transparent 0,
-    transparent 70px,
-    rgb(4 6 14 / 0.88) 150px
-  );
+  overflow: hidden;
   opacity: 0.45;
   transition: opacity 0.3s;
 }
+.tcg-vfx-lamp::before {
+  content: "";
+  position: absolute;
+  left: -100%;
+  top: -100%;
+  width: 200%;
+  height: 200%;
+  translate: calc(var(--mx, 50%) / 2) calc(var(--my, 35%) / 2);
+  background: radial-gradient(circle, transparent 0, transparent 70px, rgb(4 6 14 / 0.88) 150px);
+}
 .tcg-tilt[data-active] .tcg-vfx-lamp {
   opacity: 1;
+}
+.tcg-tilt[data-active] .tcg-vfx-lamp::before {
+  will-change: transform;
 }
 
 /* metal : stries horizontales très fines + reflet net en biais qui suit le pointeur. */
@@ -1209,9 +1263,22 @@ body:has(.tcg-opening, .tcg-still)::before {
     linear-gradient(180deg, rgb(200 215 230 / 0.25), rgb(80 95 115 / 0.25));
   mix-blend-mode: overlay;
 }
+/* Reflet : bande 3 × la carte qui glisse par `translate` (ancien background-position --mx). */
 .tcg-vfx-metal-shine {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  mix-blend-mode: soft-light;
+  opacity: 0.6;
+}
+.tcg-vfx-metal-shine::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 300%;
+  height: 100%;
+  translate: calc(var(--mx, 50%) * -2 / 3) 0;
   background: linear-gradient(
     105deg,
     transparent 38%,
@@ -1220,10 +1287,6 @@ body:has(.tcg-opening, .tcg-still)::before {
     rgb(255 255 255 / 0.15) 53%,
     transparent 60%
   );
-  background-size: 300% 100%;
-  background-position: var(--mx, 50%) 0;
-  mix-blend-mode: soft-light;
-  opacity: 0.6;
 }
 .tcg-tilt[data-active] .tcg-vfx-metal-shine {
   opacity: 1;

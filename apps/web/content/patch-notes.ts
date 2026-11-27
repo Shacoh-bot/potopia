@@ -64,6 +64,17 @@ export function latestPatchNote(notes: PatchNote[]): string {
 
 export const PATCH_NOTES = parsePatchNotes([
   {
+    date: "2026-11-27",
+    title: "Cartes : effets plus légers à afficher",
+    publicTitle: "Petites retouches",
+    items: [
+      {
+        admin: true,
+        text: "Cartes : cadres SR et SSR, orbite, éclat, holo, lampe, métal et vitrail bougent sans redessiner la carte à chaque image (glissements et rotations seulement). Même rendu, moins de travail pour le navigateur, surtout Firefox.",
+      },
+    ],
+  },
+  {
     date: "2026-11-26",
     title: "Cartes : plus rien ne s'efface au survol dans Firefox",
     publicTitle: "Petites retouches",

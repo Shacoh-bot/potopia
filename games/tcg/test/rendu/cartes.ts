@@ -11,6 +11,12 @@ import type { GameCardFields } from "../../ui/GameCard";
  */
 export const EFFETS_TEST = ["holo", "eclat", "orbite"];
 
+/**
+ * Effets qui suivent le pointeur par un calque déplacé (`translate`) au lieu d'un fond ou d'un
+ * masque repeint (refonte, étape 3) : vitrail (soleil qui dérive), lampe et reflet du métal.
+ */
+export const EFFETS_POINTEUR = ["vitrail", "lampe", "metal"];
+
 export type CarteTest = { id: string; card: GameCardFields; layout: "normal" | "fullart" };
 
 function carte(rarity: CardRarityId, effets: string[]): GameCardFields {
@@ -31,7 +37,11 @@ function carte(rarity: CardRarityId, effets: string[]): GameCardFields {
   };
 }
 
-export const CARTES_TEST: CarteTest[] = CARD_RARITIES.flatMap((r) => [
-  { id: `${r}-normale`, card: carte(r, []), layout: "normal" as const },
-  { id: `${r}-effets`, card: carte(r, EFFETS_TEST), layout: "fullart" as const },
-]);
+export const CARTES_TEST: CarteTest[] = [
+  ...CARD_RARITIES.flatMap((r) => [
+    { id: `${r}-normale`, card: carte(r, []), layout: "normal" as const },
+    { id: `${r}-effets`, card: carte(r, EFFETS_TEST), layout: "fullart" as const },
+  ]),
+  { id: "rare-pointeur", card: carte("rare", EFFETS_POINTEUR), layout: "normal" },
+  { id: "legendary-pointeur", card: carte("legendary", EFFETS_POINTEUR), layout: "fullart" },
+];
