@@ -70,6 +70,10 @@ export const PATCH_NOTES = parsePatchNotes([
     items: [
       {
         admin: true,
+        text: "Effet Énergie (ex. Spinning spinning) : les zones vives de l'illustration sont calculées une seule fois, seule leur teinte tourne ensuite (carte graphique). Même aspect, moins de calcul à chaque image.",
+      },
+      {
+        admin: true,
         text: "Booster : l'aura derrière les cartes (épique, légendaire, SR, SSR) devient une vidéo en boucle pré-calculée, même aspect, au lieu d'un calcul à chaque image. Banc des cartes : case « Aura en rendu direct » pour comparer.",
       },
       {
